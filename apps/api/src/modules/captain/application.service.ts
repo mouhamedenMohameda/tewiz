@@ -7,13 +7,22 @@ import { env } from '../../config/env.js';
 import { defaultStorage } from '../storage/local-disk.js';
 import type { DocumentType, ApplicationStatus } from '@tewiz/shared-types';
 
-// MVP: only the 4 essentials are required to submit. Admin can mark the
-// application as needs_correction to request additional docs later.
+// All 14 documents are required to submit a captain application.
 const REQUIRED_DOCS: DocumentType[] = [
   'selfie',
   'nni_front',
+  'nni_back',
   'license_front',
+  'license_back',
+  'carte_grise',
+  'assurance',
+  'vignette',
+  'visite_technique',
   'car_front',
+  'car_back',
+  'car_left',
+  'car_right',
+  'car_interior',
 ];
 
 const DOCS_WITH_EXPIRY: DocumentType[] = ['assurance', 'vignette', 'visite_technique'];
