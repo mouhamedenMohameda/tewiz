@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #f6f7fb;
+  --foreground: #0f172a;
+}
+
+html, body {
+  background: var(--background);
+  color: var(--foreground);
+  font-feature-settings: "cv11";
+}
+
+/* Subtle Tewiz feel: thin sidebar + spacious cards */
+.card {
+  @apply bg-white rounded-xl shadow-sm border border-slate-200;
+}
+.btn {
+  @apply inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-medium
+         transition disabled:opacity-50 disabled:cursor-not-allowed;
+}
+.btn-primary { @apply btn bg-brand-600 text-white hover:bg-brand-700; }
+.btn-secondary { @apply btn bg-slate-100 text-slate-900 hover:bg-slate-200; }
+.btn-danger { @apply btn bg-red-600 text-white hover:bg-red-700; }
+.btn-ghost { @apply btn text-slate-700 hover:bg-slate-100; }
+.input {
+  @apply w-full px-3 py-2 border border-slate-300 rounded-lg text-sm
+         focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent;
+}
+.badge { @apply inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium; }
+.badge-pending { @apply badge bg-yellow-100 text-yellow-800; }
+.badge-approved { @apply badge bg-green-100 text-green-800; }
+.badge-rejected { @apply badge bg-red-100 text-red-800; }
+.badge-info { @apply badge bg-blue-100 text-blue-800; }
+.badge-neutral { @apply badge bg-slate-100 text-slate-700; }

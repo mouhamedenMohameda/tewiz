@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "Tewiz",
+    "slug": "tewiz-rider",
+    "version": "0.0.1",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "tewizrider",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "mr.tewiz.rider",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Pour trouver votre position de prise en charge.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "mr.tewiz.rider",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Tewiz utilise votre position pour trouver des chauffeurs proches."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "tewiz",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Ride-hailing platform for Mauritania",
+  "scripts": {
+    "dev": "pnpm --filter @tewiz/api dev",
+    "db:migrate": "pnpm --filter @tewiz/api migrate up",
+    "db:migrate:down": "pnpm --filter @tewiz/api migrate down",
+    "tunnel": "ssh -L 5432:localhost:5432 -L 6379:localhost:6379 root@5.189.153.144",
+    "typecheck": "pnpm -r typecheck",
+    "build": "pnpm -r build"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  },
+  "packageManager": "pnpm@9.12.0",
+  "engines": {
+    "node": ">=20"
+  }
+}
