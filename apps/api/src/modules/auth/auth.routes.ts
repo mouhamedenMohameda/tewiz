@@ -68,9 +68,20 @@ authRouter.post('/otp/verify', async (req, res) => {
   let userRow = await findUserByPhone(phone);
   if (!userRow) {
     userRow = await createUser(phone, role, fullName ?? null);
-  } else if (userRow.role !== role) {
-    // A user can't suddenly become a different role via login. Admin assigns role.
-    throw new HttpError(403, 'role_mismatch', 'Phone already registered with another role');
+  } else {
+    // The DB role is the source of truth. The requested `role` is just the
+    // app context. We allow login as long as:
+    //   - the user isn't trying to claim admin from a non-admin account
+    //   - the user isn't an admin trying to log in via a non-admin app
+    // Rider <-> captain transitions are allowed (a rider whose captain
+    // application got approved can sign in from the rider app and still
+    // be recognized as a captain).
+    if (role === 'admin' && userRow.role !== 'admin') {
+      throw new HttpError(403, 'role_mismatch', 'Not an administrator');
+    }
+    if (userRow.role === 'admin' && role !== 'admin') {
+      throw new HttpError(403, 'role_mismatch', 'Admin must sign in via admin app');
+    }
   }
 
   // Issue session + tokens.
