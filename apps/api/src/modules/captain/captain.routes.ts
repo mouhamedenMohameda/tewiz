@@ -12,22 +12,24 @@ import { captainRecurringRouter } from '../recurring/captain.routes.js';
 import { captainHeatmapRouter } from '../heatmap/heatmap.routes.js';
 
 export const captainRouter = Router();
-captainRouter.use(requireAuth, requireRole('captain'));
+captainRouter.use(requireAuth);
 
-// Wallet, presence (online/offline + going-home), rides, home, recurring
-// all inherit auth + role from parent.
-captainRouter.use('/wallet', captainWalletRouter);
-captainRouter.use('/state', captainStateRouter);
-captainRouter.use('/rides', captainRidesRouter);
-captainRouter.use('/home', captainHomeRouter);
-captainRouter.use('/recurring-rides', captainRecurringRouter);
-captainRouter.use('/heatmap', captainHeatmapRouter);
+// Captain-only sub-routers (require approved captain role).
+captainRouter.use('/wallet', requireRole('captain'), captainWalletRouter);
+captainRouter.use('/state', requireRole('captain'), captainStateRouter);
+captainRouter.use('/rides', requireRole('captain'), captainRidesRouter);
+captainRouter.use('/home', requireRole('captain'), captainHomeRouter);
+captainRouter.use('/recurring-rides', requireRole('captain'), captainRecurringRouter);
+captainRouter.use('/heatmap', requireRole('captain'), captainHeatmapRouter);
+
+// /applications/* is accessible to rider OR captain — any signed-in user can apply.
+const requireRiderOrCaptain = requireRole('rider', 'captain');
 
 /**
  * POST /captain/applications
  * Returns the current open application, or creates a new draft.
  */
-captainRouter.post('/applications', async (req, res) => {
+captainRouter.post('/applications', requireRiderOrCaptain, async (req, res) => {
   const userId = (req as AuthedRequest).user.id;
   res.json(await svc.getOrCreateDraft(userId));
 });
@@ -35,7 +37,7 @@ captainRouter.post('/applications', async (req, res) => {
 /**
  * GET /captain/applications/me
  */
-captainRouter.get('/applications/me', async (req, res) => {
+captainRouter.get('/applications/me', requireRiderOrCaptain, async (req, res) => {
   const userId = (req as AuthedRequest).user.id;
   const app = await svc.getMyApplication(userId);
   if (!app) throw new HttpError(404, 'no_application', 'No application');
@@ -63,7 +65,7 @@ const updateBody = z.object({
   acceptsLongDistance: z.boolean().optional(),
 });
 
-captainRouter.patch('/applications/me', async (req, res) => {
+captainRouter.patch('/applications/me', requireRiderOrCaptain, async (req, res) => {
   const userId = (req as AuthedRequest).user.id;
   const body = updateBody.parse(req.body);
   res.json(await svc.updateMyApplication(userId, body));
@@ -87,6 +89,7 @@ const uploadBody = z.object({
 
 captainRouter.post(
   '/applications/me/documents',
+  requireRiderOrCaptain,
   upload.single('file'),
   async (req, res) => {
     if (!req.file) throw new HttpError(400, 'no_file', 'Missing "file" field');
@@ -105,7 +108,7 @@ captainRouter.post(
 /**
  * DELETE /captain/applications/me/documents/:docId
  */
-captainRouter.delete('/applications/me/documents/:docId', async (req, res) => {
+captainRouter.delete('/applications/me/documents/:docId', requireRiderOrCaptain, async (req, res) => {
   const userId = (req as AuthedRequest).user.id;
   await svc.deleteDocument(userId, req.params.docId!);
   res.json({ ok: true });
@@ -115,7 +118,7 @@ captainRouter.delete('/applications/me/documents/:docId', async (req, res) => {
  * POST /captain/applications/me/submit
  * Validates completeness and moves to "submitted" status.
  */
-captainRouter.post('/applications/me/submit', async (req, res) => {
+captainRouter.post('/applications/me/submit', requireRiderOrCaptain, async (req, res) => {
   const userId = (req as AuthedRequest).user.id;
   res.json(await svc.submitApplication(userId));
 });

@@ -7,21 +7,13 @@ import { env } from '../../config/env.js';
 import { defaultStorage } from '../storage/local-disk.js';
 import type { DocumentType, ApplicationStatus } from '@tewiz/shared-types';
 
+// MVP: only the 4 essentials are required to submit. Admin can mark the
+// application as needs_correction to request additional docs later.
 const REQUIRED_DOCS: DocumentType[] = [
   'selfie',
   'nni_front',
-  'nni_back',
   'license_front',
-  'license_back',
-  'carte_grise',
-  'assurance',
-  'vignette',
-  'visite_technique',
   'car_front',
-  'car_back',
-  'car_left',
-  'car_right',
-  'car_interior',
 ];
 
 const DOCS_WITH_EXPIRY: DocumentType[] = ['assurance', 'vignette', 'visite_technique'];
@@ -75,8 +67,8 @@ export async function getOrCreateDraft(userId: string) {
     [userId],
   );
   if (!user.rows[0]) throw new HttpError(404, 'user_not_found', 'User not found');
-  if (user.rows[0].role !== 'captain') {
-    throw new HttpError(403, 'wrong_role', 'You must sign in with role=captain to apply');
+  if (!['rider', 'captain'].includes(user.rows[0].role)) {
+    throw new HttpError(403, 'wrong_role', 'Only riders or captains can apply');
   }
 
   const created = await pool.query<ApplicationRow>(
