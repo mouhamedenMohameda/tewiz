@@ -46,7 +46,7 @@ export default function LoginPage() {
         phone,
         code,
         role: 'admin',
-        deviceId: 'tewiz-admin-web-' + window.crypto.randomUUID().slice(0, 8),
+        deviceId: 'tewiz-admin-web-' + Math.random().toString(36).slice(2, 10),
       });
       setSession({
         user: r.data.user,
