@@ -6,7 +6,13 @@
     "baseUrl": "src",
     "paths": {
       "@tewiz/shared-types": ["../../../packages/shared-types/src/index.ts"]
-    }
+    },
+    // Runtime-only: don't emit .d.ts files. pnpm's non-flat
+    // node_modules layout otherwise raises "type cannot be named"
+    // errors for every Router() definition (see voice-location-api
+    // tsconfig for the same fix).
+    "declaration": false,
+    "sourceMap": false
   },
   "include": ["src/**/*.ts"]
 }
