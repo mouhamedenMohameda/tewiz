@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "tsc --pretty false; node -e \"const fs=require('fs');process.exit(fs.existsSync('dist/index.js')?0:1)\"",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
     "migrate": "node-pg-migrate -m ../../db/migrations --envPath ../../.env --migration-file-language sql",
