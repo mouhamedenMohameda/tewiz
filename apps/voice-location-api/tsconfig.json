@@ -3,7 +3,13 @@
   "compilerOptions": {
     "rootDir": ".",
     "outDir": "dist",
-    "baseUrl": "src"
+    "baseUrl": "src",
+    // Runtime-only API: no need to emit .d.ts files. Disabling avoids
+    // the "inferred type cannot be named" errors that pnpm's non-flat
+    // node_modules layout triggers when referencing types from
+    // express-serve-static-core / pg / multer.
+    "declaration": false,
+    "sourceMap": false
   },
   "include": ["src/**/*.ts", "scripts/**/*.ts"]
 }

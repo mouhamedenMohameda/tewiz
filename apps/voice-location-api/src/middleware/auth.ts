@@ -1,9 +1,16 @@
 import type { Request, Response, NextFunction } from 'express';
 import { countUsageThisMonth, findKeyByHash, hashKey, touchLastUsed, type ApiKeyRow } from '../db/keys.js';
 
-declare module 'express-serve-static-core' {
-  interface Request {
-    apiKey?: ApiKeyRow;
+// Augment the Express namespace (declared globally by @types/express).
+// Using `declare global { namespace Express ... }` avoids the
+// "express-serve-static-core cannot be found" error that occurs with
+// pnpm's non-hoisted layout when emitting declarations.
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace Express {
+    interface Request {
+      apiKey?: ApiKeyRow;
+    }
   }
 }
 
