@@ -1,0 +1,87 @@
+[
+  {
+    "name_default": "Carrefour Oum Ghasser",
+    "name_fr": "Carrefour Oum Ghasser",
+    "name_ar": "كرفور أم قصر",
+    "alt_names": [
+      "Oum Ghasser",
+      "Oum Ksar",
+      "Oum Gsar",
+      "Oum El Ghasser",
+      "أم قصر",
+      "أم القصر"
+    ],
+    "lat": 18.0712,
+    "lng": -15.9543,
+    "osm_kind": "amenity",
+    "osm_value": "marketplace",
+    "popularity": 60,
+    "notes": "Carrefour landmark in Arafat. Update coords to exact Google Maps values when available."
+  },
+  {
+    "name_default": "Cité Dar Mouhoub",
+    "name_fr": "Cité Dar Mouhoub",
+    "name_ar": "ستة دار موهوب",
+    "alt_names": [
+      "Dar Mouhoub",
+      "Sité Dar Mouhoub",
+      "دار موهوب",
+      "سيتي دار موهوب"
+    ],
+    "lat": 18.0750,
+    "lng": -15.9650,
+    "osm_kind": "place",
+    "osm_value": "neighbourhood",
+    "popularity": 55,
+    "notes": "Residential neighborhood (Cité). Update coords with exact center when known."
+  },
+  {
+    "name_default": "Lakbeida",
+    "name_fr": "Lakbeida",
+    "name_ar": "الكبيدة",
+    "alt_names": [
+      "Lekbida",
+      "Lekbeida",
+      "El Kbeida",
+      "اللكبيدة"
+    ],
+    "lat": 18.0810,
+    "lng": -15.9600,
+    "osm_kind": "place",
+    "osm_value": "neighbourhood",
+    "popularity": 50,
+    "notes": "Locality in Nouakchott — not mapped in OSM."
+  },
+  {
+    "name_default": "Carrefour Bekar",
+    "name_fr": "Carrefour Bekar",
+    "name_ar": "كرفور بكر",
+    "alt_names": [
+      "Carrefour Bekkar",
+      "Bekar",
+      "Carrefour Bakar",
+      "كرفور بكار"
+    ],
+    "lat": 18.0780,
+    "lng": -15.9550,
+    "osm_kind": "amenity",
+    "osm_value": "marketplace",
+    "popularity": 55,
+    "notes": "Carrefour landmark near Arafat. Adjust coords once verified."
+  },
+  {
+    "name_default": "Dar Fatima Mountbenan",
+    "name_fr": "Dar Fatima Mountbenan",
+    "name_ar": "دار فاطمة منتبنة",
+    "alt_names": [
+      "Dar Fatima",
+      "دار فاطمة"
+    ],
+    "lat": 18.0760,
+    "lng": -15.9620,
+    "osm_kind": "place",
+    "osm_value": "locality",
+    "popularity": 35,
+    "notes": "Local landmark — adjust coords once verified."
+  }
+]

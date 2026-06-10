@@ -54,6 +54,15 @@ const EnvSchema = z.object({
   // Dispatch
   DISPATCH_RADIUS_M: z.coerce.number().int().default(3000),
   DISPATCH_TOP_N: z.coerce.number().int().default(5),
+
+  // Geocoding (Google Places). Falls back to Nominatim when unset.
+  GOOGLE_PLACES_API_KEY: z.string().optional(),
+
+  // Voice-to-Location proxy. The main API forwards rider audio to the
+  // voice-location-api (which lives behind an API key the client must
+  // never see). Defaults assume both apps run on the same host.
+  VOICE_API_INTERNAL_URL: z.string().url().default('http://127.0.0.1:4100'),
+  VOICE_API_KEY: z.string().min(10).optional(),
 });
 
 export const env = EnvSchema.parse(process.env);
