@@ -1,7 +1,11 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": ".",
+    // rootDir is "src" (not ".") so the output is dist/index.js, not
+    // dist/src/index.js. The scripts/*.ts files are run via tsx
+    // directly (pnpm ingest-pois, pnpm create-key) and do not need
+    // build emission.
+    "rootDir": "src",
     "outDir": "dist",
     "baseUrl": "src",
     // Runtime-only API: no need to emit .d.ts files. Disabling avoids
@@ -11,5 +15,5 @@
     "declaration": false,
     "sourceMap": false
   },
-  "include": ["src/**/*.ts", "scripts/**/*.ts"]
+  "include": ["src/**/*.ts"]
 }
