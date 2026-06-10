@@ -8,6 +8,8 @@ import { audit } from './audit.js';
 import { adminTopupRouter } from './topup.routes.js';
 import { adminRecurringRouter } from '../recurring/admin.routes.js';
 import { adminJobsRouter } from '../jobs/admin-jobs.routes.js';
+import { adminRidesRouter } from '../rides/admin-rides.routes.js';
+import { adminUsersRouter } from './users.routes.js';
 import * as roadReports from '../reports/road-reports.service.js';
 import type { ApplicationStatus } from '@tewiz/shared-types';
 
@@ -20,6 +22,10 @@ adminRouter.use('/topups', adminTopupRouter);
 adminRouter.use('/recurring', adminRecurringRouter);
 // Cron-triggered batch jobs (heatmap, expiry, etc.)
 adminRouter.use('/jobs', adminJobsRouter);
+// Admin books rides for phone-only passengers
+adminRouter.use('/rides', adminRidesRouter);
+// User management (create + regenerate password)
+adminRouter.use('/users', adminUsersRouter);
 
 // Admin can also drop abusive road reports.
 adminRouter.delete('/road-reports/:id', async (req, res) => {

@@ -9,7 +9,10 @@ import clsx from 'clsx';
 const NAV = [
   { href: '/applications', label: 'Dossiers KYC', icon: '📋' },
   { href: '/topups',       label: 'Recharges',   icon: '💰' },
+  { href: '/users',        label: 'Utilisateurs', icon: '👥' },
   { href: '/captains',     label: 'Chauffeurs',  icon: '🚕' },
+  { href: '/rides',        label: 'Courses',     icon: '🛣️' },
+  { href: '/rides/new',    label: 'Nouvelle course', icon: '🗺️' },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
