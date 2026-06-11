@@ -1,0 +1,77 @@
+{
+  "expo": {
+    "name": "Tewiz",
+    "slug": "tewiz",
+    "version": "0.0.1",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "tewiz",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "mr.tewiz.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Pour commander une course et — en mode chauffeur — recevoir des courses proches.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Pour suivre votre position pendant les courses.",
+        "NSCameraUsageDescription": "Pour prendre les photos requises pour votre dossier de chauffeur.",
+        "NSPhotoLibraryUsageDescription": "Pour joindre vos documents à votre dossier de chauffeur.",
+        "NSMicrophoneUsageDescription": "Pour dicter votre départ et votre destination par la voix (en français, hassaniya ou arabe).",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "mr.tewiz.app",
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Tewiz utilise votre position pour commander ou — en mode chauffeur — recevoir des courses."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Tewiz a besoin d'accéder à vos photos pour votre dossier de chauffeur.",
+          "cameraPermission": "Tewiz a besoin de la caméra pour photographier vos documents et votre véhicule."
+        }
+      ],
+      "expo-notifications",
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Tewiz utilise le micro pour dicter votre départ et votre destination."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "extractNativeLibs": true,
+            "useLegacyPackaging": true
+          }
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5888957f-74bd-4a38-9dce-77f46a124cc7"
+      }
+    }
+  }
+}

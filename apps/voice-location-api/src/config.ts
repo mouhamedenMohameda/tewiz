@@ -17,6 +17,10 @@ const EnvSchema = z.object({
   VOICE_API_DATABASE_URL: z.string().url(),
 
   OPENAI_API_KEY: z.string().min(10),
+  // gpt-4o-mini-transcribe is cheaper than whisper-1 and notably better on
+  // short fr/ar utterances. Keep it overridable in case OpenAI deprecates it
+  // or we need to A/B test against whisper-1.
+  OPENAI_TRANSCRIBE_MODEL: z.string().default('gpt-4o-mini-transcribe'),
   ANTHROPIC_API_KEY: z.string().min(10),
   ANTHROPIC_MODEL: z.string().default('claude-haiku-4-5-20251001'),
   GOOGLE_MAPS_API_KEY: z.string().min(10),
