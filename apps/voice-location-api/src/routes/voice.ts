@@ -227,7 +227,16 @@ voiceRouter.post(
       }
 
       // 1. Whisper STT
-      const transcript = await transcribe(file.buffer, file.originalname || 'audio.m4a');
+      // The mobile client sends its UI/device locale in `language_hint`
+      // (e.g. "fr", "ar-MR", "en-GB"). It's optional — if missing or
+      // outside our allow-list, Whisper auto-detects.
+      const langHint =
+        typeof req.body?.language_hint === 'string' ? req.body.language_hint : null;
+      const transcript = await transcribe(
+        file.buffer,
+        file.originalname || 'audio.m4a',
+        langHint,
+      );
       usage.transcriptChars = transcript.text.length;
       usage.detectedLang = transcript.language ?? undefined;
 

@@ -1,6 +1,9 @@
 import { env } from '../config.js';
 import { resolveLocal, type PoiRow } from './pois.js';
 import { autoSeedFromGoogle } from './auto-seed.js';
+import { withRetry, withTimeout } from '../lib/retry.js';
+
+const GOOGLE_GEOCODE_TIMEOUT_MS = 8_000;
 
 export interface GeocodeResult {
   lat: number;
@@ -99,11 +102,28 @@ export async function geocode(query: string): Promise<GeocodeResult | null> {
   if (env.GEOCODE_BOUNDS) params.set('bounds', env.GEOCODE_BOUNDS);
 
   const url = `https://maps.googleapis.com/maps/api/geocode/json?${params.toString()}`;
-  const res = await fetch(url);
-  if (!res.ok) {
-    throw new Error(`Google Geocoding HTTP ${res.status}`);
-  }
-  const data = (await res.json()) as GoogleGeocodeResponse;
+
+  // Retry on transient network errors / 5xx; abort hung sockets at 8 s so
+  // a slow Google response never blocks the user for more than a few
+  // seconds (the SDKs above already have their own timeouts).
+  const data = await withRetry(
+    async () => {
+      const controller = new AbortController();
+      const res = await withTimeout(
+        fetch(url, { signal: controller.signal }),
+        GOOGLE_GEOCODE_TIMEOUT_MS,
+        () => controller.abort(),
+      );
+      if (!res.ok) {
+        // Surface status on the error so the retry policy can decide.
+        const e: Error & { status?: number } = new Error(`Google Geocoding HTTP ${res.status}`);
+        e.status = res.status;
+        throw e;
+      }
+      return (await res.json()) as GoogleGeocodeResponse;
+    },
+    { retries: 2, baseDelayMs: 250 },
+  );
 
   if (data.status === 'ZERO_RESULTS') return null;
   if (data.status !== 'OK') {

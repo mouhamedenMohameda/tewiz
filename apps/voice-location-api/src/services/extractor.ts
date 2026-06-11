@@ -2,7 +2,13 @@ import Anthropic from '@anthropic-ai/sdk';
 import { env } from '../config.js';
 import { fuzzyMatchTranscript, formatPoiForPrompt } from './pois.js';
 
-const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+// maxRetries handles transient 5xx/429 with exponential backoff (SDK built-in).
+// timeout caps a single request at 15 s — well above p99 for Haiku on this size.
+const anthropic = new Anthropic({
+  apiKey: env.ANTHROPIC_API_KEY,
+  maxRetries: 3,
+  timeout: 15_000,
+});
 
 /**
  * A place mentioned in the transcript, with optional landmark context.
@@ -250,10 +256,27 @@ export async function extractTrip(
     `Return JSON matching this shape:\n${SCHEMA_HINT}${candidatesBlock}`,
   ].join('\n\n');
 
+  // The SYSTEM prompt is ~3 KB and never changes — wrap it in a single
+  // cache_control block so Anthropic serves the next call's prefix from
+  // cache (~90% cost reduction on cached tokens, lower latency too).
+  //
+  // temperature: 0 makes the structured-output extraction deterministic,
+  // which matters here because downstream resolves rely on stable string
+  // matching ("Marché Capitale" vs "marche capitale" vs "Marche-Capitale").
   const res = await anthropic.messages.create({
     model: env.ANTHROPIC_MODEL,
     max_tokens: 800,
-    system: SYSTEM,
+    temperature: 0,
+    // cache_control was wire-supported before the SDK exposed it in types
+    // (added in @anthropic-ai/sdk >= 0.34). Once we bump the SDK we can drop
+    // the cast. The API itself accepts the field today.
+    system: [
+      {
+        type: 'text',
+        text: SYSTEM,
+        cache_control: { type: 'ephemeral' },
+      },
+    ] as unknown as Anthropic.MessageCreateParams['system'],
     messages: [{ role: 'user', content: userMsg }],
   });
 
