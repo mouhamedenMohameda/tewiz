@@ -72,6 +72,8 @@ export async function captainInbox(input: {
     WHERE r.status = 'searching'
       AND ST_DWithin(r.pickup_location, me.pt, $3)
       AND (r.ride_type <> 'colis' OR cap.accepts_colis = true)
+      -- A captain who booked a ride in rider mode must never be offered their own ride.
+      AND r.booker_id <> $5
       -- If in going-home mode: drop rides that move us AWAY from home
       AND (
         NOT EXISTS (SELECT 1 FROM gh)
@@ -119,6 +121,35 @@ export async function captainInbox(input: {
     isFavorite: row.is_favorite,
     homewardProgressM: row.homeward_progress_m === null ? null : Number(row.homeward_progress_m),
   }));
+}
+
+/**
+ * Returns the user_ids of every captain currently eligible to receive a
+ * push notification for the given ride. Mirrors the same filters as the
+ * inbox query (online, within radius, accepts colis if applicable, not
+ * the booker themselves).
+ */
+export async function eligibleCaptainsForRide(rideId: string): Promise<string[]> {
+  const radius = env.DISPATCH_RADIUS_M;
+  const { rows } = await pool.query<{ captain_id: string }>(
+    `
+    WITH r AS (
+      SELECT id, booker_id, ride_type, pickup_location
+        FROM rides WHERE id = $1
+    )
+    SELECT s.captain_id
+      FROM captain_state s
+      JOIN captains   c ON c.user_id = s.captain_id
+      CROSS JOIN r
+     WHERE s.presence = 'online'
+       AND s.location IS NOT NULL
+       AND ST_DWithin(s.location, r.pickup_location, $2)
+       AND (r.ride_type <> 'colis' OR c.accepts_colis = true)
+       AND s.captain_id <> r.booker_id
+    `,
+    [rideId, radius],
+  );
+  return rows.map((row) => row.captain_id);
 }
 
 /**

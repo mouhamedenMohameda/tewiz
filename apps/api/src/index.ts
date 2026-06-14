@@ -12,6 +12,8 @@ import { riderRouter } from './modules/rider/rider.routes.js';
 import { adminRouter } from './modules/admin/admin.routes.js';
 import { publicRouter } from './modules/public/public.routes.js';
 import { roadReportsRouter } from './modules/reports/road-reports.routes.js';
+import { geocodeRouter } from './modules/geocode/geocode.routes.js';
+import { startHeatmapCron } from './modules/heatmap/heatmap.service.js';
 import { errorHandler, notFound } from './middleware/error.js';
 
 const logger = pino({
@@ -38,11 +40,17 @@ app.use('/rider', riderRouter);
 app.use('/admin', adminRouter);
 // Shared by riders and captains
 app.use('/road-reports', roadReportsRouter);
+// Shared geocoding proxy (auth required) — used by rider app and admin web
+app.use('/geocode', geocodeRouter);
 
 app.use(notFound);
 app.use(errorHandler);
 
-app.listen(env.PORT, () => {
-  logger.info(`Tewiz API listening on http://localhost:${env.PORT}`);
-  logger.info(`Health: http://localhost:${env.PORT}/health`);
+// Bind to loopback only — nginx terminates TLS on tewiz-api.radar-mr.com
+// and reverse-proxies to 127.0.0.1, so the port should never be exposed.
+app.listen(env.PORT, '127.0.0.1', () => {
+  logger.info(`Tewiz API listening on http://127.0.0.1:${env.PORT}`);
+  logger.info(`Health: http://127.0.0.1:${env.PORT}/health`);
+  // Recompute the demand heatmap every 5 min so captains always see fresh data.
+  startHeatmapCron();
 });

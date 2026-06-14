@@ -1,4 +1,4 @@
-// Shared types between API, captain-app, rider-app, and admin-web.
+// Shared types between API, mobile app, and admin-web.
 // Keep this dependency-free.
 
 export type UserRole = 'rider' | 'captain' | 'admin';

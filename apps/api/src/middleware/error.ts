@@ -1,5 +1,6 @@
 import type { ErrorRequestHandler, RequestHandler } from 'express';
 import { ZodError } from 'zod';
+import { env } from '../config/env.js';
 
 export class HttpError extends Error {
   constructor(
@@ -36,6 +37,24 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   }
 
   req.log?.error({ err }, 'unhandled error');
+  // In dev we expose the real message + stack so the client/curl can see what
+  // actually broke. In prod we keep the generic message to avoid leaking
+  // internals (DB names, file paths, etc.).
+  const e = err as { message?: string; stack?: string; code?: string; name?: string };
+  if (env.NODE_ENV !== 'production') {
+    res.status(500).json({
+      error: {
+        code: 'internal_error',
+        message: e.message ?? 'Something went wrong',
+        debug: {
+          name: e.name,
+          dbCode: e.code,                      // pg / redis driver code (e.g. ECONNREFUSED, 28P01)
+          stack: e.stack?.split('\n').slice(0, 5).join('\n'),
+        },
+      },
+    });
+    return;
+  }
   res.status(500).json({
     error: { code: 'internal_error', message: 'Something went wrong' },
   });

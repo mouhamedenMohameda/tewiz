@@ -55,11 +55,13 @@ api.interceptors.response.use(
 );
 
 /**
- * Fetch an authenticated binary (used for document/screenshot images).
- * Returns an object URL the browser can render in <img src>.
- * Caller must URL.revokeObjectURL when done.
+ * Fetch an authenticated binary and wrap it in an object URL the browser can
+ * render (<img src>, <audio src>, …). Caller must URL.revokeObjectURL when done.
  */
-export async function fetchImage(path: string): Promise<string> {
+export async function fetchBlobUrl(path: string): Promise<string> {
   const r = await api.get(path, { responseType: 'blob' });
   return URL.createObjectURL(r.data);
 }
+
+/** @deprecated use fetchBlobUrl — kept for AuthImage. */
+export const fetchImage = fetchBlobUrl;

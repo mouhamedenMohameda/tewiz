@@ -3,8 +3,11 @@ import { z } from 'zod';
 import { type AuthedRequest } from '../../middleware/auth.js';
 import { HttpError } from '../../middleware/error.js';
 import * as rides from './rides.service.js';
+import { distanceMeters } from './dispatch.service.js';
+import { estimateFareKhoums } from './pricing.js';
 
-// Parent (riderRouter) already enforces requireAuth + requireRole('rider').
+// Parent (riderRouter) enforces requireAuth + requireRole('rider', 'captain').
+// A captain in rider mode books rides exactly like a regular rider.
 export const riderRidesRouter = Router();
 
 const locationSchema = z.object({
@@ -25,6 +28,26 @@ const createBody = z.object({
   recipientName: z.string().min(2).max(100).optional(),
   recipientPhone: z.string().min(8).max(20).optional(),
   packageDescription: z.string().min(2).max(500).optional(),
+});
+
+/**
+ * POST /rider/rides/estimate
+ * Returns a fare + distance estimate WITHOUT creating a ride. Used by the
+ * "Confirmer ?" step so the rider sees the price before tapping create.
+ */
+const estimateBody = z.object({
+  pickup: locationSchema,
+  dropoff: locationSchema,
+});
+
+riderRidesRouter.post('/estimate', async (req, res) => {
+  const body = estimateBody.parse(req.body);
+  const crow = await distanceMeters(
+    body.pickup.lat, body.pickup.lng,
+    body.dropoff.lat, body.dropoff.lng,
+  );
+  const { fareKhoums, distanceEstimateM } = estimateFareKhoums(crow);
+  res.json({ fareKhoums, distanceM: distanceEstimateM });
 });
 
 /**
@@ -68,6 +91,28 @@ riderRidesRouter.get('/history', async (req, res) => {
 riderRidesRouter.get('/:id', async (req, res) => {
   const userId = (req as AuthedRequest).user.id;
   res.json(await rides.getRideForUser(req.params.id!, userId, 'rider'));
+});
+
+/**
+ * POST /rider/rides/:id/rating
+ * Body: { stars (1-5), comment? }
+ * Rider rates the captain after a completed ride. Idempotent — re-posting
+ * updates the existing rating. Recomputes captains.rating_avg + rating_count
+ * from scratch (cheap; each captain has at most ~1k ratings).
+ */
+const ratingBody = z.object({
+  stars: z.number().int().min(1).max(5),
+  comment: z.string().max(500).optional(),
+});
+riderRidesRouter.post('/:id/rating', async (req, res) => {
+  const userId = (req as AuthedRequest).user.id;
+  const body = ratingBody.parse(req.body);
+  res.json(await rides.rateCaptain({
+    rideId: req.params.id!,
+    riderId: userId,
+    stars: body.stars,
+    comment: body.comment,
+  }));
 });
 
 const cancelBody = z.object({ reason: z.string().min(2).max(500) });

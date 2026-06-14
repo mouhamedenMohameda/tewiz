@@ -12,12 +12,9 @@ import { formatMru } from '@/lib/format';
 import {
   RoadReportButton, RoadReportMarkers, useRoadReports,
 } from '@/components/RoadReports';
-import { VoiceMicButton } from '@/components/VoiceMicButton';
-import { VoiceCandidateSheet } from '@/components/VoiceCandidateSheet';
-import {
-  voiceToLocation, confirmLocation,
-  type SideBlock, type Side, type Candidate, type VoiceToLocationResponse,
-} from '@/lib/voiceLocation';
+// Voice-to-location (automated) removed in Phase 2 — voice ordering now lives
+// in the dedicated record→wait flow at /(app)/rider/voice-ride. This screen is
+// the manual map picker.
 
 // Nouakchott — Tevragh Zeina
 const DEFAULT_REGION: Region = {
@@ -52,19 +49,6 @@ export default function NewRideScreen() {
   const [packageDescription, setPackageDescription] = useState('');
 
   const { reports, refresh: refreshReports } = useRoadReports();
-
-  // ---- Voice-to-location state -------------------------------------------
-  // We keep the full voice response so we can validate /confirm choices
-  // and surface the candidate picker on the side that needs it.
-  const [voiceBusy, setVoiceBusy] = useState(false);
-  const [voiceResponse, setVoiceResponse] = useState<VoiceToLocationResponse | null>(null);
-  const [pickerSide, setPickerSide] = useState<Side | null>(null);
-
-  const sideBlockFor = useCallback((side: Side): SideBlock | null => {
-    if (!voiceResponse) return null;
-    return side === 'pickup' ? voiceResponse.pickup : voiceResponse.destination;
-  }, [voiceResponse]);
-  // ------------------------------------------------------------------------
 
   // Try to pre-fill pickup from GPS.
   useEffect(() => {
@@ -108,103 +92,6 @@ export default function NewRideScreen() {
     if (active === 'pickup' || (!active && !pickup)) setPickup(p);
     else setDropoff(p);
   }, [active, pickup]);
-
-  // ---- Voice handlers ----------------------------------------------------
-
-  /** Apply a SideBlock to pickup/dropoff state when no confirmation is needed. */
-  const applyTopCandidate = useCallback((side: Side, block: SideBlock) => {
-    const loc = block.location;
-    if (!loc) return;
-    const p: Point = { lat: loc.lat, lng: loc.lng, label: block.candidates[0]?.name ?? loc.address };
-    if (side === 'pickup') setPickup(p); else setDropoff(p);
-  }, []);
-
-  /** Center the map on the most-recently populated coordinate. */
-  const animateMapTo = useCallback((lat: number, lng: number) => {
-    mapRef.current?.animateToRegion({
-      latitude: lat, longitude: lng,
-      latitudeDelta: 0.03, longitudeDelta: 0.03,
-    }, 500);
-  }, []);
-
-  /** Called by VoiceMicButton when the user stops recording. */
-  const onVoiceCaptured = useCallback(async (audioUri: string) => {
-    setVoiceBusy(true);
-    try {
-      const resp = await voiceToLocation(audioUri);
-      setVoiceResponse(resp);
-
-      if (!resp.ok || resp.intent === 'neither') {
-        Alert.alert(
-          'Aucun lieu compris',
-          'Je n’ai pas reconnu de lieu dans votre message. Réessayez en disant par exemple : « Je pars de X vers Y ».',
-        );
-        return;
-      }
-
-      // For each side we have a result on:
-      //   - if needs_confirmation → open the picker (queued: pickup first)
-      //   - otherwise auto-apply the top candidate.
-      let firstPickerSide: Side | null = null;
-      for (const side of ['pickup', 'destination'] as const) {
-        const block = side === 'pickup' ? resp.pickup : resp.destination;
-        if (!block || !block.location) continue;
-        if (block.needs_confirmation) {
-          if (!firstPickerSide) firstPickerSide = side;
-        } else {
-          applyTopCandidate(side, block);
-        }
-      }
-      // Re-center on whatever got filled first.
-      const target = resp.pickup?.location ?? resp.destination?.location;
-      if (target) animateMapTo(target.lat, target.lng);
-
-      if (firstPickerSide) setPickerSide(firstPickerSide);
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Erreur réseau.';
-      Alert.alert('Voix indisponible', msg);
-    } finally {
-      setVoiceBusy(false);
-    }
-  }, [applyTopCandidate, animateMapTo]);
-
-  /** Called when the user picks one candidate from the bottom sheet. */
-  const onCandidateChosen = useCallback(async (c: Candidate) => {
-    const side = pickerSide;
-    if (!side || !voiceResponse) { setPickerSide(null); return; }
-
-    const block = sideBlockFor(side);
-    const p: Point = { lat: c.lat, lng: c.lng, label: c.name };
-    if (side === 'pickup') setPickup(p); else setDropoff(p);
-    animateMapTo(c.lat, c.lng);
-
-    // Fire-and-forget confirmation — this teaches the backend which
-    // candidate the user picked, bumps popularity, and auto-seeds Google
-    // results when needed.
-    if (voiceResponse.request_id) {
-      const placeId = c.google_place_id ?? `osm:${c.poi_id}`;
-      confirmLocation({
-        request_id: voiceResponse.request_id,
-        side,
-        place_id: placeId,
-        lat: c.lat,
-        lng: c.lng,
-        name: c.name,
-      }).catch(() => undefined);
-    }
-
-    // If the other side also needs confirmation, chain to it.
-    const otherSide: Side = side === 'pickup' ? 'destination' : 'pickup';
-    const otherBlock = voiceResponse[otherSide];
-    if (otherBlock?.needs_confirmation && otherBlock.location) {
-      setPickerSide(otherSide);
-    } else {
-      setPickerSide(null);
-    }
-    // We touched block to suppress the unused-var warning while keeping
-    // the API symmetric for the future (e.g. logging the chosen rank).
-    void block;
-  }, [pickerSide, voiceResponse, sideBlockFor, animateMapTo]);
 
   const onPickFromSearch = useCallback((g: GeoResult) => {
     const p: Point = { lat: g.lat, lng: g.lng, label: g.name };
@@ -402,17 +289,6 @@ export default function NewRideScreen() {
         proximity={pickup ?? null}
         onPick={onPickFromSearch}
         onClose={() => setActive(null)}
-      />
-
-      {/* Voice-to-location: floating mic + candidate picker. */}
-      <VoiceMicButton onCaptured={onVoiceCaptured} busy={voiceBusy} />
-      <VoiceCandidateSheet
-        visible={!!pickerSide}
-        side={pickerSide}
-        block={pickerSide ? sideBlockFor(pickerSide) : null}
-        preselectedPoiId={pickerSide ? sideBlockFor(pickerSide)?.candidates[0]?.poi_id ?? null : null}
-        onClose={() => setPickerSide(null)}
-        onSelect={onCandidateChosen}
       />
     </SafeAreaView>
   );
