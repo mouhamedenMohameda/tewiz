@@ -77,6 +77,10 @@ export default function RiderHome() {
     router.push('/(app)/rider/new-ride');
   }
 
+  function requestVoiceRide() {
+    router.push('/(app)/rider/voice-ride');
+  }
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
       <ScrollView
@@ -136,17 +140,36 @@ export default function RiderHome() {
           <Text style={{ color: '#fff', fontSize: 26, fontWeight: '700', marginTop: 4 }}>
             Commander une course
           </Text>
+
+          {/* Primary: voice-first. A human agent places the ride from your memo. */}
           <Pressable
-            onPress={requestRide}
+            onPress={requestVoiceRide}
             disabled={!!current}
             style={({ pressed }) => ({
               marginTop: 16, backgroundColor: pressed ? '#0a9050' : '#10a35e',
               opacity: current ? 0.5 : 1,
-              paddingVertical: 14, borderRadius: 12, alignItems: 'center',
+              paddingVertical: 16, borderRadius: 12, alignItems: 'center',
+              flexDirection: 'row', justifyContent: 'center', gap: 10,
             })}
           >
-            <Text style={{ color: '#fff', fontSize: 15, fontWeight: '600' }}>
-              {current ? 'Une course est déjà en cours' : 'Choisir la destination'}
+            <Text style={{ fontSize: 20 }}>🎙</Text>
+            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>
+              {current ? 'Une course est déjà en cours' : 'Commander par la voix'}
+            </Text>
+          </Pressable>
+
+          {/* Secondary: pick on the map manually. */}
+          <Pressable
+            onPress={requestRide}
+            disabled={!!current}
+            style={({ pressed }) => ({
+              marginTop: 10, opacity: current ? 0.4 : pressed ? 0.6 : 1,
+              paddingVertical: 12, borderRadius: 12, alignItems: 'center',
+              borderWidth: 1, borderColor: '#334155',
+            })}
+          >
+            <Text style={{ color: '#cbd5e1', fontSize: 14, fontWeight: '600' }}>
+              Choisir sur la carte
             </Text>
           </Pressable>
         </View>

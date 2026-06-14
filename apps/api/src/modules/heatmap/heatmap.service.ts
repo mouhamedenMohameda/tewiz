@@ -2,7 +2,11 @@ import { latLngToCell, cellToLatLng } from 'h3-js';
 import { pool } from '../../db/pool.js';
 
 const H3_RESOLUTION = 9;  // ~170 m hexagons — Nouakchott-sized cells
-const WINDOW_MINUTES = 30;
+// 2-hour window: gives a fuller picture of recent demand, smooths out
+// minute-to-minute noise, and stays "fresh enough" for a captain deciding
+// where to park.
+const WINDOW_MINUTES = 120;
+const CRON_INTERVAL_MS = 5 * 60_000;
 
 /**
  * Recompute the demand heatmap based on rides requested in the last
@@ -58,6 +62,30 @@ interface ListInput {
   minLng?: number;
   maxLng?: number;
   limit?: number;
+}
+
+/**
+ * Starts an in-process timer that recomputes the heatmap every 5 minutes.
+ * Called once from src/index.ts at server startup so the heatmap is never
+ * stale in dev or prod — no external cron required.
+ *
+ * The first run fires after a short delay so it doesn't block the server's
+ * "listening" log. Failures are caught and logged; we never crash the API
+ * because the heatmap is an optional enhancement.
+ */
+export function startHeatmapCron() {
+  const tick = async () => {
+    try {
+      const r = await compute();
+      // eslint-disable-next-line no-console
+      console.log(`[heatmap] computed ${r.cells} cells from ${r.recentRides} recent rides`);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn('[heatmap] compute failed', err);
+    }
+  };
+  setTimeout(tick, 5_000);
+  setInterval(tick, CRON_INTERVAL_MS).unref();
 }
 
 export async function listCells(input: ListInput = {}) {

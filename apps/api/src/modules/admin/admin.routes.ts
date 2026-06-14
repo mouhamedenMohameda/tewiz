@@ -10,6 +10,7 @@ import { adminRecurringRouter } from '../recurring/admin.routes.js';
 import { adminJobsRouter } from '../jobs/admin-jobs.routes.js';
 import { adminRidesRouter } from '../rides/admin-rides.routes.js';
 import { adminUsersRouter } from './users.routes.js';
+import { adminVoiceRidesRouter } from '../voice-rides/admin-voice-rides.routes.js';
 import * as roadReports from '../reports/road-reports.service.js';
 import type { ApplicationStatus } from '@tewiz/shared-types';
 
@@ -26,6 +27,8 @@ adminRouter.use('/jobs', adminJobsRouter);
 adminRouter.use('/rides', adminRidesRouter);
 // User management (create + regenerate password)
 adminRouter.use('/users', adminUsersRouter);
+// Voice-ride dispatch queue (listen → pin pickup/dropoff → confirm)
+adminRouter.use('/voice-rides', adminVoiceRidesRouter);
 
 // Admin can also drop abusive road reports.
 adminRouter.delete('/road-reports/:id', async (req, res) => {

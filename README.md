@@ -8,7 +8,7 @@ Three apps, one backend, manual KYC, prepaid commission wallet (Bankily/Masrivi 
 
 - **Backend** — Node 20 + TypeScript, Express, Zod, `pg` (raw SQL), Redis, JWT
 - **Database** — PostgreSQL 16 + PostGIS
-- **Mobile apps** — React Native (Expo) — captain, rider _(placeholders for now)_
+- **Mobile** — React Native (Expo) — single app, role + mode toggle (rider / captain)
 - **Admin** — Next.js _(placeholder for now)_
 - **Maps** — Mapbox
 - **Monorepo** — pnpm workspaces
@@ -18,9 +18,8 @@ Three apps, one backend, manual KYC, prepaid commission wallet (Bankily/Masrivi 
 ```
 apps/
   api/            # Express + TypeScript backend
-  captain-app/    # Expo (to scaffold later)
-  rider-app/      # Expo (to scaffold later)
-  admin-web/      # Next.js (to scaffold later)
+  mobile/         # Expo — single app for rider + captain (mode toggle)
+  admin-web/      # Next.js admin console
 packages/
   shared-types/   # TS types shared across apps
 db/

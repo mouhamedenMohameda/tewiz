@@ -1,6 +1,11 @@
 /**
  * Voice-to-Location client.
  *
+ * @deprecated Retired in Phase 2. The automated voice→location pipeline was
+ * replaced by the human-in-the-loop flow in lib/voiceRides.ts (record → upload
+ * → an admin places the ride). The backend proxy routes are also disabled.
+ * Kept on disk for rollback only; not imported anywhere.
+ *
  * Talks to the main Tewiz API which proxies to the internal
  * voice-location-api. Rider auth is the regular JWT (added by `api.ts`),
  * so this file doesn't ship any API key.

@@ -6,3 +6,11 @@ dist
 build
 .DS_Store
 uploads
+
+# Build artifacts (should never be committed)
+.next/
+.expo/
+*.tsbuildinfo
+packages/shared-types/src/*.js
+# stray root expo config
+/app.json

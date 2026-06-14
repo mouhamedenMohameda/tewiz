@@ -4,9 +4,10 @@ import { pool, withTx } from '../../db/pool.js';
 import { HttpError } from '../../middleware/error.js';
 import { env } from '../../config/env.js';
 import { estimateFareKhoums, commissionKhoums } from './pricing.js';
-import { distanceMeters } from './dispatch.service.js';
+import { distanceMeters, eligibleCaptainsForRide } from './dispatch.service.js';
 import { debitWallet } from '../wallet/wallet.service.js';
 import { sms } from '../auth/sms.js';
+import { notifyCaptainsNewRide } from '../push/expo-push.js';
 import type { RideStatus, RideType, PaymentMethod } from '@tewiz/shared-types';
 
 // Normalize MR phones (same logic as auth/phone.ts but inline for the service).
@@ -33,6 +34,13 @@ export interface CreateRideInput {
   recipientName?: string;
   recipientPhone?: string;
   packageDescription?: string;
+  // Admin-only: skip the "one active ride per booker" check. An admin operator
+  // booking for several phone-in passengers may have many in flight at once.
+  skipBookerActiveCheck?: boolean;
+  // Admin-only: skip the SMS "course pour quelqu'un d'autre" confirmation step.
+  // When a passenger calls the operator, they have already consented — the ride
+  // can go straight to "searching" without a return SMS.
+  skipPassengerConfirm?: boolean;
 }
 
 interface RideRow {
@@ -129,16 +137,18 @@ function shape(r: RideRow, opts: { revealCode: boolean } = { revealCode: false }
 // Create
 
 export async function createRide(input: CreateRideInput) {
-  // 1. The booker can't have another active ride.
-  const existing = await pool.query(
-    `SELECT id, status FROM rides
-      WHERE booker_id = $1
-        AND status IN ('pending_passenger_confirm','searching','accepted','arrived','in_progress')`,
-    [input.bookerId],
-  );
-  if ((existing.rowCount ?? 0) > 0) {
-    throw new HttpError(409, 'ride_in_progress',
-      'You already have an active ride');
+  // 1. The booker can't have another active ride (skipped for admin operators).
+  if (!input.skipBookerActiveCheck) {
+    const existing = await pool.query(
+      `SELECT id, status FROM rides
+        WHERE booker_id = $1
+          AND status IN ('pending_passenger_confirm','searching','accepted','arrived','in_progress')`,
+      [input.bookerId],
+    );
+    if ((existing.rowCount ?? 0) > 0) {
+      throw new HttpError(409, 'ride_in_progress',
+        'You already have an active ride');
+    }
   }
 
   // 2. Pricing
@@ -178,7 +188,19 @@ export async function createRide(input: CreateRideInput) {
     : null;
 
   const verificationCode = generateVerificationCode();
-  const initialStatus: RideStatus = isForOther ? 'pending_passenger_confirm' : 'searching';
+  // "course pour quelqu'un d'autre" normally waits for SMS confirmation.
+  // Two reasons to bypass that loop:
+  //   1. the caller asked for it (admin operator booking a phone-in passenger
+  //      who already consented),
+  //   2. the SMS provider isn't actually wired up (env.SMS_PROVIDER === 'mock'),
+  //      in which case the passenger would never receive the SMS and the ride
+  //      would stay invisible to captains forever.
+  // The check switches itself off automatically the day we plug Twilio /
+  // Chinguitel and flip SMS_PROVIDER.
+  const smsConfirmAvailable = env.SMS_PROVIDER !== 'mock';
+  const needsPassengerConfirm =
+    isForOther && !input.skipPassengerConfirm && smsConfirmAvailable;
+  const initialStatus: RideStatus = needsPassengerConfirm ? 'pending_passenger_confirm' : 'searching';
 
   return withTx(async (client) => {
     // For "for other" rides, passenger_user_id stays NULL (passenger has no account).
@@ -229,8 +251,9 @@ export async function createRide(input: CreateRideInput) {
       );
     }
 
-    // SMS notifications (mocked in dev)
-    if (isForOther && normalizedPassengerPhone) {
+    // SMS notifications (mocked in dev) — only when we actually need the
+    // passenger to confirm. Admin operator rides skip this entirely.
+    if (needsPassengerConfirm && normalizedPassengerPhone) {
       // 4-digit confirmation code stored in otp_codes for the passenger
       const confirmCode = crypto.randomInt(0, 10_000).toString().padStart(4, '0');
       const bcrypt = await import('bcryptjs');
@@ -246,7 +269,26 @@ export async function createRide(input: CreateRideInput) {
       );
     }
 
-    return shape(ride, { revealCode: true });
+    const shaped = shape(ride, { revealCode: true });
+    // Fire-and-forget push to nearby captains. We only do it when the ride
+    // is immediately 'searching' — for SMS-confirmed rides we push from
+    // confirmPassengerRide once the passenger has agreed.
+    if (ride.status === 'searching') {
+      void (async () => {
+        try {
+          const captainIds = await eligibleCaptainsForRide(ride.id);
+          await notifyCaptainsNewRide(captainIds, {
+            id: ride.id,
+            rideType: ride.ride_type,
+            fareEstimateKhoums: ride.fare_estimate_khoums,
+          });
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.warn('[rides] notifyCaptainsNewRide failed', err);
+        }
+      })();
+    }
+    return shaped;
   });
 }
 
@@ -300,7 +342,21 @@ export async function confirmPassengerRide(input: {
       RETURNING ${RIDE_COLUMNS}`,
       [ride.id],
     );
-    return shape(upd.rows[0]!, { revealCode: true });
+    const updated = upd.rows[0]!;
+    void (async () => {
+      try {
+        const captainIds = await eligibleCaptainsForRide(updated.id);
+        await notifyCaptainsNewRide(captainIds, {
+          id: updated.id,
+          rideType: updated.ride_type,
+          fareEstimateKhoums: updated.fare_estimate_khoums,
+        });
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn('[rides] notifyCaptainsNewRide failed', err);
+      }
+    })();
+    return shape(updated, { revealCode: true });
   });
 }
 
@@ -338,14 +394,87 @@ export async function getRideForUser(
 }
 
 export async function getCurrentRideForRider(userId: string) {
+  // Active rides AND completed-but-not-yet-rated rides from the last 24 h.
+  // Keeping a completed ride "current" lets the rider see the fare summary
+  // and rate the captain right where they were tracking.
   const r = await pool.query<RideRow>(
     `SELECT ${RIDE_COLUMNS} FROM rides
       WHERE booker_id = $1
-        AND status IN ('searching','accepted','arrived','in_progress')
+        AND (
+          status IN ('searching','accepted','arrived','in_progress')
+          OR (status = 'completed'
+              AND completed_at > now() - interval '24 hours'
+              AND NOT EXISTS (
+                SELECT 1 FROM ratings r
+                 WHERE r.ride_id = rides.id AND r.rater_id = $1
+              ))
+        )
       ORDER BY requested_at DESC LIMIT 1`,
     [userId],
   );
-  return r.rows[0] ? shape(r.rows[0], { revealCode: true }) : null;
+  if (!r.rows[0]) return null;
+  const ride = shape(r.rows[0], { revealCode: true });
+  return enrichWithCaptain(ride);
+}
+
+/**
+ * Adds `captain` (and `vehicle`) onto a ride when one is assigned, so the
+ * rider can see the driver's name + phone + plate at a glance and tap to
+ * call. Private (used only by rider-facing endpoints).
+ */
+interface CaptainInfo {
+  id: string;
+  fullName: string | null;
+  phone: string;
+  ratingAvg: number;
+  totalRides: number;
+  vehicle: {
+    plate: string;
+    brand: string;
+    model: string;
+    color: string;
+  } | null;
+}
+
+async function enrichWithCaptain<T extends { captainId: string | null }>(
+  ride: T,
+): Promise<T & { captain: CaptainInfo | null }> {
+  if (!ride.captainId) return { ...ride, captain: null };
+  const r = await pool.query<{
+    id: string;
+    full_name: string | null;
+    phone: string;
+    rating_avg: string;
+    total_rides: number;
+    plate: string | null;
+    brand: string | null;
+    model: string | null;
+    color: string | null;
+  }>(
+    `SELECT u.id, u.full_name, u.phone,
+            c.rating_avg, c.total_rides,
+            v.plate, v.brand, v.model, v.color
+       FROM users u
+       JOIN captains c ON c.user_id = u.id
+  LEFT JOIN vehicles v ON v.captain_id = c.user_id AND v.is_active = true
+      WHERE u.id = $1`,
+    [ride.captainId],
+  );
+  const row = r.rows[0];
+  if (!row) return { ...ride, captain: null };
+  return {
+    ...ride,
+    captain: {
+      id: row.id,
+      fullName: row.full_name,
+      phone: row.phone,
+      ratingAvg: Number(row.rating_avg),
+      totalRides: row.total_rides,
+      vehicle: row.plate
+        ? { plate: row.plate, brand: row.brand!, model: row.model!, color: row.color! }
+        : null,
+    },
+  };
 }
 
 export async function getCurrentRideForCaptain(captainId: string) {
@@ -357,6 +486,118 @@ export async function getCurrentRideForCaptain(captainId: string) {
     [captainId],
   );
   return r.rows[0] ? shape(r.rows[0], { revealCode: true }) : null;
+}
+
+/**
+ * Admin-wide list with optional filters. `status='active'` is a shortcut for
+ * any ride still in progress (searching/accepted/arrived/in_progress).
+ * `status='done'` covers terminal states. Otherwise we accept any concrete
+ * RideStatus value.
+ */
+export async function listAdminRides(input: {
+  status?: 'active' | 'done' | RideStatus;
+  limit?: number;
+  before?: Date; // cursor: only rides requested before this timestamp
+}) {
+  const limit = Math.min(input.limit ?? 50, 200);
+  const wheres: string[] = [];
+  const params: unknown[] = [];
+
+  if (input.status === 'active') {
+    wheres.push(
+      `status IN ('pending_passenger_confirm','searching','accepted','arrived','in_progress')`,
+    );
+  } else if (input.status === 'done') {
+    wheres.push(
+      `status IN ('completed','cancelled_by_rider','cancelled_by_captain','cancelled_by_system','no_show')`,
+    );
+  } else if (input.status) {
+    params.push(input.status);
+    wheres.push(`status = $${params.length}`);
+  }
+  if (input.before) {
+    params.push(input.before);
+    wheres.push(`requested_at < $${params.length}`);
+  }
+
+  params.push(limit);
+  const sql = `
+    SELECT ${RIDE_COLUMNS}
+      FROM rides
+      ${wheres.length ? `WHERE ${wheres.join(' AND ')}` : ''}
+     ORDER BY requested_at DESC
+     LIMIT $${params.length}
+  `;
+  const r = await pool.query<RideRow>(sql, params);
+  return r.rows.map((row) => shape(row));
+}
+
+/**
+ * Rider rates the captain of a completed ride. Upserts into ratings (one row
+ * per rider+ride pair) and recomputes the captain's running average.
+ * Returns the captain's fresh aggregate so the client can confirm and show
+ * a "thanks" toast.
+ */
+export async function rateCaptain(input: {
+  rideId: string; riderId: string; stars: number; comment?: string;
+}) {
+  return withTx(async (client) => {
+    // Lock + validate the ride.
+    const rideRes = await client.query<RideRow>(
+      `SELECT ${RIDE_COLUMNS} FROM rides WHERE id = $1 FOR UPDATE`,
+      [input.rideId],
+    );
+    const ride = rideRes.rows[0];
+    if (!ride) throw new HttpError(404, 'not_found', 'Ride not found');
+    if (ride.booker_id !== input.riderId) {
+      throw new HttpError(403, 'forbidden', 'Not your ride');
+    }
+    if (ride.status !== 'completed') {
+      throw new HttpError(409, 'wrong_status', 'Only completed rides can be rated');
+    }
+    if (!ride.captain_id) {
+      throw new HttpError(409, 'no_captain', 'Ride has no captain');
+    }
+
+    // Upsert the rating.
+    await client.query(
+      `INSERT INTO ratings (ride_id, rater_id, ratee_id, stars, comment)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (ride_id, rater_id)
+       DO UPDATE SET stars = EXCLUDED.stars, comment = EXCLUDED.comment`,
+      [input.rideId, input.riderId, ride.captain_id, input.stars, input.comment ?? null],
+    );
+
+    // Recompute the captain's running average from all their ratings.
+    const agg = await client.query<{ avg: string; cnt: number }>(
+      `SELECT COALESCE(AVG(stars), 0)::numeric(3,2) AS avg,
+              COUNT(*)::int AS cnt
+         FROM ratings WHERE ratee_id = $1`,
+      [ride.captain_id],
+    );
+    const row = agg.rows[0]!;
+    await client.query(
+      `UPDATE captains SET rating_avg = $1, rating_count = $2 WHERE user_id = $3`,
+      [row.avg, row.cnt, ride.captain_id],
+    );
+
+    return {
+      stars: input.stars,
+      captainRatingAvg: Number(row.avg),
+      captainRatingCount: row.cnt,
+    };
+  });
+}
+
+/**
+ * Returns true if the given rider has already rated the given ride.
+ */
+export async function hasRated(rideId: string, riderId: string): Promise<boolean> {
+  const r = await pool.query(
+    `SELECT 1 FROM ratings WHERE ride_id = $1 AND rater_id = $2 LIMIT 1`,
+    [rideId, riderId],
+  );
+  return r.rowCount! > 0;
 }
 
 export async function listRiderHistory(userId: string, limit = 30) {
