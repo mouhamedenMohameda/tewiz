@@ -1,7 +1,7 @@
 'use client';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useGoogleMaps } from '@/hooks/useGoogleMaps';
 import type { Pin, PinSide } from './types';
 
@@ -29,23 +29,39 @@ export function VoiceRequestMap({ pickup, dropoff, activeSide, onSet }: Props) {
   activeSideRef.current = activeSide;
   onSetRef.current = onSet;
 
+  // True when Google Maps loaded but couldn't initialise (e.g. the JS API is
+  // not enabled on the key, the key is restricted, quota exceeded, …). In that
+  // case google.maps exists but google.maps.Map is NOT a real constructor.
+  // We must never let that throw — it would crash the whole admin.
+  const [failed, setFailed] = useState(false);
+
   // Init the map once the script is ready.
   useEffect(() => {
     if (status !== 'ready' || !divRef.current || mapRef.current) return;
     const g = (window as any).google;
-    const map = new g.maps.Map(divRef.current, {
-      center: pickup ?? dropoff ?? DEFAULT_CENTER,
-      zoom: DEFAULT_ZOOM,
-      disableDefaultUI: false,
-      streetViewControl: false,
-      mapTypeControl: false,
-      fullscreenControl: false,
-    });
-    map.addListener('click', (e: any) => {
-      if (!e.latLng) return;
-      onSetRef.current(activeSideRef.current, e.latLng.lat(), e.latLng.lng());
-    });
-    mapRef.current = map;
+    if (typeof g?.maps?.Map !== 'function') {
+      // Script tag loaded but the API didn't activate (ApiNotActivated, bad
+      // key, …). Degrade gracefully instead of throwing.
+      setFailed(true);
+      return;
+    }
+    try {
+      const map = new g.maps.Map(divRef.current, {
+        center: pickup ?? dropoff ?? DEFAULT_CENTER,
+        zoom: DEFAULT_ZOOM,
+        disableDefaultUI: false,
+        streetViewControl: false,
+        mapTypeControl: false,
+        fullscreenControl: false,
+      });
+      map.addListener('click', (e: any) => {
+        if (!e.latLng) return;
+        onSetRef.current(activeSideRef.current, e.latLng.lat(), e.latLng.lng());
+      });
+      mapRef.current = map;
+    } catch {
+      setFailed(true);
+    }
   }, [status, pickup, dropoff]);
 
   // Sync the pickup marker.
@@ -118,11 +134,11 @@ export function VoiceRequestMap({ pickup, dropoff, activeSide, onSet }: Props) {
       />
     );
   }
-  if (status === 'error') {
+  if (status === 'error' || failed) {
     return (
       <MapFallback
-        title="Échec du chargement de la carte"
-        body="Impossible de charger Google Maps (clé invalide ou réseau). Utilise la recherche de lieux."
+        title="Carte indisponible"
+        body="Google Maps n’a pas pu se charger (API non activée, clé restreinte, quota ou réseau). La recherche de lieux et la saisie manuelle restent disponibles — l’admin continue de fonctionner."
       />
     );
   }
