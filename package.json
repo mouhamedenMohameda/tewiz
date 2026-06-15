@@ -3,6 +3,12 @@
   "version": "0.0.1",
   "private": true,
   "description": "Ride-hailing platform for Mauritania",
+  "pnpm": {
+    "overrides": {
+      "react": "19.1.0",
+      "react-dom": "19.1.0"
+    }
+  },
   "scripts": {
     "dev": "pnpm --filter @tewiz/api dev",
     "db:migrate": "pnpm --filter @tewiz/api migrate up",
