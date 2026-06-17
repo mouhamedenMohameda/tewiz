@@ -3,9 +3,15 @@ import { create } from 'zustand';
 
 export interface AuthUser {
   id: string;
-  phone: string;
+  // Null for a fresh guest who hasn't entered a number yet. Captured before the
+  // first ride (or captain application) via POST /auth/me/phone.
+  phone: string | null;
   role: 'admin' | 'rider' | 'captain';
   fullName: string | null;
+  // True for an anonymous guest account (POST /auth/guest). Cleared when the
+  // guest is promoted to a real captain. Optional so older persisted sessions
+  // (pre-guest) and login/refresh paths can omit it.
+  isGuest?: boolean;
 }
 
 export type ActiveMode = 'rider' | 'captain';

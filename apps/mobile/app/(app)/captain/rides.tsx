@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator, Alert, Linking, Pressable, RefreshControl,
-  ScrollView, Text, TextInput, View,
+  ActivityIndicator, Alert, Linking, Pressable, TextInput, View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '@/lib/api';
 import { formatMru } from '@/lib/format';
 import { usePolling } from '@/lib/usePolling';
+import {
+  AppText, Button, Card, Icon, PressableScale, Screen, ScreenHeader, type IconName,
+} from '@/components/ui';
+import { colors, radius, spacing } from '@/theme';
 
 // Note: the new-ride alert (modal + ringing) is handled globally by
 // <CaptainRideWatcher /> mounted in the captain layout, so this screen
@@ -41,6 +43,9 @@ interface Ride {
   status: RideStatus;
   passengerName: string | null;
   passengerPhone: string | null;
+  // The person to call at pickup (booker, or the third party for a "course pour
+  // quelqu'un d'autre"). Attached by the API once the captain is assigned.
+  rider?: { id: string; fullName: string | null; phone: string | null } | null;
   isForOther: boolean;
   pickup: { lat: number; lng: number; label: string | null };
   dropoff: { lat: number; lng: number; label: string | null };
@@ -90,22 +95,14 @@ export default function RidesScreen() {
   usePolling(load, current ? 8_000 : 5_000);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
-      <ScrollView
-        contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
-      >
-        <Pressable onPress={() => router.back()}>
-          <Text style={{ color: '#64748b', fontSize: 14 }}>‹ Retour</Text>
-        </Pressable>
-
-        {current ? (
-          <CurrentRideCard ride={current} onChanged={load} />
-        ) : (
-          <InboxList items={inbox} onAccepted={load} />
-        )}
-      </ScrollView>
-    </SafeAreaView>
+    <Screen scroll onRefresh={load} refreshing={loading}>
+      <ScreenHeader title="Courses" onBack={() => router.back()} />
+      {current ? (
+        <CurrentRideCard ride={current} onChanged={load} />
+      ) : (
+        <InboxList items={inbox} onAccepted={load} />
+      )}
+    </Screen>
   );
 }
 
@@ -126,66 +123,59 @@ function InboxList({ items, onAccepted }: { items: InboxItem[]; onAccepted: () =
 
   return (
     <View>
-      <Text style={{ marginTop: 12, fontSize: 22, fontWeight: '700', color: '#0f172a' }}>
-        Courses proches
-      </Text>
-      <Text style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
+      <AppText variant="h1">Courses proches</AppText>
+      <AppText variant="caption" color={colors.ink2} style={{ marginTop: spacing.xs }}>
         Vous devez être en ligne avec votre position partagée.
-      </Text>
+      </AppText>
+
       {items.length === 0 ? (
-        <View style={{
-          marginTop: 24, backgroundColor: '#fff', borderRadius: 14, padding: 20, alignItems: 'center',
-        }}>
-          <Text style={{ color: '#64748b' }}>Aucune course pour le moment.</Text>
-        </View>
-      ) : items.map((it) => (
-        <View key={it.id} style={{
-          marginTop: 12, backgroundColor: '#fff', borderRadius: 14, padding: 16,
-          borderLeftWidth: 4,
-          borderLeftColor: it.isFavorite ? '#f59e0b' : (it.rideType === 'colis' ? '#8b5cf6' : '#10a35e'),
-        }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={{ fontSize: 13, fontWeight: '700', color: it.rideType === 'colis' ? '#6d28d9' : '#0f172a' }}>
-              {it.rideType === 'colis' ? '📦 COLIS' : '🚖 PASSAGER'}
-              {it.isFavorite ? '  ⭐ FAVORI' : ''}
-              {it.homewardProgressM && it.homewardProgressM > 0 ? '  🏠 RAPPROCHE' : ''}
-            </Text>
-            <Text style={{ fontSize: 13, color: '#64748b' }}>
-              {(it.distanceToPickupM / 1000).toFixed(1)} km
-            </Text>
-          </View>
+        <Card elevation="none" background={colors.surfaceAlt} padding={spacing.xxl}
+          style={{ marginTop: spacing.lg, alignItems: 'center', gap: spacing.sm }}>
+          <Icon name="clock" size={30} color={colors.muted} />
+          <AppText variant="body" color={colors.muted}>Aucune course pour le moment.</AppText>
+        </Card>
+      ) : items.map((it) => {
+        const accent = it.isFavorite ? colors.sun : (it.rideType === 'colis' ? colors.espresso : colors.ember);
+        const isColis = it.rideType === 'colis';
+        return (
+          <Card key={it.id} padding={0} style={{ marginTop: spacing.md, overflow: 'hidden' }}>
+            <View style={{ flexDirection: 'row' }}>
+              <View style={{ width: 5, backgroundColor: accent }} />
+              <View style={{ flex: 1, padding: spacing.base }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <Chip icon={isColis ? 'parcel' : 'ride'} label={isColis ? 'Colis' : 'Passager'}
+                      bg={isColis ? colors.espresso : colors.emberSoft}
+                      fg={isColis ? colors.saffron : colors.ember} />
+                    {it.isFavorite ? <Chip icon="star" label="Favori" bg={colors.saffronSoft} fg={colors.warning} /> : null}
+                    {it.homewardProgressM && it.homewardProgressM > 0
+                      ? <Chip icon="home" label="Rapproche" bg={colors.successSoft} fg={colors.success} /> : null}
+                  </View>
+                  <AppText variant="caption" color={colors.muted}>
+                    {(it.distanceToPickupM / 1000).toFixed(1)} km
+                  </AppText>
+                </View>
 
-          <View style={{ marginTop: 12 }}>
-            <Text style={{ fontSize: 13, color: '#64748b' }}>De</Text>
-            <Text style={{ fontSize: 14, color: '#0f172a' }} numberOfLines={1}>
-              {it.pickup.label ?? 'Point de prise en charge'}
-            </Text>
-            <Text style={{ fontSize: 13, color: '#64748b', marginTop: 6 }}>Vers</Text>
-            <Text style={{ fontSize: 14, color: '#0f172a' }} numberOfLines={1}>
-              {it.dropoff.label ?? 'Destination'}
-            </Text>
-          </View>
+                <Route pickup={it.pickup.label} dropoff={it.dropoff.label} style={{ marginTop: spacing.md }} />
 
-          <View style={{ marginTop: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={{ fontSize: 18, fontWeight: '700', color: '#0f172a' }}>
-              {it.fareEstimateKhoums ? formatMru(it.fareEstimateKhoums) : '—'}
-            </Text>
-            <Pressable
-              disabled={accepting === it.id}
-              onPress={() => accept(it.id)}
-              style={({ pressed }) => ({
-                backgroundColor: pressed ? '#0f7c4a' : '#10a35e',
-                paddingHorizontal: 18, paddingVertical: 10, borderRadius: 10,
-                flexDirection: 'row', alignItems: 'center', gap: 6,
-                opacity: accepting === it.id ? 0.5 : 1,
-              })}
-            >
-              {accepting === it.id && <ActivityIndicator color="#fff" size="small" />}
-              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>Accepter</Text>
-            </Pressable>
-          </View>
-        </View>
-      ))}
+                <View style={{ marginTop: spacing.base, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <AppText variant="h2">
+                    {it.fareEstimateKhoums ? formatMru(it.fareEstimateKhoums) : '—'}
+                  </AppText>
+                  <Button
+                    title="Accepter"
+                    size="md"
+                    fullWidth={false}
+                    icon="checkSmall"
+                    busy={accepting === it.id}
+                    onPress={() => accept(it.id)}
+                  />
+                </View>
+              </View>
+            </View>
+          </Card>
+        );
+      })}
     </View>
   );
 }
@@ -258,73 +248,72 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
   };
 
   return (
-    <View style={{ marginTop: 12 }}>
-      <View style={{ backgroundColor: '#0f172a', borderRadius: 16, padding: 20 }}>
-        <Text style={{ fontSize: 12, fontWeight: '700', color: '#bfdbfe', letterSpacing: 0.5 }}>
-          {(stepLabel[ride.status] ?? ride.status).toUpperCase()}
-        </Text>
-        <Text style={{ fontSize: 22, fontWeight: '700', color: '#fff', marginTop: 8 }}>
-          {ride.rideType === 'colis' ? '📦 Colis' : (ride.passengerName ?? 'Passager')}
-        </Text>
-        {ride.passengerPhone ? (
-          <View style={{
-            marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 10,
-          }}>
-            <Text style={{ fontSize: 14, color: '#cbd5e1', flex: 1 }}>
-              {ride.passengerPhone}{ride.isForOther ? ' · pour un tiers' : ''}
-            </Text>
-            <Pressable
-              onPress={() => Linking.openURL(`tel:${ride.passengerPhone}`)}
-              style={({ pressed }) => ({
-                backgroundColor: pressed ? '#0a7a45' : '#10a35e',
-                paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
-                flexDirection: 'row', alignItems: 'center', gap: 6,
-              })}
-            >
-              <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>
-                📞 Appeler
-              </Text>
-            </Pressable>
-          </View>
-        ) : null}
-
-        <View style={{ marginTop: 16 }}>
-          <Text style={{ fontSize: 12, color: '#94a3b8' }}>De</Text>
-          <Text style={{ fontSize: 14, color: '#fff' }} numberOfLines={2}>
-            {ride.pickup.label ?? 'Point de prise en charge'}
-          </Text>
-          <Text style={{ fontSize: 12, color: '#94a3b8', marginTop: 8 }}>Vers</Text>
-          <Text style={{ fontSize: 14, color: '#fff' }} numberOfLines={2}>
-            {ride.dropoff.label ?? 'Destination'}
-          </Text>
+    <View>
+      <Card background={colors.espresso} elevation="raised" padding={spacing.xl}>
+        <AppText variant="overline" color={colors.saffron}>
+          {stepLabel[ride.status] ?? ride.status}
+        </AppText>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm }}>
+          <Icon name={ride.rideType === 'colis' ? 'parcel' : 'person'} size={24} color={colors.onEspresso} />
+          <AppText variant="h1" color={colors.onEspresso}>
+            {ride.rideType === 'colis' ? 'Colis' : (ride.rider?.fullName ?? ride.passengerName ?? 'Passager')}
+          </AppText>
         </View>
 
-        <View style={{ marginTop: 16, flexDirection: 'row', justifyContent: 'space-between' }}>
+        {(() => {
+          const contactPhone = ride.rider?.phone ?? ride.passengerPhone;
+          if (!contactPhone) return null;
+          return (
+            <View style={{ marginTop: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+              <AppText variant="body" color={colors.onEspressoMuted} style={{ flex: 1 }}>
+                {contactPhone}{ride.isForOther ? ' · pour un tiers' : ''}
+              </AppText>
+              <PressableScale
+                onPress={() => Linking.openURL(`tel:${contactPhone}`)}
+                style={{
+                  backgroundColor: colors.ember, paddingHorizontal: 16, paddingVertical: 9,
+                  borderRadius: radius.pill, flexDirection: 'row', alignItems: 'center', gap: 6,
+                }}
+              >
+                <Icon name="phone" size={16} color={colors.onEmber} />
+                <AppText variant="label" color={colors.onEmber}>Appeler</AppText>
+              </PressableScale>
+            </View>
+          );
+        })()}
+
+        <Route
+          pickup={ride.pickup.label}
+          dropoff={ride.dropoff.label}
+          onDark
+          style={{ marginTop: spacing.lg }}
+        />
+
+        <View style={{ marginTop: spacing.lg, flexDirection: 'row', justifyContent: 'space-between' }}>
           <View>
-            <Text style={{ fontSize: 12, color: '#94a3b8' }}>Tarif estimé</Text>
-            <Text style={{ fontSize: 18, fontWeight: '700', color: '#fff' }}>
+            <AppText variant="caption" color={colors.onEspressoMuted}>Tarif estimé</AppText>
+            <AppText variant="h2" color={colors.onEspresso} style={{ marginTop: 2 }}>
               {ride.fareEstimateKhoums ? formatMru(ride.fareEstimateKhoums) : '—'}
-            </Text>
+            </AppText>
           </View>
           <View>
-            <Text style={{ fontSize: 12, color: '#94a3b8' }}>Paiement</Text>
-            <Text style={{ fontSize: 18, fontWeight: '700', color: '#fff' }}>
+            <AppText variant="caption" color={colors.onEspressoMuted}>Paiement</AppText>
+            <AppText variant="h2" color={colors.onEspresso} style={{ marginTop: 2 }}>
               {ride.paymentMethod === 'cash' ? 'Espèces' : 'Wallet'}
-            </Text>
+            </AppText>
           </View>
         </View>
-      </View>
+      </Card>
 
       {/* Step controls */}
       {ride.status === 'accepted' ? (
-        <PrimaryAction title="Je suis arrivé" onPress={arrive} busy={busy === 'arrive'} />
+        <Button title="Je suis arrivé" icon="pin" onPress={arrive} busy={busy === 'arrive'}
+          style={{ marginTop: spacing.base }} />
       ) : null}
 
       {ride.status === 'arrived' ? (
         <CodeBox
-          title={ride.rideType === 'colis'
-            ? 'Code expéditeur (4 chiffres)'
-            : 'Code passager (4 chiffres)'}
+          title={ride.rideType === 'colis' ? 'Code expéditeur (4 chiffres)' : 'Code passager (4 chiffres)'}
           subtitle={ride.rideType === 'colis'
             ? 'Demandez le code à l\'expéditeur du colis avant de démarrer.'
             : 'Demandez le code anti-arnaque au passager avant de démarrer.'}
@@ -337,7 +326,8 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
       ) : null}
 
       {ride.status === 'in_progress' && ride.rideType === 'passenger' ? (
-        <PrimaryAction title="Terminer la course" onPress={complete} busy={busy === 'complete'} />
+        <Button title="Terminer la course" icon="check" onPress={complete} busy={busy === 'complete'}
+          style={{ marginTop: spacing.base }} />
       ) : null}
 
       {ride.status === 'in_progress' && ride.rideType === 'colis' ? (
@@ -352,35 +342,52 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
         />
       ) : null}
 
-      <Pressable
+      <Button
+        title="Annuler la course"
+        variant="danger"
         onPress={cancel}
-        style={({ pressed }) => ({
-          marginTop: 16, padding: 14, borderRadius: 12,
-          backgroundColor: pressed ? '#fee2e2' : '#fff', alignItems: 'center',
-          borderWidth: 1, borderColor: '#fecaca',
-        })}
-      >
-        <Text style={{ color: '#b91c1c', fontSize: 14, fontWeight: '600' }}>Annuler la course</Text>
-      </Pressable>
+        style={{ marginTop: spacing.md }}
+      />
     </View>
   );
 }
 
-function PrimaryAction({ title, onPress, busy }: { title: string; onPress: () => void; busy?: boolean }) {
+/* ------------------------------------------------------------------ */
+
+function Chip({ icon, label, bg, fg }: { icon: IconName; label: string; bg: string; fg: string }) {
   return (
-    <Pressable
-      disabled={busy}
-      onPress={onPress}
-      style={({ pressed }) => ({
-        marginTop: 16, backgroundColor: pressed ? '#0f7c4a' : '#10a35e',
-        opacity: busy ? 0.5 : 1,
-        paddingVertical: 16, borderRadius: 12,
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-      })}
-    >
-      {busy && <ActivityIndicator color="#fff" />}
-      <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>{title}</Text>
-    </Pressable>
+    <View style={{
+      flexDirection: 'row', alignItems: 'center', gap: 4,
+      backgroundColor: bg, paddingHorizontal: 9, paddingVertical: 4, borderRadius: radius.pill,
+    }}>
+      <Icon name={icon} size={13} color={fg} />
+      <AppText variant="overline" color={fg} style={{ letterSpacing: 0.4 }}>{label}</AppText>
+    </View>
+  );
+}
+
+function Route({
+  pickup, dropoff, onDark, style,
+}: {
+  pickup: string | null; dropoff: string | null; onDark?: boolean; style?: any;
+}) {
+  const muted = onDark ? colors.onEspressoMuted : colors.muted;
+  const strong = onDark ? colors.onEspresso : colors.ink;
+  return (
+    <View style={[{ flexDirection: 'row' }, style]}>
+      {/* connector */}
+      <View style={{ alignItems: 'center', marginRight: spacing.md, paddingTop: 4 }}>
+        <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colors.ember }} />
+        <View style={{ width: 2, flex: 1, minHeight: 18, backgroundColor: onDark ? colors.espressoAlt : colors.line, marginVertical: 3 }} />
+        <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: colors.sun }} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <AppText variant="caption" color={muted}>De</AppText>
+        <AppText variant="bodyStrong" color={strong} numberOfLines={1}>{pickup ?? 'Point de prise en charge'}</AppText>
+        <AppText variant="caption" color={muted} style={{ marginTop: spacing.sm }}>Vers</AppText>
+        <AppText variant="bodyStrong" color={strong} numberOfLines={1}>{dropoff ?? 'Destination'}</AppText>
+      </View>
+    </View>
   );
 }
 
@@ -392,24 +399,23 @@ function CodeBox({
   actionLabel: string; onAction: () => void; busy?: boolean;
 }) {
   return (
-    <View style={{ marginTop: 16, backgroundColor: '#fff', borderRadius: 14, padding: 16 }}>
-      <Text style={{ fontSize: 15, fontWeight: '600', color: '#0f172a' }}>{title}</Text>
-      <Text style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>{subtitle}</Text>
+    <Card padding={spacing.base} style={{ marginTop: spacing.base }}>
+      <AppText variant="bodyStrong">{title}</AppText>
+      <AppText variant="caption" color={colors.ink2} style={{ marginTop: 2 }}>{subtitle}</AppText>
       <TextInput
         value={code}
         onChangeText={(t) => onChange(t.replace(/\D/g, '').slice(0, 4))}
         keyboardType="number-pad"
         maxLength={4}
         placeholder="····"
-        placeholderTextColor="#94a3b8"
+        placeholderTextColor={colors.faint}
         style={{
-          marginTop: 12, borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 12,
-          paddingHorizontal: 14, paddingVertical: 16, fontSize: 24,
-          color: '#0f172a', backgroundColor: '#f8fafc',
-          textAlign: 'center', letterSpacing: 12, fontWeight: '700',
+          marginTop: spacing.md, borderWidth: 1.5, borderColor: colors.line, borderRadius: radius.md,
+          paddingVertical: 16, fontSize: 26, color: colors.ink, backgroundColor: colors.sunken,
+          textAlign: 'center', letterSpacing: 14, fontFamily: 'Sora_700Bold',
         }}
       />
-      <PrimaryAction title={actionLabel} onPress={onAction} busy={busy} />
-    </View>
+      <Button title={actionLabel} onPress={onAction} busy={busy} style={{ marginTop: spacing.md }} />
+    </Card>
   );
 }

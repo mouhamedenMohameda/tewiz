@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { type AuthedRequest } from '../../middleware/auth.js';
+import { requirePhone } from '../../middleware/require-phone.js';
 import { HttpError } from '../../middleware/error.js';
 import * as rides from './rides.service.js';
 import { distanceMeters } from './dispatch.service.js';
@@ -55,7 +56,7 @@ riderRidesRouter.post('/estimate', async (req, res) => {
  * Create a new ride request. Returns the ride with the verification code,
  * which the rider must read aloud to the captain before the ride starts.
  */
-riderRidesRouter.post('/', async (req, res) => {
+riderRidesRouter.post('/', requirePhone, async (req, res) => {
   const userId = (req as AuthedRequest).user.id;
   const body = createBody.parse(req.body);
   const ride = await rides.createRide({

@@ -390,7 +390,18 @@ export async function getRideForUser(
     role === 'admin' ||
     ride.booker_id === userId ||
     (ride.captain_id === userId && ride.status !== 'searching');
-  return shape(ride, { revealCode });
+  const shaped = shape(ride, { revealCode });
+
+  // The assigned captain gets the rider's contact (name + phone) so they can
+  // call at pickup. The rider gets the captain's details. Admin gets neither
+  // here (the admin console joins separately).
+  if (role === 'captain' && ride.captain_id === userId) {
+    return enrichWithBooker(shaped);
+  }
+  if (role === 'rider' && ride.booker_id === userId) {
+    return enrichWithCaptain(shaped);
+  }
+  return shaped;
 }
 
 export async function getCurrentRideForRider(userId: string) {
@@ -477,6 +488,44 @@ async function enrichWithCaptain<T extends { captainId: string | null }>(
   };
 }
 
+/**
+ * Adds `rider` (the person the captain must call at pickup) onto a ride. For a
+ * normal ride that's the booker; for a "course pour quelqu'un d'autre" it's the
+ * passenger. Private — used only by captain-facing endpoints AFTER the captain
+ * is assigned, so riders stay anonymous to captains while the ride is still in
+ * the open inbox.
+ */
+interface RiderInfo {
+  id: string;
+  fullName: string | null;
+  phone: string | null;
+}
+
+async function enrichWithBooker<
+  T extends {
+    bookerId: string;
+    isForOther: boolean;
+    passengerName: string | null;
+    passengerPhone: string | null;
+  },
+>(ride: T): Promise<T & { rider: RiderInfo }> {
+  if (ride.isForOther && ride.passengerPhone) {
+    return {
+      ...ride,
+      rider: { id: ride.bookerId, fullName: ride.passengerName, phone: ride.passengerPhone },
+    };
+  }
+  const r = await pool.query<{ full_name: string | null; phone: string | null }>(
+    `SELECT full_name, phone FROM users WHERE id = $1`,
+    [ride.bookerId],
+  );
+  const row = r.rows[0];
+  return {
+    ...ride,
+    rider: { id: ride.bookerId, fullName: row?.full_name ?? null, phone: row?.phone ?? null },
+  };
+}
+
 export async function getCurrentRideForCaptain(captainId: string) {
   const r = await pool.query<RideRow>(
     `SELECT ${RIDE_COLUMNS} FROM rides
@@ -485,7 +534,7 @@ export async function getCurrentRideForCaptain(captainId: string) {
       ORDER BY accepted_at DESC LIMIT 1`,
     [captainId],
   );
-  return r.rows[0] ? shape(r.rows[0], { revealCode: true }) : null;
+  return r.rows[0] ? enrichWithBooker(shape(r.rows[0], { revealCode: true })) : null;
 }
 
 /**
