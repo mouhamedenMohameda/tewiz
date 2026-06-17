@@ -85,9 +85,24 @@ export default function RiderHome() {
       if (intent) navigateTo(intent);
     } catch (e: any) {
       const code = e?.response?.data?.error?.code;
-      const msg = code === 'phone_taken'
-        ? 'Ce numéro est déjà utilisé par un autre compte.'
-        : e?.response?.data?.error?.message ?? 'Impossible d\'enregistrer le numéro.';
+      if (code === 'phone_taken') {
+        // The number already belongs to an account (e.g. an existing client,
+        // a captain, or the admin). A guest can't claim it — guide them to log
+        // in to that account instead of dead-ending on an error.
+        Alert.alert(
+          'Ce numéro a déjà un compte',
+          'Ce numéro est déjà associé à un compte Tewiz. Connectez-vous avec votre mot de passe pour le récupérer.',
+          [
+            { text: 'Annuler', style: 'cancel' },
+            {
+              text: 'Se connecter',
+              onPress: () => { setPending(null); router.push('/(auth)/phone'); },
+            },
+          ],
+        );
+        return;
+      }
+      const msg = e?.response?.data?.error?.message ?? 'Impossible d\'enregistrer le numéro.';
       Alert.alert('Erreur', msg);
     } finally {
       setSavingPhone(false);
