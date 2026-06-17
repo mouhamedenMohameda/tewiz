@@ -38,6 +38,10 @@ adminUsersRouter.get('/', async (req, res) => {
 
   const where: string[] = [];
   const params: unknown[] = [];
+  // Anonymous guest accounts (no phone, created on first app launch) are not
+  // "managed users" — hide them from the admin directory. They reappear here
+  // once promoted to a captain (is_guest is cleared on approval).
+  where.push('COALESCE(is_guest, false) = false');
   if (q.role) {
     params.push(q.role);
     where.push(`role = $${params.length}`);

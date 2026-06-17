@@ -71,13 +71,19 @@ export async function getOrCreateDraft(userId: string) {
     throw new HttpError(409, 'already_captain', 'You are already an approved captain');
   }
 
-  const user = await pool.query<{ phone: string; role: string }>(
+  const user = await pool.query<{ phone: string | null; role: string }>(
     `SELECT phone, role FROM users WHERE id = $1`,
     [userId],
   );
   if (!user.rows[0]) throw new HttpError(404, 'user_not_found', 'User not found');
   if (!['rider', 'captain'].includes(user.rows[0].role)) {
     throw new HttpError(403, 'wrong_role', 'Only riders or captains can apply');
+  }
+  // A captain must be reachable by phone. A guest applicant may not have set one
+  // yet — the mobile app prompts for it first, this is the server-side backstop.
+  if (!user.rows[0].phone) {
+    throw new HttpError(400, 'phone_required',
+      'Ajoutez votre numéro de téléphone avant de postuler comme chauffeur.');
   }
 
   const created = await pool.query<ApplicationRow>(

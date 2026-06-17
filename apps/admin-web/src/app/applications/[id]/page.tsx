@@ -34,9 +34,19 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
     onSuccess: () => qc.invalidateQueries({ queryKey: ['application', id] }),
   });
 
+  const [captainPassword, setCaptainPassword] = useState<string | null>(null);
+
   const approveApp = useMutation({
-    mutationFn: () => api.post(`/admin/applications/${id}/approve`),
-    onSuccess: () => router.replace('/applications'),
+    mutationFn: async () => {
+      const r = await api.post<{ captainPassword: string | null }>(`/admin/applications/${id}/approve`);
+      return r.data;
+    },
+    onSuccess: (res) => {
+      // A guest-originated captain gets fresh login credentials — show them once
+      // so the admin can forward them. Otherwise go straight back to the list.
+      if (res.captainPassword) setCaptainPassword(res.captainPassword);
+      else router.replace('/applications');
+    },
   });
 
   const reqCorr = useMutation({
@@ -275,6 +285,35 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
                 disabled={appRejectReason.length < 5}
                 className="btn-danger"
               >Refuser</button>
+            </div>
+          </Modal>
+        )}
+
+        {captainPassword && (
+          <Modal title="Chauffeur approuvé" onClose={() => router.replace('/applications')}>
+            <p className="text-sm text-slate-600 mb-3">
+              {app.full_name ?? 'Le chauffeur'} peut maintenant se connecter sur l&apos;app.
+              Transmettez-lui ce mot de passe (affiché une seule fois) :
+            </p>
+            <div className="flex items-center gap-2 mb-4">
+              <code className="flex-1 px-3 py-2 bg-slate-100 rounded font-mono text-lg tracking-wider text-slate-900">
+                {captainPassword}
+              </code>
+              <button
+                onClick={() => navigator.clipboard?.writeText(captainPassword)}
+                className="btn-secondary text-xs"
+              >Copier</button>
+            </div>
+            <div className="flex justify-end gap-2">
+              <a
+                href={`https://wa.me/${app.phone.replace(/[^\d]/g, '')}?text=${encodeURIComponent(
+                  `Bonjour ${app.full_name ?? ''}, votre compte chauffeur Tewiz est validé. Mot de passe : ${captainPassword}`,
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-primary"
+              >Envoyer via WhatsApp</a>
+              <button onClick={() => router.replace('/applications')} className="btn-ghost">Fermer</button>
             </div>
           </Modal>
         )}

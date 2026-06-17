@@ -6,8 +6,6 @@ import { pool } from '../../db/pool.js';
 import { env } from '../../config/env.js';
 import { HttpError } from '../../middleware/error.js';
 import { phoneSchema } from './phone.js';
-import { assertNotRateLimited, consumeOtp, generateOtp, hashOtp, storeOtp } from './otp.js';
-import { sms } from './sms.js';
 import {
   assertNotRateLimited as assertNotPasswordRateLimited,
   recordAttempt,
@@ -19,124 +17,19 @@ import type { UserRole } from '@tewiz/shared-types';
 
 export const authRouter = Router();
 
-/**
- * POST /auth/otp/request
- * Body: { phone, role }
- * Sends an OTP via SMS (or logs it in dev).
- * In dev, the response includes the OTP for convenience.
- */
-const requestOtpBody = z.object({
-  phone: phoneSchema,
-  role: z.enum(['rider', 'captain', 'admin']).optional(),
-});
-
-authRouter.post('/otp/request', async (req, res) => {
-  const { phone } = requestOtpBody.parse(req.body);
-
-  await assertNotRateLimited(phone);
-
-  const code = generateOtp();
-  const codeHash = await hashOtp(code);
-  await storeOtp(phone, codeHash, 'login');
-
-  await sms.send(phone, `Tewiz: votre code de connexion est ${code}. Valable ${env.OTP_TTL_SECONDS / 60} min.`);
-
-  res.json({
-    ok: true,
-    ...(env.NODE_ENV === 'development' ? { _devCode: code } : {}),
-  });
-});
-
-/**
- * POST /auth/otp/verify
- * Body: { phone, code, role, deviceId, fullName? }
- * Creates the user if not present, opens a session, returns tokens.
- */
-const verifyOtpBody = z.object({
-  phone: phoneSchema,
-  code: z.string().regex(/^\d{6}$/),
-  role: z.enum(['rider', 'captain', 'admin']),
-  deviceId: z.string().min(8).max(128),
-  fullName: z.string().min(2).max(100).optional(),
-  // 'login'  → refuse si le user n'existe pas (pas de création)
-  // 'signup' → refuse si le user existe déjà (force "se connecter")
-  // absent   → comportement legacy: find-or-create
-  mode: z.enum(['login', 'signup']).optional(),
-});
-
-authRouter.post('/otp/verify', async (req, res) => {
-  const { phone, code, role, deviceId, fullName, mode } = verifyOtpBody.parse(req.body);
-
-  const result = await consumeOtp(phone, code, 'login');
-  if (!result.ok) {
-    throw new HttpError(400, 'otp_' + result.reason, 'OTP invalid or expired');
-  }
-
-  // Find or create the user.
-  // NOTE: for captain role, this only creates the *user* (auth identity).
-  // The captains row is created only after KYC approval (different flow).
-  let userRow = await findUserByPhone(phone);
-  if (!userRow) {
-    if (mode === 'login') {
-      throw new HttpError(404, 'no_account', 'Aucun compte trouvé pour ce numéro');
-    }
-    userRow = await createUser(phone, role, fullName ?? null);
-  } else {
-    if (mode === 'signup') {
-      throw new HttpError(409, 'account_exists', 'Un compte existe déjà pour ce numéro — connectez-vous');
-    }
-    // The DB role is the source of truth. The requested `role` is just the
-    // app context. We allow login as long as:
-    //   - the user isn't trying to claim admin from a non-admin account
-    //   - the user isn't an admin trying to log in via a non-admin app
-    // Rider <-> captain transitions are allowed (a rider whose captain
-    // application got approved can sign in from the rider app and still
-    // be recognized as a captain).
-    if (role === 'admin' && userRow.role !== 'admin') {
-      throw new HttpError(403, 'role_mismatch', 'Not an administrator');
-    }
-    if (userRow.role === 'admin' && role !== 'admin') {
-      throw new HttpError(403, 'role_mismatch', 'Admin must sign in via admin app');
-    }
-  }
-
-  // Issue session + tokens.
-  const sessionId = crypto.randomUUID();
-  const accessToken = signAccessToken({ sub: userRow.id, role: userRow.role, sid: sessionId });
-  const refreshToken = signRefreshToken({ sub: userRow.id, sid: sessionId });
-  const refreshHash = await bcrypt.hash(refreshToken, 8);
-
-  await pool.query(
-    `INSERT INTO sessions (id, user_id, device_id, refresh_token_hash, user_agent, expires_at)
-     VALUES ($1, $2, $3, $4, $5, now() + ($6 || ' seconds')::interval)`,
-    [
-      sessionId,
-      userRow.id,
-      deviceId,
-      refreshHash,
-      req.headers['user-agent'] ?? null,
-      env.JWT_REFRESH_TTL_SECONDS.toString(),
-    ],
-  );
-
-  await pool.query('UPDATE users SET last_seen_at = now() WHERE id = $1', [userRow.id]);
-
-  res.json({
-    user: {
-      id: userRow.id,
-      phone: userRow.phone,
-      role: userRow.role,
-      fullName: userRow.full_name,
-      language: userRow.language,
-    },
-    tokens: {
-      accessToken,
-      refreshToken,
-      accessExpiresIn: env.JWT_ACCESS_TTL_SECONDS,
-      refreshExpiresIn: env.JWT_REFRESH_TTL_SECONDS,
-    },
-  });
-});
+// ─── SECURITY ────────────────────────────────────────────────────────────────
+// The legacy OTP endpoints (POST /auth/otp/request and /auth/otp/verify) were
+// removed. They allowed UNAUTHENTICATED account creation — including the
+// `admin` role — for any phone number, and returned the OTP in the HTTP
+// response when NODE_ENV=development (full remote admin takeover).
+//
+// Two account-creation paths exist now, both safe:
+//   * POST /auth/login (below) — password auth for existing users.
+//   * POST /auth/guest (below) — creates an anonymous account with the role
+//     HARD-CODED to 'rider'. It can never mint a captain or admin, so the
+//     original flaw does not return. Promotion to captain still requires the
+//     admin-reviewed KYC flow.
+// Do not add any account-creation path that lets the caller choose the role.
 
 /**
  * POST /auth/login
@@ -202,24 +95,11 @@ authRouter.post('/login', async (req, res) => {
 
   // 4. Mint a session.
   await recordAttempt(phone, true, ip, ua);
-  const sessionId = crypto.randomUUID();
-  const accessToken = signAccessToken({ sub: userRow!.id, role: userRow!.role, sid: sessionId });
-  const refreshToken = signRefreshToken({ sub: userRow!.id, sid: sessionId });
-  const refreshHash = await bcrypt.hash(refreshToken, 8);
-
-  await pool.query(
-    `INSERT INTO sessions (id, user_id, device_id, refresh_token_hash, user_agent, expires_at)
-     VALUES ($1, $2, $3, $4, $5, now() + ($6 || ' seconds')::interval)`,
-    [
-      sessionId,
-      userRow!.id,
-      deviceId,
-      refreshHash,
-      ua,
-      env.JWT_REFRESH_TTL_SECONDS.toString(),
-    ],
+  const { accessToken, refreshToken } = await issueSession(
+    { id: userRow!.id, role: userRow!.role },
+    deviceId,
+    ua,
   );
-  await pool.query('UPDATE users SET last_seen_at = now() WHERE id = $1', [userRow!.id]);
 
   res.json({
     user: {
@@ -236,6 +116,100 @@ authRouter.post('/login', async (req, res) => {
       accessExpiresIn: env.JWT_ACCESS_TTL_SECONDS,
       refreshExpiresIn: env.JWT_REFRESH_TTL_SECONDS,
     },
+  });
+});
+
+/**
+ * POST /auth/guest
+ *
+ * Creates an anonymous "guest" rider and returns a session, so the mobile app
+ * can enter the rider experience on first launch without any sign-up. The role
+ * is HARD-CODED to 'rider' (see the SECURITY note above) — this path can never
+ * create a captain or admin. The account has no phone and no password yet; the
+ * app captures the phone (POST /auth/me/phone) before the first ride.
+ *
+ * Body: { deviceId }
+ * Returns: same shape as /auth/login (user + tokens), with phone null.
+ */
+const guestBody = z.object({
+  deviceId: z.string().min(8).max(128),
+});
+
+authRouter.post('/guest', async (req, res) => {
+  const { deviceId } = guestBody.parse(req.body);
+  const ua = (req.headers['user-agent'] as string | undefined) ?? null;
+
+  const { rows } = await pool.query<{ id: string; role: UserRole }>(
+    `INSERT INTO users (role, status, is_guest, must_reset_password)
+     VALUES ('rider', 'active', true, false)
+     RETURNING id, role`,
+  );
+  const user = rows[0]!;
+  const { accessToken, refreshToken } = await issueSession(
+    { id: user.id, role: user.role },
+    deviceId,
+    ua,
+  );
+
+  res.status(201).json({
+    user: {
+      id: user.id,
+      phone: null,
+      role: user.role,
+      fullName: null,
+      language: 'fr',
+      isGuest: true,
+      mustResetPassword: false,
+    },
+    tokens: {
+      accessToken,
+      refreshToken,
+      accessExpiresIn: env.JWT_ACCESS_TTL_SECONDS,
+      refreshExpiresIn: env.JWT_REFRESH_TTL_SECONDS,
+    },
+  });
+});
+
+/**
+ * POST /auth/me/phone
+ *
+ * Sets (or updates) the authenticated user's phone number. A guest rider calls
+ * this the first time a phone is needed — before booking a ride or starting a
+ * captain application. No SMS verification (product decision); we only guard
+ * uniqueness so two accounts can't claim the same number.
+ *
+ * Body: { phone }
+ */
+const setPhoneBody = z.object({ phone: phoneSchema });
+
+authRouter.post('/me/phone', requireAuth, async (req, res) => {
+  const userId = (req as AuthedRequest).user.id;
+  const { phone } = setPhoneBody.parse(req.body);
+
+  const dup = await pool.query<{ id: string }>(
+    `SELECT id FROM users WHERE phone = $1 AND id <> $2 LIMIT 1`,
+    [phone, userId],
+  );
+  if (dup.rows[0]) {
+    throw new HttpError(409, 'phone_taken', 'Ce numéro est déjà utilisé.');
+  }
+
+  const { rows } = await pool.query<UserRow>(
+    `UPDATE users SET phone = $1
+      WHERE id = $2
+      RETURNING id, phone, role, full_name, language,
+                COALESCE(must_reset_password, false) AS must_reset_password`,
+    [phone, userId],
+  );
+  const u = rows[0];
+  if (!u) throw new HttpError(401, 'user_missing', 'User not found');
+  res.json({
+    id: u.id,
+    phone: u.phone,
+    role: u.role,
+    fullName: u.full_name,
+    language: u.language,
+    mustResetPassword: u.must_reset_password ?? false,
   });
 });
 
@@ -357,32 +331,51 @@ authRouter.get('/me', requireAuth, async (req, res) => {
     role: user.role,
     fullName: user.full_name,
     language: user.language,
+    isGuest: user.is_guest ?? false,
     mustResetPassword: user.must_reset_password ?? false,
   });
 });
 
 // --- Helpers ---
 
+/**
+ * Mint a refresh-token session for a user and return the access + refresh
+ * tokens. Shared by /auth/login and /auth/guest so the session bookkeeping
+ * (sessions row + last_seen_at) stays in one place.
+ */
+async function issueSession(
+  user: { id: string; role: UserRole },
+  deviceId: string,
+  ua: string | null,
+): Promise<{ accessToken: string; refreshToken: string }> {
+  const sessionId = crypto.randomUUID();
+  const accessToken = signAccessToken({ sub: user.id, role: user.role, sid: sessionId });
+  const refreshToken = signRefreshToken({ sub: user.id, sid: sessionId });
+  const refreshHash = await bcrypt.hash(refreshToken, 8);
+
+  await pool.query(
+    `INSERT INTO sessions (id, user_id, device_id, refresh_token_hash, user_agent, expires_at)
+     VALUES ($1, $2, $3, $4, $5, now() + ($6 || ' seconds')::interval)`,
+    [sessionId, user.id, deviceId, refreshHash, ua, env.JWT_REFRESH_TTL_SECONDS.toString()],
+  );
+  await pool.query('UPDATE users SET last_seen_at = now() WHERE id = $1', [user.id]);
+
+  return { accessToken, refreshToken };
+}
+
 interface UserRow {
   id: string;
-  phone: string;
+  phone: string | null;
   role: UserRole;
   full_name: string | null;
   language: 'fr' | 'ar' | 'en';
+  is_guest?: boolean;
   must_reset_password?: boolean;
 }
 
 interface UserRowWithPassword extends UserRow {
   password_hash: string | null;
   must_reset_password: boolean;
-}
-
-async function findUserByPhone(phone: string): Promise<UserRow | null> {
-  const { rows } = await pool.query<UserRow>(
-    `SELECT id, phone, role, full_name, language FROM users WHERE phone = $1`,
-    [phone],
-  );
-  return rows[0] ?? null;
 }
 
 async function findUserByPhoneWithPassword(phone: string): Promise<UserRowWithPassword | null> {
@@ -395,20 +388,10 @@ async function findUserByPhoneWithPassword(phone: string): Promise<UserRowWithPa
   return rows[0] ?? null;
 }
 
-async function createUser(phone: string, role: UserRole, fullName: string | null): Promise<UserRow> {
-  const { rows } = await pool.query<UserRow>(
-    `INSERT INTO users (phone, role, full_name)
-     VALUES ($1, $2, $3)
-     RETURNING id, phone, role, full_name, language`,
-    [phone, role, fullName],
-  );
-  if (!rows[0]) throw new HttpError(500, 'create_user_failed', 'Failed to create user');
-  return rows[0];
-}
-
 async function getUserById(id: string): Promise<UserRow | null> {
   const { rows } = await pool.query<UserRow>(
     `SELECT id, phone, role, full_name, language,
+            COALESCE(is_guest, false) AS is_guest,
             COALESCE(must_reset_password, false) AS must_reset_password
        FROM users WHERE id = $1`,
     [id],

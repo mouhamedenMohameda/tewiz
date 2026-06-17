@@ -1,13 +1,17 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Pressable, RefreshControl,
-  ScrollView, Text, View,
+  ActivityIndicator, Alert, Animated, Easing, KeyboardAvoidingView,
+  Modal, Platform, Pressable, View,
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { ModeToggle } from '@/components/ModeToggle';
+import {
+  AppText, Button, Card, FadeInView, Icon, PressableScale, Screen, TextField, type IconName,
+} from '@/components/ui';
+import { colors, gradients, radius, shadow, spacing } from '@/theme';
 import type { ApplicationDto, ApplicationStatus } from '@/lib/kyc';
 
 type RideStatus =
@@ -30,14 +34,65 @@ const STATUS_LABEL: Record<RideStatus, string> = {
   completed: 'Noter votre course',
 };
 
+type Intent = 'voice' | 'map' | 'captain';
+
 export default function RiderHome() {
   const router = useRouter();
   const user = useAuth((s) => s.user);
   const clear = useAuth((s) => s.clear);
+  const setUser = useAuth((s) => s.setUser);
 
   const [application, setApplication] = useState<ApplicationDto | null>(null);
   const [loadingApp, setLoadingApp] = useState(true);
   const [current, setCurrent] = useState<CurrentRide | null>(null);
+
+  // Phone gate: a guest must enter a number before booking a ride or applying
+  // to be a captain (so the captain can reach them). We stash the intended
+  // destination, prompt for the number, then continue.
+  const [pending, setPending] = useState<Intent | null>(null);
+  const [phoneInput, setPhoneInput] = useState('+222');
+  const [savingPhone, setSavingPhone] = useState(false);
+
+  const navigateTo = useCallback((intent: Intent) => {
+    if (intent === 'voice') router.push('/(app)/rider/voice-ride');
+    else if (intent === 'map') router.push('/(app)/rider/new-ride');
+    else router.push('/(app)/become-captain');
+  }, [router]);
+
+  function go(intent: Intent) {
+    if (user?.phone) navigateTo(intent);
+    else setPending(intent);
+  }
+
+  async function savePhone() {
+    if (phoneInput.replace(/\D/g, '').length < 11) {
+      Alert.alert('Numéro invalide', 'Entrez un numéro mauritanien valide (ex. +222 45 12 34 56).');
+      return;
+    }
+    setSavingPhone(true);
+    try {
+      const r = await api.post<{
+        id: string; phone: string;
+        role: 'rider' | 'captain' | 'admin'; fullName: string | null;
+      }>('/auth/me/phone', { phone: phoneInput });
+
+      const cur = useAuth.getState().user;
+      if (cur) {
+        await setUser({ ...cur, phone: r.data.phone, role: r.data.role, fullName: r.data.fullName });
+      }
+      const intent = pending;
+      setPending(null);
+      if (intent) navigateTo(intent);
+    } catch (e: any) {
+      const code = e?.response?.data?.error?.code;
+      const msg = code === 'phone_taken'
+        ? 'Ce numéro est déjà utilisé par un autre compte.'
+        : e?.response?.data?.error?.message ?? 'Impossible d\'enregistrer le numéro.';
+      Alert.alert('Erreur', msg);
+    } finally {
+      setSavingPhone(false);
+    }
+  }
 
   const loadApp = useCallback(async () => {
     // Captains don't need to see the "become captain" CTA.
@@ -73,153 +128,252 @@ export default function RiderHome() {
     router.replace('/(auth)');
   }
 
-  function requestRide() {
-    router.push('/(app)/rider/new-ride');
-  }
-
-  function requestVoiceRide() {
-    router.push('/(app)/rider/voice-ride');
-  }
+  const blocked = !!current;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
-      <ScrollView
-        contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
-        refreshControl={<RefreshControl refreshing={false} onRefresh={loadApp} />}
-      >
-        {/* Header */}
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <View>
-            <Text style={{ fontSize: 13, color: '#64748b' }}>Connecté</Text>
-            <Text style={{ fontSize: 16, fontWeight: '600', color: '#0f172a' }}>
-              {user?.fullName ?? user?.phone}
-            </Text>
+    <Screen scroll onRefresh={loadApp}>
+      {/* Header */}
+      <View style={{
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+        marginTop: spacing.sm, marginBottom: spacing.lg,
+      }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, flex: 1 }}>
+          <View style={{
+            width: 46, height: 46, borderRadius: radius.md,
+            backgroundColor: colors.emberSoft, alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Icon name="person" size={28} color={colors.ember} />
           </View>
-          <Pressable onPress={logout}>
-            <Text style={{ color: '#dc2626', fontSize: 14, fontWeight: '600' }}>Déconnexion</Text>
-          </Pressable>
+          <View style={{ flex: 1 }}>
+            <AppText variant="overline" color={colors.muted}>Bonjour</AppText>
+            <AppText variant="title" numberOfLines={1} style={{ marginTop: 1 }}>
+              {user?.fullName ?? user?.phone}
+            </AppText>
+          </View>
         </View>
+        <Pressable
+          onPress={logout}
+          hitSlop={10}
+          style={{
+            width: 44, height: 44, borderRadius: radius.md,
+            backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center',
+            ...shadow.card,
+          }}
+        >
+          <Icon name="logout" size={20} color={colors.danger} />
+        </Pressable>
+      </View>
 
-        <View style={{ marginTop: 16, alignItems: 'flex-start' }}>
-          <ModeToggle />
-        </View>
+      <ModeToggle />
 
-        {current ? (
-          <Pressable
+      {/* Active ride */}
+      {current ? (
+        <FadeInView>
+          <LiveRideBanner
+            label={STATUS_LABEL[current.status] ?? current.status}
             onPress={() => router.push('/(app)/rider/current')}
-            style={({ pressed }) => ({
-              marginTop: 16, backgroundColor: pressed ? '#dcfce7' : '#ecfdf5',
-              borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#a7f3d0',
-              flexDirection: 'row', alignItems: 'center', gap: 12,
-            })}
-          >
-            <View style={{
-              width: 36, height: 36, borderRadius: 18, backgroundColor: '#10a35e',
-              alignItems: 'center', justifyContent: 'center',
-            }}>
-              <Text style={{ color: '#fff', fontSize: 18 }}>🚖</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 11, fontWeight: '700', color: '#065f46', letterSpacing: 0.5 }}>
-                COURSE EN COURS
-              </Text>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#0f172a', marginTop: 2 }}>
-                {STATUS_LABEL[current.status] ?? current.status}
-              </Text>
-            </View>
-            <Text style={{ color: '#10a35e', fontSize: 20 }}>›</Text>
-          </Pressable>
-        ) : null}
+          />
+        </FadeInView>
+      ) : null}
 
-        {/* Hero: request a ride */}
-        <View style={{
-          marginTop: current ? 16 : 24, backgroundColor: '#0f172a',
-          borderRadius: 18, padding: 22,
-        }}>
-          <Text style={{ color: '#cbd5e1', fontSize: 13 }}>Où allez-vous ?</Text>
-          <Text style={{ color: '#fff', fontSize: 26, fontWeight: '700', marginTop: 4 }}>
-            Commander une course
-          </Text>
+      {/* Hero — order a ride */}
+      <FadeInView delay={60} style={{ marginTop: spacing.lg }}>
+        <Hero
+          blocked={blocked}
+          onVoice={() => go('voice')}
+          onMap={() => go('map')}
+        />
+      </FadeInView>
 
-          {/* Primary: voice-first. A human agent places the ride from your memo. */}
-          <Pressable
-            onPress={requestVoiceRide}
-            disabled={!!current}
-            style={({ pressed }) => ({
-              marginTop: 16, backgroundColor: pressed ? '#0a9050' : '#10a35e',
-              opacity: current ? 0.5 : 1,
-              paddingVertical: 16, borderRadius: 12, alignItems: 'center',
-              flexDirection: 'row', justifyContent: 'center', gap: 10,
-            })}
-          >
-            <Text style={{ fontSize: 20 }}>🎙</Text>
-            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>
-              {current ? 'Une course est déjà en cours' : 'Commander par la voix'}
-            </Text>
-          </Pressable>
-
-          {/* Secondary: pick on the map manually. */}
-          <Pressable
-            onPress={requestRide}
-            disabled={!!current}
-            style={({ pressed }) => ({
-              marginTop: 10, opacity: current ? 0.4 : pressed ? 0.6 : 1,
-              paddingVertical: 12, borderRadius: 12, alignItems: 'center',
-              borderWidth: 1, borderColor: '#334155',
-            })}
-          >
-            <Text style={{ color: '#cbd5e1', fontSize: 14, fontWeight: '600' }}>
-              Choisir sur la carte
-            </Text>
-          </Pressable>
-        </View>
-
-        {/* Navigation */}
-        <View style={{ marginTop: 24, gap: 10 }}>
-          <NavCard icon="🧾" title="Mes courses" subtitle="Historique et course en cours"
+      {/* Quick actions */}
+      <FadeInView delay={140}>
+        <AppText variant="overline" color={colors.muted} style={{ marginTop: spacing.xxl, marginBottom: spacing.md }}>
+          Mes raccourcis
+        </AppText>
+        <View style={{ flexDirection: 'row', gap: spacing.md }}>
+          <QuickTile icon="history" label="Mes courses" tint={colors.emberSoft} fg={colors.ember}
             onPress={() => router.push('/(app)/rider/history')} />
-          <NavCard icon="👨‍👩‍👧" title="Mes chauffeurs" subtitle="Vos favoris seront proposés en premier"
+          <QuickTile icon="drivers" label="Chauffeurs" tint={colors.saffronSoft} fg={colors.warning}
             onPress={() => router.push('/(app)/rider/favorites')} />
-          <NavCard icon="📅" title="Courses récurrentes" subtitle="Trajets hebdomadaires"
+          <QuickTile icon="recurring" label="Récurrent" tint="#E9EFE6" fg={colors.success}
             onPress={() => router.push('/(app)/rider/recurring')} />
         </View>
+      </FadeInView>
 
-        {/* Become a captain — riders only */}
-        {user?.role === 'rider' ? (
-          <View style={{ marginTop: 28 }}>
-            <BecomeCaptainCard
-              loading={loadingApp}
-              application={application}
-              onPress={() => router.push('/(app)/become-captain')}
-            />
-          </View>
-        ) : null}
-      </ScrollView>
-    </SafeAreaView>
+      {/* Become a captain — riders only */}
+      {user?.role === 'rider' ? (
+        <FadeInView delay={220} style={{ marginTop: spacing.xxl }}>
+          <BecomeCaptainCard
+            loading={loadingApp}
+            application={application}
+            onPress={() => go('captain')}
+          />
+        </FadeInView>
+      ) : null}
+
+      <PhonePrompt
+        visible={pending !== null}
+        value={phoneInput}
+        onChange={setPhoneInput}
+        onCancel={() => setPending(null)}
+        onSave={savePhone}
+        busy={savingPhone}
+      />
+    </Screen>
   );
 }
 
-function NavCard({
-  icon, title, subtitle, onPress,
+/* ------------------------------------------------------------------ */
+
+function PhonePrompt({
+  visible, value, onChange, onCancel, onSave, busy,
 }: {
-  icon: string; title: string; subtitle: string; onPress: () => void;
+  visible: boolean;
+  value: string;
+  onChange: (v: string) => void;
+  onCancel: () => void;
+  onSave: () => void;
+  busy: boolean;
 }) {
   return (
-    <Pressable
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' }}
+      >
+        <View
+          style={{
+            backgroundColor: colors.canvas,
+            borderTopLeftRadius: radius.xxl, borderTopRightRadius: radius.xxl,
+            padding: spacing.xl, paddingBottom: spacing.xxl, gap: spacing.base,
+          }}
+        >
+          <View
+            style={{
+              width: 48, height: 48, borderRadius: radius.md,
+              backgroundColor: colors.emberSoft, alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <Icon name="phone" size={26} color={colors.ember} />
+          </View>
+          <AppText variant="h2">Votre numéro</AppText>
+          <AppText variant="body" color={colors.ink2}>
+            Le chauffeur en aura besoin pour vous joindre. Une seule fois — pas de SMS.
+          </AppText>
+          <TextField
+            label="Numéro de téléphone"
+            icon="phone"
+            autoFocus
+            keyboardType="phone-pad"
+            value={value}
+            onChangeText={onChange}
+            placeholder="+22245XXXXXXX"
+            autoCapitalize="none"
+            autoCorrect={false}
+            textContentType="telephoneNumber"
+          />
+          <Button title="Enregistrer et continuer" iconRight="arrow" busy={busy} onPress={onSave} />
+          <Pressable onPress={onCancel} hitSlop={8} style={{ alignItems: 'center', paddingVertical: spacing.sm }}>
+            <AppText variant="caption" color={colors.ink2}>Annuler</AppText>
+          </Pressable>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+
+function LiveRideBanner({ label, onPress }: { label: string; onPress: () => void }) {
+  return (
+    <Card
       onPress={onPress}
-      style={({ pressed }) => ({
-        backgroundColor: pressed ? '#f1f5f9' : '#fff',
-        borderRadius: 14, padding: 16,
-        flexDirection: 'row', alignItems: 'center', gap: 14,
-      })}
+      background={colors.espresso}
+      elevation="raised"
+      padding={spacing.base}
+      style={{ marginTop: spacing.lg, flexDirection: 'row', alignItems: 'center', gap: spacing.md }}
     >
-      <Text style={{ fontSize: 26 }}>{icon}</Text>
-      <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 15, fontWeight: '600', color: '#0f172a' }}>{title}</Text>
-        <Text style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{subtitle}</Text>
+      <View style={{
+        width: 44, height: 44, borderRadius: radius.md,
+        backgroundColor: 'rgba(246,166,35,0.18)', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Icon name="ride" size={26} color={colors.saffron} />
       </View>
-      <Text style={{ color: '#94a3b8', fontSize: 20 }}>›</Text>
-    </Pressable>
+      <View style={{ flex: 1 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+          <PulseDot />
+          <AppText variant="overline" color={colors.saffron}>Course en cours</AppText>
+        </View>
+        <AppText variant="bodyStrong" color={colors.onEspresso} style={{ marginTop: 3 }} numberOfLines={1}>
+          {label}
+        </AppText>
+      </View>
+      <Icon name="chevron" size={22} color={colors.onEspressoMuted} />
+    </Card>
+  );
+}
+
+function Hero({ blocked, onVoice, onMap }: { blocked: boolean; onVoice: () => void; onMap: () => void }) {
+  return (
+    <LinearGradient
+      colors={gradients.sunrise}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={{ borderRadius: radius.xxl, padding: spacing.xl, ...shadow.ember }}
+    >
+      <AppText variant="overline" color="#FFF1DD">Où allez-vous ?</AppText>
+      <AppText variant="h1" color={colors.white} style={{ marginTop: spacing.xs, maxWidth: 240 }}>
+        Commander une course
+      </AppText>
+
+      {/* Primary: voice-first. A human agent places the ride from your memo. */}
+      <PressableScale
+        onPress={blocked ? undefined : onVoice}
+        disabled={blocked}
+        style={{
+          marginTop: spacing.lg, backgroundColor: colors.white, opacity: blocked ? 0.55 : 1,
+          borderRadius: radius.lg, paddingVertical: 15, paddingHorizontal: spacing.lg,
+          flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
+          ...shadow.card,
+        }}
+      >
+        <Icon name="voice" size={22} color={colors.ember} />
+        <AppText variant="title" color={colors.ember}>
+          {blocked ? 'Une course est déjà en cours' : 'Commander par la voix'}
+        </AppText>
+      </PressableScale>
+
+      {/* Secondary: pick on the map manually. */}
+      <PressableScale
+        onPress={blocked ? undefined : onMap}
+        disabled={blocked}
+        style={{
+          marginTop: spacing.sm, opacity: blocked ? 0.4 : 1,
+          borderRadius: radius.lg, paddingVertical: 13,
+          flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
+          borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.55)',
+        }}
+      >
+        <Icon name="map" size={19} color={colors.white} />
+        <AppText variant="bodyStrong" color={colors.white}>Choisir sur la carte</AppText>
+      </PressableScale>
+    </LinearGradient>
+  );
+}
+
+function QuickTile({
+  icon, label, tint, fg, onPress,
+}: { icon: IconName; label: string; tint: string; fg: string; onPress: () => void }) {
+  return (
+    <Card onPress={onPress} padding={spacing.base} style={{ flex: 1, alignItems: 'flex-start' }}>
+      <View style={{
+        width: 46, height: 46, borderRadius: radius.md,
+        backgroundColor: tint, alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Icon name={icon} size={24} color={fg} />
+      </View>
+      <AppText variant="label" style={{ marginTop: spacing.md }} numberOfLines={1}>{label}</AppText>
+    </Card>
   );
 }
 
@@ -230,8 +384,8 @@ function BecomeCaptainCard({
 }) {
   if (loading) {
     return (
-      <View style={{ alignItems: 'center', padding: 16 }}>
-        <ActivityIndicator />
+      <View style={{ alignItems: 'center', padding: spacing.base }}>
+        <ActivityIndicator color={colors.ember} />
       </View>
     );
   }
@@ -240,23 +394,27 @@ function BecomeCaptainCard({
   const { title, subtitle, cta } = describe(status);
 
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => ({
-        backgroundColor: pressed ? '#fde68a' : '#fef3c7',
-        borderRadius: 16, padding: 18, gap: 10,
-        borderWidth: 1, borderColor: '#fcd34d',
-      })}
-    >
-      <Text style={{ fontSize: 11, fontWeight: '700', color: '#92400e', letterSpacing: 0.5 }}>
-        DEVENIR CHAUFFEUR
-      </Text>
-      <Text style={{ fontSize: 18, fontWeight: '700', color: '#7c2d12' }}>{title}</Text>
-      <Text style={{ fontSize: 13, color: '#7c2d12', lineHeight: 18 }}>{subtitle}</Text>
-      <Text style={{ fontSize: 13, fontWeight: '600', color: '#7c2d12', marginTop: 4 }}>
-        {cta} ›
-      </Text>
-    </Pressable>
+    <Card onPress={onPress} background={colors.espresso} elevation="raised" padding={spacing.xl}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+        <View style={{
+          width: 52, height: 52, borderRadius: radius.md,
+          backgroundColor: 'rgba(246,166,35,0.16)', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Icon name="captain" size={30} color={colors.saffron} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <AppText variant="overline" color={colors.saffron}>Devenir chauffeur</AppText>
+          <AppText variant="h2" color={colors.onEspresso} style={{ marginTop: 2 }}>{title}</AppText>
+        </View>
+      </View>
+      <AppText variant="body" color={colors.onEspressoMuted} style={{ marginTop: spacing.md }}>
+        {subtitle}
+      </AppText>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: spacing.base }}>
+        <AppText variant="bodyStrong" color={colors.saffron}>{cta}</AppText>
+        <Icon name="arrow" size={17} color={colors.saffron} />
+      </View>
+    </Card>
   );
 }
 
@@ -294,4 +452,20 @@ function describe(status: ApplicationStatus | null): { title: string; subtitle: 
       cta: 'Aller au mode chauffeur',
     };
   }
+}
+
+/* A soft breathing dot for the live-ride indicator. */
+function PulseDot() {
+  const o = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(o, { toValue: 0.25, duration: 850, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      Animated.timing(o, { toValue: 1, duration: 850, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [o]);
+  return (
+    <Animated.View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.saffron, opacity: o }} />
+  );
 }

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { type AuthedRequest } from '../../middleware/auth.js';
+import { requirePhone } from '../../middleware/require-phone.js';
 import { HttpError } from '../../middleware/error.js';
 import { uploadAudio } from '../../middleware/upload.js';
 import * as voiceRides from './voice-rides.service.js';
@@ -14,7 +15,7 @@ export const riderVoiceRidesRouter = Router();
  * request (without the internal audio key) so the app can open the waiting
  * screen and start polling GET /rider/voice-rides/:id.
  */
-riderVoiceRidesRouter.post('/', uploadAudio.single('audio'), async (req, res) => {
+riderVoiceRidesRouter.post('/', requirePhone, uploadAudio.single('audio'), async (req, res) => {
   const userId = (req as AuthedRequest).user.id;
   const file = req.file;
   if (!file) {

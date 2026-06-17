@@ -4,6 +4,7 @@ import { pool, withTx } from '../../db/pool.js';
 import { requireAuth, requireRole, type AuthedRequest } from '../../middleware/auth.js';
 import { HttpError } from '../../middleware/error.js';
 import { defaultStorage } from '../storage/local-disk.js';
+import { generatePassword, hashPassword } from '../auth/password.js';
 import { audit } from './audit.js';
 import { adminTopupRouter } from './topup.routes.js';
 import { adminRecurringRouter } from '../recurring/admin.routes.js';
@@ -190,10 +191,57 @@ adminRouter.post('/applications/:id/approve', async (req, res) => {
         });
     }
 
-    // Promote user role (they signed up as captain already, but be safe).
-    await client.query(
-      `UPDATE users SET role = 'captain' WHERE id = $1 AND role <> 'admin'`,
+    // Fetch the linked user's current identity so we can backfill name/phone
+    // (a guest-originated applicant may have neither on the users row yet) and
+    // decide whether to issue login credentials.
+    const uRes = await client.query<{ phone: string | null; password_hash: string | null }>(
+      `SELECT phone, password_hash FROM users WHERE id = $1 FOR UPDATE`,
       [app.user_id],
+    );
+    const u = uRes.rows[0];
+    if (!u) throw new HttpError(404, 'not_found', 'Linked user not found');
+
+    // A captain MUST be reachable by phone. Prefer the user's existing number,
+    // fall back to the one captured on the application.
+    const finalPhone = u.phone ?? app.phone ?? null;
+    if (!finalPhone) {
+      throw new HttpError(400, 'captain_needs_phone',
+        'Le chauffeur doit avoir un numéro de téléphone avant validation.');
+    }
+    if (!u.phone) {
+      const dup = await client.query<{ id: string }>(
+        `SELECT id FROM users WHERE phone = $1 AND id <> $2 LIMIT 1`,
+        [finalPhone, app.user_id],
+      );
+      if (dup.rows[0]) {
+        throw new HttpError(409, 'phone_taken',
+          'Ce numéro est déjà utilisé par un autre compte.');
+      }
+    }
+
+    // Issue login credentials if the captain has none yet (e.g. promoted from a
+    // guest account) so they can sign in on another device via the password
+    // flow. The admin sends this password to the new captain.
+    let password: string | null = null;
+    let passwordHash: string | null = null;
+    if (!u.password_hash) {
+      password = generatePassword();
+      passwordHash = await hashPassword(password);
+    }
+
+    // Promote: captain role + clear the guest flag + backfill name/phone, and
+    // attach the new password when one was generated.
+    await client.query(
+      `UPDATE users
+          SET role = 'captain',
+              is_guest = false,
+              full_name = COALESCE(full_name, $2),
+              phone = $3,
+              password_hash = COALESCE($4, password_hash),
+              password_updated_at = CASE WHEN $4 IS NULL THEN password_updated_at ELSE now() END,
+              must_reset_password = CASE WHEN $4 IS NULL THEN must_reset_password ELSE false END
+        WHERE id = $1 AND role <> 'admin'`,
+      [app.user_id, app.full_name, finalPhone, passwordHash],
     );
 
     // Create captain row
@@ -245,7 +293,7 @@ adminRouter.post('/applications/:id/approve', async (req, res) => {
         WHERE id = $2 RETURNING *`,
       [adminId, app.id],
     );
-    return upd.rows[0];
+    return { application: upd.rows[0], password };
   });
 
   await audit({
@@ -253,9 +301,11 @@ adminRouter.post('/applications/:id/approve', async (req, res) => {
     action: 'approve_application',
     targetType: 'captain_application',
     targetId: req.params.id!,
-    after: result,
+    after: result.application,
   });
-  res.json(result);
+  // `captainPassword` is non-null only when we just generated it (captain had
+  // none). Shown ONCE to the admin so they can forward it to the new captain.
+  res.json({ ...result.application, captainPassword: result.password });
 });
 
 /**
