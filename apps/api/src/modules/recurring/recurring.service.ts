@@ -1,7 +1,7 @@
 import { pool, withTx } from '../../db/pool.js';
 import { HttpError } from '../../middleware/error.js';
 import { env } from '../../config/env.js';
-import { estimateFareKhoums } from '../rides/pricing.js';
+import { estimateFareMru } from '../rides/pricing.js';
 import { distanceMeters } from '../rides/dispatch.service.js';
 import type { RecurringStatus } from '@tewiz/shared-types';
 
@@ -18,7 +18,7 @@ interface RecurringRow {
   days_of_week: number;
   time_of_day: string;
   timezone: string;
-  locked_fare_khoums: string;
+  locked_fare_mru: string;
   status: RecurringStatus;
   valid_from: string;
   valid_until: string | null;
@@ -35,7 +35,7 @@ const RR_COLS = `
   ST_X(dropoff_location::geometry) AS dropoff_lng,
   dropoff_label,
   days_of_week, time_of_day, timezone,
-  locked_fare_khoums, status,
+  locked_fare_mru, status,
   valid_from, valid_until, created_at, updated_at
 `;
 
@@ -49,7 +49,7 @@ function shape(r: RecurringRow) {
     daysOfWeek: r.days_of_week,
     timeOfDay: r.time_of_day,
     timezone: r.timezone,
-    lockedFareKhoums: Number(r.locked_fare_khoums),
+    lockedFareMru: Number(r.locked_fare_mru),
     status: r.status,
     validFrom: r.valid_from,
     validUntil: r.valid_until,
@@ -74,14 +74,14 @@ export async function proposeRecurring(input: ProposeInput) {
     input.dropoff.lat, input.dropoff.lng,
   );
   // Locked fare with 5% rider discount (incentive for committing).
-  const { fareKhoums } = estimateFareKhoums(dStraight);
-  const lockedFare = Math.round(fareKhoums * 0.95);
+  const { fareMru } = estimateFareMru(dStraight);
+  const lockedFare = Math.round(fareMru * 0.95);
 
   const r = await pool.query<RecurringRow>(
     `INSERT INTO recurring_rides
        (rider_id, pickup_location, pickup_label,
         dropoff_location, dropoff_label,
-        days_of_week, time_of_day, locked_fare_khoums,
+        days_of_week, time_of_day, locked_fare_mru,
         status, valid_from, valid_until)
      VALUES (
        $1,
@@ -196,7 +196,7 @@ export async function processOccurrences() {
     rider_id: string; captain_id: string;
     pickup_lng: number; pickup_lat: number; pickup_label: string | null;
     dropoff_lng: number; dropoff_lat: number; dropoff_label: string | null;
-    locked_fare_khoums: string;
+    locked_fare_mru: string;
   }>(`
     SELECT o.id, o.recurring_ride_id, o.scheduled_at,
            rr.rider_id, rr.captain_id,
@@ -206,7 +206,7 @@ export async function processOccurrences() {
            ST_X(rr.dropoff_location::geometry) AS dropoff_lng,
            ST_Y(rr.dropoff_location::geometry) AS dropoff_lat,
            rr.dropoff_label,
-           rr.locked_fare_khoums
+           rr.locked_fare_mru
       FROM recurring_ride_occurrences o
       JOIN recurring_rides rr ON rr.id = o.recurring_ride_id
      WHERE o.status = 'scheduled'
@@ -234,7 +234,7 @@ export async function processOccurrences() {
              booker_id, passenger_user_id, ride_type, status,
              pickup_location, pickup_label,
              dropoff_location, dropoff_label,
-             fare_estimate_khoums, commission_rate_bps,
+             fare_estimate_mru, commission_rate_bps,
              distance_m, payment_method, verification_code,
              captain_id, accepted_at, recurring_ride_id
            )
@@ -250,7 +250,7 @@ export async function processOccurrences() {
             occ.rider_id,
             occ.pickup_lng, occ.pickup_lat, occ.pickup_label,
             occ.dropoff_lng, occ.dropoff_lat, occ.dropoff_label,
-            Number(occ.locked_fare_khoums), env.DEFAULT_COMMISSION_BPS,
+            Number(occ.locked_fare_mru), env.DEFAULT_COMMISSION_BPS,
             code, occ.captain_id, occ.recurring_ride_id,
           ],
         );

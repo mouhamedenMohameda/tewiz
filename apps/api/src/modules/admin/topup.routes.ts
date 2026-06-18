@@ -32,7 +32,7 @@ adminTopupRouter.get('/:id/screenshot', async (req, res) => {
 });
 
 const approveBody = z.object({
-  approvedAmountKhoums: z.coerce.number().int().min(1).optional(),
+  approvedAmountMru: z.coerce.number().int().min(1).optional(),
   providerRefNumber: z.string().min(2).max(100).optional(),
 });
 
@@ -42,7 +42,7 @@ adminTopupRouter.post('/:id/approve', async (req, res) => {
   const result = await topupSvc.approveTopup({
     adminId,
     topupId: req.params.id!,
-    approvedAmountKhoums: body.approvedAmountKhoums,
+    approvedAmountMru: body.approvedAmountMru,
     providerRefNumber: body.providerRefNumber,
   });
   await audit({

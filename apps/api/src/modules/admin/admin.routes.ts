@@ -275,7 +275,7 @@ adminRouter.post('/applications/:id/approve', async (req, res) => {
 
     // Wallet at 0 + offline state
     await client.query(
-      `INSERT INTO wallets (captain_id, balance_khoums) VALUES ($1, 0)
+      `INSERT INTO wallets (captain_id, balance_mru) VALUES ($1, 0)
        ON CONFLICT (captain_id) DO NOTHING`,
       [app.user_id],
     );

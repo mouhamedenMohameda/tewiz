@@ -24,9 +24,9 @@ interface Ride {
   captainId: string | null;
   pickup: { lat: number; lng: number; label: string | null };
   dropoff: { lat: number; lng: number; label: string | null };
-  fareEstimateKhoums: number | null;
-  fareFinalKhoums: number | null;
-  commissionKhoums: number | null;
+  fareEstimateMru: number | null;
+  fareFinalMru: number | null;
+  commissionMru: number | null;
   paymentMethod: 'cash' | 'wallet';
   verificationCode?: string;
   requestedAt: string;
@@ -64,9 +64,9 @@ const STATUS_COLOR: Record<RideStatus, string> = {
   no_show: 'bg-rose-100 text-rose-800',
 };
 
-function fmtMru(khoums: number | null): string {
-  if (khoums == null) return '—';
-  return `${Math.round(khoums / 5).toLocaleString('fr-FR')} MRU`;
+function fmtMru(mru: number | null): string {
+  if (mru == null) return '—';
+  return `${Math.round(mru).toLocaleString('fr-FR')} MRU`;
 }
 
 function fmtTime(iso: string | null): string {
@@ -171,12 +171,12 @@ export default function RideDetailPage({ params }: { params: Promise<{ id: strin
             </div>
             <div className="mt-4 pt-4 border-t border-slate-100 flex justify-between text-sm">
               <span className="text-slate-500">Tarif estimé</span>
-              <span className="font-semibold text-slate-900">{fmtMru(ride.fareEstimateKhoums)}</span>
+              <span className="font-semibold text-slate-900">{fmtMru(ride.fareEstimateMru)}</span>
             </div>
-            {ride.fareFinalKhoums != null ? (
+            {ride.fareFinalMru != null ? (
               <div className="mt-1 flex justify-between text-sm">
                 <span className="text-slate-500">Tarif final</span>
-                <span className="font-semibold text-emerald-700">{fmtMru(ride.fareFinalKhoums)}</span>
+                <span className="font-semibold text-emerald-700">{fmtMru(ride.fareFinalMru)}</span>
               </div>
             ) : null}
             <div className="mt-1 flex justify-between text-sm">

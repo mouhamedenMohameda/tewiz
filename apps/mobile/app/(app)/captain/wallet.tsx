@@ -19,14 +19,14 @@ type TopupStatus = 'pending' | 'approved' | 'partial' | 'rejected' | 'duplicate'
 type TxType = 'topup' | 'commission' | 'commission_refund' | 'manual_adjustment' | 'bonus';
 
 interface WalletSummary {
-  balanceKhoums: number;
+  balanceMru: number;
   updatedAt: string;
   transactions: Tx[];
 }
 interface Tx {
   id: string;
   type: TxType;
-  amountKhoums: number;
+  amountMru: number;
   balanceAfter: number;
   rideId: string | null;
   reason: string | null;
@@ -36,10 +36,10 @@ interface Topup {
   id: string;
   provider: Provider;
   referenceCode: string;
-  claimedAmountKhoums: number;
+  claimedAmountMru: number;
   providerRefNumber: string | null;
   status: TopupStatus;
-  approvedAmountKhoums: number | null;
+  approvedAmountMru: number | null;
   rejectReason: string | null;
   createdAt: string;
 }
@@ -86,7 +86,7 @@ export default function WalletScreen() {
       >
         <AppText variant="overline" color="#FFF1DD">Solde wallet</AppText>
         <AppText variant="hero" color={colors.white} style={{ marginTop: spacing.xs, fontSize: 36 }}>
-          {summary ? formatMru(summary.balanceKhoums) : '—'}
+          {summary ? formatMru(summary.balanceMru) : '—'}
         </AppText>
         <AppText variant="caption" color="#FFF1DD" style={{ marginTop: spacing.sm, opacity: 0.95 }}>
           La commission 7 % (10 % colis) est débitée à la fin de chaque course.
@@ -146,7 +146,7 @@ function TopupRow({ t }: { t: Topup }) {
     <Card padding={spacing.md} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
       <View style={{ flex: 1 }}>
         <AppText variant="bodyStrong">
-          {PROVIDER_LABELS[t.provider]} · {formatMru(t.claimedAmountKhoums)}
+          {PROVIDER_LABELS[t.provider]} · {formatMru(t.claimedAmountMru)}
         </AppText>
         <AppText variant="caption" color={colors.muted} style={{ marginTop: 2 }}>
           Réf #{t.referenceCode} · {new Date(t.createdAt).toLocaleDateString('fr-FR')}
@@ -163,7 +163,7 @@ function TopupRow({ t }: { t: Topup }) {
 }
 
 function TxRow({ tx }: { tx: Tx }) {
-  const positive = tx.amountKhoums >= 0;
+  const positive = tx.amountMru >= 0;
   const labels: Record<TxType, string> = {
     topup: 'Recharge',
     commission: 'Commission',
@@ -181,7 +181,7 @@ function TxRow({ tx }: { tx: Tx }) {
         </AppText>
       </View>
       <AppText variant="title" color={positive ? colors.success : colors.danger}>
-        {positive ? '+' : ''}{formatMru(tx.amountKhoums)}
+        {positive ? '+' : ''}{formatMru(tx.amountMru)}
       </AppText>
     </Card>
   );
@@ -237,7 +237,8 @@ function TopupModal({
         type: 'image/jpeg',
       } as any);
       form.append('provider', provider);
-      form.append('claimedAmountKhoums', String(Math.round(mruNum * 5)));
+      // Send MRU as-is. No more khoums conversion (migration 0017).
+      form.append('claimedAmountMru', String(Math.round(mruNum)));
       if (refNumber.trim()) form.append('providerRefNumber', refNumber.trim());
 
       await api.post('/captain/wallet/topups', form, {

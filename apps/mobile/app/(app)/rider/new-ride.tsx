@@ -34,7 +34,7 @@ export default function NewRideScreen() {
   const [pickup, setPickup] = useState<Point | null>(null);
   const [dropoff, setDropoff] = useState<Point | null>(null);
   const [active, setActive] = useState<'pickup' | 'dropoff' | null>(null);
-  const [estimate, setEstimate] = useState<{ fareKhoums: number; distanceM: number } | null>(null);
+  const [estimate, setEstimate] = useState<{ fareMru: number; distanceM: number } | null>(null);
   const [estimating, setEstimating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -76,7 +76,7 @@ export default function NewRideScreen() {
     if (!pickup || !dropoff) { setEstimate(null); return; }
     let cancelled = false;
     setEstimating(true);
-    api.post<{ fareKhoums: number; distanceM: number }>('/rider/rides/estimate', {
+    api.post<{ fareMru: number; distanceM: number }>('/rider/rides/estimate', {
       pickup: { lat: pickup.lat, lng: pickup.lng },
       dropoff: { lat: dropoff.lat, lng: dropoff.lng },
     })
@@ -263,7 +263,7 @@ export default function NewRideScreen() {
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <Text style={{ fontSize: 13, color: '#64748b' }}>Tarif estimé</Text>
           <Text style={{ fontSize: 20, fontWeight: '700', color: '#0f172a' }}>
-            {estimating ? '…' : estimate ? formatMru(estimate.fareKhoums) : '—'}
+            {estimating ? '…' : estimate ? formatMru(estimate.fareMru) : '—'}
           </Text>
         </View>
         <Pressable

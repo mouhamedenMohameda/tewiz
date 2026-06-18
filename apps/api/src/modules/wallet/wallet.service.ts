@@ -3,9 +3,12 @@ import { pool, withTx } from '../../db/pool.js';
 import { HttpError } from '../../middleware/error.js';
 import type { WalletTxType } from '@tewiz/shared-types';
 
+// All amounts in MRU (integer ouguiyas). The legacy khoums unit
+// (1 MRU = 5 khoums) was removed by migration 0017.
+
 export interface CreditOptions {
   captainId: string;
-  amountKhoums: number;          // POSITIVE integer
+  amountMru: number;             // POSITIVE integer
   type: Extract<WalletTxType, 'topup' | 'bonus' | 'manual_adjustment' | 'commission_refund'>;
   topupId?: string | null;
   rideId?: string | null;
@@ -15,7 +18,7 @@ export interface CreditOptions {
 
 export interface DebitOptions {
   captainId: string;
-  amountKhoums: number;          // POSITIVE integer; will be stored as negative
+  amountMru: number;             // POSITIVE integer; will be stored as negative
   type: Extract<WalletTxType, 'commission' | 'manual_adjustment'>;
   rideId?: string | null;
   reason?: string | null;
@@ -33,7 +36,7 @@ export interface TxResult {
  * Order matters:
  *   1. SELECT ... FOR UPDATE locks the wallet row
  *   2. INSERT into wallet_transactions with balance_after = new total
- *   3. UPDATE wallets.balance_khoums to the new total
+ *   3. UPDATE wallets.balance_mru to the new total
  *
  * Step 3 triggers `assert_wallet_balance_consistency`, which sums the ledger
  * and refuses the UPDATE if the wallet drifts from the sum.
@@ -44,12 +47,12 @@ export async function creditWallet(
   opts: CreditOptions,
   client?: pg.PoolClient,
 ): Promise<TxResult> {
-  if (!Number.isInteger(opts.amountKhoums) || opts.amountKhoums <= 0) {
-    throw new HttpError(400, 'invalid_amount', 'Credit amount must be positive integer khoums');
+  if (!Number.isInteger(opts.amountMru) || opts.amountMru <= 0) {
+    throw new HttpError(400, 'invalid_amount', 'Credit amount must be positive integer MRU');
   }
   const run = (c: pg.PoolClient) => mutateWallet(c, {
     captainId: opts.captainId,
-    delta: opts.amountKhoums,
+    delta: opts.amountMru,
     type: opts.type,
     topupId: opts.topupId ?? null,
     rideId: opts.rideId ?? null,
@@ -62,7 +65,7 @@ export async function creditWallet(
 /**
  * Debit the captain wallet (e.g. ride commission).
  *
- * Will go negative down to env.NEGATIVE_BALANCE_FLOOR_KHOUMS (soft float).
+ * Will go negative down to env.NEGATIVE_BALANCE_FLOOR_MRU (soft float).
  * Beyond that, the operation is refused — callers should check eligibility
  * before attempting; this is the hard floor.
  */
@@ -70,12 +73,12 @@ export async function debitWallet(
   opts: DebitOptions,
   client?: pg.PoolClient,
 ): Promise<TxResult> {
-  if (!Number.isInteger(opts.amountKhoums) || opts.amountKhoums <= 0) {
-    throw new HttpError(400, 'invalid_amount', 'Debit amount must be positive integer khoums');
+  if (!Number.isInteger(opts.amountMru) || opts.amountMru <= 0) {
+    throw new HttpError(400, 'invalid_amount', 'Debit amount must be positive integer MRU');
   }
   const run = (c: pg.PoolClient) => mutateWallet(c, {
     captainId: opts.captainId,
-    delta: -opts.amountKhoums,
+    delta: -opts.amountMru,
     type: opts.type,
     topupId: null,
     rideId: opts.rideId ?? null,
@@ -96,14 +99,14 @@ interface MutateInput {
 }
 
 async function mutateWallet(c: pg.PoolClient, m: MutateInput): Promise<TxResult> {
-  const lock = await c.query<{ balance_khoums: string }>(
-    `SELECT balance_khoums FROM wallets WHERE captain_id = $1 FOR UPDATE`,
+  const lock = await c.query<{ balance_mru: string }>(
+    `SELECT balance_mru FROM wallets WHERE captain_id = $1 FOR UPDATE`,
     [m.captainId],
   );
   if (!lock.rows[0]) {
     throw new HttpError(404, 'no_wallet', 'No wallet for captain');
   }
-  const current = Number(lock.rows[0].balance_khoums);
+  const current = Number(lock.rows[0].balance_mru);
   const next = current + m.delta;
 
   // We intentionally do not check NEGATIVE_BALANCE_FLOOR here; callers should
@@ -111,14 +114,14 @@ async function mutateWallet(c: pg.PoolClient, m: MutateInput): Promise<TxResult>
   // overflow if we ever change types.
   const txn = await c.query<{ id: string }>(
     `INSERT INTO wallet_transactions
-       (captain_id, type, amount_khoums, balance_after, ride_id, topup_id, reason, created_by)
+       (captain_id, type, amount_mru, balance_after, ride_id, topup_id, reason, created_by)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
      RETURNING id`,
     [m.captainId, m.type, m.delta, next, m.rideId, m.topupId, m.reason, m.createdBy],
   );
 
   await c.query(
-    `UPDATE wallets SET balance_khoums = $1, updated_at = now() WHERE captain_id = $2`,
+    `UPDATE wallets SET balance_mru = $1, updated_at = now() WHERE captain_id = $2`,
     [next, m.captainId],
   );
 
@@ -135,16 +138,16 @@ async function mutateWallet(c: pg.PoolClient, m: MutateInput): Promise<TxResult>
  * captain account.
  */
 export async function getWalletSummary(captainId: string, limit = 20) {
-  const w = await pool.query<{ balance_khoums: string; updated_at: Date }>(
-    `SELECT balance_khoums, updated_at FROM wallets WHERE captain_id = $1`,
+  const w = await pool.query<{ balance_mru: string; updated_at: Date }>(
+    `SELECT balance_mru, updated_at FROM wallets WHERE captain_id = $1`,
     [captainId],
   );
   if (!w.rows[0]) {
-    return { balanceKhoums: 0, updatedAt: new Date(), transactions: [] };
+    return { balanceMru: 0, updatedAt: new Date(), transactions: [] };
   }
 
   const txs = await pool.query(
-    `SELECT id, type, amount_khoums, balance_after, ride_id, topup_id, reason, created_at
+    `SELECT id, type, amount_mru, balance_after, ride_id, topup_id, reason, created_at
        FROM wallet_transactions
       WHERE captain_id = $1
       ORDER BY created_at DESC
@@ -153,12 +156,12 @@ export async function getWalletSummary(captainId: string, limit = 20) {
   );
 
   return {
-    balanceKhoums: Number(w.rows[0].balance_khoums),
+    balanceMru: Number(w.rows[0].balance_mru),
     updatedAt: w.rows[0].updated_at,
     transactions: txs.rows.map((t) => ({
       id: t.id,
       type: t.type,
-      amountKhoums: Number(t.amount_khoums),
+      amountMru: Number(t.amount_mru),
       balanceAfter: Number(t.balance_after),
       rideId: t.ride_id,
       topupId: t.topup_id,
@@ -172,13 +175,13 @@ export async function getWalletSummary(captainId: string, limit = 20) {
  * Read-only: balance only (cheap).
  */
 export async function getBalance(captainId: string): Promise<number> {
-  const r = await pool.query<{ balance_khoums: string }>(
-    `SELECT balance_khoums FROM wallets WHERE captain_id = $1`,
+  const r = await pool.query<{ balance_mru: string }>(
+    `SELECT balance_mru FROM wallets WHERE captain_id = $1`,
     [captainId],
   );
   // Mirror getWalletSummary: a brand-new captain with no wallet row yet
   // has an effective zero balance. Avoids 404s on /captain/state where
   // a balance lookup is part of the going-home / online flow.
   if (!r.rows[0]) return 0;
-  return Number(r.rows[0].balance_khoums);
+  return Number(r.rows[0].balance_mru);
 }

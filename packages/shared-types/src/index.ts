@@ -15,14 +15,14 @@ export interface UserPublic {
 }
 
 // --- Money ---
-// All amounts on the wire are integer khoums. 1 MRU = 5 khoums.
-export type Khoums = number;
+// All amounts on the wire are integer MRU (ouguiyas). The legacy khoums
+// unit (1 MRU = 5 khoums) was removed by migration 0017 — the constant
+// conversion between input units and storage units was a recurring source
+// of off-by-5 bugs.
+export type Mru = number;
 
-export const KHOUMS_PER_MRU = 5;
-export const mruToKhoums = (mru: number): Khoums => Math.round(mru * KHOUMS_PER_MRU);
-export const khoumsToMru = (k: Khoums): number => k / KHOUMS_PER_MRU;
-export const formatMru = (k: Khoums): string =>
-  `${(k / KHOUMS_PER_MRU).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} MRU`;
+export const formatMru = (mru: Mru): string =>
+  `${Math.round(mru).toLocaleString('fr-FR')} MRU`;
 
 // --- Geo ---
 export interface LatLng {

@@ -31,8 +31,10 @@ const EnvSchema = z.object({
   // Business config — basis points (1% = 100 bps)
   DEFAULT_COMMISSION_BPS: z.coerce.number().default(700),
   COLIS_COMMISSION_BPS: z.coerce.number().default(1000),
-  MIN_BALANCE_TO_GO_ONLINE_KHOUMS: z.coerce.number().default(100),
-  NEGATIVE_BALANCE_FLOOR_KHOUMS: z.coerce.number().default(-250),
+  // Wallet thresholds in MRU. Defaults preserve old behavior (100 khoums
+  // ≈ 20 MRU, -250 khoums ≈ -50 MRU).
+  MIN_BALANCE_TO_GO_ONLINE_MRU: z.coerce.number().default(20),
+  NEGATIVE_BALANCE_FLOOR_MRU: z.coerce.number().default(-50),
 
   HOME_LOCK_DAYS: z.coerce.number().default(30),
   HOME_GPS_TOLERANCE_M: z.coerce.number().default(200),
@@ -46,10 +48,11 @@ const EnvSchema = z.object({
   IMAGE_MAX_WIDTH_PX: z.coerce.number().default(1600),
   IMAGE_JPEG_QUALITY: z.coerce.number().min(40).max(95).default(80),
 
-  // Pricing (all amounts in khoums; 1 MRU = 5 khoums)
-  BASE_FARE_KHOUMS: z.coerce.number().int().default(100),       // 20 MRU
-  PER_KM_KHOUMS: z.coerce.number().int().default(150),          // 30 MRU/km
-  MIN_FARE_KHOUMS: z.coerce.number().int().default(200),        // 40 MRU
+  // Pricing — all amounts directly in MRU. Defaults match the previous
+  // khoums values (which were 5x these numbers).
+  BASE_FARE_MRU: z.coerce.number().int().default(20),
+  PER_KM_MRU: z.coerce.number().int().default(30),
+  MIN_FARE_MRU: z.coerce.number().int().default(40),
   ROUTE_MULTIPLIER: z.coerce.number().default(1.3),             // crow-flies × N ≈ road distance
   // Dispatch
   DISPATCH_RADIUS_M: z.coerce.number().int().default(3000),

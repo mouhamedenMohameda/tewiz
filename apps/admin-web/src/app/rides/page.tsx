@@ -22,9 +22,9 @@ interface RideRow {
   passengerPhone: string | null;
   pickup: { lat: number; lng: number; label: string | null };
   dropoff: { lat: number; lng: number; label: string | null };
-  fareEstimateKhoums: number | null;
-  fareFinalKhoums: number | null;
-  commissionKhoums: number | null;
+  fareEstimateMru: number | null;
+  fareFinalMru: number | null;
+  commissionMru: number | null;
   paymentMethod: 'cash' | 'wallet';
   requestedAt: string;
   completedAt?: string | null;
@@ -36,9 +36,9 @@ const FILTERS: { value: StatusFilter; label: string }[] = [
   { value: 'all',    label: 'Toutes' },
 ];
 
-function fmtMru(khoums: number | null) {
-  if (khoums == null) return '—';
-  return `${(khoums / 5).toLocaleString('fr-FR', { maximumFractionDigits: 0 })} MRU`;
+function fmtMru(mru: number | null) {
+  if (mru == null) return '—';
+  return `${Math.round(mru).toLocaleString('fr-FR')} MRU`;
 }
 
 function fmtTime(iso: string) {
@@ -158,14 +158,14 @@ export default function RidesPage() {
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="font-medium">
-                          {fmtMru(r.fareFinalKhoums ?? r.fareEstimateKhoums)}
+                          {fmtMru(r.fareFinalMru ?? r.fareEstimateMru)}
                         </div>
                         <div className="text-xs text-slate-400">
                           {r.paymentMethod === 'cash' ? 'Espèces' : 'Wallet'}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
-                        {fmtMru(r.commissionKhoums)}
+                        {fmtMru(r.commissionMru)}
                       </td>
                       <td className="px-4 py-3">
                         <span className={clsx(

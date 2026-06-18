@@ -1,8 +1,7 @@
-export function khoumsToMru(k: number): number {
-  return k / 5;
-}
-
-export function formatMru(k: number): string {
-  const mru = khoumsToMru(k);
-  return `${Math.round(mru)} MRU`;
+/**
+ * Money formatter. All amounts in this codebase are integer MRU (ouguiyas)
+ * since DB migration 0017. The historical khoums unit was removed.
+ */
+export function formatMru(mru: number): string {
+  return `${Math.round(mru).toLocaleString('fr-FR')} MRU`;
 }

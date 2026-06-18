@@ -9,8 +9,8 @@ import { api } from '@/lib/api';
 import { APP_NAME } from '@/lib/brand';
 import type { TopupListItem } from '@/lib/types';
 
-function fmtMru(khoums: number) {
-  return `${(khoums / 5).toLocaleString('fr-FR', { maximumFractionDigits: 0 })} MRU (${khoums} khoums)`;
+function fmtMru(mru: number) {
+  return `${Math.round(mru).toLocaleString('fr-FR')} MRU`;
 }
 
 export default function TopupDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -33,7 +33,7 @@ export default function TopupDetailPage({ params }: { params: Promise<{ id: stri
   const approve = useMutation({
     mutationFn: () =>
       api.post(`/admin/topups/${id}/approve`, {
-        approvedAmountKhoums: approveAmount ?? data?.claimedAmountKhoums,
+        approvedAmountMru: approveAmount ?? data?.claimedAmountMru,
         providerRefNumber: providerRef || undefined,
       }),
     onSuccess: () => router.replace('/topups'),
@@ -78,7 +78,7 @@ export default function TopupDetailPage({ params }: { params: Promise<{ id: stri
                 <div className="grid grid-cols-3"><dt className="text-slate-500">Code ref {APP_NAME}</dt><dd className="col-span-2 font-mono">{data.referenceCode}</dd></div>
                 <div className="grid grid-cols-3"><dt className="text-slate-500">Fournisseur</dt><dd className="col-span-2 capitalize">{data.provider}</dd></div>
                 <div className="grid grid-cols-3"><dt className="text-slate-500">Ref fournisseur</dt><dd className="col-span-2 font-mono">{data.providerRefNumber ?? '—'}</dd></div>
-                <div className="grid grid-cols-3"><dt className="text-slate-500">Montant déclaré</dt><dd className="col-span-2 font-semibold">{fmtMru(data.claimedAmountKhoums)}</dd></div>
+                <div className="grid grid-cols-3"><dt className="text-slate-500">Montant déclaré</dt><dd className="col-span-2 font-semibold">{fmtMru(data.claimedAmountMru)}</dd></div>
                 <div className="grid grid-cols-3"><dt className="text-slate-500">Statut</dt><dd className="col-span-2">{data.status}</dd></div>
               </dl>
             </div>
@@ -89,17 +89,17 @@ export default function TopupDetailPage({ params }: { params: Promise<{ id: stri
 
                 <div>
                   <label className="block text-sm text-slate-700 mb-1">
-                    Montant à créditer (khoums)
+                    Montant à créditer (MRU)
                   </label>
                   <input
                     type="number"
                     className="input"
-                    placeholder={String(data.claimedAmountKhoums)}
+                    placeholder={String(data.claimedAmountMru)}
                     value={approveAmount ?? ''}
                     onChange={(e) => setApproveAmount(e.target.value ? +e.target.value : null)}
                   />
                   <p className="text-xs text-slate-500 mt-1">
-                    Laisse vide pour créditer le montant déclaré ({data.claimedAmountKhoums} khoums).
+                    Laisse vide pour créditer le montant déclaré ({data.claimedAmountMru} MRU).
                   </p>
                 </div>
 

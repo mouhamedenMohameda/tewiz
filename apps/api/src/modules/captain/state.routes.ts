@@ -17,7 +17,7 @@ const onlineBody = z.object({
 
 /**
  * POST /captain/state/online
- * Goes online iff wallet balance >= MIN_BALANCE_TO_GO_ONLINE_KHOUMS and not
+ * Goes online iff wallet balance >= MIN_BALANCE_TO_GO_ONLINE_MRU and not
  * already on a ride.
  */
 captainStateRouter.post('/online', async (req, res) => {
@@ -39,10 +39,10 @@ captainStateRouter.post('/online', async (req, res) => {
 
   // 2. Balance gate.
   const balance = await getBalance(userId);
-  if (balance < env.MIN_BALANCE_TO_GO_ONLINE_KHOUMS) {
+  if (balance < env.MIN_BALANCE_TO_GO_ONLINE_MRU) {
     throw new HttpError(402, 'balance_too_low',
-      `Solde insuffisant pour aller en ligne (min ${env.MIN_BALANCE_TO_GO_ONLINE_KHOUMS} khoums, actuel ${balance})`,
-      { balance, minRequired: env.MIN_BALANCE_TO_GO_ONLINE_KHOUMS });
+      `Solde insuffisant pour aller en ligne (min ${env.MIN_BALANCE_TO_GO_ONLINE_MRU} MRU, actuel ${balance} MRU)`,
+      { balance, minRequired: env.MIN_BALANCE_TO_GO_ONLINE_MRU });
   }
 
   // 3. Already on a ride? Don't downgrade.
@@ -77,7 +77,7 @@ captainStateRouter.post('/online', async (req, res) => {
     : [userId];
 
   const r = await pool.query(sql, params);
-  res.json({ ...r.rows[0], balanceKhoums: balance });
+  res.json({ ...r.rows[0], balanceMru: balance });
 });
 
 /**

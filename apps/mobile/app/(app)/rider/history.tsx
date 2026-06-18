@@ -19,8 +19,8 @@ interface RideRow {
   rideType: 'passenger' | 'colis';
   pickup: { label: string | null };
   dropoff: { label: string | null };
-  fareEstimateKhoums: number | null;
-  fareFinalKhoums: number | null;
+  fareEstimateMru: number | null;
+  fareFinalMru: number | null;
   requestedAt: string;
   completedAt?: string | null;
 }
@@ -125,7 +125,7 @@ export default function HistoryScreen() {
                   {item.rideType === 'colis' ? '📦 Colis' : '🚖 Passager'}
                 </Text>
                 <Text style={{ fontSize: 14, fontWeight: '700', color: '#0f172a' }}>
-                  {formatMru(item.fareFinalKhoums ?? item.fareEstimateKhoums ?? 0)}
+                  {formatMru(item.fareFinalMru ?? item.fareEstimateMru ?? 0)}
                 </Text>
               </View>
             </View>

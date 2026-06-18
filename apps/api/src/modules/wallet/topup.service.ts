@@ -9,7 +9,7 @@ import type { TopupProvider, TopupStatus } from '@tewiz/shared-types';
 interface CreateTopupInput {
   captainId: string;
   provider: TopupProvider;
-  claimedAmountKhoums: number;
+  claimedAmountMru: number;
   providerRefNumber?: string | null;
   screenshot: { buffer: Buffer; mimeType: string };
 }
@@ -19,12 +19,12 @@ interface TopupRow {
   captain_id: string;
   provider: TopupProvider;
   reference_code: string;
-  claimed_amount_khoums: string;
+  claimed_amount_mru: string;
   provider_ref_number: string | null;
   screenshot_storage_key: string;
   screenshot_hash: string | null;
   status: TopupStatus;
-  approved_amount_khoums: string | null;
+  approved_amount_mru: string | null;
   reject_reason: string | null;
   reviewed_by: string | null;
   reviewed_at: Date | null;
@@ -74,7 +74,7 @@ export async function createTopup(input: CreateTopupInput): Promise<ReturnType<t
     try {
       const r = await pool.query<TopupRow>(
         `INSERT INTO topup_requests
-           (captain_id, provider, reference_code, claimed_amount_khoums,
+           (captain_id, provider, reference_code, claimed_amount_mru,
             provider_ref_number, screenshot_storage_key, screenshot_hash)
          VALUES ($1, $2, $3, $4, $5, $6, $7)
          RETURNING *`,
@@ -82,7 +82,7 @@ export async function createTopup(input: CreateTopupInput): Promise<ReturnType<t
           input.captainId,
           input.provider,
           code,
-          input.claimedAmountKhoums,
+          input.claimedAmountMru,
           input.providerRefNumber ?? null,
           storageKey,
           hash,
@@ -166,7 +166,7 @@ export async function getTopupScreenshotKey(id: string): Promise<string> {
 interface ApproveInput {
   adminId: string;
   topupId: string;
-  approvedAmountKhoums?: number;   // defaults to claimed
+  approvedAmountMru?: number;   // defaults to claimed
   providerRefNumber?: string;      // admin may fill or correct
 }
 
@@ -183,8 +183,8 @@ export async function approveTopup(input: ApproveInput) {
         `Top-up is ${t.status}, cannot approve`);
     }
 
-    const claimed = Number(t.claimed_amount_khoums);
-    const approved = input.approvedAmountKhoums ?? claimed;
+    const claimed = Number(t.claimed_amount_mru);
+    const approved = input.approvedAmountMru ?? claimed;
     if (!Number.isInteger(approved) || approved <= 0) {
       throw new HttpError(400, 'invalid_amount', 'Approved amount must be positive');
     }
@@ -194,7 +194,7 @@ export async function approveTopup(input: ApproveInput) {
     // Credit wallet inside the same tx (atomic).
     const credit = await creditWallet({
       captainId: t.captain_id,
-      amountKhoums: approved,
+      amountMru: approved,
       type: 'topup',
       topupId: t.id,
       reason: `Top-up ${t.provider} (ref ${t.reference_code})`,
@@ -203,7 +203,7 @@ export async function approveTopup(input: ApproveInput) {
 
     const updated = await client.query<TopupRow>(
       `UPDATE topup_requests
-          SET status = $1, approved_amount_khoums = $2,
+          SET status = $1, approved_amount_mru = $2,
               provider_ref_number = COALESCE($3, provider_ref_number),
               reviewed_by = $4, reviewed_at = now()
         WHERE id = $5 RETURNING *`,
@@ -241,10 +241,10 @@ function shape(t: TopupRow) {
     captainId: t.captain_id,
     provider: t.provider,
     referenceCode: t.reference_code,
-    claimedAmountKhoums: Number(t.claimed_amount_khoums),
+    claimedAmountMru: Number(t.claimed_amount_mru),
     providerRefNumber: t.provider_ref_number,
     status: t.status,
-    approvedAmountKhoums: t.approved_amount_khoums === null ? null : Number(t.approved_amount_khoums),
+    approvedAmountMru: t.approved_amount_mru === null ? null : Number(t.approved_amount_mru),
     rejectReason: t.reject_reason,
     reviewedBy: t.reviewed_by,
     reviewedAt: t.reviewed_at,

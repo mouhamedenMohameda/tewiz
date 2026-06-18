@@ -5,7 +5,7 @@ import { requirePhone } from '../../middleware/require-phone.js';
 import { HttpError } from '../../middleware/error.js';
 import * as rides from './rides.service.js';
 import { distanceMeters } from './dispatch.service.js';
-import { estimateFareKhoums } from './pricing.js';
+import { estimateFareMru } from './pricing.js';
 
 // Parent (riderRouter) enforces requireAuth + requireRole('rider', 'captain').
 // A captain in rider mode books rides exactly like a regular rider.
@@ -47,8 +47,8 @@ riderRidesRouter.post('/estimate', async (req, res) => {
     body.pickup.lat, body.pickup.lng,
     body.dropoff.lat, body.dropoff.lng,
   );
-  const { fareKhoums, distanceEstimateM } = estimateFareKhoums(crow);
-  res.json({ fareKhoums, distanceM: distanceEstimateM });
+  const { fareMru, distanceEstimateM } = estimateFareMru(crow);
+  res.json({ fareMru, distanceM: distanceEstimateM });
 });
 
 /**

@@ -3,7 +3,7 @@ import type pg from 'pg';
 import { pool, withTx } from '../../db/pool.js';
 import { HttpError } from '../../middleware/error.js';
 import { env } from '../../config/env.js';
-import { estimateFareKhoums, commissionKhoums } from './pricing.js';
+import { estimateFareMru, commissionMru } from './pricing.js';
 import { distanceMeters, eligibleCaptainsForRide } from './dispatch.service.js';
 import { debitWallet } from '../wallet/wallet.service.js';
 import { sms } from '../auth/sms.js';
@@ -60,10 +60,10 @@ interface RideRow {
   dropoff_lat: number;
   dropoff_lng: number;
   dropoff_label: string | null;
-  fare_estimate_khoums: string | null;
-  fare_final_khoums: string | null;
+  fare_estimate_mru: string | null;
+  fare_final_mru: string | null;
   commission_rate_bps: number;
-  commission_khoums: string | null;
+  commission_mru: string | null;
   payment_method: PaymentMethod;
   distance_m: number | null;
   duration_s: number | null;
@@ -89,8 +89,8 @@ const RIDE_COLUMNS = `
   ST_Y(dropoff_location::geometry) AS dropoff_lat,
   ST_X(dropoff_location::geometry) AS dropoff_lng,
   dropoff_label,
-  fare_estimate_khoums, fare_final_khoums,
-  commission_rate_bps, commission_khoums,
+  fare_estimate_mru, fare_final_mru,
+  commission_rate_bps, commission_mru,
   payment_method, distance_m, duration_s, verification_code,
   requested_at, accepted_at, arrived_at, started_at, completed_at,
   cancelled_at, cancel_reason
@@ -115,10 +115,10 @@ function shape(r: RideRow, opts: { revealCode: boolean } = { revealCode: false }
     status: r.status,
     pickup: { lat: r.pickup_lat, lng: r.pickup_lng, label: r.pickup_label },
     dropoff: { lat: r.dropoff_lat, lng: r.dropoff_lng, label: r.dropoff_label },
-    fareEstimateKhoums: r.fare_estimate_khoums === null ? null : Number(r.fare_estimate_khoums),
-    fareFinalKhoums: r.fare_final_khoums === null ? null : Number(r.fare_final_khoums),
+    fareEstimateMru: r.fare_estimate_mru === null ? null : Number(r.fare_estimate_mru),
+    fareFinalMru: r.fare_final_mru === null ? null : Number(r.fare_final_mru),
     commissionRateBps: r.commission_rate_bps,
-    commissionKhoums: r.commission_khoums === null ? null : Number(r.commission_khoums),
+    commissionMru: r.commission_mru === null ? null : Number(r.commission_mru),
     paymentMethod: r.payment_method,
     distanceM: r.distance_m,
     durationS: r.duration_s,
@@ -160,7 +160,7 @@ export async function createRide(input: CreateRideInput) {
     throw new HttpError(400, 'distance_too_short',
       'Pickup and dropoff are too close (<50 m)');
   }
-  const { fareKhoums, distanceEstimateM } = estimateFareKhoums(dStraight);
+  const { fareMru, distanceEstimateM } = estimateFareMru(dStraight);
 
   const rideType = input.rideType ?? 'passenger';
   const commissionBps = rideType === 'colis'
@@ -211,7 +211,7 @@ export async function createRide(input: CreateRideInput) {
          is_for_other, ride_type, status,
          pickup_location, pickup_label,
          dropoff_location, dropoff_label,
-         fare_estimate_khoums, commission_rate_bps,
+         fare_estimate_mru, commission_rate_bps,
          distance_m, payment_method, verification_code
        )
        VALUES (
@@ -225,7 +225,7 @@ export async function createRide(input: CreateRideInput) {
         input.bookerId, rideType,
         input.pickup.lng, input.pickup.lat, input.pickup.label ?? null,
         input.dropoff.lng, input.dropoff.lat, input.dropoff.label ?? null,
-        fareKhoums, commissionBps, distanceEstimateM,
+        fareMru, commissionBps, distanceEstimateM,
         input.paymentMethod ?? 'cash',
         isForOther,
         passengerUserId,
@@ -280,7 +280,7 @@ export async function createRide(input: CreateRideInput) {
           await notifyCaptainsNewRide(captainIds, {
             id: ride.id,
             rideType: ride.ride_type,
-            fareEstimateKhoums: ride.fare_estimate_khoums,
+            fareEstimateMru: ride.fare_estimate_mru,
           });
         } catch (err) {
           // eslint-disable-next-line no-console
@@ -349,7 +349,7 @@ export async function confirmPassengerRide(input: {
         await notifyCaptainsNewRide(captainIds, {
           id: updated.id,
           rideType: updated.ride_type,
-          fareEstimateKhoums: updated.fare_estimate_khoums,
+          fareEstimateMru: updated.fare_estimate_mru,
         });
       } catch (err) {
         // eslint-disable-next-line no-console
@@ -843,19 +843,19 @@ export async function completeRide(input: CompleteInput) {
     const finalDurationS = input.actualDurationS ?? null;
 
     // Recompute fare from final distance (if actual provided), else use estimate.
-    let fareFinalKhoums = Number(ride.fare_estimate_khoums ?? 0);
+    let fareFinalMru = Number(ride.fare_estimate_mru ?? 0);
     if (input.actualDistanceM && input.actualDistanceM !== ride.distance_m) {
-      const { fareKhoums } = (await import('./pricing.js'))
-        .estimateFareKhoums(input.actualDistanceM / env.ROUTE_MULTIPLIER);
-      fareFinalKhoums = fareKhoums;
+      const { fareMru } = (await import('./pricing.js'))
+        .estimateFareMru(input.actualDistanceM / env.ROUTE_MULTIPLIER);
+      fareFinalMru = fareMru;
     }
 
-    const commission = commissionKhoums(fareFinalKhoums, ride.commission_rate_bps);
+    const commission = commissionMru(fareFinalMru, ride.commission_rate_bps);
 
     // Debit the captain wallet for the commission (atomically inside this tx).
     const debit = await debitWallet({
       captainId: input.captainId,
-      amountKhoums: commission,
+      amountMru: commission,
       type: 'commission',
       rideId: ride.id,
       reason: `Commission ${(ride.commission_rate_bps / 100).toFixed(2)}% on ride ${ride.id}`,
@@ -865,13 +865,13 @@ export async function completeRide(input: CompleteInput) {
       `UPDATE rides
           SET status = 'completed',
               completed_at = now(),
-              fare_final_khoums = $1,
-              commission_khoums = $2,
+              fare_final_mru = $1,
+              commission_mru = $2,
               distance_m = $3,
               duration_s = $4
         WHERE id = $5
       RETURNING ${RIDE_COLUMNS}`,
-      [fareFinalKhoums, commission, finalDistanceM, finalDurationS, ride.id],
+      [fareFinalMru, commission, finalDistanceM, finalDurationS, ride.id],
     );
 
     // Captain goes back to "online".
@@ -883,7 +883,7 @@ export async function completeRide(input: CompleteInput) {
 
     return {
       ride: shape(upd.rows[0]!, { revealCode: true }),
-      commissionKhoums: commission,
+      commissionMru: commission,
       captainBalanceAfter: debit.balanceAfter,
     };
   });

@@ -62,10 +62,10 @@ export interface TopupListItem {
   captainId: string;
   provider: TopupProvider;
   referenceCode: string;
-  claimedAmountKhoums: number;
+  claimedAmountMru: number;
   providerRefNumber: string | null;
   status: TopupStatus;
-  approvedAmountKhoums: number | null;
+  approvedAmountMru: number | null;
   rejectReason: string | null;
   reviewedBy: string | null;
   reviewedAt: string | null;
