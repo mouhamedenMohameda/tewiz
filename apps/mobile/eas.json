@@ -25,7 +25,7 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://tewiz-api.radar-mr.com",
         "EXPO_PUBLIC_ENV": "production",
-        "EXPO_PUBLIC_SENTRY_DSN": ""
+        "EXPO_PUBLIC_SENTRY_DSN": "https://b6a772c57ae3c4d37d02bc20131089ba@o4511585457537024.ingest.de.sentry.io/4511585473069136"
       }
     }
   },
