@@ -57,6 +57,10 @@ const config: ExpoConfig = {
   },
   plugins: [
     'expo-router',
+    // Crash reporting. Plugin is harmless when no DSN is set at runtime —
+    // it wires the native bridge and source-map upload hooks; the runtime
+    // init in lib/sentry.ts no-ops without EXPO_PUBLIC_SENTRY_DSN.
+    '@sentry/react-native/expo',
     [
       'expo-splash-screen',
       {

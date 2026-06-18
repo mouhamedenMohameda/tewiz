@@ -23,7 +23,9 @@
       "autoIncrement": true,
       "android": { "buildType": "app-bundle" },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://tewiz-api.radar-mr.com"
+        "EXPO_PUBLIC_API_URL": "https://tewiz-api.radar-mr.com",
+        "EXPO_PUBLIC_ENV": "production",
+        "EXPO_PUBLIC_SENTRY_DSN": ""
       }
     }
   },

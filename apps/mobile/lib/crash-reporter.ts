@@ -15,6 +15,7 @@
  * is still the only way.
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { reportError } from './sentry';
 
 const KEY = '@tewiz/last-crash';
 
@@ -75,6 +76,7 @@ export function installCrashHandlers(): void {
         : null;
     ErrorUtils.setGlobalHandler((err: unknown, isFatal?: boolean) => {
       void saveCrash(isFatal ? 'js-fatal' : 'js', err);
+      reportError(err, { isFatal: Boolean(isFatal), source: 'global-handler' });
       if (prev) {
         try {
           prev(err, isFatal);
@@ -91,6 +93,7 @@ export function installCrashHandlers(): void {
   if (g.process && typeof g.process.on === 'function') {
     g.process.on('unhandledRejection', (reason: unknown) => {
       void saveCrash('promise', reason);
+      reportError(reason, { source: 'unhandled-promise-rejection' });
     });
   }
 }
