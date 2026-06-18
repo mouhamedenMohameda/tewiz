@@ -2,7 +2,7 @@ import { Router } from 'express';
 import crypto from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import { pool } from '../../db/pool.js';
+import { pool, withTx } from '../../db/pool.js';
 import { env } from '../../config/env.js';
 import { HttpError } from '../../middleware/error.js';
 import { phoneSchema } from './phone.js';
@@ -334,6 +334,44 @@ authRouter.get('/me', requireAuth, async (req, res) => {
     isGuest: user.is_guest ?? false,
     mustResetPassword: user.must_reset_password ?? false,
   });
+});
+
+/**
+ * DELETE /auth/me
+ * Header: Authorization: Bearer <accessToken>
+ *
+ * In-app account deletion — required by App Store guideline 5.1.1(v) and the
+ * Google Play account-deletion policy.
+ *
+ * This is a SOFT delete: the row is kept (wallet ledger, completed rides and
+ * audit trails must survive for accounting/legal reasons) but all personal
+ * data is stripped and access is cut:
+ *  - status -> 'deleted', phone -> NULL (frees the number for reuse),
+ *    full_name -> NULL, is_guest -> false
+ *  - every refresh session is revoked
+ *  - push tokens are removed so notifications stop immediately
+ *
+ * A deleted account can no longer authenticate; returning users start fresh.
+ */
+authRouter.delete('/me', requireAuth, async (req, res) => {
+  const userId = (req as AuthedRequest).user.id;
+
+  await withTx(async (client) => {
+    await client.query(
+      `UPDATE users
+          SET status = 'deleted', phone = NULL, full_name = NULL, is_guest = false
+        WHERE id = $1`,
+      [userId],
+    );
+    await client.query(
+      `UPDATE sessions SET revoked_at = now()
+        WHERE user_id = $1 AND revoked_at IS NULL`,
+      [userId],
+    );
+    await client.query(`DELETE FROM push_tokens WHERE user_id = $1`, [userId]);
+  });
+
+  res.json({ ok: true });
 });
 
 // --- Helpers ---

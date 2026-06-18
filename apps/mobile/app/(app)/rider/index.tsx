@@ -40,7 +40,6 @@ type Intent = 'voice' | 'map' | 'captain';
 export default function RiderHome() {
   const router = useRouter();
   const user = useAuth((s) => s.user);
-  const clear = useAuth((s) => s.clear);
   const setUser = useAuth((s) => s.setUser);
 
   const [application, setApplication] = useState<ApplicationDto | null>(null);
@@ -139,11 +138,6 @@ export default function RiderHome() {
   useEffect(() => { loadApp(); }, [loadApp]);
   useFocusEffect(useCallback(() => { loadApp(); }, [loadApp]));
 
-  async function logout() {
-    await clear();
-    router.replace('/(auth)');
-  }
-
   const blocked = !!current;
 
   return (
@@ -168,15 +162,16 @@ export default function RiderHome() {
           </View>
         </View>
         <Pressable
-          onPress={logout}
+          onPress={() => router.push('/(app)/account')}
           hitSlop={10}
+          accessibilityLabel="Compte"
           style={{
             width: 44, height: 44, borderRadius: radius.md,
             backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center',
             ...shadow.card,
           }}
         >
-          <Icon name="logout" size={20} color={colors.danger} />
+          <Icon name="person" size={22} color={colors.ink} />
         </Pressable>
       </View>
 

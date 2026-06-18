@@ -49,6 +49,7 @@ const REGISTRY = {
   clock: { set: 'ion', glyph: 'time-outline' },
   alert: { set: 'ion', glyph: 'alert-circle' },
   close: { set: 'ion', glyph: 'close' },
+  trash: { set: 'ion', glyph: 'trash-outline' },
   send: { set: 'ion', glyph: 'paper-plane' },
   document: { set: 'ion', glyph: 'document-text-outline' },
   car: { set: 'mci', glyph: 'car-estate' },
