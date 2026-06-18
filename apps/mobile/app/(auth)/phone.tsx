@@ -94,7 +94,7 @@ export default function LoginScreen() {
   }
 
   function contactAdmin() {
-    const url = 'https://wa.me/22245000000?text=' +
+    const url = 'https://wa.me/33656696974?text=' +
       encodeURIComponent(`Bonjour, je voudrais créer un compte ${APP_NAME}.`);
     Linking.openURL(url).catch(() => undefined);
   }

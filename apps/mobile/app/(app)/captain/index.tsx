@@ -40,7 +40,6 @@ interface GoingHomeSession {
 export default function CaptainHome() {
   const router = useRouter();
   const user = useAuth((s) => s.user);
-  const clear = useAuth((s) => s.clear);
 
   const [wallet, setWallet] = useState<WalletSummary | null>(null);
   const [state, setState] = useState<StateRow | null>(null);
@@ -132,11 +131,6 @@ export default function CaptainHome() {
     }
   }
 
-  async function logout() {
-    await clear();
-    router.replace('/(auth)');
-  }
-
   function confirmReset() {
     Alert.alert(
       'Réinitialiser les alertes ?',
@@ -179,15 +173,16 @@ export default function CaptainHome() {
           </View>
         </View>
         <Pressable
-          onPress={logout}
+          onPress={() => router.push('/(app)/account')}
           hitSlop={10}
+          accessibilityLabel="Compte"
           style={{
             width: 44, height: 44, borderRadius: radius.md,
             backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center',
             ...shadow.card,
           }}
         >
-          <Icon name="logout" size={20} color={colors.danger} />
+          <Icon name="person" size={22} color={colors.ink} />
         </Pressable>
       </View>
 
