@@ -3,6 +3,7 @@ import {
   ActivityIndicator, Alert, Animated, Easing, Pressable, View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useVoiceRecorder } from '@/lib/useVoiceRecorder';
@@ -20,6 +21,7 @@ const MIN_RECORD_MS = 1200;
 
 export default function VoiceRideScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const recorder = useVoiceRecorder();
 
   const [phase, setPhase] = useState<Phase>('record');
@@ -33,7 +35,7 @@ export default function VoiceRideScreen() {
       const uri = await recorder.stop();
       if (!uri) return;
       if (durationMs < MIN_RECORD_MS) {
-        Alert.alert('Trop court', 'Maintenez et parlez un peu plus longtemps.');
+        Alert.alert(t('rider.voiceRide.tooShortTitle'), t('rider.voiceRide.tooShortBody'));
         return;
       }
       setPhase('uploading');
@@ -45,10 +47,10 @@ export default function VoiceRideScreen() {
         setPhase('record');
         const code = e?.response?.data?.error;
         Alert.alert(
-          'Échec de l’envoi',
+          t('rider.voiceRide.uploadFailedTitle'),
           code === 'voice_request_pending'
-            ? 'Vous avez déjà une demande en cours.'
-            : (e?.response?.data?.message ?? 'Réessayez.'),
+            ? t('rider.voiceRide.alreadyPending')
+            : (e?.response?.data?.message ?? t('rider.voiceRide.uploadRetry')),
         );
       }
     } else {
@@ -116,7 +118,7 @@ export default function VoiceRideScreen() {
           >
             <Icon name="chevronBack" size={22} color={colors.onEspresso} />
           </Pressable>
-          <AppText variant="overline" color={colors.saffron}>Commande vocale</AppText>
+          <AppText variant="overline" color={colors.saffron}>{t('rider.voiceRide.headline')}</AppText>
           <View style={{ width: 42 }} />
         </View>
 
@@ -130,7 +132,7 @@ export default function VoiceRideScreen() {
         )}
 
         {phase === 'uploading' && (
-          <CenterStatus icon="send" title="Envoi de votre demande…" />
+          <CenterStatus icon="send" title={t('rider.voiceRide.uploading')} />
         )}
 
         {phase === 'waiting' && (
@@ -151,6 +153,7 @@ function RecordView({
 }: {
   isRecording: boolean; durationMs: number; error: string | null; onToggle: () => void;
 }) {
+  const { t } = useTranslation();
   const pulse = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (!isRecording) { pulse.setValue(0); return; }
@@ -172,12 +175,12 @@ function RecordView({
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
       <AppText variant="h1" color={colors.onEspresso} align="center">
-        {isRecording ? 'À l’écoute…' : 'Dites votre course'}
+        {isRecording ? t('rider.voiceRide.listening') : t('rider.voiceRide.promptTitle')}
       </AppText>
       <AppText variant="body" color={colors.onEspressoMuted} align="center" style={{ marginTop: spacing.md, maxWidth: 300 }}>
         {isRecording
-          ? 'Indiquez votre point de départ et votre destination, puis appuyez pour arrêter.'
-          : 'Appuyez et dites par ex. : « De chez moi à Carrefour Madrid ». Un agent placera votre course.'}
+          ? t('rider.voiceRide.listeningHint')
+          : t('rider.voiceRide.promptHint')}
       </AppText>
 
       <View style={{ marginTop: spacing.mega, width: 160, height: 160, alignItems: 'center', justifyContent: 'center' }}>
@@ -211,7 +214,7 @@ function RecordView({
       </View>
 
       <AppText variant="h2" color={colors.onEspresso} style={{ marginTop: spacing.xl }}>
-        {isRecording ? mmss : 'Appuyez pour parler'}
+        {isRecording ? mmss : t('rider.voiceRide.tapToSpeak')}
       </AppText>
 
       {error ? (
@@ -225,6 +228,7 @@ function RecordView({
 
 // ── Waiting phase ────────────────────────────────────────────────────────────
 function WaitingView({ onCancel }: { onCancel: () => void }) {
+  const { t } = useTranslation();
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
       <View style={{
@@ -234,17 +238,17 @@ function WaitingView({ onCancel }: { onCancel: () => void }) {
         <ActivityIndicator size="large" color={colors.saffron} />
       </View>
       <AppText variant="h1" color={colors.onEspresso} align="center" style={{ marginTop: spacing.xl }}>
-        Demande envoyée
+        {t('rider.voiceRide.waitingTitle')}
       </AppText>
       <AppText variant="body" color={colors.onEspressoMuted} align="center" style={{ marginTop: spacing.md, maxWidth: 300 }}>
-        Un agent écoute votre message et prépare votre course. Vous serez notifié dès qu’elle est confirmée.
+        {t('rider.voiceRide.waitingBody')}
       </AppText>
 
       <Pressable
         onPress={() => {
-          Alert.alert('Annuler la demande ?', 'Votre demande sera supprimée.', [
-            { text: 'Non', style: 'cancel' },
-            { text: 'Annuler', style: 'destructive', onPress: onCancel },
+          Alert.alert(t('rider.voiceRide.cancelPrompt'), t('rider.voiceRide.cancelPromptBody'), [
+            { text: t('common.no'), style: 'cancel' },
+            { text: t('common.cancel'), style: 'destructive', onPress: onCancel },
           ]);
         }}
         style={({ pressed }) => ({
@@ -252,7 +256,7 @@ function WaitingView({ onCancel }: { onCancel: () => void }) {
           borderWidth: 1.5, borderColor: colors.espressoAlt, backgroundColor: pressed ? colors.espressoAlt : 'transparent',
         })}
       >
-        <AppText variant="bodyStrong" color={colors.onEspressoMuted}>Annuler la demande</AppText>
+        <AppText variant="bodyStrong" color={colors.onEspressoMuted}>{t('rider.voiceRide.cancelAction')}</AppText>
       </Pressable>
     </View>
   );
@@ -260,6 +264,7 @@ function WaitingView({ onCancel }: { onCancel: () => void }) {
 
 // ── Rejected phase ───────────────────────────────────────────────────────────
 function RejectedView({ reason, onRetry }: { reason: string | null; onRetry: () => void }) {
+  const { t } = useTranslation();
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
       <View style={{
@@ -269,13 +274,13 @@ function RejectedView({ reason, onRetry }: { reason: string | null; onRetry: () 
         <Icon name="alert" size={48} color={colors.danger} />
       </View>
       <AppText variant="h1" color={colors.onEspresso} align="center" style={{ marginTop: spacing.lg }}>
-        Demande non aboutie
+        {t('rider.voiceRide.rejectedTitle')}
       </AppText>
       <AppText variant="body" color={colors.onEspressoMuted} align="center" style={{ marginTop: spacing.md, maxWidth: 300 }}>
-        {reason ?? 'L’agent n’a pas pu traiter votre message. Réessayez en parlant clairement.'}
+        {reason ?? t('rider.voiceRide.rejectedBody')}
       </AppText>
       <Button
-        title="Réessayer"
+        title={t('rider.voiceRide.retry')}
         icon="voice"
         fullWidth={false}
         onPress={onRetry}

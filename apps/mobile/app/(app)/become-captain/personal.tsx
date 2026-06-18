@@ -4,6 +4,7 @@ import {
   Pressable, ScrollView, Text, View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '@/lib/api';
 import { type ApplicationDto } from '@/lib/kyc';
@@ -11,6 +12,7 @@ import { Field, PrimaryButton } from '@/lib/form';
 
 export default function PersonalScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [fullName, setFullName] = useState('');
@@ -40,11 +42,11 @@ export default function PersonalScreen() {
 
   async function save() {
     if (!/^\d{6,15}$/.test(nni)) {
-      Alert.alert('NNI invalide', 'Le NNI doit contenir 6 à 15 chiffres.');
+      Alert.alert(t('becomeCaptain.personal.nniInvalidTitle'), t('becomeCaptain.personal.nniInvalidBody'));
       return;
     }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dob)) {
-      Alert.alert('Date invalide', 'Format attendu : AAAA-MM-JJ (ex 1990-05-23).');
+      Alert.alert(t('becomeCaptain.personal.dobInvalidTitle'), t('becomeCaptain.personal.dobInvalidBody'));
       return;
     }
     setSaving(true);
@@ -59,7 +61,7 @@ export default function PersonalScreen() {
       });
       router.back();
     } catch (e: any) {
-      Alert.alert('Erreur', e.response?.data?.error?.message ?? 'Impossible d\'enregistrer.');
+      Alert.alert(t('common.error'), e.response?.data?.error?.message ?? t('becomeCaptain.personal.saveError'));
     } finally {
       setSaving(false);
     }
@@ -81,29 +83,29 @@ export default function PersonalScreen() {
       >
         <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
           <Pressable onPress={() => router.back()}>
-            <Text style={{ color: '#64748b', fontSize: 14 }}>‹ Retour</Text>
+            <Text style={{ color: '#64748b', fontSize: 14 }}>‹ {t('common.back')}</Text>
           </Pressable>
           <Text style={{ fontSize: 24, fontWeight: '700', color: '#0f172a', marginTop: 12 }}>
-            Informations personnelles
+            {t('becomeCaptain.personal.title')}
           </Text>
 
-          <Field label="Nom complet" value={fullName} onChangeText={setFullName}
-            placeholder="Ahmed Ould Mohamed" autoCapitalize="words" />
-          <Field label="NNI" value={nni} onChangeText={(t) => setNni(t.replace(/\D/g, ''))}
+          <Field label={t('becomeCaptain.personal.fullName')} value={fullName} onChangeText={setFullName}
+            placeholder={t('becomeCaptain.personal.fullNamePlaceholder')} autoCapitalize="words" />
+          <Field label={t('becomeCaptain.personal.nni')} value={nni} onChangeText={(v) => setNni(v.replace(/\D/g, ''))}
             placeholder="1234567890" keyboardType="number-pad" maxLength={15}
-            helper="Numéro National d'Identité — 6 à 15 chiffres" />
-          <Field label="Date de naissance" value={dob} onChangeText={setDob}
-            placeholder="AAAA-MM-JJ" keyboardType="numeric" maxLength={10}
-            helper="Format : 1990-05-23" />
-          <Field label="Adresse" value={address} onChangeText={setAddress}
-            placeholder="Tevragh Zeina, près mosquée Saudique" />
-          <Field label="Contact d'urgence — nom" value={emergencyName} onChangeText={setEmergencyName}
-            placeholder="Fatimetou (épouse)" autoCapitalize="words" />
-          <Field label="Contact d'urgence — téléphone" value={emergencyPhone}
-            onChangeText={(t) => setEmergencyPhone(t.replace(/[^\d+]/g, ''))}
+            helper={t('becomeCaptain.personal.nniHelper')} />
+          <Field label={t('becomeCaptain.personal.dob')} value={dob} onChangeText={setDob}
+            placeholder={t('becomeCaptain.personal.dobPlaceholder')} keyboardType="numeric" maxLength={10}
+            helper={t('becomeCaptain.personal.dobHelper')} />
+          <Field label={t('becomeCaptain.personal.address')} value={address} onChangeText={setAddress}
+            placeholder={t('becomeCaptain.personal.addressPlaceholder')} />
+          <Field label={t('becomeCaptain.personal.emergencyName')} value={emergencyName} onChangeText={setEmergencyName}
+            placeholder={t('becomeCaptain.personal.emergencyNamePlaceholder')} autoCapitalize="words" />
+          <Field label={t('becomeCaptain.personal.emergencyPhone')} value={emergencyPhone}
+            onChangeText={(v) => setEmergencyPhone(v.replace(/[^\d+]/g, ''))}
             placeholder="+22245XXXXXXX" keyboardType="phone-pad" />
 
-          <PrimaryButton title="Enregistrer" onPress={save} busy={saving} />
+          <PrimaryButton title={t('becomeCaptain.personal.save')} onPress={save} busy={saving} />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

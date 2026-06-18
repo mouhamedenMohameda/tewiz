@@ -4,6 +4,7 @@ import {
   ScrollView, Text, TextInput, View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '@/lib/api';
 import { formatMru } from '@/lib/format';
@@ -38,8 +39,22 @@ interface Ride {
   captain: Captain | null;
 }
 
+const STATUS_PALETTE: Record<RideStatus, { bg: string; fg: string }> = {
+  pending_passenger_confirm: { bg: '#fef9c3', fg: '#854d0e' },
+  searching:                 { bg: '#dbeafe', fg: '#1e40af' },
+  accepted:                  { bg: '#dcfce7', fg: '#166534' },
+  arrived:                   { bg: '#dcfce7', fg: '#166534' },
+  in_progress:               { bg: '#e0e7ff', fg: '#3730a3' },
+  completed:                 { bg: '#dcfce7', fg: '#166534' },
+  cancelled_by_rider:        { bg: '#fee2e2', fg: '#991b1b' },
+  cancelled_by_captain:      { bg: '#fee2e2', fg: '#991b1b' },
+  cancelled_by_system:       { bg: '#fee2e2', fg: '#991b1b' },
+  no_show:                   { bg: '#fee2e2', fg: '#991b1b' },
+};
+
 export default function CurrentRideScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [ride, setRide] = useState<Ride | null>(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
@@ -61,19 +76,19 @@ export default function CurrentRideScreen() {
   async function cancel() {
     if (!ride) return;
     Alert.alert(
-      'Annuler la course ?',
-      'Le chauffeur sera notifié.',
+      t('rider.current.cancelTitle'),
+      t('rider.current.cancelBody'),
       [
-        { text: 'Non', style: 'cancel' },
+        { text: t('common.no'), style: 'cancel' },
         {
-          text: 'Annuler', style: 'destructive',
+          text: t('common.cancel'), style: 'destructive',
           onPress: async () => {
             setCancelling(true);
             try {
               await api.post(`/rider/rides/${ride.id}/cancel`, { reason: 'rider_cancel' });
               await load();
             } catch (e: any) {
-              Alert.alert('Impossible', e.response?.data?.error?.message ?? 'Échec.');
+              Alert.alert(t('common.impossible'), e.response?.data?.error?.message ?? t('errors.generic'));
             } finally {
               setCancelling(false);
             }
@@ -96,15 +111,15 @@ export default function CurrentRideScreen() {
       <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
         <View style={{ padding: 20 }}>
           <Pressable onPress={() => router.back()}>
-            <Text style={{ color: '#64748b', fontSize: 14 }}>‹ Retour</Text>
+            <Text style={{ color: '#64748b', fontSize: 14 }}>‹ {t('common.back')}</Text>
           </Pressable>
         </View>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 }}>
           <Text style={{ fontSize: 18, fontWeight: '600', color: '#0f172a', textAlign: 'center' }}>
-            Aucune course en cours
+            {t('rider.current.noneTitle')}
           </Text>
           <Text style={{ fontSize: 13, color: '#64748b', marginTop: 8, textAlign: 'center' }}>
-            Commandez une course depuis l'accueil.
+            {t('rider.current.noneSub')}
           </Text>
           <Pressable
             onPress={() => router.replace('/(app)/rider/new-ride')}
@@ -113,7 +128,7 @@ export default function CurrentRideScreen() {
               paddingHorizontal: 20, paddingVertical: 14, borderRadius: 12,
             })}
           >
-            <Text style={{ color: '#fff', fontWeight: '700' }}>Commander</Text>
+            <Text style={{ color: '#fff', fontWeight: '700' }}>{t('rider.current.order')}</Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -134,7 +149,7 @@ export default function CurrentRideScreen() {
         refreshControl={<RefreshControl refreshing={false} onRefresh={load} />}
       >
         <Pressable onPress={() => router.back()}>
-          <Text style={{ color: '#64748b', fontSize: 14 }}>‹ Retour</Text>
+          <Text style={{ color: '#64748b', fontSize: 14 }}>‹ {t('common.back')}</Text>
         </Pressable>
 
         <StatusBanner status={ride.status} />
@@ -158,7 +173,7 @@ export default function CurrentRideScreen() {
             })}
           >
             <Text style={{ color: '#b91c1c', fontSize: 14, fontWeight: '600' }}>
-              {cancelling ? 'Annulation…' : 'Annuler la course'}
+              {cancelling ? t('rider.current.cancelling') : t('rider.current.cancelAction')}
             </Text>
           </Pressable>
         ) : null}
@@ -180,6 +195,7 @@ function RatingSheet({
   ride: Ride | null;
   onDone: () => void;
 }) {
+  const { t } = useTranslation();
   const [stars, setStars] = useState(0);
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -194,7 +210,7 @@ function RatingSheet({
 
   async function submit() {
     if (stars === 0) {
-      Alert.alert('Note manquante', 'Touchez 1 à 5 étoiles avant d\'envoyer.');
+      Alert.alert(t('rider.current.rating.missingTitle'), t('rider.current.rating.missingBody'));
       return;
     }
     setSubmitting(true);
@@ -209,7 +225,7 @@ function RatingSheet({
         onDone();
       }
     } catch (e: any) {
-      Alert.alert('Impossible', e.response?.data?.error?.message ?? 'Échec.');
+      Alert.alert(t('common.impossible'), e.response?.data?.error?.message ?? t('errors.generic'));
     } finally {
       setSubmitting(false);
     }
@@ -240,11 +256,12 @@ function RatingSheet({
           {askFavorite ? (
             <>
               <Text style={{ fontSize: 22, fontWeight: '700', color: '#0f172a' }}>
-                Ajouter {captain.fullName ?? 'ce chauffeur'} à vos favoris ?
+                {t('rider.current.rating.favoriteTitle', {
+                  name: captain.fullName ?? t('rider.current.rating.favoriteFallbackName'),
+                })}
               </Text>
               <Text style={{ fontSize: 14, color: '#64748b', lineHeight: 20 }}>
-                Vos favoris sont proposés en premier (pendant 30 s) sur vos
-                prochaines courses.
+                {t('rider.current.rating.favoriteHint')}
               </Text>
               <Pressable
                 disabled={submitting}
@@ -258,7 +275,7 @@ function RatingSheet({
               >
                 {submitting && <ActivityIndicator color="#fff" />}
                 <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>
-                  Ajouter aux favoris
+                  {t('rider.current.rating.favoriteAdd')}
                 </Text>
               </Pressable>
               <Pressable
@@ -270,17 +287,19 @@ function RatingSheet({
                 })}
               >
                 <Text style={{ color: '#64748b', fontSize: 14, fontWeight: '600' }}>
-                  Non merci
+                  {t('common.noThanks')}
                 </Text>
               </Pressable>
             </>
           ) : (
             <>
               <Text style={{ fontSize: 22, fontWeight: '700', color: '#0f172a' }}>
-                Comment s'est passée la course ?
+                {t('rider.current.rating.question')}
               </Text>
               <Text style={{ fontSize: 14, color: '#64748b' }}>
-                Avec {captain.fullName ?? 'votre chauffeur'}.
+                {t('rider.current.rating.withDriver', {
+                  name: captain.fullName ?? t('rider.current.rating.withDriverFallback'),
+                })}
               </Text>
 
               <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 8, paddingVertical: 8 }}>
@@ -296,7 +315,7 @@ function RatingSheet({
               <TextInput
                 value={comment}
                 onChangeText={setComment}
-                placeholder="Un commentaire ? (optionnel)"
+                placeholder={t('rider.current.rating.commentPlaceholder')}
                 placeholderTextColor="#94a3b8"
                 multiline
                 style={{
@@ -320,7 +339,7 @@ function RatingSheet({
               >
                 {submitting && <ActivityIndicator color="#fff" />}
                 <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>
-                  Envoyer la note
+                  {t('rider.current.rating.submit')}
                 </Text>
               </Pressable>
               <Pressable
@@ -332,7 +351,7 @@ function RatingSheet({
                 })}
               >
                 <Text style={{ color: '#64748b', fontSize: 13 }}>
-                  Plus tard
+                  {t('common.later')}
                 </Text>
               </Pressable>
             </>
@@ -344,32 +363,24 @@ function RatingSheet({
 }
 
 function StatusBanner({ status }: { status: RideStatus }) {
-  const map: Record<RideStatus, { bg: string; fg: string; title: string; sub: string }> = {
-    pending_passenger_confirm: { bg: '#fef9c3', fg: '#854d0e', title: 'En attente de confirmation', sub: 'Confirmez par SMS.' },
-    searching:    { bg: '#dbeafe', fg: '#1e40af', title: 'Recherche d\'un chauffeur', sub: 'Patientez quelques instants…' },
-    accepted:     { bg: '#dcfce7', fg: '#166534', title: 'Chauffeur en route', sub: 'Il arrive vers vous.' },
-    arrived:      { bg: '#dcfce7', fg: '#166534', title: 'Chauffeur arrivé', sub: 'Communiquez-lui le code pour démarrer.' },
-    in_progress:  { bg: '#e0e7ff', fg: '#3730a3', title: 'Course en cours', sub: 'Bon voyage.' },
-    completed:    { bg: '#dcfce7', fg: '#166534', title: 'Course terminée', sub: `Merci d'avoir voyagé avec ${APP_NAME}.` },
-    cancelled_by_rider:   { bg: '#fee2e2', fg: '#991b1b', title: 'Annulée par vous', sub: '' },
-    cancelled_by_captain: { bg: '#fee2e2', fg: '#991b1b', title: 'Annulée par le chauffeur', sub: '' },
-    cancelled_by_system:  { bg: '#fee2e2', fg: '#991b1b', title: 'Annulée', sub: '' },
-    no_show:      { bg: '#fee2e2', fg: '#991b1b', title: 'Non présenté', sub: '' },
-  };
-  const s = map[status];
+  const { t } = useTranslation();
+  const palette = STATUS_PALETTE[status];
+  const title = t(`rider.current.banners.${status}.title` as const);
+  const sub = t(`rider.current.banners.${status}.sub` as const, { app: APP_NAME });
   return (
-    <View style={{ marginTop: 16, backgroundColor: s.bg, borderRadius: 14, padding: 16 }}>
-      <Text style={{ fontSize: 17, fontWeight: '700', color: s.fg }}>{s.title}</Text>
-      {s.sub ? <Text style={{ fontSize: 13, color: s.fg, marginTop: 4 }}>{s.sub}</Text> : null}
+    <View style={{ marginTop: 16, backgroundColor: palette.bg, borderRadius: 14, padding: 16 }}>
+      <Text style={{ fontSize: 17, fontWeight: '700', color: palette.fg }}>{title}</Text>
+      {sub ? <Text style={{ fontSize: 13, color: palette.fg, marginTop: 4 }}>{sub}</Text> : null}
     </View>
   );
 }
 
 function CaptainCard({ captain, verificationCode }: { captain: Captain; verificationCode?: string }) {
+  const { t } = useTranslation();
   return (
     <View style={{ marginTop: 16, backgroundColor: '#fff', borderRadius: 14, padding: 16 }}>
       <Text style={{ fontSize: 12, fontWeight: '700', color: '#64748b', letterSpacing: 0.5 }}>
-        VOTRE CHAUFFEUR
+        {t('rider.current.yourDriver')}
       </Text>
       <View style={{ marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
         <View style={{
@@ -380,10 +391,10 @@ function CaptainCard({ captain, verificationCode }: { captain: Captain; verifica
         </View>
         <View style={{ flex: 1 }}>
           <Text style={{ fontSize: 16, fontWeight: '700', color: '#0f172a' }}>
-            {captain.fullName ?? 'Chauffeur'}
+            {captain.fullName ?? t('rider.current.fallbackName')}
           </Text>
           <Text style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
-            ⭐ {captain.ratingAvg > 0 ? captain.ratingAvg.toFixed(1) : '—'} · {captain.totalRides} courses
+            ⭐ {captain.ratingAvg > 0 ? captain.ratingAvg.toFixed(1) : '—'} · {t('rider.current.ridesCount', { count: captain.totalRides })}
           </Text>
         </View>
         <Pressable
@@ -393,7 +404,7 @@ function CaptainCard({ captain, verificationCode }: { captain: Captain; verifica
             paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999,
           })}
         >
-          <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>📞 Appeler</Text>
+          <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>📞</Text>
         </Pressable>
       </View>
 
@@ -401,7 +412,7 @@ function CaptainCard({ captain, verificationCode }: { captain: Captain; verifica
         <View style={{
           marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#f1f5f9',
         }}>
-          <Text style={{ fontSize: 12, color: '#64748b' }}>Véhicule</Text>
+          <Text style={{ fontSize: 12, color: '#64748b' }}>{t('rider.current.vehicleLabel')}</Text>
           <Text style={{ fontSize: 15, fontWeight: '600', color: '#0f172a', marginTop: 2 }}>
             {captain.vehicle.color} {captain.vehicle.brand} {captain.vehicle.model}
           </Text>
@@ -421,7 +432,7 @@ function CaptainCard({ captain, verificationCode }: { captain: Captain; verifica
           marginTop: 12, backgroundColor: '#fef3c7', borderRadius: 10, padding: 12,
         }}>
           <Text style={{ fontSize: 11, fontWeight: '700', color: '#92400e', letterSpacing: 0.5 }}>
-            CODE À COMMUNIQUER AU CHAUFFEUR
+            {t('rider.current.codeForDriver')}
           </Text>
           <Text style={{
             fontSize: 32, fontWeight: '800', color: '#7c2d12',
@@ -436,18 +447,19 @@ function CaptainCard({ captain, verificationCode }: { captain: Captain; verifica
 }
 
 function TripCard({ ride }: { ride: Ride }) {
+  const { t } = useTranslation();
   return (
     <View style={{ marginTop: 16, backgroundColor: '#fff', borderRadius: 14, padding: 16, gap: 12 }}>
       <View>
-        <Text style={{ fontSize: 12, color: '#64748b' }}>De</Text>
+        <Text style={{ fontSize: 12, color: '#64748b' }}>{t('common.from')}</Text>
         <Text style={{ fontSize: 15, color: '#0f172a', marginTop: 2 }}>
-          {ride.pickup.label ?? 'Point de prise en charge'}
+          {ride.pickup.label ?? t('rider.history.pickupFallback')}
         </Text>
       </View>
       <View>
-        <Text style={{ fontSize: 12, color: '#64748b' }}>Vers</Text>
+        <Text style={{ fontSize: 12, color: '#64748b' }}>{t('common.to')}</Text>
         <Text style={{ fontSize: 15, color: '#0f172a', marginTop: 2 }}>
-          {ride.dropoff.label ?? 'Destination'}
+          {ride.dropoff.label ?? t('rider.history.dropoffFallback')}
         </Text>
       </View>
       <View style={{
@@ -455,15 +467,15 @@ function TripCard({ ride }: { ride: Ride }) {
         borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 12,
       }}>
         <View>
-          <Text style={{ fontSize: 12, color: '#64748b' }}>Tarif</Text>
+          <Text style={{ fontSize: 12, color: '#64748b' }}>{t('rider.current.fare')}</Text>
           <Text style={{ fontSize: 16, fontWeight: '700', color: '#0f172a' }}>
             {formatMru(ride.fareFinalMru ?? ride.fareEstimateMru ?? 0)}
           </Text>
         </View>
         <View>
-          <Text style={{ fontSize: 12, color: '#64748b' }}>Paiement</Text>
+          <Text style={{ fontSize: 12, color: '#64748b' }}>{t('rider.current.payment')}</Text>
           <Text style={{ fontSize: 16, fontWeight: '700', color: '#0f172a' }}>
-            {ride.paymentMethod === 'cash' ? 'Espèces' : 'Wallet'}
+            {ride.paymentMethod === 'cash' ? t('rider.current.cash') : t('rider.current.wallet')}
           </Text>
         </View>
       </View>

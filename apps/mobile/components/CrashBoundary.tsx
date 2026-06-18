@@ -2,6 +2,7 @@ import { Component, type ReactNode } from 'react';
 import { ScrollView, Text, View, StyleSheet } from 'react-native';
 import { saveCrash } from '@/lib/crash-reporter';
 import { reportError } from '@/lib/sentry';
+import { i18n } from '@/lib/i18n';
 
 interface State {
   error: Error | null;
@@ -29,26 +30,31 @@ export class CrashBoundary extends Component<{ children: ReactNode }, State> {
     const { error } = this.state;
     if (!error) return this.props.children;
 
+    // i18n may not be initialised yet if the crash happened during boot — fall
+    // back to the source-language string via i18n.t (returns the key untouched
+    // if no resource is loaded yet).
+    const t = i18n.t.bind(i18n);
+
     return (
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.content}
       >
-        <Text style={styles.title}>Crash JS au boot</Text>
-        <Text style={styles.label}>Message</Text>
+        <Text style={styles.title}>{t('crash.title')}</Text>
+        <Text style={styles.label}>{t('crash.message')}</Text>
         <Text selectable style={styles.message}>
           {error.message}
         </Text>
         {error.stack ? (
           <>
-            <Text style={styles.label}>Stack</Text>
+            <Text style={styles.label}>{t('crash.stack')}</Text>
             <Text selectable style={styles.stack}>
               {error.stack}
             </Text>
           </>
         ) : null}
         <Text style={styles.hint}>
-          (Capture cet écran et envoie-le.)
+          {t('crash.hint')}
         </Text>
       </ScrollView>
     );

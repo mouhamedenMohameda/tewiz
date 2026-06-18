@@ -4,6 +4,7 @@ import {
   Platform, Pressable, Text, TextInput, View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Marker, PROVIDER_DEFAULT, type Region } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -29,6 +30,7 @@ type RideKind = 'self' | 'other' | 'colis';
 
 export default function NewRideScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const mapRef = useRef<MapView>(null);
 
   const [pickup, setPickup] = useState<Point | null>(null);
@@ -105,21 +107,21 @@ export default function NewRideScreen() {
   }, [active]);
 
   function isReady(): { ok: true } | { ok: false; reason: string } {
-    if (!pickup || !dropoff) return { ok: false, reason: 'Choisissez départ et destination.' };
+    if (!pickup || !dropoff) return { ok: false, reason: t('rider.newRide.missingPoints') };
     if (kind === 'other') {
-      if (passengerName.trim().length < 2) return { ok: false, reason: 'Nom du passager requis.' };
-      if (passengerPhone.replace(/\D/g, '').length < 11) return { ok: false, reason: 'Numéro du passager invalide.' };
+      if (passengerName.trim().length < 2) return { ok: false, reason: t('rider.newRide.thirdPartyName') };
+      if (passengerPhone.replace(/\D/g, '').length < 11) return { ok: false, reason: t('phonePrompt.invalidBody') };
     }
     if (kind === 'colis') {
-      if (recipientName.trim().length < 2) return { ok: false, reason: 'Nom du destinataire requis.' };
-      if (recipientPhone.replace(/\D/g, '').length < 11) return { ok: false, reason: 'Numéro du destinataire invalide.' };
+      if (recipientName.trim().length < 2) return { ok: false, reason: t('rider.newRide.recipientName') };
+      if (recipientPhone.replace(/\D/g, '').length < 11) return { ok: false, reason: t('phonePrompt.invalidBody') };
     }
     return { ok: true };
   }
 
   async function confirm() {
     const ready = isReady();
-    if (!ready.ok) { Alert.alert('Incomplet', ready.reason); return; }
+    if (!ready.ok) { Alert.alert(t('common.incomplete'), ready.reason); return; }
     setSubmitting(true);
     try {
       const body: Record<string, unknown> = {
@@ -140,7 +142,7 @@ export default function NewRideScreen() {
       router.replace('/(app)/rider/current');
     } catch (e: any) {
       const err = e.response?.data?.error;
-      Alert.alert('Impossible', err?.issues?.[0]?.message ?? err?.message ?? 'Création échouée.');
+      Alert.alert(t('common.impossible'), err?.issues?.[0]?.message ?? err?.message ?? t('errors.generic'));
     } finally {
       setSubmitting(false);
     }
@@ -149,25 +151,35 @@ export default function NewRideScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }} edges={['top']}>
       <View style={{ padding: 16, gap: 8 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <Pressable onPress={() => router.back()}>
-            <Text style={{ color: '#0f172a', fontSize: 18, fontWeight: '600' }}>‹</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: -8 }}>
+          <Pressable
+            onPress={() => router.back()}
+            hitSlop={12}
+            style={({ pressed }) => ({
+              width: 40, height: 40, borderRadius: 20,
+              alignItems: 'center', justifyContent: 'center',
+              backgroundColor: pressed ? '#f1f5f9' : 'transparent',
+            })}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.back')}
+          >
+            <Text style={{ color: '#0f172a', fontSize: 30, fontWeight: '600', lineHeight: 32, marginTop: -2 }}>‹</Text>
           </Pressable>
           <Text style={{ fontSize: 20, fontWeight: '700', color: '#0f172a' }}>
-            Nouvelle course
+            {t('rider.newRide.title')}
           </Text>
         </View>
 
         <Field
           color="#2d4fd6"
-          label="Départ"
+          label={t('rider.newRide.pickupLabel')}
           value={pickup?.label ?? null}
           onPress={() => setActive('pickup')}
           onClear={() => setPickup(null)}
         />
         <Field
           color="#dc2626"
-          label="Destination"
+          label={t('rider.newRide.dropoffLabel')}
           value={dropoff?.label ?? null}
           onPress={() => setActive('dropoff')}
           onClear={() => setDropoff(null)}
@@ -178,19 +190,19 @@ export default function NewRideScreen() {
         {kind === 'other' ? (
           <View style={{ gap: 6, marginTop: 4 }}>
             <Text style={{ fontSize: 11, color: '#64748b' }}>
-              Le passager recevra un SMS de confirmation. Le chauffeur l'appellera directement.
+              {t('rider.newRide.thirdPartyHint')}
             </Text>
             <TwoCol
               left={
                 <SmallInput
-                  label="Nom du passager"
+                  label={t('rider.newRide.thirdPartyName')}
                   value={passengerName} onChange={setPassengerName}
                   placeholder="Aminata"
                 />
               }
               right={
                 <SmallInput
-                  label="Téléphone"
+                  label={t('rider.newRide.thirdPartyPhone')}
                   value={passengerPhone} onChange={setPassengerPhone}
                   placeholder="+22245…" keyboardType="phone-pad"
                 />
@@ -202,28 +214,28 @@ export default function NewRideScreen() {
         {kind === 'colis' ? (
           <View style={{ gap: 6, marginTop: 4 }}>
             <Text style={{ fontSize: 11, color: '#64748b' }}>
-              Le destinataire recevra un code à 4 chiffres par SMS pour récupérer le colis.
+              {t('rider.newRide.colisHint')}
             </Text>
             <TwoCol
               left={
                 <SmallInput
-                  label="Nom du destinataire"
+                  label={t('rider.newRide.recipientName')}
                   value={recipientName} onChange={setRecipientName}
                   placeholder="Mohamed"
                 />
               }
               right={
                 <SmallInput
-                  label="Téléphone"
+                  label={t('rider.newRide.recipientPhone')}
                   value={recipientPhone} onChange={setRecipientPhone}
                   placeholder="+22245…" keyboardType="phone-pad"
                 />
               }
             />
             <SmallInput
-              label="Description du colis (optionnel)"
+              label={t('rider.newRide.senderPhone')}
               value={packageDescription} onChange={setPackageDescription}
-              placeholder="Sac noir, documents…"
+              placeholder="…"
             />
           </View>
         ) : null}
@@ -253,7 +265,7 @@ export default function NewRideScreen() {
             backgroundColor: '#0f172a', borderRadius: 10, padding: 10,
           }}>
             <Text style={{ color: '#fff', fontSize: 12, textAlign: 'center' }}>
-              Touchez la carte ou tapez le nom du lieu — {active === 'pickup' ? 'départ' : 'destination'}
+              {active === 'pickup' ? t('rider.newRide.searchPickupTitle') : t('rider.newRide.searchDropoffTitle')}
             </Text>
           </View>
         ) : null}
@@ -261,7 +273,7 @@ export default function NewRideScreen() {
 
       <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: '#e2e8f0' }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <Text style={{ fontSize: 13, color: '#64748b' }}>Tarif estimé</Text>
+          <Text style={{ fontSize: 13, color: '#64748b' }}>{t('captain.rides.estimatedFare')}</Text>
           <Text style={{ fontSize: 20, fontWeight: '700', color: '#0f172a' }}>
             {estimating ? '…' : estimate ? formatMru(estimate.fareMru) : '—'}
           </Text>
@@ -278,7 +290,7 @@ export default function NewRideScreen() {
         >
           {submitting && <ActivityIndicator color="#fff" />}
           <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>
-            {kind === 'colis' ? 'Envoyer le colis' : 'Commander la course'}
+            {t('rider.newRide.submit')}
           </Text>
         </Pressable>
       </View>
@@ -300,6 +312,7 @@ function Field({
   color: string; label: string; value: string | null;
   onPress: () => void; onClear: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <View style={{
       flexDirection: 'row', alignItems: 'center', gap: 10,
@@ -311,7 +324,7 @@ function Field({
         <Text style={{
           fontSize: 14, color: value ? '#0f172a' : '#94a3b8', marginTop: 2,
         }} numberOfLines={1}>
-          {value ?? 'Toucher pour choisir'}
+          {value ?? t('common.tapToReplace')}
         </Text>
       </Pressable>
       {value ? (
@@ -359,6 +372,7 @@ function SearchSheet({
 
   useEffect(() => { if (!visible) { setQ(''); setResults([]); } }, [visible]);
 
+  const { t } = useTranslation();
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
@@ -369,10 +383,10 @@ function SearchSheet({
           <View style={{ padding: 16, gap: 12, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
               <Pressable onPress={onClose}>
-                <Text style={{ color: '#0f172a', fontSize: 16, fontWeight: '600' }}>Annuler</Text>
+                <Text style={{ color: '#0f172a', fontSize: 16, fontWeight: '600' }}>{t('common.cancel')}</Text>
               </Pressable>
               <Text style={{ fontSize: 17, fontWeight: '700', color: '#0f172a', flex: 1, textAlign: 'center' }}>
-                {kind === 'pickup' ? 'Choisir le départ' : 'Choisir la destination'}
+                {kind === 'pickup' ? t('rider.newRide.searchPickupTitle') : t('rider.newRide.searchDropoffTitle')}
               </Text>
               <View style={{ width: 56 }} />
             </View>
@@ -380,7 +394,7 @@ function SearchSheet({
               autoFocus
               value={q}
               onChangeText={setQ}
-              placeholder="Quartier, hôtel, restaurant…"
+              placeholder={t('rider.newRide.searchPlaceholder')}
               placeholderTextColor="#94a3b8"
               style={{
                 borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 10,
@@ -403,7 +417,7 @@ function SearchSheet({
               ListEmptyComponent={
                 <View style={{ padding: 24, alignItems: 'center' }}>
                   <Text style={{ color: '#94a3b8', fontSize: 13 }}>
-                    {q.trim().length < 2 ? 'Tapez au moins 2 caractères' : 'Aucun résultat'}
+                    {q.trim().length < 2 ? t('rider.newRide.minCharsHint') : t('rider.newRide.noResults')}
                   </Text>
                 </View>
               }
@@ -433,10 +447,11 @@ function SearchSheet({
 function KindSelector({
   value, onChange,
 }: { value: RideKind; onChange: (k: RideKind) => void }) {
+  const { t } = useTranslation();
   const opts: { value: RideKind; label: string; icon: string }[] = [
-    { value: 'self',  label: 'Pour moi',     icon: '🙋' },
-    { value: 'other', label: 'Pour un tiers', icon: '👥' },
-    { value: 'colis', label: 'Colis',         icon: '📦' },
+    { value: 'self',  label: t('rider.newRide.kindFor.self'),  icon: '🙋' },
+    { value: 'other', label: t('rider.newRide.kindFor.other'), icon: '👥' },
+    { value: 'colis', label: t('rider.newRide.kindFor.colis'), icon: '📦' },
   ];
   return (
     <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>

@@ -4,6 +4,7 @@ import {
   Pressable, ScrollView, Switch, Text, View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '@/lib/api';
 import { type ApplicationDto } from '@/lib/kyc';
@@ -11,6 +12,7 @@ import { Field, PrimaryButton } from '@/lib/form';
 
 export default function VehicleScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -48,11 +50,11 @@ export default function VehicleScreen() {
     const seatsNum = Number(seats);
     const currentYear = new Date().getFullYear();
     if (!yearNum || yearNum < 1980 || yearNum > currentYear + 1) {
-      Alert.alert('Année invalide', `Entre 1980 et ${currentYear + 1}.`);
+      Alert.alert(t('becomeCaptain.vehicle.yearInvalidTitle'), t('becomeCaptain.vehicle.yearInvalidBody', { max: currentYear + 1 }));
       return;
     }
     if (!seatsNum || seatsNum < 1 || seatsNum > 8) {
-      Alert.alert('Places invalides', 'Entre 1 et 8.');
+      Alert.alert(t('becomeCaptain.vehicle.seatsInvalidTitle'), t('becomeCaptain.vehicle.seatsInvalidBody'));
       return;
     }
     setSaving(true);
@@ -69,7 +71,7 @@ export default function VehicleScreen() {
       });
       router.back();
     } catch (e: any) {
-      Alert.alert('Erreur', e.response?.data?.error?.message ?? 'Impossible d\'enregistrer.');
+      Alert.alert(t('common.error'), e.response?.data?.error?.message ?? t('becomeCaptain.vehicle.saveError'));
     } finally {
       setSaving(false);
     }
@@ -91,25 +93,25 @@ export default function VehicleScreen() {
       >
         <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
           <Pressable onPress={() => router.back()}>
-            <Text style={{ color: '#64748b', fontSize: 14 }}>‹ Retour</Text>
+            <Text style={{ color: '#64748b', fontSize: 14 }}>‹ {t('common.back')}</Text>
           </Pressable>
           <Text style={{ fontSize: 24, fontWeight: '700', color: '#0f172a', marginTop: 12 }}>
-            Véhicule
+            {t('becomeCaptain.vehicle.title')}
           </Text>
 
-          <Field label="Plaque d'immatriculation" value={plate}
-            onChangeText={setPlate} placeholder="1234 AB" autoCapitalize="characters" />
-          <Field label="Marque" value={brand} onChangeText={setBrand}
-            placeholder="Toyota" autoCapitalize="words" />
-          <Field label="Modèle" value={model} onChangeText={setModel}
-            placeholder="Corolla" autoCapitalize="words" />
-          <Field label="Année" value={year}
-            onChangeText={(t) => setYear(t.replace(/\D/g, '').slice(0, 4))}
-            placeholder="2018" keyboardType="number-pad" maxLength={4} />
-          <Field label="Couleur" value={color} onChangeText={setColor}
-            placeholder="Blanc" autoCapitalize="words" />
-          <Field label="Nombre de places passagers" value={seats}
-            onChangeText={(t) => setSeats(t.replace(/\D/g, '').slice(0, 1))}
+          <Field label={t('becomeCaptain.vehicle.plate')} value={plate}
+            onChangeText={setPlate} placeholder={t('becomeCaptain.vehicle.platePlaceholder')} autoCapitalize="characters" />
+          <Field label={t('becomeCaptain.vehicle.brand')} value={brand} onChangeText={setBrand}
+            placeholder={t('becomeCaptain.vehicle.brandPlaceholder')} autoCapitalize="words" />
+          <Field label={t('becomeCaptain.vehicle.model')} value={model} onChangeText={setModel}
+            placeholder={t('becomeCaptain.vehicle.modelPlaceholder')} autoCapitalize="words" />
+          <Field label={t('becomeCaptain.vehicle.year')} value={year}
+            onChangeText={(v) => setYear(v.replace(/\D/g, '').slice(0, 4))}
+            placeholder={t('becomeCaptain.vehicle.yearPlaceholder')} keyboardType="number-pad" maxLength={4} />
+          <Field label={t('becomeCaptain.vehicle.color')} value={color} onChangeText={setColor}
+            placeholder={t('becomeCaptain.vehicle.colorPlaceholder')} autoCapitalize="words" />
+          <Field label={t('becomeCaptain.vehicle.seats')} value={seats}
+            onChangeText={(v) => setSeats(v.replace(/\D/g, '').slice(0, 1))}
             placeholder="4" keyboardType="number-pad" maxLength={1} />
 
           <View style={{
@@ -117,9 +119,9 @@ export default function VehicleScreen() {
             flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
           }}>
             <View style={{ flex: 1, paddingRight: 12 }}>
-              <Text style={{ fontSize: 15, fontWeight: '600', color: '#0f172a' }}>Accepter les colis</Text>
+              <Text style={{ fontSize: 15, fontWeight: '600', color: '#0f172a' }}>{t('becomeCaptain.vehicle.colisTitle')}</Text>
               <Text style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
-                Livraisons sans passager (commission 10%).
+                {t('becomeCaptain.vehicle.colisHint')}
               </Text>
             </View>
             <Switch value={acceptsColis} onValueChange={setAcceptsColis} />
@@ -130,15 +132,15 @@ export default function VehicleScreen() {
             flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
           }}>
             <View style={{ flex: 1, paddingRight: 12 }}>
-              <Text style={{ fontSize: 15, fontWeight: '600', color: '#0f172a' }}>Longue distance</Text>
+              <Text style={{ fontSize: 15, fontWeight: '600', color: '#0f172a' }}>{t('becomeCaptain.vehicle.longDistanceTitle')}</Text>
               <Text style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
-                Courses inter-villes (Nouakchott — Nouadhibou, etc.).
+                {t('becomeCaptain.vehicle.longDistanceHint')}
               </Text>
             </View>
             <Switch value={acceptsLongDistance} onValueChange={setAcceptsLongDistance} />
           </View>
 
-          <PrimaryButton title="Enregistrer" onPress={save} busy={saving} />
+          <PrimaryButton title={t('becomeCaptain.vehicle.save')} onPress={save} busy={saving} />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

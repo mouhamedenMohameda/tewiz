@@ -3,6 +3,7 @@ import {
   ActivityIndicator, Alert, Modal, Pressable, ScrollView, View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
@@ -53,6 +54,7 @@ const PROVIDER_LABELS: Record<Provider, string> = {
 
 export default function WalletScreen() {
   const router = useRouter();
+  const { t, i18n } = useTranslation();
   const [summary, setSummary] = useState<WalletSummary | null>(null);
   const [topups, setTopups] = useState<Topup[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,7 +77,7 @@ export default function WalletScreen() {
 
   return (
     <Screen scroll onRefresh={load} refreshing={loading}>
-      <ScreenHeader title="Portefeuille" onBack={() => router.back()} />
+      <ScreenHeader title={t('captain.wallet.title')} onBack={() => router.back()} />
 
       {/* Balance hero */}
       <LinearGradient
@@ -84,17 +86,17 @@ export default function WalletScreen() {
         end={{ x: 1, y: 1 }}
         style={{ borderRadius: radius.xxl, padding: spacing.xl }}
       >
-        <AppText variant="overline" color="#FFF1DD">Solde wallet</AppText>
+        <AppText variant="overline" color="#FFF1DD">{t('captain.wallet.balance')}</AppText>
         <AppText variant="hero" color={colors.white} style={{ marginTop: spacing.xs, fontSize: 36 }}>
           {summary ? formatMru(summary.balanceMru) : '—'}
         </AppText>
         <AppText variant="caption" color="#FFF1DD" style={{ marginTop: spacing.sm, opacity: 0.95 }}>
-          La commission 7 % (10 % colis) est débitée à la fin de chaque course.
+          {t('captain.wallet.commissionNote')}
         </AppText>
       </LinearGradient>
 
       <Button
-        title="Envoyer une capture de recharge"
+        title={t('captain.wallet.uploadReceipt')}
         variant="dark"
         icon="document"
         onPress={() => setTopupModal(true)}
@@ -102,21 +104,21 @@ export default function WalletScreen() {
       />
 
       <AppText variant="overline" color={colors.muted} style={{ marginTop: spacing.xxl, marginBottom: spacing.sm }}>
-        Recharges
+        {t('captain.wallet.topups')}
       </AppText>
       {topups.length === 0 ? (
-        <EmptyHint text="Aucune recharge envoyée." />
+        <EmptyHint text={t('captain.wallet.noTopups')} />
       ) : (
-        <View style={{ gap: spacing.sm }}>{topups.map((t) => <TopupRow key={t.id} t={t} />)}</View>
+        <View style={{ gap: spacing.sm }}>{topups.map((it) => <TopupRow key={it.id} t={it} locale={i18n.language} />)}</View>
       )}
 
       <AppText variant="overline" color={colors.muted} style={{ marginTop: spacing.xxl, marginBottom: spacing.sm }}>
-        Mouvements récents
+        {t('captain.wallet.recent')}
       </AppText>
       {(summary?.transactions ?? []).length === 0 ? (
-        <EmptyHint text="Aucun mouvement." />
+        <EmptyHint text={t('captain.wallet.noTx')} />
       ) : (
-        <View style={{ gap: spacing.sm }}>{summary!.transactions.map((tx) => <TxRow key={tx.id} tx={tx} />)}</View>
+        <View style={{ gap: spacing.sm }}>{summary!.transactions.map((tx) => <TxRow key={tx.id} tx={tx} locale={i18n.language} />)}</View>
       )}
 
       <TopupModal
@@ -140,43 +142,40 @@ const PILL: Record<TopupStatus, { bg: string; fg: string }> = {
   duplicate: { bg: colors.surfaceAlt, fg: colors.muted },
 };
 
-function TopupRow({ t }: { t: Topup }) {
-  const pill = PILL[t.status];
+function TopupRow({ t: tx, locale }: { t: Topup; locale: string }) {
+  const { t } = useTranslation();
+  const pill = PILL[tx.status];
   return (
     <Card padding={spacing.md} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
       <View style={{ flex: 1 }}>
         <AppText variant="bodyStrong">
-          {PROVIDER_LABELS[t.provider]} · {formatMru(t.claimedAmountMru)}
+          {PROVIDER_LABELS[tx.provider]} · {formatMru(tx.claimedAmountMru)}
         </AppText>
         <AppText variant="caption" color={colors.muted} style={{ marginTop: 2 }}>
-          Réf #{t.referenceCode} · {new Date(t.createdAt).toLocaleDateString('fr-FR')}
+          {t('captain.wallet.ref', { code: tx.referenceCode })} · {new Date(tx.createdAt).toLocaleDateString(locale)}
         </AppText>
-        {t.rejectReason ? (
-          <AppText variant="caption" color={colors.danger} style={{ marginTop: 2 }}>{t.rejectReason}</AppText>
+        {tx.rejectReason ? (
+          <AppText variant="caption" color={colors.danger} style={{ marginTop: 2 }}>{tx.rejectReason}</AppText>
         ) : null}
       </View>
       <View style={{ backgroundColor: pill.bg, paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.sm }}>
-        <AppText variant="overline" color={pill.fg} style={{ letterSpacing: 0.6 }}>{t.status}</AppText>
+        <AppText variant="overline" color={pill.fg} style={{ letterSpacing: 0.6 }}>
+          {t(`captain.wallet.topupStatus.${tx.status}` as const)}
+        </AppText>
       </View>
     </Card>
   );
 }
 
-function TxRow({ tx }: { tx: Tx }) {
+function TxRow({ tx, locale }: { tx: Tx; locale: string }) {
+  const { t } = useTranslation();
   const positive = tx.amountMru >= 0;
-  const labels: Record<TxType, string> = {
-    topup: 'Recharge',
-    commission: 'Commission',
-    commission_refund: 'Remboursement',
-    manual_adjustment: 'Ajustement',
-    bonus: 'Bonus',
-  };
   return (
     <Card padding={spacing.md} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
       <View style={{ flex: 1 }}>
-        <AppText variant="bodyStrong">{labels[tx.type]}</AppText>
+        <AppText variant="bodyStrong">{t(`captain.wallet.txTypes.${tx.type}` as const)}</AppText>
         <AppText variant="caption" color={colors.muted} style={{ marginTop: 2 }}>
-          {new Date(tx.createdAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}
+          {new Date(tx.createdAt).toLocaleString(locale, { dateStyle: 'short', timeStyle: 'short' })}
           {tx.reason ? ` · ${tx.reason}` : ''}
         </AppText>
       </View>
@@ -192,6 +191,7 @@ function TopupModal({
 }: {
   visible: boolean; onClose: () => void; onCreated: () => void;
 }) {
+  const { t } = useTranslation();
   const [provider, setProvider] = useState<Provider>('bankily');
   const [amountMru, setAmountMru] = useState('');
   const [refNumber, setRefNumber] = useState('');
@@ -208,7 +208,7 @@ function TopupModal({
   async function pickPhoto() {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (perm.status !== 'granted') {
-      Alert.alert('Permission requise', 'Accordez l\'accès à la galerie.');
+      Alert.alert(t('common.permissionRequired'), t('captain.wallet.topupModal.galleryPermission'));
       return;
     }
     const r = await ImagePicker.launchImageLibraryAsync({
@@ -221,11 +221,11 @@ function TopupModal({
   async function submit() {
     const mruNum = Number(amountMru);
     if (!mruNum || mruNum < 1) {
-      Alert.alert('Montant invalide', 'Entrez un montant en MRU.');
+      Alert.alert(t('captain.wallet.topupModal.invalidAmountTitle'), t('captain.wallet.topupModal.invalidAmountBody'));
       return;
     }
     if (!photoUri) {
-      Alert.alert('Capture requise', 'Joignez la capture d\'écran de votre paiement.');
+      Alert.alert(t('captain.wallet.topupModal.missingPhotoTitle'), t('captain.wallet.topupModal.missingPhotoBody'));
       return;
     }
     setSubmitting(true);
@@ -247,7 +247,7 @@ function TopupModal({
       reset();
       onCreated();
     } catch (e: any) {
-      Alert.alert('Échec', e.response?.data?.error?.message ?? 'Impossible d\'envoyer.');
+      Alert.alert(t('captain.wallet.topupModal.failTitle'), e.response?.data?.error?.message ?? t('captain.wallet.topupModal.failBody'));
     } finally {
       setSubmitting(false);
     }
@@ -258,7 +258,7 @@ function TopupModal({
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
         <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.huge }}>
           <ScreenHeader
-            title="Nouvelle recharge"
+            title={t('captain.wallet.topupModal.title')}
             right={
               <Pressable onPress={onClose} hitSlop={10}>
                 <Icon name="close" size={26} color={colors.ink2} />
@@ -267,11 +267,11 @@ function TopupModal({
           />
 
           <AppText variant="body" color={colors.ink2}>
-            Effectuez le virement sur le numéro {APP_NAME}, puis joignez la capture pour validation.
+            {t('captain.wallet.topupModal.intro', { app: APP_NAME })}
           </AppText>
 
           <AppText variant="label" color={colors.ink2} style={{ marginTop: spacing.xl, marginBottom: spacing.sm }}>
-            Fournisseur
+            {t('captain.wallet.topupModal.providerLabel')}
           </AppText>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
             {(Object.keys(PROVIDER_LABELS) as Provider[]).map((p) => {
@@ -296,20 +296,20 @@ function TopupModal({
 
           <TextField
             containerStyle={{ marginTop: spacing.xl }}
-            label="Montant (MRU)"
+            label={t('captain.wallet.topupModal.amountLabel')}
             icon="cash"
             value={amountMru}
-            onChangeText={(t) => setAmountMru(t.replace(/[^\d.]/g, ''))}
+            onChangeText={(text) => setAmountMru(text.replace(/[^\d.]/g, ''))}
             keyboardType="decimal-pad"
             placeholder="1000"
           />
 
           <TextField
             containerStyle={{ marginTop: spacing.base }}
-            label="N° de référence (facultatif)"
+            label={t('captain.wallet.topupModal.refLabel')}
             value={refNumber}
             onChangeText={setRefNumber}
-            placeholder="TXN123456"
+            placeholder={t('captain.wallet.topupModal.refPlaceholder')}
             autoCapitalize="characters"
           />
 
@@ -324,12 +324,12 @@ function TopupModal({
           >
             <Icon name={photoUri ? 'check' : 'document'} size={20} color={photoUri ? colors.success : colors.ink2} />
             <AppText variant="bodyStrong" color={photoUri ? colors.success : colors.ink2}>
-              {photoUri ? 'Capture jointe — toucher pour remplacer' : 'Joindre la capture d\'écran'}
+              {photoUri ? t('captain.wallet.topupModal.attached') : t('captain.wallet.topupModal.attachAction')}
             </AppText>
           </Pressable>
 
           <Button
-            title="Envoyer pour validation"
+            title={t('captain.wallet.topupModal.submit')}
             iconRight="send"
             busy={submitting}
             onPress={submit}

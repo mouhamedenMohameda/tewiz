@@ -3,6 +3,7 @@ import {
   ActivityIndicator, Alert, Animated, Easing, Pressable, Switch, View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import { api } from '@/lib/api';
@@ -39,6 +40,7 @@ interface GoingHomeSession {
 
 export default function CaptainHome() {
   const router = useRouter();
+  const { t, i18n } = useTranslation();
   const user = useAuth((s) => s.user);
 
   const [wallet, setWallet] = useState<WalletSummary | null>(null);
@@ -82,8 +84,8 @@ export default function CaptainHome() {
     try {
       const perm = await Location.requestForegroundPermissionsAsync();
       if (perm.status !== 'granted') {
-        Alert.alert('Position requise',
-          `${APP_NAME} a besoin de votre position pour vous mettre en ligne.`);
+        Alert.alert(t('captain.state.locationRequiredTitle'),
+          t('captain.state.locationRequiredBody', { app: APP_NAME }));
         return;
       }
       const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
@@ -93,8 +95,8 @@ export default function CaptainHome() {
       });
       await load();
     } catch (e: any) {
-      Alert.alert('Impossible',
-        e.response?.data?.error?.message ?? 'Erreur lors du passage en ligne.');
+      Alert.alert(t('captain.state.errorTitle'),
+        e.response?.data?.error?.message ?? t('captain.state.errorOnline'));
     } finally {
       setToggling(false);
     }
@@ -106,8 +108,8 @@ export default function CaptainHome() {
       await api.post('/captain/state/offline', {});
       await load();
     } catch (e: any) {
-      Alert.alert('Impossible',
-        e.response?.data?.error?.message ?? 'Erreur lors du passage hors ligne.');
+      Alert.alert(t('captain.state.errorTitle'),
+        e.response?.data?.error?.message ?? t('captain.state.errorOffline'));
     } finally {
       setToggling(false);
     }
@@ -124,8 +126,8 @@ export default function CaptainHome() {
         setGoingHome(null);
       }
     } catch (e: any) {
-      Alert.alert('Impossible',
-        e.response?.data?.error?.message ?? 'Erreur sur le mode "Je rentre chez moi".');
+      Alert.alert(t('captain.state.errorTitle'),
+        e.response?.data?.error?.message ?? t('captain.state.errorGoingHome'));
     } finally {
       setTogglingGoingHome(false);
     }
@@ -133,15 +135,15 @@ export default function CaptainHome() {
 
   function confirmReset() {
     Alert.alert(
-      'Réinitialiser les alertes ?',
-      'Vide la liste des courses déjà vues et lève toute pause. À utiliser si vous ne recevez plus de notifications alors que vous êtes en ligne.',
+      t('captain.home.resetTitle'),
+      t('captain.home.resetBody'),
       [
-        { text: 'Non', style: 'cancel' },
+        { text: t('common.no'), style: 'cancel' },
         {
-          text: 'Réinitialiser',
+          text: t('captain.home.resetConfirm'),
           onPress: async () => {
             await resetRideAlerts();
-            Alert.alert('Fait', 'Les alertes vont reprendre à la prochaine course.');
+            Alert.alert(t('common.done'), t('captain.home.resetDoneBody'));
           },
         },
       ],
@@ -166,16 +168,16 @@ export default function CaptainHome() {
             <Icon name="captain" size={26} color={colors.saffron} />
           </View>
           <View style={{ flex: 1 }}>
-            <AppText variant="overline" color={colors.muted}>Chauffeur</AppText>
+            <AppText variant="overline" color={colors.muted}>{t('captain.home.overline')}</AppText>
             <AppText variant="title" numberOfLines={1} style={{ marginTop: 1 }}>
               {user?.fullName ?? user?.phone}
             </AppText>
           </View>
         </View>
         <Pressable
-          onPress={() => router.push('/(app)/account')}
+          onPress={() => router.push('/(app)/settings')}
           hitSlop={10}
-          accessibilityLabel="Compte"
+          accessibilityLabel={t('settings.title')}
           style={{
             width: 44, height: 44, borderRadius: radius.md,
             backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center',
@@ -212,7 +214,7 @@ export default function CaptainHome() {
             <Icon name="wallet" size={26} color={colors.warning} />
           </View>
           <View style={{ flex: 1 }}>
-            <AppText variant="overline" color={colors.muted}>Solde</AppText>
+            <AppText variant="overline" color={colors.muted}>{t('captain.home.wallet')}</AppText>
             <AppText variant="h1" style={{ marginTop: 1 }}>
               {wallet ? formatMru(wallet.balanceMru) : '—'}
             </AppText>
@@ -234,14 +236,16 @@ export default function CaptainHome() {
             <Icon name="home" size={24} color={colors.ember} />
           </View>
           <View style={{ flex: 1 }}>
-            <AppText variant="bodyStrong">Je rentre chez moi</AppText>
+            <AppText variant="bodyStrong">{t('captain.home.goingHome')}</AppText>
             <AppText variant="caption" color={colors.ink2} style={{ marginTop: 2 }}>
-              Priorité aux courses qui vous rapprochent de votre domicile.
+              {t('captain.home.goingHomeHint')}
             </AppText>
             {goingHome ? (
               <AppText variant="caption" color={colors.ember} style={{ marginTop: 3 }}>
-                Actif jusqu'à {new Date(goingHome.expiresAt).toLocaleTimeString('fr-FR', {
-                  hour: '2-digit', minute: '2-digit',
+                {t('captain.home.goingHomeActiveUntil', {
+                  time: new Date(goingHome.expiresAt).toLocaleTimeString(i18n.language, {
+                    hour: '2-digit', minute: '2-digit',
+                  }),
                 })}
               </AppText>
             ) : null}
@@ -264,20 +268,20 @@ export default function CaptainHome() {
       {/* Navigation */}
       <FadeInView delay={190}>
         <AppText variant="overline" color={colors.muted} style={{ marginTop: spacing.xxl, marginBottom: spacing.md }}>
-          Gérer
+          {t('captain.home.manage')}
         </AppText>
         <View style={{ gap: spacing.md }}>
           <NavRow icon="ride" tint={colors.emberSoft} fg={colors.ember}
-            title="Courses" subtitle="Inbox des courses et course en cours"
+            title={t('captain.nav.ridesTitle')} subtitle={t('captain.nav.ridesSubtitle')}
             onPress={() => router.push('/(app)/captain/rides')} />
           <NavRow icon="home" tint={colors.saffronSoft} fg={colors.warning}
-            title="Mon domicile" subtitle={'Pour le mode "Je rentre chez moi"'}
+            title={t('captain.nav.homeTitle')} subtitle={t('captain.nav.homeSubtitle')}
             onPress={() => router.push('/(app)/captain/home-location')} />
           <NavRow icon="heatmap" tint={colors.dangerSoft} fg={colors.danger}
-            title="Zones chaudes" subtitle="Où se trouve la demande maintenant"
+            title={t('captain.nav.heatmapTitle')} subtitle={t('captain.nav.heatmapSubtitle')}
             onPress={() => router.push('/(app)/captain/heatmap')} />
           <NavRow icon="recurring" tint="#E9EFE6" fg={colors.success}
-            title="Courses récurrentes" subtitle="Engagements hebdomadaires"
+            title={t('captain.nav.recurringTitle')} subtitle={t('captain.nav.recurringSubtitle')}
             onPress={() => router.push('/(app)/captain/recurring')} />
         </View>
       </FadeInView>
@@ -288,7 +292,7 @@ export default function CaptainHome() {
         opacity: pressed ? 0.6 : 1,
       })}>
         <Icon name="refresh" size={15} color={colors.muted} />
-        <AppText variant="label" color={colors.muted}>Réinitialiser les alertes</AppText>
+        <AppText variant="label" color={colors.muted}>{t('captain.home.resetAlerts')}</AppText>
       </Pressable>
     </Screen>
   );
@@ -301,6 +305,7 @@ function StateCard({
 }: {
   presence: Presence; toggling: boolean; onGoOnline: () => void; onGoOffline: () => void;
 }) {
+  const { t } = useTranslation();
   const online = presence === 'online' || presence === 'on_ride';
   const onRide = presence === 'on_ride';
 
@@ -314,15 +319,13 @@ function StateCard({
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <PulseDot color={onRide ? colors.saffron : colors.white} />
-          <AppText variant="overline" color={onRide ? colors.saffron : '#FFF1DD'}>Vous êtes</AppText>
+          <AppText variant="overline" color={onRide ? colors.saffron : '#FFF1DD'}>{t('captain.state.youAre')}</AppText>
         </View>
         <AppText variant="display" color={colors.white} style={{ marginTop: spacing.xs }}>
-          {onRide ? 'En course' : 'En ligne'}
+          {onRide ? t('captain.state.onRide') : t('captain.state.online')}
         </AppText>
         <AppText variant="body" color={onRide ? colors.onEspressoMuted : '#FFF1DD'} style={{ marginTop: spacing.xs }}>
-          {onRide
-            ? 'Course en cours — bonne route.'
-            : 'Vous recevez les courses proches de vous.'}
+          {onRide ? t('captain.state.onRideBody') : t('captain.state.onlineBody')}
         </AppText>
 
         {!onRide ? (
@@ -339,7 +342,7 @@ function StateCard({
             {toggling
               ? <ActivityIndicator color={colors.white} />
               : <Icon name="power" size={19} color={colors.white} />}
-            <AppText variant="bodyStrong" color={colors.white}>Passer hors ligne</AppText>
+            <AppText variant="bodyStrong" color={colors.white}>{t('captain.state.goOffline')}</AppText>
           </PressableScale>
         ) : null}
       </LinearGradient>
@@ -350,14 +353,14 @@ function StateCard({
     <Card padding={spacing.xl}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.faint }} />
-        <AppText variant="overline" color={colors.muted}>Vous êtes</AppText>
+        <AppText variant="overline" color={colors.muted}>{t('captain.state.youAre')}</AppText>
       </View>
-      <AppText variant="display" style={{ marginTop: spacing.xs }}>Hors ligne</AppText>
+      <AppText variant="display" style={{ marginTop: spacing.xs }}>{t('captain.state.offline')}</AppText>
       <AppText variant="body" color={colors.ink2} style={{ marginTop: spacing.xs }}>
-        Passez en ligne pour commencer à recevoir des courses.
+        {t('captain.state.offlineBody')}
       </AppText>
       <Button
-        title="Passer en ligne"
+        title={t('captain.state.goOnline')}
         icon="power"
         busy={toggling}
         onPress={onGoOnline}

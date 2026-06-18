@@ -14,6 +14,7 @@
 import { useState } from 'react';
 import { Alert, Dimensions, Image, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { loginAsGuest } from '@/lib/guest';
@@ -25,6 +26,7 @@ const { height: SCREEN_H } = Dimensions.get('window');
 
 export default function AuthWelcome() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
 
   async function startGuest() {
@@ -33,9 +35,8 @@ export default function AuthWelcome() {
       await loginAsGuest();
       router.replace('/(app)');
     } catch (e: any) {
-      const msg = e?.response?.data?.error?.message
-        ?? 'Impossible de se connecter au serveur. Vérifiez votre connexion.';
-      Alert.alert('Erreur', msg);
+      const msg = e?.response?.data?.error?.message ?? t('errors.network');
+      Alert.alert(t('common.error'), msg);
     } finally {
       setBusy(false);
     }
@@ -93,14 +94,14 @@ export default function AuthWelcome() {
               align="center"
               style={{ marginTop: spacing.xs, maxWidth: 280, opacity: 0.95 }}
             >
-              Commandez une course. Conduisez quand vous voulez.
+              {t('auth.welcome.tagline')}
             </AppText>
           </FadeInView>
 
           {/* Actions */}
           <FadeInView delay={260}>
             <Button
-              title="Commander une course"
+              title={t('auth.welcome.primary')}
               variant="dark"
               iconRight="arrow"
               busy={busy}
@@ -108,7 +109,7 @@ export default function AuthWelcome() {
             />
             <View style={{ height: spacing.md }} />
             <Button
-              title="J'ai déjà un compte"
+              title={t('auth.welcome.secondary')}
               variant="secondary"
               icon="person"
               onPress={() => router.push('/(auth)/phone')}
@@ -127,7 +128,7 @@ export default function AuthWelcome() {
             >
               <Icon name="shield" size={15} color={colors.muted} />
               <AppText variant="caption" color={colors.muted} align="center" style={{ flexShrink: 1 }}>
-                Aucune inscription requise. Entrez votre numéro au moment de commander.
+                {t('auth.welcome.note')}
               </AppText>
             </View>
           </FadeInView>

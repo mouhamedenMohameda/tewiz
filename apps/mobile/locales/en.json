@@ -1,0 +1,709 @@
+{
+  "common": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "saveAndContinue": "Save and continue",
+    "send": "Send",
+    "ok": "OK",
+    "back": "Back",
+    "retry": "Retry",
+    "loading": "Loading…",
+    "error": "Error",
+    "delete": "Delete",
+    "yes": "Yes",
+    "no": "No",
+    "hello": "Hello",
+    "done": "Done",
+    "edit": "Edit",
+    "logout": "Sign out",
+    "later": "Later",
+    "noThanks": "No thanks",
+    "impossible": "Cannot do that",
+    "incomplete": "Incomplete",
+    "permissionRequired": "Permission required",
+    "permissionRequiredBody": "Grant access in your settings.",
+    "from": "From",
+    "to": "To",
+    "kmShort": "km",
+    "mShort": "m",
+    "sending": "Sending…",
+    "notSent": "Not sent",
+    "tapToReplace": "Tap to replace",
+    "holdToDelete": "Hold to delete"
+  },
+  "errors": {
+    "server": "Cannot reach the server.",
+    "network": "Cannot reach the server. Check your connection.",
+    "generic": "Failed.",
+    "load": "Could not load."
+  },
+  "auth": {
+    "welcome": {
+      "tagline": "Order a ride. Drive whenever you want.",
+      "primary": "Order a ride",
+      "secondary": "I already have an account",
+      "note": "No sign-up required. Enter your number when you place your first ride."
+    },
+    "login": {
+      "title": "Welcome back",
+      "subtitle": "Enter your phone number and the password sent by the administrator on WhatsApp.",
+      "phoneLabel": "Phone number",
+      "passwordLabel": "Password",
+      "submit": "Sign in",
+      "noAccount": "No account?",
+      "contactAdmin": "Contact the administrator",
+      "invalidPhoneTitle": "Invalid number",
+      "invalidPhoneBody": "Please check your phone number.",
+      "missingPasswordTitle": "Missing password",
+      "missingPasswordBody": "Enter the password provided by the administrator.",
+      "invalidCredsTitle": "Invalid credentials",
+      "invalidCredsBody": "Wrong number or password.",
+      "notActivatedTitle": "Account not activated",
+      "notActivatedBody": "No password set yet. Please contact the administrator.",
+      "tooManyTitle": "Too many attempts",
+      "tooManyBody": "Please try again in a few minutes.",
+      "contactMessage": "Hello, I would like to create a {{app}} account."
+    }
+  },
+  "phonePrompt": {
+    "title": "Your phone number",
+    "body": "Your driver will need it to reach you. Just once — no SMS.",
+    "phoneLabel": "Phone number",
+    "invalidTitle": "Invalid number",
+    "invalidBody": "Enter a valid Mauritanian number (e.g. +222 45 12 34 56).",
+    "takenTitle": "This number already has an account",
+    "takenBody": "This number is already linked to a {{app}} account. Sign in with your password to recover it.",
+    "takenAction": "Sign in",
+    "saveError": "Could not save your number."
+  },
+  "modeToggle": {
+    "rider": "Passenger",
+    "captain": "Driver"
+  },
+  "roles": {
+    "rider": "Passenger",
+    "captain": "Driver",
+    "admin": "Administrator"
+  },
+  "rider": {
+    "home": {
+      "shortcuts": "My shortcuts",
+      "history": "My rides",
+      "drivers": "Drivers",
+      "recurring": "Recurring",
+      "currentRide": "Active ride"
+    },
+    "hero": {
+      "overline": "Where to?",
+      "title": "Order a ride",
+      "voice": "Order by voice",
+      "map": "Pick on the map",
+      "blocked": "A ride is already in progress"
+    },
+    "status": {
+      "pending_passenger_confirm": "Awaiting confirmation",
+      "searching": "Looking for a driver",
+      "accepted": "Driver on the way",
+      "arrived": "Driver has arrived",
+      "in_progress": "Ride in progress",
+      "completed": "Rate your ride",
+      "cancelled_by_rider": "Cancelled by you",
+      "cancelled_by_captain": "Cancelled by driver",
+      "cancelled_by_system": "Cancelled",
+      "no_show": "No show"
+    },
+    "historyStatus": {
+      "pending_passenger_confirm": "Waiting",
+      "searching": "Searching",
+      "accepted": "Accepted",
+      "arrived": "Arrived",
+      "in_progress": "In progress",
+      "completed": "Completed",
+      "cancelled_by_rider": "Cancelled",
+      "cancelled_by_captain": "Cancelled",
+      "cancelled_by_system": "Cancelled",
+      "no_show": "No-show"
+    },
+    "history": {
+      "title": "My rides",
+      "empty": "No rides yet.",
+      "pickupFallback": "Pickup point",
+      "dropoffFallback": "Destination",
+      "passenger": "Passenger",
+      "colis": "Parcel"
+    },
+    "current": {
+      "noneTitle": "No active ride",
+      "noneSub": "Order a ride from the home screen.",
+      "order": "Order",
+      "yourDriver": "YOUR DRIVER",
+      "fallbackName": "Driver",
+      "vehicleLabel": "Vehicle",
+      "codeForDriver": "CODE TO SHARE WITH YOUR DRIVER",
+      "fare": "Fare",
+      "payment": "Payment",
+      "cash": "Cash",
+      "wallet": "Wallet",
+      "tariff": "Estimated fare",
+      "ridesCount": "{{count}} rides",
+      "cancelTitle": "Cancel this ride?",
+      "cancelBody": "The driver will be notified.",
+      "cancelling": "Cancelling…",
+      "cancelAction": "Cancel ride",
+      "banners": {
+        "pending_passenger_confirm": {
+          "title": "Awaiting confirmation",
+          "sub": "Confirm by SMS."
+        },
+        "searching": {
+          "title": "Looking for a driver",
+          "sub": "Hold on a moment…"
+        },
+        "accepted": {
+          "title": "Driver on the way",
+          "sub": "Coming to your location."
+        },
+        "arrived": {
+          "title": "Driver has arrived",
+          "sub": "Share the code to start the ride."
+        },
+        "in_progress": {
+          "title": "Ride in progress",
+          "sub": "Have a good trip."
+        },
+        "completed": {
+          "title": "Ride completed",
+          "sub": "Thanks for travelling with {{app}}."
+        },
+        "cancelled_by_rider": { "title": "Cancelled by you", "sub": "" },
+        "cancelled_by_captain": { "title": "Cancelled by driver", "sub": "" },
+        "cancelled_by_system": { "title": "Cancelled", "sub": "" },
+        "no_show": { "title": "No show", "sub": "" }
+      },
+      "rating": {
+        "missingTitle": "Missing rating",
+        "missingBody": "Tap 1–5 stars before sending.",
+        "question": "How was the ride?",
+        "withDriver": "With {{name}}.",
+        "withDriverFallback": "your driver",
+        "commentPlaceholder": "A comment? (optional)",
+        "submit": "Send rating",
+        "favoriteTitle": "Add {{name}} to your favourites?",
+        "favoriteFallbackName": "this driver",
+        "favoriteHint": "Your favourites get priority (for 30 s) on your next rides.",
+        "favoriteAdd": "Add to favourites"
+      }
+    },
+    "favorites": {
+      "title": "My drivers",
+      "intro": "Your favourites get priority (for 30 s) before other drivers are notified.",
+      "emptyTitle": "No favourites yet",
+      "emptyBody": "After a 5-star ride you'll be able to add the driver here.",
+      "ratingCount": "{{rating}} · {{count}} rides",
+      "noRating": "—",
+      "removeTitle": "Remove this driver?",
+      "removeBody": "{{name}} will no longer get priority on your next rides.",
+      "remove": "Remove",
+      "removeAction": "Remove from favourites",
+      "fallbackName": "Driver"
+    },
+    "recurring": {
+      "title": "Recurring rides",
+      "intro": "A driver commits to your weekly trip. You get a 5% discount on the standard fare.",
+      "emptyTitle": "No recurring trip",
+      "emptyBody": "Creating a recurring trip from the app is coming soon. In the meantime contact support.",
+      "lockedFare": "Locked fare",
+      "pickupFallback": "Pickup",
+      "dropoffFallback": "Destination",
+      "cancelTitle": "Cancel this recurring trip?",
+      "cancelBody": "No new ride will be generated. The history stays available.",
+      "status": {
+        "proposed": "Waiting for a driver",
+        "active": "Active",
+        "cancelled": "Cancelled",
+        "ended": "Ended"
+      }
+    },
+    "newRide": {
+      "title": "New ride",
+      "pickupLabel": "Pickup",
+      "dropoffLabel": "Destination",
+      "searchPickupTitle": "Choose pickup",
+      "searchDropoffTitle": "Choose destination",
+      "searchPlaceholder": "Neighbourhood, hotel, restaurant…",
+      "minCharsHint": "Type at least 2 characters",
+      "noResults": "No results",
+      "kindFor": {
+        "self": "For me",
+        "other": "For someone else",
+        "colis": "Parcel"
+      },
+      "thirdPartyHint": "The passenger will receive an SMS confirmation. The driver will call them directly.",
+      "thirdPartyName": "Name",
+      "thirdPartyPhone": "Phone",
+      "colisHint": "Parcel — no passenger. The driver will call the sender and the recipient.",
+      "senderPhone": "Sender phone",
+      "recipientName": "Recipient name",
+      "recipientPhone": "Recipient phone",
+      "submit": "Place ride",
+      "estimate": "Estimate",
+      "submitting": "Sending…",
+      "missingPoints": "Set pickup and destination."
+    },
+    "voiceRide": {
+      "headline": "Voice order",
+      "tooShortTitle": "Too short",
+      "tooShortBody": "Press and speak for a bit longer.",
+      "uploadFailedTitle": "Send failed",
+      "alreadyPending": "You already have a pending request.",
+      "uploadRetry": "Try again.",
+      "uploading": "Sending your request…",
+      "waitingTitle": "Request sent",
+      "waitingBody": "An agent is listening to your message and preparing your ride. You'll be notified once it's confirmed.",
+      "cancelPrompt": "Cancel the request?",
+      "cancelPromptBody": "Your request will be deleted.",
+      "cancelAction": "Cancel request",
+      "rejectedTitle": "Request not fulfilled",
+      "rejectedBody": "The agent could not process your message. Please try again speaking clearly.",
+      "retry": "Try again",
+      "listening": "Listening…",
+      "promptTitle": "Say your ride",
+      "listeningHint": "Say your pickup and destination, then tap to stop.",
+      "promptHint": "Tap and say e.g.: \"From home to Carrefour Madrid\". An agent will place your ride.",
+      "tapToSpeak": "Tap to speak"
+    }
+  },
+  "captain": {
+    "home": {
+      "overline": "Driver",
+      "manage": "Manage",
+      "wallet": "Balance",
+      "goingHome": "Heading home",
+      "goingHomeHint": "Priority to rides that take you closer to home.",
+      "goingHomeActiveUntil": "Active until {{time}}",
+      "resetAlerts": "Reset alerts",
+      "resetTitle": "Reset alerts?",
+      "resetBody": "Clears already-seen rides and any pause. Use this if you stop getting notifications while online.",
+      "resetConfirm": "Reset",
+      "resetDoneBody": "Alerts will resume on the next ride."
+    },
+    "state": {
+      "youAre": "You are",
+      "online": "Online",
+      "offline": "Offline",
+      "onRide": "On a ride",
+      "onRideBody": "Ride in progress — drive safe.",
+      "onlineBody": "You are receiving nearby rides.",
+      "offlineBody": "Go online to start receiving rides.",
+      "goOnline": "Go online",
+      "goOffline": "Go offline",
+      "locationRequiredTitle": "Location required",
+      "locationRequiredBody": "{{app}} needs your location to put you online.",
+      "errorOnline": "Could not go online.",
+      "errorOffline": "Could not go offline.",
+      "errorGoingHome": "Could not toggle \"Heading home\".",
+      "errorTitle": "Cannot do that"
+    },
+    "nav": {
+      "ridesTitle": "Rides",
+      "ridesSubtitle": "Inbox of rides and the active ride",
+      "homeTitle": "My home",
+      "homeSubtitle": "Used by the \"Heading home\" mode",
+      "heatmapTitle": "Hot zones",
+      "heatmapSubtitle": "Where demand is right now",
+      "recurringTitle": "Recurring rides",
+      "recurringSubtitle": "Weekly commitments"
+    },
+    "rides": {
+      "title": "Rides",
+      "nearbyTitle": "Nearby rides",
+      "nearbyHint": "You must be online with your location shared.",
+      "emptyInbox": "No ride at the moment.",
+      "accept": "Accept",
+      "passenger": "Passenger",
+      "colis": "Parcel",
+      "favorite": "Favourite",
+      "getsCloser": "Closer to home",
+      "passengerFallback": "Passenger",
+      "callBtn": "Call",
+      "forOther": "for someone else",
+      "stepLabel": {
+        "accepted": "Accepted — on the way to client",
+        "arrived": "Arrived on site",
+        "in_progress": "Ride in progress"
+      },
+      "actionImArrived": "I have arrived",
+      "completeRide": "Complete ride",
+      "cancelRide": "Cancel ride",
+      "cancelTitle": "Cancel this ride?",
+      "cancelBody": "This affects your score.",
+      "estimatedFare": "Estimated fare",
+      "payment": "Payment",
+      "cash": "Cash",
+      "wallet": "Wallet",
+      "pickupFallback": "Pickup point",
+      "dropoffFallback": "Destination",
+      "codeRequiredTitle": "Code required",
+      "codeRequiredBody": "Ask the passenger for the 4-digit code.",
+      "deliveryCodeTitle": "Delivery code",
+      "deliveryCodeBody": "Ask the recipient for the code received by SMS.",
+      "codePassengerTitle": "Passenger code (4 digits)",
+      "codePassengerSub": "Ask the passenger for the anti-fraud code before starting.",
+      "codeSenderTitle": "Sender code (4 digits)",
+      "codeSenderSub": "Ask the sender for the code before starting.",
+      "startRide": "Start ride",
+      "startDelivery": "Start delivery",
+      "deliveryConfirmTitle": "Delivery code (4 digits)",
+      "deliveryConfirmSub": "Ask the recipient for the code received by SMS.",
+      "confirmDelivery": "Confirm delivery"
+    },
+    "wallet": {
+      "title": "Wallet",
+      "balance": "Wallet balance",
+      "commissionNote": "The 7% commission (10% for parcels) is debited at the end of each ride.",
+      "uploadReceipt": "Send a top-up screenshot",
+      "topups": "Top-ups",
+      "noTopups": "No top-up sent.",
+      "recent": "Recent activity",
+      "noTx": "No activity.",
+      "ref": "Ref #{{code}}",
+      "txTypes": {
+        "topup": "Top-up",
+        "commission": "Commission",
+        "commission_refund": "Refund",
+        "manual_adjustment": "Adjustment",
+        "bonus": "Bonus"
+      },
+      "topupStatus": {
+        "pending": "Pending",
+        "approved": "Approved",
+        "partial": "Partial",
+        "rejected": "Rejected",
+        "duplicate": "Duplicate"
+      },
+      "topupModal": {
+        "title": "New top-up",
+        "intro": "Send the transfer to the {{app}} number, then attach the screenshot for validation.",
+        "providerLabel": "Provider",
+        "amountLabel": "Amount (MRU)",
+        "refLabel": "Reference number (optional)",
+        "refPlaceholder": "TXN123456",
+        "attachAction": "Attach screenshot",
+        "attached": "Screenshot attached — tap to replace",
+        "submit": "Send for validation",
+        "submitting": "Sending…",
+        "invalidAmountTitle": "Invalid amount",
+        "invalidAmountBody": "Enter an amount in MRU.",
+        "missingPhotoTitle": "Screenshot required",
+        "missingPhotoBody": "Attach the screenshot of your payment.",
+        "failTitle": "Failed",
+        "failBody": "Could not send.",
+        "galleryPermission": "Grant gallery access."
+      }
+    },
+    "homeLocation": {
+      "title": "My home",
+      "intro": "Used by the \"Heading home\" mode. Locked for 30 days and verified by GPS (200 m).",
+      "addressLabel": "Address",
+      "addressHelper": "You must be physically on site — GPS will be checked.",
+      "addressPlaceholder": "Tevragh Zeina, near Saudique mosque",
+      "addressFieldLabel": "Address (description)",
+      "save": "Save my home",
+      "edit": "Edit",
+      "correct": "Correct",
+      "locked": "Locked",
+      "editable": "Editable",
+      "lockedUntil": "Until {{date}}",
+      "lockedDone": "The lock period has ended.",
+      "correctionPossible": " · Correction still possible.",
+      "errorTitle": "Address",
+      "errorBody": "Describe the place (e.g. \"near Saudique mosque\").",
+      "locationRequiredBody": "{{app}} must verify you are on site.",
+      "savedTitle": "Home saved",
+      "savedBody": "Locked until {{date}}."
+    },
+    "recurring": {
+      "title": "Recurring rides",
+      "intro": "Passengers propose regular trips. Accept one and the fare is locked.",
+      "sectionMine": "My commitments",
+      "sectionProposals": "Proposals",
+      "emptyMine": "No active recurring trip.",
+      "emptyProposals": "No proposal at the moment.",
+      "lockedLabel": "Locked",
+      "lockedFare": "Locked fare",
+      "accept": "Accept",
+      "acceptedTitle": "Commitment accepted",
+      "acceptedBody": "You are locked in on this trip."
+    },
+    "heatmap": {
+      "overline": "Demand · last 2 hours",
+      "title": "Hot zones",
+      "loading": "Loading…",
+      "emptyOverlay": "No hot zone at the moment — not enough recent rides.",
+      "legendHigh": "Very high",
+      "legendMid": "Medium",
+      "legendLow": "Low",
+      "top3": "Top 3",
+      "rideOne": "{{count}} ride requested",
+      "rideMany": "{{count}} rides requested",
+      "twoHours": "Last 2 hours",
+      "zonesMerged": "{{count}} zones merged",
+      "topClusterTitle": "#{{rank}} · {{count}} ride(s)",
+      "zonesPrefix": "{{count}} zones · "
+    }
+  },
+  "becomeCaptain": {
+    "overline": "Become a driver",
+    "title": "Become a {{app}} driver",
+    "intro": "To drive for {{app}}, you must provide your personal info, 14 photos (ID, licence, registration, insurance, vignette, technical inspection, and vehicle photos) and wait for the team's approval.",
+    "start": "Start application",
+    "loadFail": "Could not load your application.",
+    "createFail": "Could not create your application.",
+    "submittedTitle": "Application submitted",
+    "submittedBody": "Your application is in the queue.",
+    "incompleteTitle": "Application incomplete",
+    "missingPrefix": "Missing:\n• {{items}}",
+    "completeAllSteps": "Please complete every step.",
+    "submit": "Submit my application",
+    "completeFirst": "Complete every step first",
+    "rejectReason": "Reason for rejection",
+    "stepPersonalTitle": "Personal information",
+    "stepPersonalSub": "Name, ID, date of birth, address, emergency contact",
+    "stepVehicleTitle": "Vehicle",
+    "stepVehicleSub": "Plate, brand, model, year, colour, seats",
+    "stepDocsTitle": "Documents",
+    "stepDocsSub": "{{done}} / {{total}} photos sent",
+    "status": {
+      "none": {
+        "title": "Drive with {{app}}",
+        "subtitle": "Submit your application (documents + vehicle photos) and start earning.",
+        "cta": "Start my application"
+      },
+      "draft": {
+        "title": "Application in progress",
+        "subtitle": "Pick up where you left off.",
+        "cta": "Resume"
+      },
+      "needs_correction": {
+        "title": "Corrections requested",
+        "subtitle": "An admin asked for changes on your application.",
+        "cta": "See corrections"
+      },
+      "submitted": {
+        "title": "Application under review",
+        "subtitle": "You will be notified once it is approved.",
+        "cta": "See status"
+      },
+      "rejected": {
+        "title": "Application rejected",
+        "subtitle": "Read the reason and submit again if possible.",
+        "cta": "See reason"
+      },
+      "approved": {
+        "title": "Welcome aboard",
+        "subtitle": "You can switch to driver mode now.",
+        "cta": "Go to driver mode"
+      }
+    },
+    "banner": {
+      "draft": { "label": "Draft", "desc": "Complete the 3 steps below then submit." },
+      "submitted": { "label": "Submitted", "desc": "Your application is in the queue." },
+      "under_review": { "label": "Under review", "desc": "An admin is reviewing it right now." },
+      "needs_correction": { "label": "Corrections requested", "desc": "Redo the flagged documents and submit again." },
+      "approved": { "label": "Approved", "desc": "Welcome to {{app}}." },
+      "rejected": { "label": "Rejected", "desc": "Your application was rejected." }
+    },
+    "personal": {
+      "title": "Personal information",
+      "fullName": "Full name",
+      "fullNamePlaceholder": "Ahmed Ould Mohamed",
+      "nni": "NNI",
+      "nniHelper": "National ID number — 6 to 15 digits",
+      "nniInvalidTitle": "Invalid NNI",
+      "nniInvalidBody": "The NNI must be 6 to 15 digits.",
+      "dob": "Date of birth",
+      "dobPlaceholder": "YYYY-MM-DD",
+      "dobHelper": "Format: 1990-05-23",
+      "dobInvalidTitle": "Invalid date",
+      "dobInvalidBody": "Expected format: YYYY-MM-DD (e.g. 1990-05-23).",
+      "address": "Address",
+      "addressPlaceholder": "Tevragh Zeina, near Saudique mosque",
+      "emergencyName": "Emergency contact — name",
+      "emergencyNamePlaceholder": "Fatimetou (spouse)",
+      "emergencyPhone": "Emergency contact — phone",
+      "saveError": "Could not save.",
+      "save": "Save"
+    },
+    "vehicle": {
+      "title": "Vehicle",
+      "plate": "License plate",
+      "platePlaceholder": "1234 AB",
+      "brand": "Brand",
+      "brandPlaceholder": "Toyota",
+      "model": "Model",
+      "modelPlaceholder": "Corolla",
+      "year": "Year",
+      "yearPlaceholder": "2018",
+      "yearInvalidTitle": "Invalid year",
+      "yearInvalidBody": "Between 1980 and {{max}}.",
+      "color": "Colour",
+      "colorPlaceholder": "White",
+      "seats": "Passenger seats",
+      "seatsInvalidTitle": "Invalid seats",
+      "seatsInvalidBody": "Between 1 and 8.",
+      "colisTitle": "Accept parcels",
+      "colisHint": "Deliveries without passenger (10% commission).",
+      "longDistanceTitle": "Long distance",
+      "longDistanceHint": "Inter-city rides (Nouakchott — Nouadhibou, etc.).",
+      "save": "Save",
+      "saveError": "Could not save."
+    },
+    "docs": {
+      "title": "Documents",
+      "intro": "Send the 14 required photos. Well lit, no glare.",
+      "expiryTitle": "Expiry date",
+      "expiryHint": "{{label}} — enter the date in format YYYY-MM-DD.",
+      "expiryPlaceholder": "2026-12-31",
+      "expiryInvalidTitle": "Invalid date",
+      "expiryInvalidBody": "Expected format: YYYY-MM-DD.",
+      "deleteTitle": "Delete the document?",
+      "uploadFail": "Could not send the document.",
+      "sourceTitle": "Choose source",
+      "sourceCamera": "Camera",
+      "sourceGallery": "Gallery",
+      "statusApproved": "APPROVED",
+      "statusRejected": "REJECTED",
+      "statusExpired": "EXPIRED",
+      "statusPending": "PENDING",
+      "expiresPrefix": "exp. {{date}}",
+      "tapToAdd": "Tap to add",
+      "notSent": "Not sent",
+      "replaceHint": "Tap to replace · Hold to delete"
+    },
+    "documents": {
+      "selfie": "Selfie",
+      "nni_front": "NNI — front",
+      "nni_back": "NNI — back",
+      "license_front": "Licence — front",
+      "license_back": "Licence — back",
+      "carte_grise": "Registration",
+      "assurance": "Insurance",
+      "vignette": "Vignette",
+      "visite_technique": "Technical inspection",
+      "car_front": "Car — front",
+      "car_back": "Car — back",
+      "car_left": "Car — left",
+      "car_right": "Car — right",
+      "car_interior": "Car — interior"
+    }
+  },
+  "account": {
+    "title": "Account",
+    "logout": "Sign out",
+    "delete": "Delete my account",
+    "guestName": "Guest",
+    "deleteHint": "Deletion erases your personal data and revokes access. Records required by law (payments, completed rides) are kept anonymized.",
+    "confirm1Title": "Delete my account?",
+    "confirm1Body": "This is permanent. Your {{app}} account will be deleted and you will be signed out. You will need to create a new account to use the app again.",
+    "confirm2Title": "Confirm deletion",
+    "confirm2Body": "Are you really sure? This cannot be undone.",
+    "confirm2Action": "Delete permanently",
+    "deleteError": "Could not delete the account. Check your connection and try again."
+  },
+  "settings": {
+    "title": "Settings",
+    "profile": {
+      "section": "Profile",
+      "name": "Name",
+      "namePlaceholder": "Your full name",
+      "phone": "Phone",
+      "noPhone": "Not set",
+      "saved": "Profile updated",
+      "saveError": "Could not update profile."
+    },
+    "preferences": {
+      "section": "Preferences",
+      "language": "Language",
+      "languageHint": "Used by the interface, voice recognition and notifications.",
+      "restartTitle": "Restart required",
+      "restartBody": "Close and reopen the app for the new text direction to fully apply."
+    },
+    "notifications": {
+      "section": "Notifications",
+      "open": "Open system settings",
+      "hint": "Manage notification and location permissions from your device settings."
+    },
+    "account": {
+      "section": "Account",
+      "open": "View my account",
+      "openHint": "Profile, sign out, delete account."
+    },
+    "about": {
+      "section": "About",
+      "version": "Version",
+      "support": "Contact support",
+      "supportMessage": "Hello, I need help with the {{app}} app."
+    }
+  },
+  "languages": {
+    "fr": "Français",
+    "ar": "العربية",
+    "en": "English",
+    "ff": "Pulaar",
+    "wo": "Wolof",
+    "snk": "Sooninkanxanne"
+  },
+  "captainAlert": {
+    "newColis": "📦 New parcel",
+    "newRide": "🚖 New ride",
+    "newColisCaps": "📦 NEW PARCEL",
+    "newRideCaps": "🚖 NEW RIDE",
+    "fareUnknown": "fare unknown",
+    "kmFormat": "{{km}} km — {{fare}}",
+    "fromYourPosition": "from your location",
+    "tripLabel": "Trip",
+    "accept": "Accept",
+    "refuse": "Decline",
+    "refuseSub": "this ride",
+    "pause5": "Pause 5 min",
+    "pauseSub": "no alerts",
+    "unavailable": "Ride unavailable.",
+    "pausedBadge": "🔕 Notifications paused · {{mins}} min · Resume"
+  },
+  "voiceCandidate": {
+    "questionPickup": "Which pickup?",
+    "questionDestination": "Which destination?",
+    "youSaid": "You said: \"{{text}}\"",
+    "emptyBody": "No matching place was found. Tap the map or type the place name.",
+    "distanceToLandmark": "{{distance}} from landmark"
+  },
+  "voiceMicButton": {
+    "speak": "Speak",
+    "stop": "Stop · 0:{{ss}}",
+    "busy": "…"
+  },
+  "roadReports": {
+    "reasons": {
+      "sand": "Sand",
+      "flood": "Flood",
+      "construction": "Construction",
+      "police_checkpoint": "Police checkpoint",
+      "accident": "Accident",
+      "protest": "Protest",
+      "other": "Other"
+    },
+    "reportBtn": "⚠️ Report",
+    "sheetTitle": "Report a zone",
+    "sheetHint": "The report is visible to everyone for 6 h. Other users can confirm or dismiss.",
+    "notePlaceholder": "Detail (optional) — e.g. road closed 100 m",
+    "submit": "Send report",
+    "incompleteBody": "Choose a reason and make sure your location is known.",
+    "markerDesc": "Reported · {{up}}✓ {{down}}✗"
+  },
+  "crash": {
+    "title": "JS crash on boot",
+    "message": "Message",
+    "stack": "Stack",
+    "hint": "(Screenshot this and send it.)"
+  }
+}

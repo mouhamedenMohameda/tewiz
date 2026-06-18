@@ -1,0 +1,727 @@
+{
+  "common": {
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "saveAndContinue": "Enregistrer et continuer",
+    "send": "Envoyer",
+    "ok": "OK",
+    "back": "Retour",
+    "retry": "Réessayer",
+    "loading": "Chargement…",
+    "error": "Erreur",
+    "delete": "Supprimer",
+    "yes": "Oui",
+    "no": "Non",
+    "hello": "Bonjour",
+    "done": "Fait",
+    "edit": "Modifier",
+    "logout": "Se déconnecter",
+    "later": "Plus tard",
+    "noThanks": "Non merci",
+    "impossible": "Impossible",
+    "incomplete": "Incomplet",
+    "permissionRequired": "Permission requise",
+    "permissionRequiredBody": "Accordez l'accès dans les réglages.",
+    "from": "De",
+    "to": "Vers",
+    "kmShort": "km",
+    "mShort": "m",
+    "sending": "Envoi…",
+    "notSent": "Non envoyé",
+    "tapToReplace": "Toucher pour remplacer",
+    "holdToDelete": "Maintenir pour supprimer"
+  },
+  "errors": {
+    "server": "Impossible de joindre le serveur.",
+    "network": "Impossible de se connecter au serveur. Vérifiez votre connexion.",
+    "generic": "Échec.",
+    "load": "Impossible de charger."
+  },
+  "auth": {
+    "welcome": {
+      "tagline": "Commandez une course. Conduisez quand vous voulez.",
+      "primary": "Commander une course",
+      "secondary": "J'ai déjà un compte",
+      "note": "Aucune inscription requise. Entrez votre numéro au moment de commander."
+    },
+    "login": {
+      "title": "Bon retour",
+      "subtitle": "Entrez votre numéro et le mot de passe transmis par l'administrateur sur WhatsApp.",
+      "phoneLabel": "Numéro de téléphone",
+      "passwordLabel": "Mot de passe",
+      "submit": "Se connecter",
+      "noAccount": "Pas de compte ?",
+      "contactAdmin": "Contactez l'administrateur",
+      "invalidPhoneTitle": "Numéro invalide",
+      "invalidPhoneBody": "Vérifiez votre numéro de téléphone.",
+      "missingPasswordTitle": "Mot de passe manquant",
+      "missingPasswordBody": "Entrez le mot de passe fourni par l'administrateur.",
+      "invalidCredsTitle": "Identifiants invalides",
+      "invalidCredsBody": "Numéro ou mot de passe incorrect.",
+      "notActivatedTitle": "Compte non activé",
+      "notActivatedBody": "Aucun mot de passe défini. Contactez l'administrateur.",
+      "tooManyTitle": "Trop d'essais",
+      "tooManyBody": "Réessayez dans quelques minutes.",
+      "contactMessage": "Bonjour, je voudrais créer un compte {{app}}."
+    }
+  },
+  "phonePrompt": {
+    "title": "Votre numéro",
+    "body": "Le chauffeur en aura besoin pour vous joindre. Une seule fois — pas de SMS.",
+    "phoneLabel": "Numéro de téléphone",
+    "invalidTitle": "Numéro invalide",
+    "invalidBody": "Entrez un numéro mauritanien valide (ex. +222 45 12 34 56).",
+    "takenTitle": "Ce numéro a déjà un compte",
+    "takenBody": "Ce numéro est déjà associé à un compte {{app}}. Connectez-vous avec votre mot de passe pour le récupérer.",
+    "takenAction": "Se connecter",
+    "saveError": "Impossible d'enregistrer le numéro."
+  },
+  "modeToggle": {
+    "rider": "Passager",
+    "captain": "Chauffeur"
+  },
+  "roles": {
+    "rider": "Passager",
+    "captain": "Chauffeur",
+    "admin": "Administrateur"
+  },
+  "rider": {
+    "home": {
+      "shortcuts": "Mes raccourcis",
+      "history": "Mes courses",
+      "drivers": "Chauffeurs",
+      "recurring": "Récurrent",
+      "currentRide": "Course en cours"
+    },
+    "hero": {
+      "overline": "Où allez-vous ?",
+      "title": "Commander une course",
+      "voice": "Commander par la voix",
+      "map": "Choisir sur la carte",
+      "blocked": "Une course est déjà en cours"
+    },
+    "status": {
+      "pending_passenger_confirm": "En attente de confirmation",
+      "searching": "Recherche d'un chauffeur",
+      "accepted": "Chauffeur en route",
+      "arrived": "Chauffeur arrivé",
+      "in_progress": "Course en cours",
+      "completed": "Noter votre course",
+      "cancelled_by_rider": "Annulée par vous",
+      "cancelled_by_captain": "Annulée par le chauffeur",
+      "cancelled_by_system": "Annulée",
+      "no_show": "Non présenté"
+    },
+    "historyStatus": {
+      "pending_passenger_confirm": "Attente",
+      "searching": "Recherche",
+      "accepted": "Acceptée",
+      "arrived": "Arrivé",
+      "in_progress": "En cours",
+      "completed": "Terminée",
+      "cancelled_by_rider": "Annulée",
+      "cancelled_by_captain": "Annulée",
+      "cancelled_by_system": "Annulée",
+      "no_show": "No-show"
+    },
+    "history": {
+      "title": "Mes courses",
+      "empty": "Aucune course pour le moment.",
+      "pickupFallback": "Point de départ",
+      "dropoffFallback": "Destination",
+      "passenger": "Passager",
+      "colis": "Colis"
+    },
+    "current": {
+      "noneTitle": "Aucune course en cours",
+      "noneSub": "Commandez une course depuis l'accueil.",
+      "order": "Commander",
+      "yourDriver": "VOTRE CHAUFFEUR",
+      "fallbackName": "Chauffeur",
+      "vehicleLabel": "Véhicule",
+      "codeForDriver": "CODE À COMMUNIQUER AU CHAUFFEUR",
+      "fare": "Tarif",
+      "payment": "Paiement",
+      "cash": "Espèces",
+      "wallet": "Wallet",
+      "tariff": "Tarif estimé",
+      "ridesCount": "{{count}} courses",
+      "cancelTitle": "Annuler la course ?",
+      "cancelBody": "Le chauffeur sera notifié.",
+      "cancelling": "Annulation…",
+      "cancelAction": "Annuler la course",
+      "banners": {
+        "pending_passenger_confirm": {
+          "title": "En attente de confirmation",
+          "sub": "Confirmez par SMS."
+        },
+        "searching": {
+          "title": "Recherche d'un chauffeur",
+          "sub": "Patientez quelques instants…"
+        },
+        "accepted": {
+          "title": "Chauffeur en route",
+          "sub": "Il arrive vers vous."
+        },
+        "arrived": {
+          "title": "Chauffeur arrivé",
+          "sub": "Communiquez-lui le code pour démarrer."
+        },
+        "in_progress": {
+          "title": "Course en cours",
+          "sub": "Bon voyage."
+        },
+        "completed": {
+          "title": "Course terminée",
+          "sub": "Merci d'avoir voyagé avec {{app}}."
+        },
+        "cancelled_by_rider": { "title": "Annulée par vous", "sub": "" },
+        "cancelled_by_captain": { "title": "Annulée par le chauffeur", "sub": "" },
+        "cancelled_by_system": { "title": "Annulée", "sub": "" },
+        "no_show": { "title": "Non présenté", "sub": "" }
+      },
+      "rating": {
+        "missingTitle": "Note manquante",
+        "missingBody": "Touchez 1 à 5 étoiles avant d'envoyer.",
+        "question": "Comment s'est passée la course ?",
+        "withDriver": "Avec {{name}}.",
+        "withDriverFallback": "votre chauffeur",
+        "commentPlaceholder": "Un commentaire ? (optionnel)",
+        "submit": "Envoyer la note",
+        "favoriteTitle": "Ajouter {{name}} à vos favoris ?",
+        "favoriteFallbackName": "ce chauffeur",
+        "favoriteHint": "Vos favoris sont proposés en premier (pendant 30 s) sur vos prochaines courses.",
+        "favoriteAdd": "Ajouter aux favoris"
+      }
+    },
+    "favorites": {
+      "title": "Mes chauffeurs",
+      "intro": "Vos favoris sont proposés en premier (pendant 30 s) avant de basculer sur les autres chauffeurs.",
+      "emptyTitle": "Aucun favori pour le moment",
+      "emptyBody": "Après une course 5 étoiles, vous pourrez ajouter le chauffeur ici.",
+      "ratingCount": "{{rating}} · {{count}} courses",
+      "noRating": "—",
+      "removeTitle": "Retirer ce chauffeur ?",
+      "removeBody": "{{name}} ne sera plus prioritaire pour vos prochaines courses.",
+      "remove": "Retirer",
+      "removeAction": "Retirer des favoris",
+      "fallbackName": "Chauffeur"
+    },
+    "recurring": {
+      "title": "Courses récurrentes",
+      "intro": "Un chauffeur s'engage sur votre trajet hebdomadaire. Vous bénéficiez d'une réduction de 5% sur le tarif standard.",
+      "emptyTitle": "Aucun trajet récurrent",
+      "emptyBody": "La création d'un trajet récurrent depuis l'app arrive prochainement. En attendant, contactez le support.",
+      "lockedFare": "Tarif fixé",
+      "pickupFallback": "Départ",
+      "dropoffFallback": "Destination",
+      "cancelTitle": "Annuler ce trajet récurrent ?",
+      "cancelBody": "Plus aucune course ne sera générée. L'historique reste consultable.",
+      "status": {
+        "proposed": "En attente d'un chauffeur",
+        "active": "Active",
+        "cancelled": "Annulée",
+        "ended": "Terminée"
+      }
+    },
+    "newRide": {
+      "title": "Nouvelle course",
+      "pickupLabel": "Départ",
+      "dropoffLabel": "Destination",
+      "searchPickupTitle": "Choisir le départ",
+      "searchDropoffTitle": "Choisir la destination",
+      "searchPlaceholder": "Quartier, hôtel, restaurant…",
+      "minCharsHint": "Tapez au moins 2 caractères",
+      "noResults": "Aucun résultat",
+      "kindFor": {
+        "self": "Pour moi",
+        "other": "Pour un tiers",
+        "colis": "Colis"
+      },
+      "thirdPartyHint": "Le passager recevra un SMS de confirmation. Le chauffeur l'appellera directement.",
+      "thirdPartyName": "Nom",
+      "thirdPartyPhone": "Téléphone",
+      "colisHint": "Colis — pas de passager. Le chauffeur appellera l'expéditeur et le destinataire.",
+      "senderPhone": "Téléphone expéditeur",
+      "recipientName": "Nom du destinataire",
+      "recipientPhone": "Téléphone destinataire",
+      "submit": "Commander la course",
+      "estimate": "Estimation",
+      "submitting": "Envoi…",
+      "missingPoints": "Précisez le départ et la destination."
+    },
+    "voiceRide": {
+      "headline": "Commande vocale",
+      "tooShortTitle": "Trop court",
+      "tooShortBody": "Maintenez et parlez un peu plus longtemps.",
+      "uploadFailedTitle": "Échec de l'envoi",
+      "alreadyPending": "Vous avez déjà une demande en cours.",
+      "uploadRetry": "Réessayez.",
+      "uploading": "Envoi de votre demande…",
+      "waitingTitle": "Demande envoyée",
+      "waitingBody": "Un agent écoute votre message et prépare votre course. Vous serez notifié dès qu'elle est confirmée.",
+      "cancelPrompt": "Annuler la demande ?",
+      "cancelPromptBody": "Votre demande sera supprimée.",
+      "cancelAction": "Annuler la demande",
+      "rejectedTitle": "Demande non aboutie",
+      "rejectedBody": "L'agent n'a pas pu traiter votre message. Réessayez en parlant clairement.",
+      "retry": "Réessayer",
+      "listening": "À l'écoute…",
+      "promptTitle": "Dites votre course",
+      "listeningHint": "Indiquez votre point de départ et votre destination, puis appuyez pour arrêter.",
+      "promptHint": "Appuyez et dites par ex. : « De chez moi à Carrefour Madrid ». Un agent placera votre course.",
+      "tapToSpeak": "Appuyez pour parler"
+    }
+  },
+  "captain": {
+    "home": {
+      "overline": "Chauffeur",
+      "manage": "Gérer",
+      "wallet": "Solde",
+      "goingHome": "Je rentre chez moi",
+      "goingHomeHint": "Priorité aux courses qui vous rapprochent de votre domicile.",
+      "goingHomeActiveUntil": "Actif jusqu'à {{time}}",
+      "resetAlerts": "Réinitialiser les alertes",
+      "resetTitle": "Réinitialiser les alertes ?",
+      "resetBody": "Vide la liste des courses déjà vues et lève toute pause. À utiliser si vous ne recevez plus de notifications alors que vous êtes en ligne.",
+      "resetConfirm": "Réinitialiser",
+      "resetDoneBody": "Les alertes vont reprendre à la prochaine course."
+    },
+    "state": {
+      "youAre": "Vous êtes",
+      "online": "En ligne",
+      "offline": "Hors ligne",
+      "onRide": "En course",
+      "onRideBody": "Course en cours — bonne route.",
+      "onlineBody": "Vous recevez les courses proches de vous.",
+      "offlineBody": "Passez en ligne pour commencer à recevoir des courses.",
+      "goOnline": "Passer en ligne",
+      "goOffline": "Passer hors ligne",
+      "locationRequiredTitle": "Position requise",
+      "locationRequiredBody": "{{app}} a besoin de votre position pour vous mettre en ligne.",
+      "errorOnline": "Erreur lors du passage en ligne.",
+      "errorOffline": "Erreur lors du passage hors ligne.",
+      "errorGoingHome": "Erreur sur le mode \"Je rentre chez moi\".",
+      "errorTitle": "Impossible"
+    },
+    "nav": {
+      "ridesTitle": "Courses",
+      "ridesSubtitle": "Inbox des courses et course en cours",
+      "homeTitle": "Mon domicile",
+      "homeSubtitle": "Pour le mode \"Je rentre chez moi\"",
+      "heatmapTitle": "Zones chaudes",
+      "heatmapSubtitle": "Où se trouve la demande maintenant",
+      "recurringTitle": "Courses récurrentes",
+      "recurringSubtitle": "Engagements hebdomadaires"
+    },
+    "rides": {
+      "title": "Courses",
+      "nearbyTitle": "Courses proches",
+      "nearbyHint": "Vous devez être en ligne avec votre position partagée.",
+      "emptyInbox": "Aucune course pour le moment.",
+      "accept": "Accepter",
+      "passenger": "Passager",
+      "colis": "Colis",
+      "favorite": "Favori",
+      "getsCloser": "Rapproche",
+      "passengerFallback": "Passager",
+      "callBtn": "Appeler",
+      "forOther": "pour un tiers",
+      "stepLabel": {
+        "accepted": "Acceptée — en route vers le client",
+        "arrived": "Arrivé sur place",
+        "in_progress": "Course en cours"
+      },
+      "actionImArrived": "Je suis arrivé",
+      "completeRide": "Terminer la course",
+      "cancelRide": "Annuler la course",
+      "cancelTitle": "Annuler la course ?",
+      "cancelBody": "Cela impacte votre score.",
+      "estimatedFare": "Tarif estimé",
+      "payment": "Paiement",
+      "cash": "Espèces",
+      "wallet": "Wallet",
+      "pickupFallback": "Point de prise en charge",
+      "dropoffFallback": "Destination",
+      "codeRequiredTitle": "Code requis",
+      "codeRequiredBody": "Demandez au passager le code à 4 chiffres.",
+      "deliveryCodeTitle": "Code livraison",
+      "deliveryCodeBody": "Demandez au destinataire le code reçu par SMS.",
+      "codePassengerTitle": "Code passager (4 chiffres)",
+      "codePassengerSub": "Demandez le code anti-arnaque au passager avant de démarrer.",
+      "codeSenderTitle": "Code expéditeur (4 chiffres)",
+      "codeSenderSub": "Demandez le code à l'expéditeur du colis avant de démarrer.",
+      "startRide": "Démarrer la course",
+      "startDelivery": "Démarrer la livraison",
+      "deliveryConfirmTitle": "Code livraison (4 chiffres)",
+      "deliveryConfirmSub": "Demandez au destinataire le code reçu par SMS.",
+      "confirmDelivery": "Confirmer la livraison"
+    },
+    "wallet": {
+      "title": "Portefeuille",
+      "balance": "Solde wallet",
+      "commissionNote": "La commission 7 % (10 % colis) est débitée à la fin de chaque course.",
+      "uploadReceipt": "Envoyer une capture de recharge",
+      "topups": "Recharges",
+      "noTopups": "Aucune recharge envoyée.",
+      "recent": "Mouvements récents",
+      "noTx": "Aucun mouvement.",
+      "ref": "Réf #{{code}}",
+      "txTypes": {
+        "topup": "Recharge",
+        "commission": "Commission",
+        "commission_refund": "Remboursement",
+        "manual_adjustment": "Ajustement",
+        "bonus": "Bonus"
+      },
+      "topupStatus": {
+        "pending": "En attente",
+        "approved": "Validée",
+        "partial": "Partielle",
+        "rejected": "Rejetée",
+        "duplicate": "Doublon"
+      },
+      "topupModal": {
+        "title": "Nouvelle recharge",
+        "intro": "Effectuez le virement sur le numéro {{app}}, puis joignez la capture pour validation.",
+        "providerLabel": "Fournisseur",
+        "amountLabel": "Montant (MRU)",
+        "refLabel": "N° de référence (facultatif)",
+        "refPlaceholder": "TXN123456",
+        "attachAction": "Joindre la capture d'écran",
+        "attached": "Capture jointe — toucher pour remplacer",
+        "submit": "Envoyer pour validation",
+        "submitting": "Envoi…",
+        "invalidAmountTitle": "Montant invalide",
+        "invalidAmountBody": "Entrez un montant en MRU.",
+        "missingPhotoTitle": "Capture requise",
+        "missingPhotoBody": "Joignez la capture d'écran de votre paiement.",
+        "failTitle": "Échec",
+        "failBody": "Impossible d'envoyer.",
+        "galleryPermission": "Accordez l'accès à la galerie."
+      }
+    },
+    "homeLocation": {
+      "title": "Mon domicile",
+      "intro": "Sert au mode « Je rentre chez moi ». Verrouillé 30 jours et vérifié par GPS (200 m).",
+      "addressLabel": "Adresse",
+      "addressHelper": "Vous devez être physiquement sur place — la position GPS sera vérifiée.",
+      "addressPlaceholder": "Tevragh Zeina, près mosquée Saudique",
+      "addressFieldLabel": "Adresse (description)",
+      "save": "Enregistrer mon domicile",
+      "edit": "Modifier",
+      "correct": "Corriger",
+      "locked": "Verrouillé",
+      "editable": "Modifiable",
+      "lockedUntil": "Jusqu'au {{date}}",
+      "lockedDone": "La période de verrouillage est terminée.",
+      "correctionPossible": " · Correction encore possible.",
+      "errorTitle": "Adresse",
+      "errorBody": "Décrivez l'endroit (ex. \"près mosquée Saudique\").",
+      "locationRequiredBody": "{{app}} doit vérifier que vous êtes bien sur place.",
+      "savedTitle": "Domicile enregistré",
+      "savedBody": "Verrouillé jusqu'au {{date}}."
+    },
+    "recurring": {
+      "title": "Courses récurrentes",
+      "intro": "Des passagers proposent des trajets réguliers. Acceptez-en un et le tarif est verrouillé.",
+      "sectionMine": "Mes engagements",
+      "sectionProposals": "Propositions",
+      "emptyMine": "Aucun trajet récurrent actif.",
+      "emptyProposals": "Aucune proposition pour le moment.",
+      "lockedLabel": "Locké",
+      "lockedFare": "Tarif verrouillé",
+      "accept": "Accepter",
+      "acceptedTitle": "Engagement accepté",
+      "acceptedBody": "Vous êtes locked-in sur ce trajet."
+    },
+    "heatmap": {
+      "overline": "Demande · 2 dernières heures",
+      "title": "Zones chaudes",
+      "loading": "Chargement…",
+      "emptyOverlay": "Aucune zone chaude pour l'instant — pas assez de courses récentes.",
+      "legendHigh": "Très forte",
+      "legendMid": "Moyenne",
+      "legendLow": "Faible",
+      "top3": "Top 3",
+      "rideOne": "{{count}} course demandée",
+      "rideMany": "{{count}} courses demandées",
+      "twoHours": "2 dernières heures",
+      "zonesMerged": "{{count}} zones fusionnées",
+      "topClusterTitle": "#{{rank}} · {{count}} course(s)",
+      "zonesPrefix": "{{count}} zones · "
+    }
+  },
+  "becomeCaptain": {
+    "overline": "Devenir chauffeur",
+    "title": "Devenir chauffeur {{app}}",
+    "intro": "Pour conduire pour {{app}}, vous devez fournir vos informations personnelles, 14 photos (NNI, permis, carte grise, assurance, vignette, visite technique, et photos du véhicule) et attendre la validation de l'équipe.",
+    "start": "Commencer le dossier",
+    "loadFail": "Impossible de charger le dossier.",
+    "createFail": "Impossible de créer le dossier.",
+    "submittedTitle": "Dossier soumis",
+    "submittedBody": "Votre dossier est dans la file d'attente.",
+    "incompleteTitle": "Dossier incomplet",
+    "missingPrefix": "Il manque :\n• {{items}}",
+    "completeAllSteps": "Veuillez compléter toutes les étapes.",
+    "submit": "Soumettre mon dossier",
+    "completeFirst": "Complétez toutes les étapes",
+    "rejectReason": "Raison du rejet",
+    "stepPersonalTitle": "Informations personnelles",
+    "stepPersonalSub": "Nom, NNI, date de naissance, adresse, contact d'urgence",
+    "stepVehicleTitle": "Véhicule",
+    "stepVehicleSub": "Plaque, marque, modèle, année, couleur, places",
+    "stepDocsTitle": "Documents",
+    "stepDocsSub": "{{done}} / {{total}} photos envoyées",
+    "status": {
+      "none": {
+        "title": "Conduisez avec {{app}}",
+        "subtitle": "Soumettez votre dossier (papiers + photos du véhicule) et commencez à gagner.",
+        "cta": "Commencer mon dossier"
+      },
+      "draft": {
+        "title": "Dossier en cours",
+        "subtitle": "Continuez là où vous vous êtes arrêté.",
+        "cta": "Reprendre"
+      },
+      "needs_correction": {
+        "title": "Corrections demandées",
+        "subtitle": "Un admin a demandé des changements sur votre dossier.",
+        "cta": "Voir les corrections"
+      },
+      "submitted": {
+        "title": "Dossier en cours d'examen",
+        "subtitle": "Vous serez notifié dès qu'il est validé.",
+        "cta": "Voir l'état"
+      },
+      "rejected": {
+        "title": "Dossier refusé",
+        "subtitle": "Consultez le motif puis soumettez à nouveau si possible.",
+        "cta": "Voir le motif"
+      },
+      "approved": {
+        "title": "Bienvenue chauffeur",
+        "subtitle": "Vous pouvez passer en mode chauffeur dès maintenant.",
+        "cta": "Aller au mode chauffeur"
+      }
+    },
+    "banner": {
+      "draft": {
+        "label": "Brouillon",
+        "desc": "Complétez les 3 étapes ci-dessous puis soumettez."
+      },
+      "submitted": {
+        "label": "Soumis",
+        "desc": "Votre dossier est dans la file d'attente."
+      },
+      "under_review": {
+        "label": "En cours de revue",
+        "desc": "Un admin examine votre dossier en ce moment."
+      },
+      "needs_correction": {
+        "label": "Corrections demandées",
+        "desc": "Refaites les documents marqués et soumettez à nouveau."
+      },
+      "approved": {
+        "label": "Approuvé",
+        "desc": "Bienvenue chez {{app}}."
+      },
+      "rejected": {
+        "label": "Rejeté",
+        "desc": "Votre dossier a été refusé."
+      }
+    },
+    "personal": {
+      "title": "Informations personnelles",
+      "fullName": "Nom complet",
+      "fullNamePlaceholder": "Ahmed Ould Mohamed",
+      "nni": "NNI",
+      "nniHelper": "Numéro National d'Identité — 6 à 15 chiffres",
+      "nniInvalidTitle": "NNI invalide",
+      "nniInvalidBody": "Le NNI doit contenir 6 à 15 chiffres.",
+      "dob": "Date de naissance",
+      "dobPlaceholder": "AAAA-MM-JJ",
+      "dobHelper": "Format : 1990-05-23",
+      "dobInvalidTitle": "Date invalide",
+      "dobInvalidBody": "Format attendu : AAAA-MM-JJ (ex 1990-05-23).",
+      "address": "Adresse",
+      "addressPlaceholder": "Tevragh Zeina, près mosquée Saudique",
+      "emergencyName": "Contact d'urgence — nom",
+      "emergencyNamePlaceholder": "Fatimetou (épouse)",
+      "emergencyPhone": "Contact d'urgence — téléphone",
+      "saveError": "Impossible d'enregistrer.",
+      "save": "Enregistrer"
+    },
+    "vehicle": {
+      "title": "Véhicule",
+      "plate": "Plaque d'immatriculation",
+      "platePlaceholder": "1234 AB",
+      "brand": "Marque",
+      "brandPlaceholder": "Toyota",
+      "model": "Modèle",
+      "modelPlaceholder": "Corolla",
+      "year": "Année",
+      "yearPlaceholder": "2018",
+      "yearInvalidTitle": "Année invalide",
+      "yearInvalidBody": "Entre 1980 et {{max}}.",
+      "color": "Couleur",
+      "colorPlaceholder": "Blanc",
+      "seats": "Nombre de places passagers",
+      "seatsInvalidTitle": "Places invalides",
+      "seatsInvalidBody": "Entre 1 et 8.",
+      "colisTitle": "Accepter les colis",
+      "colisHint": "Livraisons sans passager (commission 10%).",
+      "longDistanceTitle": "Longue distance",
+      "longDistanceHint": "Courses inter-villes (Nouakchott — Nouadhibou, etc.).",
+      "save": "Enregistrer",
+      "saveError": "Impossible d'enregistrer."
+    },
+    "docs": {
+      "title": "Documents",
+      "intro": "Envoyez les 14 photos requises. Bien éclairées, sans reflet.",
+      "expiryTitle": "Date d'expiration",
+      "expiryHint": "{{label}} — entrez la date au format AAAA-MM-JJ.",
+      "expiryPlaceholder": "2026-12-31",
+      "expiryInvalidTitle": "Date invalide",
+      "expiryInvalidBody": "Format attendu : AAAA-MM-JJ.",
+      "deleteTitle": "Supprimer le document ?",
+      "uploadFail": "Impossible d'envoyer le document.",
+      "sourceTitle": "Choisissez la source",
+      "sourceCamera": "Appareil photo",
+      "sourceGallery": "Galerie",
+      "statusApproved": "VALIDÉ",
+      "statusRejected": "REJETÉ",
+      "statusExpired": "EXPIRÉ",
+      "statusPending": "EN ATTENTE",
+      "expiresPrefix": "exp. {{date}}",
+      "tapToAdd": "Touchez pour ajouter",
+      "notSent": "Non envoyé",
+      "replaceHint": "Touchez pour remplacer · Maintenir pour supprimer"
+    },
+    "documents": {
+      "selfie": "Selfie",
+      "nni_front": "NNI — recto",
+      "nni_back": "NNI — verso",
+      "license_front": "Permis — recto",
+      "license_back": "Permis — verso",
+      "carte_grise": "Carte grise",
+      "assurance": "Assurance",
+      "vignette": "Vignette",
+      "visite_technique": "Visite technique",
+      "car_front": "Voiture — avant",
+      "car_back": "Voiture — arrière",
+      "car_left": "Voiture — gauche",
+      "car_right": "Voiture — droite",
+      "car_interior": "Voiture — intérieur"
+    }
+  },
+  "account": {
+    "title": "Compte",
+    "logout": "Se déconnecter",
+    "delete": "Supprimer mon compte",
+    "guestName": "Invité",
+    "deleteHint": "La suppression efface vos données personnelles et révoque l'accès à votre compte. Les enregistrements requis par la loi (paiements, courses terminées) sont conservés de façon anonymisée.",
+    "confirm1Title": "Supprimer mon compte ?",
+    "confirm1Body": "Cette action est définitive. Votre compte {{app}} sera supprimé et vous serez déconnecté. Vous devrez recréer un compte pour réutiliser l'application.",
+    "confirm2Title": "Confirmer la suppression",
+    "confirm2Body": "Êtes-vous vraiment sûr ? Cette action ne peut pas être annulée.",
+    "confirm2Action": "Supprimer définitivement",
+    "deleteError": "Impossible de supprimer le compte. Vérifiez votre connexion et réessayez."
+  },
+  "settings": {
+    "title": "Réglages",
+    "profile": {
+      "section": "Profil",
+      "name": "Nom",
+      "namePlaceholder": "Votre nom complet",
+      "phone": "Téléphone",
+      "noPhone": "Non renseigné",
+      "saved": "Profil mis à jour",
+      "saveError": "Impossible de mettre à jour le profil."
+    },
+    "preferences": {
+      "section": "Préférences",
+      "language": "Langue",
+      "languageHint": "Utilisée par l'interface, la reconnaissance vocale et les notifications.",
+      "restartTitle": "Redémarrage requis",
+      "restartBody": "Pour appliquer entièrement la nouvelle direction du texte, fermez puis rouvrez l'application."
+    },
+    "notifications": {
+      "section": "Notifications",
+      "open": "Ouvrir les réglages système",
+      "hint": "Gérez les autorisations de notifications et de localisation depuis les réglages de votre appareil."
+    },
+    "account": {
+      "section": "Compte",
+      "open": "Voir mon compte",
+      "openHint": "Profil, déconnexion, suppression du compte."
+    },
+    "about": {
+      "section": "À propos",
+      "version": "Version",
+      "support": "Contacter le support",
+      "supportMessage": "Bonjour, j'ai besoin d'aide avec l'application {{app}}."
+    }
+  },
+  "languages": {
+    "fr": "Français",
+    "ar": "العربية",
+    "en": "English",
+    "ff": "Pulaar",
+    "wo": "Wolof",
+    "snk": "Sooninkanxanne"
+  },
+  "captainAlert": {
+    "newColis": "📦 Nouveau colis",
+    "newRide": "🚖 Nouvelle course",
+    "newColisCaps": "📦 NOUVEAU COLIS",
+    "newRideCaps": "🚖 NOUVELLE COURSE",
+    "fareUnknown": "tarif inconnu",
+    "kmFormat": "{{km}} km — {{fare}}",
+    "fromYourPosition": "de votre position",
+    "tripLabel": "Trajet",
+    "accept": "Accepter",
+    "refuse": "Refuser",
+    "refuseSub": "cette course",
+    "pause5": "Pause 5 min",
+    "pauseSub": "aucune alerte",
+    "unavailable": "Course indisponible.",
+    "pausedBadge": "🔕 Notifications en pause · {{mins}} min · Reprendre"
+  },
+  "voiceCandidate": {
+    "questionPickup": "Quel départ ?",
+    "questionDestination": "Quelle destination ?",
+    "youSaid": "Vous avez dit : « {{text}} »",
+    "emptyBody": "Aucun lieu correspondant n'a été trouvé. Touchez la carte ou tapez le nom du lieu.",
+    "distanceToLandmark": "à {{distance}} du repère"
+  },
+  "voiceMicButton": {
+    "speak": "Parler",
+    "stop": "Arrêter · 0:{{ss}}",
+    "busy": "…"
+  },
+  "roadReports": {
+    "reasons": {
+      "sand": "Sable",
+      "flood": "Inondation",
+      "construction": "Travaux",
+      "police_checkpoint": "Contrôle police",
+      "accident": "Accident",
+      "protest": "Manifestation",
+      "other": "Autre"
+    },
+    "reportBtn": "⚠️ Signaler",
+    "sheetTitle": "Signaler une zone",
+    "sheetHint": "Le signalement est visible par tous pendant 6h. Les autres usagers peuvent confirmer ou démentir.",
+    "notePlaceholder": "Détail (optionnel) — ex: route fermée 100m",
+    "submit": "Envoyer le signalement",
+    "incompleteBody": "Choisissez une raison et assurez-vous que la position est connue.",
+    "markerDesc": "Signalé · {{up}}✓ {{down}}✗"
+  },
+  "crash": {
+    "title": "Crash JS au boot",
+    "message": "Message",
+    "stack": "Stack",
+    "hint": "(Capture cet écran et envoie-le.)"
+  }
+}

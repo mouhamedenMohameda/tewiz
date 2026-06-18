@@ -18,13 +18,14 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useVoiceRecorder } from '@/lib/useVoiceRecorder';
 
 interface Props {
   onCaptured: (audioUri: string) => void;
   /** Show an external loading indicator while the parent uploads. */
   busy?: boolean;
-  /** Optional label shown next to the icon (defaults to "Parler"). */
+  /** Optional label shown next to the icon (overrides the i18n default). */
   label?: string;
   /** Optional position override; defaults to bottom-right of the screen. */
   bottom?: number;
@@ -34,10 +35,12 @@ interface Props {
 export function VoiceMicButton({
   onCaptured,
   busy = false,
-  label = 'Parler',
+  label,
   bottom = 96,
   right = 16,
 }: Props) {
+  const { t } = useTranslation();
+  const restLabel = label ?? t('voiceMicButton.speak');
   const { isRecording, durationMs, error, start, stop } = useVoiceRecorder();
 
   // Pulse animation for the red dot while recording.
@@ -108,7 +111,7 @@ export function VoiceMicButton({
           <Text style={styles.icon}>🎙</Text>
         )}
         <Text style={styles.label}>
-          {busy ? '…' : isRecording ? `Arrêter · 0:${ss}` : label}
+          {busy ? t('voiceMicButton.busy') : isRecording ? t('voiceMicButton.stop', { ss }) : restLabel}
         </Text>
       </Pressable>
     </View>

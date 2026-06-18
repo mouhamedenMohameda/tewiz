@@ -4,12 +4,14 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Audio } from 'expo-av';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from '@/lib/api';
 import { formatMru } from '@/lib/format';
 import { useAuth } from '@/lib/auth';
+import { i18n } from '@/lib/i18n';
 
 type RideType = 'passenger' | 'colis';
 
@@ -91,6 +93,7 @@ export async function resetRideAlerts() {
  */
 export function CaptainRideWatcher() {
   const router = useRouter();
+  const { t } = useTranslation();
   const user = useAuth((s) => s.user);
   const activeMode = useAuth((s) => s.activeMode);
 
@@ -129,14 +132,18 @@ export function CaptainRideWatcher() {
     })();
   }, []);
 
+  // Read translations off the i18n module directly because this callback is
+  // not in render scope, so the t() snapshot via the hook would go stale.
   const fireOneBeep = useCallback(async (ride: InboxItem) => {
     try {
+      const tt = i18n.t.bind(i18n);
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: ride.rideType === 'colis' ? '📦 Nouveau colis' : '🚖 Nouvelle course',
-          body: `${(ride.distanceToPickupM / 1000).toFixed(1)} km — ${
-            ride.fareEstimateMru ? formatMru(ride.fareEstimateMru) : 'tarif inconnu'
-          }`,
+          title: ride.rideType === 'colis' ? tt('captainAlert.newColis') : tt('captainAlert.newRide'),
+          body: tt('captainAlert.kmFormat', {
+            km: (ride.distanceToPickupM / 1000).toFixed(1),
+            fare: ride.fareEstimateMru ? formatMru(ride.fareEstimateMru) : tt('captainAlert.fareUnknown'),
+          }),
           sound: 'default',
           data: { rideId: ride.id },
         },
@@ -228,13 +235,13 @@ export function CaptainRideWatcher() {
       // (call button, step actions) is right there.
       router.push('/(app)/captain/rides');
     } catch (e: any) {
-      Alert.alert('Impossible', e.response?.data?.error?.message ?? 'Course indisponible.');
+      Alert.alert(t('common.impossible'), e.response?.data?.error?.message ?? t('captainAlert.unavailable'));
       await stopRinging();
       setAlertRide(null);
     } finally {
       setAccepting(false);
     }
-  }, [alertRide, router, stopRinging]);
+  }, [alertRide, router, stopRinging, t]);
 
   const refuseAlert = useCallback(async () => {
     await stopRinging();
@@ -279,7 +286,7 @@ export function CaptainRideWatcher() {
             })}
           >
             <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>
-              🔕 Notifications en pause · {pauseMinsLeft} min · Reprendre
+              {t('captainAlert.pausedBadge', { mins: pauseMinsLeft })}
             </Text>
           </Pressable>
         </View>
@@ -296,13 +303,13 @@ export function CaptainRideWatcher() {
           <View style={{ flex: 1, padding: 24, justifyContent: 'space-between' }}>
             <View>
               <Text style={{ color: '#bfdbfe', fontSize: 13, fontWeight: '700', letterSpacing: 1 }}>
-                {alertRide.rideType === 'colis' ? '📦 NOUVEAU COLIS' : '🚖 NOUVELLE COURSE'}
+                {alertRide.rideType === 'colis' ? t('captainAlert.newColisCaps') : t('captainAlert.newRideCaps')}
               </Text>
               <Text style={{ color: '#fff', fontSize: 48, fontWeight: '800', marginTop: 8 }}>
-                {(alertRide.distanceToPickupM / 1000).toFixed(1)} km
+                {(alertRide.distanceToPickupM / 1000).toFixed(1)} {t('common.kmShort')}
               </Text>
               <Text style={{ color: '#cbd5e1', fontSize: 14, marginTop: 2 }}>
-                de votre position
+                {t('captainAlert.fromYourPosition')}
               </Text>
 
               <View style={{
@@ -310,28 +317,28 @@ export function CaptainRideWatcher() {
                 borderRadius: 16, padding: 18, gap: 16,
               }}>
                 <View>
-                  <Text style={{ color: '#94a3b8', fontSize: 12 }}>De</Text>
+                  <Text style={{ color: '#94a3b8', fontSize: 12 }}>{t('common.from')}</Text>
                   <Text style={{ color: '#fff', fontSize: 16, marginTop: 2 }} numberOfLines={2}>
-                    {alertRide.pickup.label ?? 'Point de prise en charge'}
+                    {alertRide.pickup.label ?? t('captain.rides.pickupFallback')}
                   </Text>
                 </View>
                 <View>
-                  <Text style={{ color: '#94a3b8', fontSize: 12 }}>Vers</Text>
+                  <Text style={{ color: '#94a3b8', fontSize: 12 }}>{t('common.to')}</Text>
                   <Text style={{ color: '#fff', fontSize: 16, marginTop: 2 }} numberOfLines={2}>
-                    {alertRide.dropoff.label ?? 'Destination'}
+                    {alertRide.dropoff.label ?? t('captain.rides.dropoffFallback')}
                   </Text>
                 </View>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                   <View>
-                    <Text style={{ color: '#94a3b8', fontSize: 12 }}>Tarif estimé</Text>
+                    <Text style={{ color: '#94a3b8', fontSize: 12 }}>{t('captain.rides.estimatedFare')}</Text>
                     <Text style={{ color: '#fff', fontSize: 22, fontWeight: '700', marginTop: 2 }}>
                       {alertRide.fareEstimateMru ? formatMru(alertRide.fareEstimateMru) : '—'}
                     </Text>
                   </View>
                   <View>
-                    <Text style={{ color: '#94a3b8', fontSize: 12 }}>Trajet</Text>
+                    <Text style={{ color: '#94a3b8', fontSize: 12 }}>{t('captainAlert.tripLabel')}</Text>
                     <Text style={{ color: '#fff', fontSize: 22, fontWeight: '700', marginTop: 2 }}>
-                      {alertRide.distanceM ? `${(alertRide.distanceM / 1000).toFixed(1)} km` : '—'}
+                      {alertRide.distanceM ? `${(alertRide.distanceM / 1000).toFixed(1)} ${t('common.kmShort')}` : '—'}
                     </Text>
                   </View>
                 </View>
@@ -351,7 +358,7 @@ export function CaptainRideWatcher() {
               >
                 {accepting && <ActivityIndicator color="#fff" />}
                 <Text style={{ color: '#fff', fontSize: 18, fontWeight: '700' }}>
-                  Accepter
+                  {t('captainAlert.accept')}
                 </Text>
               </Pressable>
               <View style={{ flexDirection: 'row', gap: 12 }}>
@@ -367,10 +374,10 @@ export function CaptainRideWatcher() {
                   })}
                 >
                   <Text style={{ color: '#cbd5e1', fontSize: 14, fontWeight: '600' }}>
-                    Refuser
+                    {t('captainAlert.refuse')}
                   </Text>
                   <Text style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>
-                    cette course
+                    {t('captainAlert.refuseSub')}
                   </Text>
                 </Pressable>
                 <Pressable
@@ -385,10 +392,10 @@ export function CaptainRideWatcher() {
                   })}
                 >
                   <Text style={{ color: '#cbd5e1', fontSize: 14, fontWeight: '600' }}>
-                    Pause 5 min
+                    {t('captainAlert.pause5')}
                   </Text>
                   <Text style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>
-                    aucune alerte
+                    {t('captainAlert.pauseSub')}
                   </Text>
                 </Pressable>
               </View>

@@ -3,6 +3,7 @@ import {
   ActivityIndicator, Alert, Linking, Pressable, TextInput, View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { api } from '@/lib/api';
 import { formatMru } from '@/lib/format';
 import { usePolling } from '@/lib/usePolling';
@@ -43,8 +44,6 @@ interface Ride {
   status: RideStatus;
   passengerName: string | null;
   passengerPhone: string | null;
-  // The person to call at pickup (booker, or the third party for a "course pour
-  // quelqu'un d'autre"). Attached by the API once the captain is assigned.
   rider?: { id: string; fullName: string | null; phone: string | null } | null;
   isForOther: boolean;
   pickup: { lat: number; lng: number; label: string | null };
@@ -57,6 +56,7 @@ interface Ride {
 
 export default function RidesScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [current, setCurrent] = useState<Ride | null>(null);
   const [inbox, setInbox] = useState<InboxItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,7 +73,7 @@ export default function RidesScreen() {
           setInbox(inb.data);
         } catch (e: any) {
           if (e.response?.status === 400) {
-            setInbox([]); // captain has no known location yet
+            setInbox([]);
           } else {
             throw e;
           }
@@ -88,15 +88,11 @@ export default function RidesScreen() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
-
-  // Auto-refresh while the screen is focused:
-  // - waiting for a ride: poll every 5 s so new requests pop in quickly
-  // - on a ride: poll every 8 s for status changes (rider cancels, etc.)
   usePolling(load, current ? 8_000 : 5_000);
 
   return (
     <Screen scroll onRefresh={load} refreshing={loading}>
-      <ScreenHeader title="Courses" onBack={() => router.back()} />
+      <ScreenHeader title={t('captain.rides.title')} onBack={() => router.back()} />
       {current ? (
         <CurrentRideCard ride={current} onChanged={load} />
       ) : (
@@ -107,6 +103,7 @@ export default function RidesScreen() {
 }
 
 function InboxList({ items, onAccepted }: { items: InboxItem[]; onAccepted: () => void }) {
+  const { t } = useTranslation();
   const [accepting, setAccepting] = useState<string | null>(null);
 
   async function accept(id: string) {
@@ -115,7 +112,7 @@ function InboxList({ items, onAccepted }: { items: InboxItem[]; onAccepted: () =
       await api.post(`/captain/rides/${id}/accept`);
       onAccepted();
     } catch (e: any) {
-      Alert.alert('Impossible', e.response?.data?.error?.message ?? 'Échec.');
+      Alert.alert(t('common.impossible'), e.response?.data?.error?.message ?? t('errors.generic'));
     } finally {
       setAccepting(null);
     }
@@ -123,16 +120,16 @@ function InboxList({ items, onAccepted }: { items: InboxItem[]; onAccepted: () =
 
   return (
     <View>
-      <AppText variant="h1">Courses proches</AppText>
+      <AppText variant="h1">{t('captain.rides.nearbyTitle')}</AppText>
       <AppText variant="caption" color={colors.ink2} style={{ marginTop: spacing.xs }}>
-        Vous devez être en ligne avec votre position partagée.
+        {t('captain.rides.nearbyHint')}
       </AppText>
 
       {items.length === 0 ? (
         <Card elevation="none" background={colors.surfaceAlt} padding={spacing.xxl}
           style={{ marginTop: spacing.lg, alignItems: 'center', gap: spacing.sm }}>
           <Icon name="clock" size={30} color={colors.muted} />
-          <AppText variant="body" color={colors.muted}>Aucune course pour le moment.</AppText>
+          <AppText variant="body" color={colors.muted}>{t('captain.rides.emptyInbox')}</AppText>
         </Card>
       ) : items.map((it) => {
         const accent = it.isFavorite ? colors.sun : (it.rideType === 'colis' ? colors.espresso : colors.ember);
@@ -144,15 +141,15 @@ function InboxList({ items, onAccepted }: { items: InboxItem[]; onAccepted: () =
               <View style={{ flex: 1, padding: spacing.base }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                    <Chip icon={isColis ? 'parcel' : 'ride'} label={isColis ? 'Colis' : 'Passager'}
+                    <Chip icon={isColis ? 'parcel' : 'ride'} label={isColis ? t('captain.rides.colis') : t('captain.rides.passenger')}
                       bg={isColis ? colors.espresso : colors.emberSoft}
                       fg={isColis ? colors.saffron : colors.ember} />
-                    {it.isFavorite ? <Chip icon="star" label="Favori" bg={colors.saffronSoft} fg={colors.warning} /> : null}
+                    {it.isFavorite ? <Chip icon="star" label={t('captain.rides.favorite')} bg={colors.saffronSoft} fg={colors.warning} /> : null}
                     {it.homewardProgressM && it.homewardProgressM > 0
-                      ? <Chip icon="home" label="Rapproche" bg={colors.successSoft} fg={colors.success} /> : null}
+                      ? <Chip icon="home" label={t('captain.rides.getsCloser')} bg={colors.successSoft} fg={colors.success} /> : null}
                   </View>
                   <AppText variant="caption" color={colors.muted}>
-                    {(it.distanceToPickupM / 1000).toFixed(1)} km
+                    {(it.distanceToPickupM / 1000).toFixed(1)} {t('common.kmShort')}
                   </AppText>
                 </View>
 
@@ -163,7 +160,7 @@ function InboxList({ items, onAccepted }: { items: InboxItem[]; onAccepted: () =
                     {it.fareEstimateMru ? formatMru(it.fareEstimateMru) : '—'}
                   </AppText>
                   <Button
-                    title="Accepter"
+                    title={t('captain.rides.accept')}
                     size="md"
                     fullWidth={false}
                     icon="checkSmall"
@@ -181,6 +178,7 @@ function InboxList({ items, onAccepted }: { items: InboxItem[]; onAccepted: () =
 }
 
 function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => void }) {
+  const { t } = useTranslation();
   const [busy, setBusy] = useState<string | null>(null);
   const [code, setCode] = useState('');
 
@@ -188,7 +186,7 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
     setBusy(label);
     try { await fn(); await onChanged(); }
     catch (e: any) {
-      Alert.alert('Impossible', e.response?.data?.error?.message ?? 'Échec.');
+      Alert.alert(t('common.impossible'), e.response?.data?.error?.message ?? t('errors.generic'));
     } finally { setBusy(null); }
   }
 
@@ -200,7 +198,7 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
 
   function start() {
     if (!/^\d{4}$/.test(code)) {
-      Alert.alert('Code requis', 'Demandez au passager le code à 4 chiffres.');
+      Alert.alert(t('captain.rides.codeRequiredTitle'), t('captain.rides.codeRequiredBody'));
       return Promise.resolve();
     }
     return action('start', async () => {
@@ -213,12 +211,11 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
     const body: any = {};
     if (ride.rideType === 'colis') {
       if (!/^\d{4}$/.test(code)) {
-        Alert.alert('Code livraison', 'Demandez au destinataire le code reçu par SMS.');
+        Alert.alert(t('captain.rides.deliveryCodeTitle'), t('captain.rides.deliveryCodeBody'));
         return;
       }
       body.dropOtp = code;
     }
-    // Optional GPS-based actual distance/duration could be added later.
     return action('complete', async () => {
       await api.post(`/captain/rides/${ride.id}/complete`, body);
       setCode('');
@@ -227,12 +224,12 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
 
   async function cancel() {
     Alert.alert(
-      'Annuler la course ?',
-      'Cela impacte votre score.',
+      t('captain.rides.cancelTitle'),
+      t('captain.rides.cancelBody'),
       [
-        { text: 'Non', style: 'cancel' },
+        { text: t('common.no'), style: 'cancel' },
         {
-          text: 'Annuler', style: 'destructive',
+          text: t('common.cancel'), style: 'destructive',
           onPress: () => action('cancel', async () => {
             await api.post(`/captain/rides/${ride.id}/cancel`, { reason: 'captain_cancel' });
           }),
@@ -241,22 +238,20 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
     );
   }
 
-  const stepLabel: Partial<Record<RideStatus, string>> = {
-    accepted: 'Acceptée — en route vers le client',
-    arrived: 'Arrivé sur place',
-    in_progress: 'Course en cours',
-  };
-
   return (
     <View>
       <Card background={colors.espresso} elevation="raised" padding={spacing.xl}>
         <AppText variant="overline" color={colors.saffron}>
-          {stepLabel[ride.status] ?? ride.status}
+          {ride.status === 'accepted' || ride.status === 'arrived' || ride.status === 'in_progress'
+            ? t(`captain.rides.stepLabel.${ride.status}` as const)
+            : ride.status}
         </AppText>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm }}>
           <Icon name={ride.rideType === 'colis' ? 'parcel' : 'person'} size={24} color={colors.onEspresso} />
           <AppText variant="h1" color={colors.onEspresso}>
-            {ride.rideType === 'colis' ? 'Colis' : (ride.rider?.fullName ?? ride.passengerName ?? 'Passager')}
+            {ride.rideType === 'colis'
+              ? t('captain.rides.colis')
+              : (ride.rider?.fullName ?? ride.passengerName ?? t('captain.rides.passengerFallback'))}
           </AppText>
         </View>
 
@@ -266,7 +261,7 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
           return (
             <View style={{ marginTop: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
               <AppText variant="body" color={colors.onEspressoMuted} style={{ flex: 1 }}>
-                {contactPhone}{ride.isForOther ? ' · pour un tiers' : ''}
+                {contactPhone}{ride.isForOther ? ` · ${t('captain.rides.forOther')}` : ''}
               </AppText>
               <PressableScale
                 onPress={() => Linking.openURL(`tel:${contactPhone}`)}
@@ -276,7 +271,7 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
                 }}
               >
                 <Icon name="phone" size={16} color={colors.onEmber} />
-                <AppText variant="label" color={colors.onEmber}>Appeler</AppText>
+                <AppText variant="label" color={colors.onEmber}>{t('captain.rides.callBtn')}</AppText>
               </PressableScale>
             </View>
           );
@@ -291,59 +286,58 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
 
         <View style={{ marginTop: spacing.lg, flexDirection: 'row', justifyContent: 'space-between' }}>
           <View>
-            <AppText variant="caption" color={colors.onEspressoMuted}>Tarif estimé</AppText>
+            <AppText variant="caption" color={colors.onEspressoMuted}>{t('captain.rides.estimatedFare')}</AppText>
             <AppText variant="h2" color={colors.onEspresso} style={{ marginTop: 2 }}>
               {ride.fareEstimateMru ? formatMru(ride.fareEstimateMru) : '—'}
             </AppText>
           </View>
           <View>
-            <AppText variant="caption" color={colors.onEspressoMuted}>Paiement</AppText>
+            <AppText variant="caption" color={colors.onEspressoMuted}>{t('captain.rides.payment')}</AppText>
             <AppText variant="h2" color={colors.onEspresso} style={{ marginTop: 2 }}>
-              {ride.paymentMethod === 'cash' ? 'Espèces' : 'Wallet'}
+              {ride.paymentMethod === 'cash' ? t('captain.rides.cash') : t('captain.rides.wallet')}
             </AppText>
           </View>
         </View>
       </Card>
 
-      {/* Step controls */}
       {ride.status === 'accepted' ? (
-        <Button title="Je suis arrivé" icon="pin" onPress={arrive} busy={busy === 'arrive'}
+        <Button title={t('captain.rides.actionImArrived')} icon="pin" onPress={arrive} busy={busy === 'arrive'}
           style={{ marginTop: spacing.base }} />
       ) : null}
 
       {ride.status === 'arrived' ? (
         <CodeBox
-          title={ride.rideType === 'colis' ? 'Code expéditeur (4 chiffres)' : 'Code passager (4 chiffres)'}
+          title={ride.rideType === 'colis' ? t('captain.rides.codeSenderTitle') : t('captain.rides.codePassengerTitle')}
           subtitle={ride.rideType === 'colis'
-            ? 'Demandez le code à l\'expéditeur du colis avant de démarrer.'
-            : 'Demandez le code anti-arnaque au passager avant de démarrer.'}
+            ? t('captain.rides.codeSenderSub')
+            : t('captain.rides.codePassengerSub')}
           code={code}
           onChange={setCode}
-          actionLabel={ride.rideType === 'colis' ? 'Démarrer la livraison' : 'Démarrer la course'}
+          actionLabel={ride.rideType === 'colis' ? t('captain.rides.startDelivery') : t('captain.rides.startRide')}
           onAction={start}
           busy={busy === 'start'}
         />
       ) : null}
 
       {ride.status === 'in_progress' && ride.rideType === 'passenger' ? (
-        <Button title="Terminer la course" icon="check" onPress={complete} busy={busy === 'complete'}
+        <Button title={t('captain.rides.completeRide')} icon="check" onPress={complete} busy={busy === 'complete'}
           style={{ marginTop: spacing.base }} />
       ) : null}
 
       {ride.status === 'in_progress' && ride.rideType === 'colis' ? (
         <CodeBox
-          title="Code livraison (4 chiffres)"
-          subtitle="Demandez au destinataire le code reçu par SMS."
+          title={t('captain.rides.deliveryConfirmTitle')}
+          subtitle={t('captain.rides.deliveryConfirmSub')}
           code={code}
           onChange={setCode}
-          actionLabel="Confirmer la livraison"
+          actionLabel={t('captain.rides.confirmDelivery')}
           onAction={complete}
           busy={busy === 'complete'}
         />
       ) : null}
 
       <Button
-        title="Annuler la course"
+        title={t('captain.rides.cancelRide')}
         variant="danger"
         onPress={cancel}
         style={{ marginTop: spacing.md }}
@@ -371,21 +365,21 @@ function Route({
 }: {
   pickup: string | null; dropoff: string | null; onDark?: boolean; style?: any;
 }) {
+  const { t } = useTranslation();
   const muted = onDark ? colors.onEspressoMuted : colors.muted;
   const strong = onDark ? colors.onEspresso : colors.ink;
   return (
     <View style={[{ flexDirection: 'row' }, style]}>
-      {/* connector */}
       <View style={{ alignItems: 'center', marginRight: spacing.md, paddingTop: 4 }}>
         <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colors.ember }} />
         <View style={{ width: 2, flex: 1, minHeight: 18, backgroundColor: onDark ? colors.espressoAlt : colors.line, marginVertical: 3 }} />
         <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: colors.sun }} />
       </View>
       <View style={{ flex: 1 }}>
-        <AppText variant="caption" color={muted}>De</AppText>
-        <AppText variant="bodyStrong" color={strong} numberOfLines={1}>{pickup ?? 'Point de prise en charge'}</AppText>
-        <AppText variant="caption" color={muted} style={{ marginTop: spacing.sm }}>Vers</AppText>
-        <AppText variant="bodyStrong" color={strong} numberOfLines={1}>{dropoff ?? 'Destination'}</AppText>
+        <AppText variant="caption" color={muted}>{t('common.from')}</AppText>
+        <AppText variant="bodyStrong" color={strong} numberOfLines={1}>{pickup ?? t('captain.rides.pickupFallback')}</AppText>
+        <AppText variant="caption" color={muted} style={{ marginTop: spacing.sm }}>{t('common.to')}</AppText>
+        <AppText variant="bodyStrong" color={strong} numberOfLines={1}>{dropoff ?? t('captain.rides.dropoffFallback')}</AppText>
       </View>
     </View>
   );

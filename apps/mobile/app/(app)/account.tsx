@@ -11,20 +11,16 @@
 import { useState } from 'react';
 import { Alert, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { AppText, Button, Icon, Screen, ScreenHeader } from '@/components/ui';
 import { colors, radius, shadow, spacing } from '@/theme';
 import { APP_NAME } from '@/lib/brand';
 
-const ROLE_LABEL: Record<'rider' | 'captain' | 'admin', string> = {
-  rider: 'Passager',
-  captain: 'Chauffeur',
-  admin: 'Administrateur',
-};
-
 export default function AccountScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const user = useAuth((s) => s.user);
   const clear = useAuth((s) => s.clear);
   const [busy, setBusy] = useState(false);
@@ -42,30 +38,28 @@ export default function AccountScreen() {
       router.replace('/(auth)');
     } catch (e: any) {
       setBusy(false);
-      const msg =
-        e?.response?.data?.error?.message ??
-        'Impossible de supprimer le compte. Vérifiez votre connexion et réessayez.';
-      Alert.alert('Erreur', msg);
+      const msg = e?.response?.data?.error?.message ?? t('account.deleteError');
+      Alert.alert(t('common.error'), msg);
     }
   }
 
   function confirmDelete() {
     Alert.alert(
-      'Supprimer mon compte ?',
-      `Cette action est définitive. Votre compte ${APP_NAME} sera supprimé et vous serez déconnecté. Vous devrez recréer un compte pour réutiliser l'application.`,
+      t('account.confirm1Title'),
+      t('account.confirm1Body', { app: APP_NAME }),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Supprimer',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: () =>
             // Second confirmation — deletion is irreversible.
             Alert.alert(
-              'Confirmer la suppression',
-              'Êtes-vous vraiment sûr ? Cette action ne peut pas être annulée.',
+              t('account.confirm2Title'),
+              t('account.confirm2Body'),
               [
-                { text: 'Annuler', style: 'cancel' },
-                { text: 'Supprimer définitivement', style: 'destructive', onPress: reallyDelete },
+                { text: t('common.cancel'), style: 'cancel' },
+                { text: t('account.confirm2Action'), style: 'destructive', onPress: reallyDelete },
               ],
             ),
         },
@@ -73,11 +67,11 @@ export default function AccountScreen() {
     );
   }
 
-  const roleLabel = user ? ROLE_LABEL[user.role] : '';
+  const roleLabel = user ? t(`roles.${user.role}` as const) : '';
 
   return (
     <Screen>
-      <ScreenHeader title="Compte" onBack={() => router.back()} />
+      <ScreenHeader title={t('account.title')} onBack={() => router.back()} />
 
       {/* Profile summary */}
       <View
@@ -105,7 +99,7 @@ export default function AccountScreen() {
         </View>
         <View style={{ flex: 1 }}>
           <AppText variant="title" numberOfLines={1}>
-            {user?.fullName ?? user?.phone ?? 'Invité'}
+            {user?.fullName ?? user?.phone ?? t('account.guestName')}
           </AppText>
           <AppText variant="caption" color={colors.muted} style={{ marginTop: 2 }}>
             {[roleLabel, user?.phone].filter(Boolean).join(' · ')}
@@ -115,9 +109,9 @@ export default function AccountScreen() {
 
       {/* Actions */}
       <View style={{ marginTop: spacing.xl, gap: spacing.md }}>
-        <Button title="Se déconnecter" variant="secondary" icon="logout" onPress={logout} />
+        <Button title={t('account.logout')} variant="secondary" icon="logout" onPress={logout} />
         <Button
-          title="Supprimer mon compte"
+          title={t('account.delete')}
           variant="danger"
           icon="trash"
           busy={busy}
@@ -130,9 +124,7 @@ export default function AccountScreen() {
         color={colors.muted}
         style={{ marginTop: spacing.lg, lineHeight: 18 }}
       >
-        La suppression efface vos données personnelles et révoque l'accès à votre
-        compte. Les enregistrements requis par la loi (paiements, courses
-        terminées) sont conservés de façon anonymisée.
+        {t('account.deleteHint')}
       </AppText>
     </Screen>
   );

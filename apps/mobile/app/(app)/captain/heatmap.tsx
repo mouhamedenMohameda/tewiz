@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Circle, Marker, PROVIDER_DEFAULT, type Region } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -111,6 +112,7 @@ function clusterCells(cells: Cell[], mergeRadiusM: number): Cluster[] {
 
 export default function HeatmapScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const mapRef = useRef<MapView>(null);
   const [cells, setCells] = useState<Cell[]>([]);
   const [loading, setLoading] = useState(true);
@@ -178,8 +180,8 @@ export default function HeatmapScreen() {
           <Icon name="chevronBack" size={22} color={colors.ink} />
         </Pressable>
         <View style={{ flex: 1 }}>
-          <AppText variant="overline" color={colors.muted}>Demande · 2 dernières heures</AppText>
-          <AppText variant="h2" style={{ marginTop: 1 }}>Zones chaudes</AppText>
+          <AppText variant="overline" color={colors.muted}>{t('captain.heatmap.overline')}</AppText>
+          <AppText variant="h2" style={{ marginTop: 1 }}>{t('captain.heatmap.title')}</AppText>
         </View>
         <Pressable
           onPress={() => { setLoading(true); void load(); }}
@@ -220,8 +222,10 @@ export default function HeatmapScreen() {
             <Marker
               key={`top-${i}`}
               coordinate={{ latitude: c.centerLat, longitude: c.centerLng }}
-              title={`#${i + 1} · ${c.rideCount} course${c.rideCount > 1 ? 's' : ''}`}
-              description={c.cellCount > 1 ? `${c.cellCount} zones fusionnées` : '2 dernières heures'}
+              title={t('captain.heatmap.topClusterTitle', { rank: i + 1, count: c.rideCount })}
+              description={c.cellCount > 1
+                ? t('captain.heatmap.zonesMerged', { count: c.cellCount })
+                : t('captain.heatmap.twoHours')}
               pinColor="#D6452F"
             />
           ))}
@@ -237,7 +241,7 @@ export default function HeatmapScreen() {
             flexDirection: 'row', gap: spacing.sm, alignItems: 'center',
           }}>
             <ActivityIndicator color={colors.saffron} size="small" />
-            <AppText variant="caption" color={colors.onEspresso}>Chargement…</AppText>
+            <AppText variant="caption" color={colors.onEspresso}>{t('captain.heatmap.loading')}</AppText>
           </View>
         ) : null}
 
@@ -247,7 +251,7 @@ export default function HeatmapScreen() {
             backgroundColor: 'rgba(42, 26, 14, 0.92)', borderRadius: radius.md, padding: spacing.md,
           }}>
             <AppText variant="body" color={colors.onEspresso} align="center">
-              Aucune zone chaude pour l'instant — pas assez de courses récentes.
+              {t('captain.heatmap.emptyOverlay')}
             </AppText>
           </View>
         ) : null}
@@ -262,9 +266,9 @@ export default function HeatmapScreen() {
             backgroundColor: 'rgba(255, 252, 246, 0.96)',
             borderRadius: radius.md, padding: spacing.sm + 2, gap: 6, ...shadow.card,
           }}>
-            <LegendRow color="#D6452F" label="Très forte" />
-            <LegendRow color="#F2682C" label="Moyenne" />
-            <LegendRow color="#F6A623" label="Faible" />
+            <LegendRow color="#D6452F" label={t('captain.heatmap.legendHigh')} />
+            <LegendRow color="#F2682C" label={t('captain.heatmap.legendMid')} />
+            <LegendRow color="#F6A623" label={t('captain.heatmap.legendLow')} />
           </View>
         ) : null}
       </View>
@@ -277,7 +281,7 @@ export default function HeatmapScreen() {
           paddingHorizontal: spacing.base, paddingTop: spacing.base, paddingBottom: spacing.sm,
           ...shadow.raised,
         }}>
-          <AppText variant="overline" color={colors.muted} style={{ marginBottom: spacing.xs }}>Top 3</AppText>
+          <AppText variant="overline" color={colors.muted} style={{ marginBottom: spacing.xs }}>{t('captain.heatmap.top3')}</AppText>
           {hottest.map((c, i) => (
             <Pressable
               key={`top-list-${i}`}
@@ -296,10 +300,12 @@ export default function HeatmapScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <AppText variant="bodyStrong">
-                  {c.rideCount} course{c.rideCount > 1 ? 's' : ''} demandée{c.rideCount > 1 ? 's' : ''}
+                  {c.rideCount > 1
+                    ? t('captain.heatmap.rideMany', { count: c.rideCount })
+                    : t('captain.heatmap.rideOne', { count: c.rideCount })}
                 </AppText>
                 <AppText variant="caption" color={colors.muted} style={{ marginTop: 1 }}>
-                  {c.cellCount > 1 ? `${c.cellCount} zones · ` : ''}Sur 2h · {c.centerLat.toFixed(4)}, {c.centerLng.toFixed(4)}
+                  {c.cellCount > 1 ? t('captain.heatmap.zonesPrefix', { count: c.cellCount }) : ''}{t('captain.heatmap.twoHours')} · {c.centerLat.toFixed(4)}, {c.centerLng.toFixed(4)}
                 </AppText>
               </View>
               <Icon name="chevron" size={20} color={colors.faint} />

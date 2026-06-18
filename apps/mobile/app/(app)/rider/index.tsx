@@ -4,6 +4,7 @@ import {
   Modal, Platform, Pressable, View,
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -26,19 +27,11 @@ interface CurrentRide {
   dropoff: { label: string | null };
 }
 
-const STATUS_LABEL: Record<RideStatus, string> = {
-  pending_passenger_confirm: 'En attente de confirmation',
-  searching: 'Recherche d\'un chauffeur',
-  accepted:  'Chauffeur en route',
-  arrived:   'Chauffeur arrivé',
-  in_progress: 'Course en cours',
-  completed: 'Noter votre course',
-};
-
 type Intent = 'voice' | 'map' | 'captain';
 
 export default function RiderHome() {
   const router = useRouter();
+  const { t } = useTranslation();
   const user = useAuth((s) => s.user);
   const setUser = useAuth((s) => s.setUser);
 
@@ -66,7 +59,7 @@ export default function RiderHome() {
 
   async function savePhone() {
     if (phoneInput.replace(/\D/g, '').length < 11) {
-      Alert.alert('Numéro invalide', 'Entrez un numéro mauritanien valide (ex. +222 45 12 34 56).');
+      Alert.alert(t('phonePrompt.invalidTitle'), t('phonePrompt.invalidBody'));
       return;
     }
     setSavingPhone(true);
@@ -90,20 +83,20 @@ export default function RiderHome() {
         // a captain, or the admin). A guest can't claim it — guide them to log
         // in to that account instead of dead-ending on an error.
         Alert.alert(
-          'Ce numéro a déjà un compte',
-          `Ce numéro est déjà associé à un compte ${APP_NAME}. Connectez-vous avec votre mot de passe pour le récupérer.`,
+          t('phonePrompt.takenTitle'),
+          t('phonePrompt.takenBody', { app: APP_NAME }),
           [
-            { text: 'Annuler', style: 'cancel' },
+            { text: t('common.cancel'), style: 'cancel' },
             {
-              text: 'Se connecter',
+              text: t('phonePrompt.takenAction'),
               onPress: () => { setPending(null); router.push('/(auth)/phone'); },
             },
           ],
         );
         return;
       }
-      const msg = e?.response?.data?.error?.message ?? 'Impossible d\'enregistrer le numéro.';
-      Alert.alert('Erreur', msg);
+      const msg = e?.response?.data?.error?.message ?? t('phonePrompt.saveError');
+      Alert.alert(t('common.error'), msg);
     } finally {
       setSavingPhone(false);
     }
@@ -155,16 +148,16 @@ export default function RiderHome() {
             <Icon name="person" size={28} color={colors.ember} />
           </View>
           <View style={{ flex: 1 }}>
-            <AppText variant="overline" color={colors.muted}>Bonjour</AppText>
+            <AppText variant="overline" color={colors.muted}>{t('common.hello')}</AppText>
             <AppText variant="title" numberOfLines={1} style={{ marginTop: 1 }}>
               {user?.fullName ?? user?.phone}
             </AppText>
           </View>
         </View>
         <Pressable
-          onPress={() => router.push('/(app)/account')}
+          onPress={() => router.push('/(app)/settings')}
           hitSlop={10}
-          accessibilityLabel="Compte"
+          accessibilityLabel={t('settings.title')}
           style={{
             width: 44, height: 44, borderRadius: radius.md,
             backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center',
@@ -181,7 +174,7 @@ export default function RiderHome() {
       {current ? (
         <FadeInView>
           <LiveRideBanner
-            label={STATUS_LABEL[current.status] ?? current.status}
+            label={t(`rider.status.${current.status}` as const) || current.status}
             onPress={() => router.push('/(app)/rider/current')}
           />
         </FadeInView>
@@ -199,14 +192,14 @@ export default function RiderHome() {
       {/* Quick actions */}
       <FadeInView delay={140}>
         <AppText variant="overline" color={colors.muted} style={{ marginTop: spacing.xxl, marginBottom: spacing.md }}>
-          Mes raccourcis
+          {t('rider.home.shortcuts')}
         </AppText>
         <View style={{ flexDirection: 'row', gap: spacing.md }}>
-          <QuickTile icon="history" label="Mes courses" tint={colors.emberSoft} fg={colors.ember}
+          <QuickTile icon="history" label={t('rider.home.history')} tint={colors.emberSoft} fg={colors.ember}
             onPress={() => router.push('/(app)/rider/history')} />
-          <QuickTile icon="drivers" label="Chauffeurs" tint={colors.saffronSoft} fg={colors.warning}
+          <QuickTile icon="drivers" label={t('rider.home.drivers')} tint={colors.saffronSoft} fg={colors.warning}
             onPress={() => router.push('/(app)/rider/favorites')} />
-          <QuickTile icon="recurring" label="Récurrent" tint="#E9EFE6" fg={colors.success}
+          <QuickTile icon="recurring" label={t('rider.home.recurring')} tint="#E9EFE6" fg={colors.success}
             onPress={() => router.push('/(app)/rider/recurring')} />
         </View>
       </FadeInView>
@@ -246,6 +239,7 @@ function PhonePrompt({
   onSave: () => void;
   busy: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <KeyboardAvoidingView
@@ -267,12 +261,12 @@ function PhonePrompt({
           >
             <Icon name="phone" size={26} color={colors.ember} />
           </View>
-          <AppText variant="h2">Votre numéro</AppText>
+          <AppText variant="h2">{t('phonePrompt.title')}</AppText>
           <AppText variant="body" color={colors.ink2}>
-            Le chauffeur en aura besoin pour vous joindre. Une seule fois — pas de SMS.
+            {t('phonePrompt.body')}
           </AppText>
           <TextField
-            label="Numéro de téléphone"
+            label={t('phonePrompt.phoneLabel')}
             icon="phone"
             autoFocus
             keyboardType="phone-pad"
@@ -283,9 +277,9 @@ function PhonePrompt({
             autoCorrect={false}
             textContentType="telephoneNumber"
           />
-          <Button title="Enregistrer et continuer" iconRight="arrow" busy={busy} onPress={onSave} />
+          <Button title={t('common.saveAndContinue')} iconRight="arrow" busy={busy} onPress={onSave} />
           <Pressable onPress={onCancel} hitSlop={8} style={{ alignItems: 'center', paddingVertical: spacing.sm }}>
-            <AppText variant="caption" color={colors.ink2}>Annuler</AppText>
+            <AppText variant="caption" color={colors.ink2}>{t('common.cancel')}</AppText>
           </Pressable>
         </View>
       </KeyboardAvoidingView>
@@ -296,6 +290,7 @@ function PhonePrompt({
 /* ------------------------------------------------------------------ */
 
 function LiveRideBanner({ label, onPress }: { label: string; onPress: () => void }) {
+  const { t } = useTranslation();
   return (
     <Card
       onPress={onPress}
@@ -313,7 +308,7 @@ function LiveRideBanner({ label, onPress }: { label: string; onPress: () => void
       <View style={{ flex: 1 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
           <PulseDot />
-          <AppText variant="overline" color={colors.saffron}>Course en cours</AppText>
+          <AppText variant="overline" color={colors.saffron}>{t('rider.home.currentRide')}</AppText>
         </View>
         <AppText variant="bodyStrong" color={colors.onEspresso} style={{ marginTop: 3 }} numberOfLines={1}>
           {label}
@@ -325,6 +320,7 @@ function LiveRideBanner({ label, onPress }: { label: string; onPress: () => void
 }
 
 function Hero({ blocked, onVoice, onMap }: { blocked: boolean; onVoice: () => void; onMap: () => void }) {
+  const { t } = useTranslation();
   return (
     <LinearGradient
       colors={gradients.sunrise}
@@ -332,9 +328,9 @@ function Hero({ blocked, onVoice, onMap }: { blocked: boolean; onVoice: () => vo
       end={{ x: 1, y: 1 }}
       style={{ borderRadius: radius.xxl, padding: spacing.xl, ...shadow.ember }}
     >
-      <AppText variant="overline" color="#FFF1DD">Où allez-vous ?</AppText>
+      <AppText variant="overline" color="#FFF1DD">{t('rider.hero.overline')}</AppText>
       <AppText variant="h1" color={colors.white} style={{ marginTop: spacing.xs, maxWidth: 240 }}>
-        Commander une course
+        {t('rider.hero.title')}
       </AppText>
 
       {/* Primary: voice-first. A human agent places the ride from your memo. */}
@@ -350,7 +346,7 @@ function Hero({ blocked, onVoice, onMap }: { blocked: boolean; onVoice: () => vo
       >
         <Icon name="voice" size={22} color={colors.ember} />
         <AppText variant="title" color={colors.ember}>
-          {blocked ? 'Une course est déjà en cours' : 'Commander par la voix'}
+          {blocked ? t('rider.hero.blocked') : t('rider.hero.voice')}
         </AppText>
       </PressableScale>
 
@@ -366,7 +362,7 @@ function Hero({ blocked, onVoice, onMap }: { blocked: boolean; onVoice: () => vo
         }}
       >
         <Icon name="map" size={19} color={colors.white} />
-        <AppText variant="bodyStrong" color={colors.white}>Choisir sur la carte</AppText>
+        <AppText variant="bodyStrong" color={colors.white}>{t('rider.hero.map')}</AppText>
       </PressableScale>
     </LinearGradient>
   );
@@ -393,6 +389,7 @@ function BecomeCaptainCard({
 }: {
   loading: boolean; application: ApplicationDto | null; onPress: () => void;
 }) {
+  const { t } = useTranslation();
   if (loading) {
     return (
       <View style={{ alignItems: 'center', padding: spacing.base }}>
@@ -402,7 +399,10 @@ function BecomeCaptainCard({
   }
 
   const status: ApplicationStatus | null = application?.status ?? null;
-  const { title, subtitle, cta } = describe(status);
+  const key = describeKey(status);
+  const title = t(`becomeCaptain.status.${key}.title`, { app: APP_NAME });
+  const subtitle = t(`becomeCaptain.status.${key}.subtitle`);
+  const cta = t(`becomeCaptain.status.${key}.cta`);
 
   return (
     <Card onPress={onPress} background={colors.espresso} elevation="raised" padding={spacing.xl}>
@@ -414,7 +414,7 @@ function BecomeCaptainCard({
           <Icon name="captain" size={30} color={colors.saffron} />
         </View>
         <View style={{ flex: 1 }}>
-          <AppText variant="overline" color={colors.saffron}>Devenir chauffeur</AppText>
+          <AppText variant="overline" color={colors.saffron}>{t('becomeCaptain.overline')}</AppText>
           <AppText variant="h2" color={colors.onEspresso} style={{ marginTop: 2 }}>{title}</AppText>
         </View>
       </View>
@@ -429,40 +429,12 @@ function BecomeCaptainCard({
   );
 }
 
-function describe(status: ApplicationStatus | null): { title: string; subtitle: string; cta: string } {
-  switch (status) {
-    case null: return {
-      title: `Conduisez avec ${APP_NAME}`,
-      subtitle: 'Soumettez votre dossier (papiers + photos du véhicule) et commencez à gagner.',
-      cta: 'Commencer mon dossier',
-    };
-    case 'draft': return {
-      title: 'Dossier en cours',
-      subtitle: 'Continuez là où vous vous êtes arrêté.',
-      cta: 'Reprendre',
-    };
-    case 'needs_correction': return {
-      title: 'Corrections demandées',
-      subtitle: 'Un admin a demandé des changements sur votre dossier.',
-      cta: 'Voir les corrections',
-    };
-    case 'submitted':
-    case 'under_review': return {
-      title: 'Dossier en cours d\'examen',
-      subtitle: 'Vous serez notifié dès qu\'il est validé.',
-      cta: 'Voir l\'état',
-    };
-    case 'rejected': return {
-      title: 'Dossier refusé',
-      subtitle: 'Consultez le motif puis soumettez à nouveau si possible.',
-      cta: 'Voir le motif',
-    };
-    case 'approved': return {
-      title: 'Bienvenue chauffeur',
-      subtitle: 'Vous pouvez passer en mode chauffeur dès maintenant.',
-      cta: 'Aller au mode chauffeur',
-    };
-  }
+type StatusKey = 'none' | 'draft' | 'needs_correction' | 'submitted' | 'rejected' | 'approved';
+
+function describeKey(status: ApplicationStatus | null): StatusKey {
+  if (status === null) return 'none';
+  if (status === 'under_review') return 'submitted';
+  return status as StatusKey;
 }
 
 /* A soft breathing dot for the live-ride indicator. */

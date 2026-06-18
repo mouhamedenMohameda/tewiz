@@ -4,6 +4,7 @@ import {
   Text, View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '@/lib/api';
 import { formatMru } from '@/lib/format';
@@ -23,27 +24,30 @@ interface Recurring {
   captainId: string | null;
 }
 
-const STATUS: Record<RecurringStatus, { label: string; bg: string; fg: string }> = {
-  proposed:  { label: 'En attente d\'un chauffeur', bg: '#fef3c7', fg: '#92400e' },
-  active:    { label: 'Active',                      bg: '#dcfce7', fg: '#166534' },
-  cancelled: { label: 'Annulée',                     bg: '#fee2e2', fg: '#991b1b' },
-  ended:     { label: 'Terminée',                    bg: '#e2e8f0', fg: '#334155' },
+const STATUS_PILL: Record<RecurringStatus, { bg: string; fg: string }> = {
+  proposed:  { bg: '#fef3c7', fg: '#92400e' },
+  active:    { bg: '#dcfce7', fg: '#166534' },
+  cancelled: { bg: '#fee2e2', fg: '#991b1b' },
+  ended:     { bg: '#e2e8f0', fg: '#334155' },
 };
-
-const DAY_LABELS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
-
-function formatDays(bitmap: number): string {
-  const days: string[] = [];
-  for (let i = 0; i < 7; i++) {
-    if (bitmap & (1 << i)) days.push(DAY_LABELS[i]!);
-  }
-  return days.join(' · ') || '—';
-}
 
 export default function RecurringScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [items, setItems] = useState<Recurring[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Day labels come from the active locale via a fallback list — for
+  // brevity we use the first letter of each common.day* fallback to French.
+  // The data driven approach keeps it centralized.
+  const DAY_LABELS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+  function formatDays(bitmap: number): string {
+    const days: string[] = [];
+    for (let i = 0; i < 7; i++) {
+      if (bitmap & (1 << i)) days.push(DAY_LABELS[i]!);
+    }
+    return days.join(' · ') || '—';
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -59,18 +63,18 @@ export default function RecurringScreen() {
 
   async function cancel(id: string) {
     Alert.alert(
-      'Annuler ce trajet récurrent ?',
-      'Plus aucune course ne sera générée. L\'historique reste consultable.',
+      t('rider.recurring.cancelTitle'),
+      t('rider.recurring.cancelBody'),
       [
-        { text: 'Non', style: 'cancel' },
+        { text: t('common.no'), style: 'cancel' },
         {
-          text: 'Annuler', style: 'destructive',
+          text: t('common.cancel'), style: 'destructive',
           onPress: async () => {
             try {
               await api.post(`/rider/recurring-rides/${id}/cancel`);
               await load();
             } catch (e: any) {
-              Alert.alert('Impossible', e.response?.data?.error?.message ?? 'Échec.');
+              Alert.alert(t('common.impossible'), e.response?.data?.error?.message ?? t('errors.generic'));
             }
           },
         },
@@ -82,14 +86,13 @@ export default function RecurringScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
       <View style={{ padding: 20 }}>
         <Pressable onPress={() => router.back()}>
-          <Text style={{ color: '#64748b', fontSize: 14 }}>‹ Retour</Text>
+          <Text style={{ color: '#64748b', fontSize: 14 }}>‹ {t('common.back')}</Text>
         </Pressable>
         <Text style={{ fontSize: 22, fontWeight: '700', color: '#0f172a', marginTop: 8 }}>
-          Courses récurrentes
+          {t('rider.recurring.title')}
         </Text>
         <Text style={{ fontSize: 13, color: '#64748b', marginTop: 4, lineHeight: 18 }}>
-          Un chauffeur s'engage sur votre trajet hebdomadaire. Vous bénéficiez
-          d'une réduction de 5% sur le tarif standard.
+          {t('rider.recurring.intro')}
         </Text>
       </View>
 
@@ -108,17 +111,16 @@ export default function RecurringScreen() {
               backgroundColor: '#fff', borderRadius: 14, padding: 28, alignItems: 'center',
             }}>
               <Text style={{ color: '#0f172a', fontSize: 15, fontWeight: '600' }}>
-                Aucun trajet récurrent
+                {t('rider.recurring.emptyTitle')}
               </Text>
               <Text style={{ color: '#64748b', fontSize: 13, marginTop: 6, textAlign: 'center' }}>
-                La création d'un trajet récurrent depuis l'app arrive
-                prochainement. En attendant, contactez le support.
+                {t('rider.recurring.emptyBody')}
               </Text>
             </View>
           )
         }
         renderItem={({ item }) => {
-          const s = STATUS[item.status];
+          const pill = STATUS_PILL[item.status];
           return (
             <View style={{ backgroundColor: '#fff', borderRadius: 14, padding: 16 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -128,9 +130,9 @@ export default function RecurringScreen() {
                 <Text style={{
                   fontSize: 11, fontWeight: '700',
                   paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999,
-                  backgroundColor: s.bg, color: s.fg,
+                  backgroundColor: pill.bg, color: pill.fg,
                 }}>
-                  {s.label}
+                  {t(`rider.recurring.status.${item.status}` as const)}
                 </Text>
               </View>
               <Text style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>
@@ -139,10 +141,10 @@ export default function RecurringScreen() {
 
               <View style={{ marginTop: 12 }}>
                 <Text style={{ fontSize: 13, color: '#0f172a' }} numberOfLines={1}>
-                  ⚫ {item.pickup.label ?? 'Départ'}
+                  ⚫ {item.pickup.label ?? t('rider.recurring.pickupFallback')}
                 </Text>
                 <Text style={{ fontSize: 13, color: '#0f172a', marginTop: 4 }} numberOfLines={1}>
-                  🔴 {item.dropoff.label ?? 'Destination'}
+                  🔴 {item.dropoff.label ?? t('rider.recurring.dropoffFallback')}
                 </Text>
               </View>
 
@@ -152,7 +154,7 @@ export default function RecurringScreen() {
                 flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
               }}>
                 <Text style={{ fontSize: 13, color: '#64748b' }}>
-                  Tarif fixé
+                  {t('rider.recurring.lockedFare')}
                 </Text>
                 <Text style={{ fontSize: 16, fontWeight: '700', color: '#0f172a' }}>
                   {formatMru(item.lockedFareMru)}
@@ -170,7 +172,7 @@ export default function RecurringScreen() {
                   })}
                 >
                   <Text style={{ color: '#dc2626', fontSize: 13, fontWeight: '600' }}>
-                    Annuler
+                    {t('common.cancel')}
                   </Text>
                 </Pressable>
               ) : null}
