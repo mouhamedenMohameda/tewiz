@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "migrate": "node-pg-migrate -m ../../db/migrations --envPath ../../.env --migration-file-language sql",
     "seed:admin": "tsx scripts/seed-admin.ts",
+    "seed:store-test": "tsx scripts/seed-store-test-accounts.ts",
     "clean:test-captain": "tsx scripts/clean-test-captain.ts",
     "clean:test-rider": "tsx scripts/clean-test-rider.ts"
   },
