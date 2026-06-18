@@ -26,8 +26,10 @@ const config: ExpoConfig = {
     infoPlist: {
       NSLocationWhenInUseUsageDescription:
         'Pour commander une course et — en mode chauffeur — recevoir des courses proches.',
-      NSLocationAlwaysAndWhenInUseUsageDescription:
-        'Pour suivre votre position pendant les courses.',
+      // No NSLocationAlwaysAndWhenInUseUsageDescription: the app only uses
+      // foreground location (getCurrentPositionAsync). Declaring Always
+      // without runtime usage triggers App Store rejection under
+      // guideline 5.1.1 (data collection scope).
       NSCameraUsageDescription:
         'Pour prendre les photos requises pour votre dossier de chauffeur.',
       NSPhotoLibraryUsageDescription:
@@ -73,7 +75,10 @@ const config: ExpoConfig = {
     [
       'expo-location',
       {
-        locationAlwaysAndWhenInUsePermission: `${APP_NAME} utilise votre position pour commander ou — en mode chauffeur — recevoir des courses.`,
+        // Foreground-only — see comment on NSLocationWhenInUseUsageDescription
+        // above. Switch to `locationAlwaysAndWhenInUsePermission` only if we
+        // actually start a background TaskManager for ride tracking.
+        locationWhenInUsePermission: `${APP_NAME} utilise votre position pour commander ou — en mode chauffeur — recevoir des courses.`,
       },
     ],
     [
