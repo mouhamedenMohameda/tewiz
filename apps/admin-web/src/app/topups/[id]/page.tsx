@@ -6,6 +6,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { AppShell } from '@/components/AppShell';
 import { AuthImage } from '@/components/AuthImage';
 import { api } from '@/lib/api';
+import { APP_NAME } from '@/lib/brand';
 import type { TopupListItem } from '@/lib/types';
 
 function fmtMru(khoums: number) {
@@ -74,7 +75,7 @@ export default function TopupDetailPage({ params }: { params: Promise<{ id: stri
             <div className="card p-5">
               <h2 className="font-semibold text-slate-900 mb-3">Détails</h2>
               <dl className="space-y-2 text-sm">
-                <div className="grid grid-cols-3"><dt className="text-slate-500">Code ref Tewiz</dt><dd className="col-span-2 font-mono">{data.referenceCode}</dd></div>
+                <div className="grid grid-cols-3"><dt className="text-slate-500">Code ref {APP_NAME}</dt><dd className="col-span-2 font-mono">{data.referenceCode}</dd></div>
                 <div className="grid grid-cols-3"><dt className="text-slate-500">Fournisseur</dt><dd className="col-span-2 capitalize">{data.provider}</dd></div>
                 <div className="grid grid-cols-3"><dt className="text-slate-500">Ref fournisseur</dt><dd className="col-span-2 font-mono">{data.providerRefNumber ?? '—'}</dd></div>
                 <div className="grid grid-cols-3"><dt className="text-slate-500">Montant déclaré</dt><dd className="col-span-2 font-semibold">{fmtMru(data.claimedAmountKhoums)}</dd></div>

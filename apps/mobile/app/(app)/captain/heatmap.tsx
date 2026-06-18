@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  ActivityIndicator, Pressable, Text, View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Circle, Marker, PROVIDER_DEFAULT, type Region } from 'react-native-maps';
@@ -11,6 +9,8 @@ import { usePolling } from '@/lib/usePolling';
 import {
   RoadReportButton, RoadReportMarkers, useRoadReports,
 } from '@/components/RoadReports';
+import { AppText, Icon } from '@/components/ui';
+import { colors, radius, shadow, spacing } from '@/theme';
 
 interface Cell {
   h3Index: string;
@@ -32,13 +32,14 @@ const FALLBACK_REGION: Region = {
 const CELL_RADIUS_M = 5000;
 
 /**
- * demand_score is 0..1. We bin it into 3 tiers — green/orange/red — so the
- * captain can see at a glance where the highest demand is concentrated.
+ * demand_score is 0..1. We bin it into 3 tiers on a warm heat ramp
+ * (gold → orange → red) so the captain can see at a glance where the highest
+ * demand is concentrated.
  */
 function colorFor(score: number) {
-  if (score >= 0.66) return { fill: 'rgba(220, 38, 38, 0.45)', stroke: '#dc2626' };  // red
-  if (score >= 0.33) return { fill: 'rgba(245, 158, 11, 0.40)', stroke: '#f59e0b' }; // amber
-  return                  { fill: 'rgba(16, 163, 94, 0.30)',  stroke: '#10a35e' };   // green
+  if (score >= 0.66) return { fill: 'rgba(214, 69, 47, 0.45)', stroke: '#D6452F' };  // red — very hot
+  if (score >= 0.33) return { fill: 'rgba(242, 104, 44, 0.38)', stroke: '#F2682C' }; // ember — warm
+  return                  { fill: 'rgba(246, 166, 35, 0.30)',  stroke: '#F6A623' };   // gold — mild
 }
 
 interface Cluster {
@@ -161,31 +162,35 @@ export default function HeatmapScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }} edges={['top']}>
-      <View style={{ padding: 16, paddingBottom: 8 }}>
-        <Pressable onPress={() => router.back()}>
-          <Text style={{ color: '#64748b', fontSize: 14 }}>‹ Retour</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }} edges={['top']}>
+      <View style={{
+        paddingHorizontal: spacing.base, paddingBottom: spacing.sm, paddingTop: spacing.xs,
+        flexDirection: 'row', alignItems: 'center', gap: spacing.md,
+      }}>
+        <Pressable
+          onPress={() => router.back()}
+          hitSlop={10}
+          style={{
+            width: 44, height: 44, borderRadius: radius.md,
+            backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', ...shadow.card,
+          }}
+        >
+          <Icon name="chevronBack" size={22} color={colors.ink} />
         </Pressable>
-        <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 6 }}>
-          <View>
-            <Text style={{ fontSize: 22, fontWeight: '700', color: '#0f172a' }}>
-              Zones chaudes
-            </Text>
-            <Text style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
-              Demande des 2 dernières heures
-            </Text>
-          </View>
-          <Pressable
-            onPress={() => { setLoading(true); void load(); }}
-            style={({ pressed }) => ({
-              backgroundColor: pressed ? '#e2e8f0' : '#fff',
-              borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8,
-              borderWidth: 1, borderColor: '#e2e8f0',
-            })}
-          >
-            <Text style={{ fontSize: 12, fontWeight: '600', color: '#0f172a' }}>↻</Text>
-          </Pressable>
+        <View style={{ flex: 1 }}>
+          <AppText variant="overline" color={colors.muted}>Demande · 2 dernières heures</AppText>
+          <AppText variant="h2" style={{ marginTop: 1 }}>Zones chaudes</AppText>
         </View>
+        <Pressable
+          onPress={() => { setLoading(true); void load(); }}
+          hitSlop={10}
+          style={{
+            width: 44, height: 44, borderRadius: radius.md,
+            backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', ...shadow.card,
+          }}
+        >
+          <Icon name="refresh" size={20} color={colors.ember} />
+        </Pressable>
       </View>
 
       <View style={{ flex: 1 }}>
@@ -217,7 +222,7 @@ export default function HeatmapScreen() {
               coordinate={{ latitude: c.centerLat, longitude: c.centerLng }}
               title={`#${i + 1} · ${c.rideCount} course${c.rideCount > 1 ? 's' : ''}`}
               description={c.cellCount > 1 ? `${c.cellCount} zones fusionnées` : '2 dernières heures'}
-              pinColor="#dc2626"
+              pinColor="#D6452F"
             />
           ))}
           {/* Active road reports — sand, accidents, police checkpoints, etc. */}
@@ -226,23 +231,24 @@ export default function HeatmapScreen() {
 
         {loading && cells.length === 0 ? (
           <View style={{
-            position: 'absolute', top: 16, alignSelf: 'center',
-            backgroundColor: '#0f172a', borderRadius: 999,
-            paddingHorizontal: 14, paddingVertical: 8, flexDirection: 'row', gap: 8, alignItems: 'center',
+            position: 'absolute', top: spacing.base, alignSelf: 'center',
+            backgroundColor: colors.espresso, borderRadius: radius.pill,
+            paddingHorizontal: spacing.base, paddingVertical: spacing.sm,
+            flexDirection: 'row', gap: spacing.sm, alignItems: 'center',
           }}>
-            <ActivityIndicator color="#fff" size="small" />
-            <Text style={{ color: '#fff', fontSize: 12 }}>Chargement…</Text>
+            <ActivityIndicator color={colors.saffron} size="small" />
+            <AppText variant="caption" color={colors.onEspresso}>Chargement…</AppText>
           </View>
         ) : null}
 
         {!loading && cells.length === 0 ? (
           <View style={{
-            position: 'absolute', top: 16, left: 16, right: 16,
-            backgroundColor: 'rgba(15, 23, 42, 0.9)', borderRadius: 12, padding: 12,
+            position: 'absolute', top: spacing.base, left: spacing.base, right: spacing.base,
+            backgroundColor: 'rgba(42, 26, 14, 0.92)', borderRadius: radius.md, padding: spacing.md,
           }}>
-            <Text style={{ color: '#fff', fontSize: 13, textAlign: 'center' }}>
+            <AppText variant="body" color={colors.onEspresso} align="center">
               Aucune zone chaude pour l'instant — pas assez de courses récentes.
-            </Text>
+            </AppText>
           </View>
         ) : null}
 
@@ -252,14 +258,13 @@ export default function HeatmapScreen() {
         {/* Legend */}
         {cells.length > 0 ? (
           <View style={{
-            position: 'absolute', bottom: 12, left: 12,
-            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-            borderRadius: 12, padding: 10, gap: 6,
-            shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 6, shadowOffset: { width: 0, height: 2 },
+            position: 'absolute', bottom: spacing.md, left: spacing.md,
+            backgroundColor: 'rgba(255, 252, 246, 0.96)',
+            borderRadius: radius.md, padding: spacing.sm + 2, gap: 6, ...shadow.card,
           }}>
-            <LegendRow color="#dc2626" label="Très forte" />
-            <LegendRow color="#f59e0b" label="Moyenne" />
-            <LegendRow color="#10a35e" label="Faible" />
+            <LegendRow color="#D6452F" label="Très forte" />
+            <LegendRow color="#F2682C" label="Moyenne" />
+            <LegendRow color="#F6A623" label="Faible" />
           </View>
         ) : null}
       </View>
@@ -267,39 +272,37 @@ export default function HeatmapScreen() {
       {/* Top-3 list under the map for quick scanning */}
       {hottest.length > 0 ? (
         <View style={{
-          backgroundColor: '#fff',
-          borderTopWidth: 1, borderTopColor: '#e2e8f0',
-          padding: 14, gap: 8,
+          backgroundColor: colors.surface,
+          borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl,
+          paddingHorizontal: spacing.base, paddingTop: spacing.base, paddingBottom: spacing.sm,
+          ...shadow.raised,
         }}>
-          <Text style={{ fontSize: 11, fontWeight: '700', color: '#64748b', letterSpacing: 0.5 }}>
-            TOP 3
-          </Text>
+          <AppText variant="overline" color={colors.muted} style={{ marginBottom: spacing.xs }}>Top 3</AppText>
           {hottest.map((c, i) => (
             <Pressable
               key={`top-list-${i}`}
               onPress={() => flyToCluster(c)}
               style={({ pressed }) => ({
-                flexDirection: 'row', alignItems: 'center', gap: 12,
-                paddingVertical: 8,
-                opacity: pressed ? 0.6 : 1,
+                flexDirection: 'row', alignItems: 'center', gap: spacing.md,
+                paddingVertical: spacing.sm, opacity: pressed ? 0.6 : 1,
               })}
             >
               <View style={{
-                width: 28, height: 28, borderRadius: 14,
+                width: 30, height: 30, borderRadius: 15,
                 backgroundColor: colorFor(c.score).stroke,
                 alignItems: 'center', justifyContent: 'center',
               }}>
-                <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>{i + 1}</Text>
+                <AppText variant="label" color={colors.white}>{i + 1}</AppText>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 14, fontWeight: '600', color: '#0f172a' }}>
+                <AppText variant="bodyStrong">
                   {c.rideCount} course{c.rideCount > 1 ? 's' : ''} demandée{c.rideCount > 1 ? 's' : ''}
-                </Text>
-                <Text style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>
+                </AppText>
+                <AppText variant="caption" color={colors.muted} style={{ marginTop: 1 }}>
                   {c.cellCount > 1 ? `${c.cellCount} zones · ` : ''}Sur 2h · {c.centerLat.toFixed(4)}, {c.centerLng.toFixed(4)}
-                </Text>
+                </AppText>
               </View>
-              <Text style={{ color: '#94a3b8', fontSize: 18 }}>›</Text>
+              <Icon name="chevron" size={20} color={colors.faint} />
             </Pressable>
           ))}
         </View>
@@ -312,7 +315,7 @@ function LegendRow({ color, label }: { color: string; label: string }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
       <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: color }} />
-      <Text style={{ fontSize: 11, color: '#475569' }}>{label}</Text>
+      <AppText variant="caption" color={colors.ink2}>{label}</AppText>
     </View>
   );
 }

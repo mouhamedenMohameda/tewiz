@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '@/lib/api';
 import { formatMru } from '@/lib/format';
 import { usePolling } from '@/lib/usePolling';
+import { APP_NAME } from '@/lib/brand';
 
 type RideStatus =
   | 'pending_passenger_confirm' | 'searching'
@@ -349,7 +350,7 @@ function StatusBanner({ status }: { status: RideStatus }) {
     accepted:     { bg: '#dcfce7', fg: '#166534', title: 'Chauffeur en route', sub: 'Il arrive vers vous.' },
     arrived:      { bg: '#dcfce7', fg: '#166534', title: 'Chauffeur arrivé', sub: 'Communiquez-lui le code pour démarrer.' },
     in_progress:  { bg: '#e0e7ff', fg: '#3730a3', title: 'Course en cours', sub: 'Bon voyage.' },
-    completed:    { bg: '#dcfce7', fg: '#166534', title: 'Course terminée', sub: 'Merci d\'avoir voyagé avec Tewiz.' },
+    completed:    { bg: '#dcfce7', fg: '#166534', title: 'Course terminée', sub: `Merci d'avoir voyagé avec ${APP_NAME}.` },
     cancelled_by_rider:   { bg: '#fee2e2', fg: '#991b1b', title: 'Annulée par vous', sub: '' },
     cancelled_by_captain: { bg: '#fee2e2', fg: '#991b1b', title: 'Annulée par le chauffeur', sub: '' },
     cancelled_by_system:  { bg: '#fee2e2', fg: '#991b1b', title: 'Annulée', sub: '' },

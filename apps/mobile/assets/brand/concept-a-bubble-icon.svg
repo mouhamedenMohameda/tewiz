@@ -1,0 +1,25 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Alo Mama app icon — A with speech bubble crossbar">
+  <defs>
+    <linearGradient id="sahara" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F6A623"/>
+      <stop offset="0.55" stop-color="#F2682C"/>
+      <stop offset="1" stop-color="#D9531B"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="1024" height="1024" rx="232" fill="url(#sahara)"/>
+  <!-- A legs -->
+  <g fill="none" stroke="#FFFCF6" stroke-width="86" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M300 760 L512 286"/>
+    <path d="M724 760 L512 286"/>
+  </g>
+  <!-- Crossbar reimagined as a speech/call bubble -->
+  <g>
+    <rect x="372" y="548" width="280" height="150" rx="58" fill="#FFFCF6"/>
+    <!-- bubble tail -->
+    <path d="M452 690 L452 760 L520 690 Z" fill="#FFFCF6"/>
+    <!-- three dots = a live call/conversation -->
+    <circle cx="455" cy="623" r="22" fill="#F2682C"/>
+    <circle cx="512" cy="623" r="22" fill="#F2682C"/>
+    <circle cx="569" cy="623" r="22" fill="#F2682C"/>
+  </g>
+</svg>

@@ -12,6 +12,7 @@ import {
   AppText, Button, Card, FadeInView, Icon, PressableScale, Screen, TextField, type IconName,
 } from '@/components/ui';
 import { colors, gradients, radius, shadow, spacing } from '@/theme';
+import { APP_NAME } from '@/lib/brand';
 import type { ApplicationDto, ApplicationStatus } from '@/lib/kyc';
 
 type RideStatus =
@@ -91,7 +92,7 @@ export default function RiderHome() {
         // in to that account instead of dead-ending on an error.
         Alert.alert(
           'Ce numéro a déjà un compte',
-          'Ce numéro est déjà associé à un compte Tewiz. Connectez-vous avec votre mot de passe pour le récupérer.',
+          `Ce numéro est déjà associé à un compte ${APP_NAME}. Connectez-vous avec votre mot de passe pour le récupérer.`,
           [
             { text: 'Annuler', style: 'cancel' },
             {
@@ -436,7 +437,7 @@ function BecomeCaptainCard({
 function describe(status: ApplicationStatus | null): { title: string; subtitle: string; cta: string } {
   switch (status) {
     case null: return {
-      title: 'Conduisez avec Tewiz',
+      title: `Conduisez avec ${APP_NAME}`,
       subtitle: 'Soumettez votre dossier (papiers + photos du véhicule) et commencez à gagner.',
       cta: 'Commencer mon dossier',
     };
