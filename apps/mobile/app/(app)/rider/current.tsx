@@ -31,8 +31,8 @@ interface Ride {
   rideType: 'passenger' | 'colis';
   pickup: { lat: number; lng: number; label: string | null };
   dropoff: { lat: number; lng: number; label: string | null };
-  fareEstimateKhoums: number | null;
-  fareFinalKhoums: number | null;
+  fareEstimateMru: number | null;
+  fareFinalMru: number | null;
   paymentMethod: 'cash' | 'wallet';
   verificationCode?: string;
   captain: Captain | null;
@@ -457,7 +457,7 @@ function TripCard({ ride }: { ride: Ride }) {
         <View>
           <Text style={{ fontSize: 12, color: '#64748b' }}>Tarif</Text>
           <Text style={{ fontSize: 16, fontWeight: '700', color: '#0f172a' }}>
-            {formatMru(ride.fareFinalKhoums ?? ride.fareEstimateKhoums ?? 0)}
+            {formatMru(ride.fareFinalMru ?? ride.fareEstimateMru ?? 0)}
           </Text>
         </View>
         <View>

@@ -16,7 +16,7 @@ interface Recurring {
   dropoff: { lat: number; lng: number; label: string | null };
   daysOfWeek: number; // bitmap Mon=1..Sun=64
   timeOfDay: string; // HH:MM
-  lockedFareKhoums: number;
+  lockedFareMru: number;
   status: RecurringStatus;
   validFrom: string;
   validUntil: string | null;
@@ -155,7 +155,7 @@ export default function RecurringScreen() {
                   Tarif fixé
                 </Text>
                 <Text style={{ fontSize: 16, fontWeight: '700', color: '#0f172a' }}>
-                  {formatMru(item.lockedFareKhoums)}
+                  {formatMru(item.lockedFareMru)}
                 </Text>
               </View>
 

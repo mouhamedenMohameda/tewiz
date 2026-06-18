@@ -33,11 +33,11 @@ captainWalletRouter.get('/transactions', async (req, res) => {
 
 /**
  * POST /captain/wallet/topups
- * Multipart: file (screenshot), provider, claimedAmountKhoums, providerRefNumber?
+ * Multipart: file (screenshot), provider, claimedAmountMru, providerRefNumber?
  */
 const createTopupBody = z.object({
   provider: z.enum(['bankily', 'masrivi', 'sedad', 'cash_office']),
-  claimedAmountKhoums: z.coerce.number().int().min(1).max(10_000_000),
+  claimedAmountMru: z.coerce.number().int().min(1).max(10_000_000),
   providerRefNumber: z.string().min(2).max(100).optional(),
 });
 
@@ -48,7 +48,7 @@ captainWalletRouter.post('/topups', upload.single('file'), async (req, res) => {
   const t = await topupSvc.createTopup({
     captainId: userId,
     provider: body.provider,
-    claimedAmountKhoums: body.claimedAmountKhoums,
+    claimedAmountMru: body.claimedAmountMru,
     providerRefNumber: body.providerRefNumber ?? null,
     screenshot: { buffer: req.file.buffer, mimeType: req.file.mimetype },
   });

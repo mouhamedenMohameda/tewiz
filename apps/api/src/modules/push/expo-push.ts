@@ -68,7 +68,7 @@ export async function sendPush(message: PushMessage): Promise<void> {
  */
 export async function notifyCaptainsNewRide(
   captainUserIds: string[],
-  ride: { id: string; rideType: 'passenger' | 'colis'; fareEstimateKhoums: number | null },
+  ride: { id: string; rideType: 'passenger' | 'colis'; fareEstimateMru: number | null },
 ): Promise<void> {
   const tokens = await getPushTokensForUsers(captainUserIds);
   if (tokens.length === 0) return;
@@ -77,8 +77,8 @@ export async function notifyCaptainsNewRide(
   // (Android: notification channel; iOS: a sound file in the app bundle).
   // In Expo Go, the default system sound plays — that's acceptable for dev.
   const title = ride.rideType === 'colis' ? '📦 Nouveau colis' : '🚖 Nouvelle course';
-  const body = ride.fareEstimateKhoums
-    ? `Tarif estimé : ${(ride.fareEstimateKhoums / 5).toFixed(0)} MRU — accepter avant qu'un autre chauffeur ne prenne.`
+  const body = ride.fareEstimateMru
+    ? `Tarif estimé : ${ride.fareEstimateMru} MRU — accepter avant qu'un autre chauffeur ne prenne.`
     : 'Une nouvelle course est disponible près de vous.';
 
   // Expo accepts up to 100 tokens per request; chunk to stay safe.

@@ -15,8 +15,8 @@ const STATUSES: { value: TopupStatus; label: string }[] = [
   { value: 'rejected', label: 'Refusés' },
 ];
 
-function fmtMru(khoums: number) {
-  return `${(khoums / 5).toLocaleString('fr-FR', { maximumFractionDigits: 0 })} MRU`;
+function fmtMru(mru: number) {
+  return `${Math.round(mru).toLocaleString('fr-FR')} MRU`;
 }
 
 export default function TopupsPage() {
@@ -81,7 +81,7 @@ export default function TopupsPage() {
                     <td className="px-4 py-3 capitalize">{t.provider}</td>
                     <td className="px-4 py-3 font-mono text-xs">{t.referenceCode}</td>
                     <td className="px-4 py-3 text-right font-medium">
-                      {fmtMru(t.claimedAmountKhoums)}
+                      {fmtMru(t.claimedAmountMru)}
                     </td>
                     <td className="px-4 py-3 text-slate-500">
                       {new Date(t.createdAt).toLocaleString('fr-FR')}

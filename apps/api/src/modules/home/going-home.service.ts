@@ -74,7 +74,7 @@ export async function startSession(captainId: string) {
     }
 
     const balance = await getBalance(captainId);
-    if (balance < env.MIN_BALANCE_TO_GO_ONLINE_KHOUMS) {
+    if (balance < env.MIN_BALANCE_TO_GO_ONLINE_MRU) {
       throw new HttpError(402, 'balance_too_low', 'Insufficient balance');
     }
 

@@ -19,7 +19,7 @@ interface InboxItem {
   isForOther: boolean;
   pickup: { lat: number; lng: number; label: string | null };
   dropoff: { lat: number; lng: number; label: string | null };
-  fareEstimateKhoums: number | null;
+  fareEstimateMru: number | null;
   distanceM: number | null;
   distanceToPickupM: number;
   isFavorite: boolean;
@@ -135,7 +135,7 @@ export function CaptainRideWatcher() {
         content: {
           title: ride.rideType === 'colis' ? '📦 Nouveau colis' : '🚖 Nouvelle course',
           body: `${(ride.distanceToPickupM / 1000).toFixed(1)} km — ${
-            ride.fareEstimateKhoums ? formatMru(ride.fareEstimateKhoums) : 'tarif inconnu'
+            ride.fareEstimateMru ? formatMru(ride.fareEstimateMru) : 'tarif inconnu'
           }`,
           sound: 'default',
           data: { rideId: ride.id },
@@ -325,7 +325,7 @@ export function CaptainRideWatcher() {
                   <View>
                     <Text style={{ color: '#94a3b8', fontSize: 12 }}>Tarif estimé</Text>
                     <Text style={{ color: '#fff', fontSize: 22, fontWeight: '700', marginTop: 2 }}>
-                      {alertRide.fareEstimateKhoums ? formatMru(alertRide.fareEstimateKhoums) : '—'}
+                      {alertRide.fareEstimateMru ? formatMru(alertRide.fareEstimateMru) : '—'}
                     </Text>
                   </View>
                   <View>

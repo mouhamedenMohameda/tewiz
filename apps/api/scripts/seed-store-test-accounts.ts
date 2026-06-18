@@ -144,7 +144,7 @@ async function ensureApprovedCaptain(userId: string): Promise<void> {
   //    reviewer will tap the wallet screen before topping up — so we
   //    pre-create it with a zero balance.
   await pool.query(
-    `INSERT INTO wallets (captain_id, balance_khoums)
+    `INSERT INTO wallets (captain_id, balance_mru)
      VALUES ($1, 0)
      ON CONFLICT (captain_id) DO NOTHING`,
     [userId],

@@ -20,7 +20,7 @@ import { APP_NAME } from '@/lib/brand';
 type Presence = 'offline' | 'online' | 'on_ride';
 
 interface WalletSummary {
-  balanceKhoums: number;
+  balanceMru: number;
   updatedAt: string;
 }
 
@@ -214,7 +214,7 @@ export default function CaptainHome() {
           <View style={{ flex: 1 }}>
             <AppText variant="overline" color={colors.muted}>Solde</AppText>
             <AppText variant="h1" style={{ marginTop: 1 }}>
-              {wallet ? formatMru(wallet.balanceKhoums) : '—'}
+              {wallet ? formatMru(wallet.balanceMru) : '—'}
             </AppText>
           </View>
           <Icon name="chevron" size={22} color={colors.faint} />

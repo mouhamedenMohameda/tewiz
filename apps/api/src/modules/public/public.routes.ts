@@ -26,6 +26,6 @@ publicRouter.post('/rides/:id/confirm', async (req, res) => {
     status: ride.status,
     pickup: ride.pickup,
     dropoff: ride.dropoff,
-    fareEstimateKhoums: ride.fareEstimateKhoums,
+    fareEstimateMru: ride.fareEstimateMru,
   });
 });

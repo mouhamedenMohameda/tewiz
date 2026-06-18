@@ -29,7 +29,7 @@ interface InboxItem {
   isForOther: boolean;
   pickup: { lat: number; lng: number; label: string | null };
   dropoff: { lat: number; lng: number; label: string | null };
-  fareEstimateKhoums: number | null;
+  fareEstimateMru: number | null;
   distanceM: number | null;
   distanceToPickupM: number;
   isFavorite: boolean;
@@ -49,9 +49,9 @@ interface Ride {
   isForOther: boolean;
   pickup: { lat: number; lng: number; label: string | null };
   dropoff: { lat: number; lng: number; label: string | null };
-  fareEstimateKhoums: number | null;
-  fareFinalKhoums: number | null;
-  commissionKhoums: number | null;
+  fareEstimateMru: number | null;
+  fareFinalMru: number | null;
+  commissionMru: number | null;
   paymentMethod: 'cash' | 'wallet';
 }
 
@@ -160,7 +160,7 @@ function InboxList({ items, onAccepted }: { items: InboxItem[]; onAccepted: () =
 
                 <View style={{ marginTop: spacing.base, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <AppText variant="h2">
-                    {it.fareEstimateKhoums ? formatMru(it.fareEstimateKhoums) : '—'}
+                    {it.fareEstimateMru ? formatMru(it.fareEstimateMru) : '—'}
                   </AppText>
                   <Button
                     title="Accepter"
@@ -293,7 +293,7 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
           <View>
             <AppText variant="caption" color={colors.onEspressoMuted}>Tarif estimé</AppText>
             <AppText variant="h2" color={colors.onEspresso} style={{ marginTop: 2 }}>
-              {ride.fareEstimateKhoums ? formatMru(ride.fareEstimateKhoums) : '—'}
+              {ride.fareEstimateMru ? formatMru(ride.fareEstimateMru) : '—'}
             </AppText>
           </View>
           <View>

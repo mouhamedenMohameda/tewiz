@@ -17,7 +17,7 @@ interface Recurring {
   daysOfWeek: number; // bitmap, bit 0 = Mon
   timeOfDay: string;  // HH:MM:SS
   timezone: string;
-  lockedFareKhoums: number;
+  lockedFareMru: number;
   status: RecurringStatus;
   validFrom: string;
   validUntil: string | null;
@@ -148,7 +148,7 @@ function Row({ item, children }: { item: Recurring; children: React.ReactNode })
         flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
       }}>
         <AppText variant="caption" color={colors.ink2}>Tarif verrouillé</AppText>
-        <AppText variant="title">{formatMru(item.lockedFareKhoums)}</AppText>
+        <AppText variant="title">{formatMru(item.lockedFareMru)}</AppText>
       </View>
     </Card>
   );
