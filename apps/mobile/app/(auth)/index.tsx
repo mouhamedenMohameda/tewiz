@@ -12,7 +12,7 @@
  */
 
 import { useState } from 'react';
-import { Alert, Dimensions, View } from 'react-native';
+import { Alert, Dimensions, Image, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -72,16 +72,13 @@ export default function AuthWelcome() {
         <View style={{ flex: 1, paddingHorizontal: spacing.xl, justifyContent: 'space-between' }}>
           {/* Brand */}
           <FadeInView delay={80} style={{ alignItems: 'center', marginTop: SCREEN_H * 0.12 }}>
-            <View
+            <Image
+              source={require('@/assets/icon.png')}
               style={{
                 width: 104, height: 104, borderRadius: 30,
-                backgroundColor: colors.surface,
-                alignItems: 'center', justifyContent: 'center',
                 ...shadow.raised,
               }}
-            >
-              <Icon name="ride" size={52} color={colors.ember} />
-            </View>
+            />
 
             <AppText
               variant="hero"
