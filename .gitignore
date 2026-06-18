@@ -14,3 +14,6 @@ uploads
 packages/shared-types/src/*.js
 # stray root expo config
 /app.json
+
+# Local Claude Code settings
+.claude/

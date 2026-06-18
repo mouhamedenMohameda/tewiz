@@ -9,6 +9,7 @@
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { colors } from '@/theme';
 
 export default function LegacyCodeScreen() {
   const router = useRouter();
@@ -16,8 +17,8 @@ export default function LegacyCodeScreen() {
     router.replace('/(auth)/phone');
   }, [router]);
   return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' }}>
-      <ActivityIndicator />
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.canvas }}>
+      <ActivityIndicator color={colors.ember} />
     </View>
   );
 }

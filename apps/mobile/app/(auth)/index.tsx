@@ -19,6 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { loginAsGuest } from '@/lib/guest';
 import { colors, gradients, radius, shadow, spacing } from '@/theme';
 import { AppText, Button, FadeInView, Icon } from '@/components/ui';
+import { APP_NAME } from '@/lib/brand';
 
 const { height: SCREEN_H } = Dimensions.get('window');
 
@@ -87,7 +88,7 @@ export default function AuthWelcome() {
               color={colors.white}
               style={{ marginTop: spacing.lg, fontSize: 46, letterSpacing: -1.2 }}
             >
-              Tewiz
+              {APP_NAME}
             </AppText>
             <AppText
               variant="title"

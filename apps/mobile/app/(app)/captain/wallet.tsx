@@ -1,13 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator, Alert, Modal, Pressable, RefreshControl,
-  ScrollView, Text, TextInput, View,
+  ActivityIndicator, Alert, Modal, Pressable, ScrollView, View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { api } from '@/lib/api';
 import { formatMru } from '@/lib/format';
+import {
+  AppText, Button, Card, Icon, Screen, ScreenHeader, TextField,
+} from '@/components/ui';
+import { colors, gradients, radius, spacing } from '@/theme';
+import { APP_NAME } from '@/lib/brand';
 
 type Provider = 'bankily' | 'masrivi' | 'sedad' | 'cash_office';
 type TopupStatus = 'pending' | 'approved' | 'partial' | 'rejected' | 'duplicate';
@@ -43,7 +48,7 @@ const PROVIDER_LABELS: Record<Provider, string> = {
   bankily: 'Bankily',
   masrivi: 'Masrivi',
   sedad: 'Sedad',
-  cash_office: 'Bureau Tewiz',
+  cash_office: `Bureau ${APP_NAME}`,
 };
 
 export default function WalletScreen() {
@@ -69,117 +74,91 @@ export default function WalletScreen() {
   useEffect(() => { load(); }, [load]);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
-      <ScrollView
-        contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
+    <Screen scroll onRefresh={load} refreshing={loading}>
+      <ScreenHeader title="Portefeuille" onBack={() => router.back()} />
+
+      {/* Balance hero */}
+      <LinearGradient
+        colors={gradients.ember}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ borderRadius: radius.xxl, padding: spacing.xl }}
       >
-        <Pressable onPress={() => router.back()}>
-          <Text style={{ color: '#64748b', fontSize: 14 }}>‹ Retour</Text>
-        </Pressable>
+        <AppText variant="overline" color="#FFF1DD">Solde wallet</AppText>
+        <AppText variant="hero" color={colors.white} style={{ marginTop: spacing.xs, fontSize: 36 }}>
+          {summary ? formatMru(summary.balanceKhoums) : '—'}
+        </AppText>
+        <AppText variant="caption" color="#FFF1DD" style={{ marginTop: spacing.sm, opacity: 0.95 }}>
+          La commission 7 % (10 % colis) est débitée à la fin de chaque course.
+        </AppText>
+      </LinearGradient>
 
-        <View style={{
-          marginTop: 16, backgroundColor: '#10a35e', borderRadius: 16, padding: 20,
-        }}>
-          <Text style={{ fontSize: 13, color: '#dcfce7' }}>Solde wallet</Text>
-          <Text style={{ fontSize: 34, fontWeight: '700', color: '#fff', marginTop: 4 }}>
-            {summary ? formatMru(summary.balanceKhoums) : '—'}
-          </Text>
-          <Text style={{ fontSize: 12, color: '#bbf7d0', marginTop: 6 }}>
-            La commission 7% (10% colis) est débitée à la fin de chaque course.
-          </Text>
-        </View>
+      <Button
+        title="Envoyer une capture de recharge"
+        variant="dark"
+        icon="document"
+        onPress={() => setTopupModal(true)}
+        style={{ marginTop: spacing.base }}
+      />
 
-        <Pressable
-          onPress={() => setTopupModal(true)}
-          style={({ pressed }) => ({
-            marginTop: 16, padding: 14, borderRadius: 12,
-            backgroundColor: pressed ? '#0a1e6f' : '#0f172a',
-            alignItems: 'center',
-          })}
-        >
-          <Text style={{ color: '#fff', fontSize: 15, fontWeight: '600' }}>
-            Envoyer une capture de recharge
-          </Text>
-        </Pressable>
+      <AppText variant="overline" color={colors.muted} style={{ marginTop: spacing.xxl, marginBottom: spacing.sm }}>
+        Recharges
+      </AppText>
+      {topups.length === 0 ? (
+        <EmptyHint text="Aucune recharge envoyée." />
+      ) : (
+        <View style={{ gap: spacing.sm }}>{topups.map((t) => <TopupRow key={t.id} t={t} />)}</View>
+      )}
 
-        <SectionTitle>Recharges</SectionTitle>
-        {topups.length === 0 ? (
-          <EmptyHint text="Aucune recharge envoyée." />
-        ) : (
-          topups.map((t) => <TopupRow key={t.id} t={t} />)
-        )}
-
-        <SectionTitle>Mouvements récents</SectionTitle>
-        {(summary?.transactions ?? []).length === 0 ? (
-          <EmptyHint text="Aucun mouvement." />
-        ) : (
-          summary!.transactions.map((tx) => <TxRow key={tx.id} tx={tx} />)
-        )}
-      </ScrollView>
+      <AppText variant="overline" color={colors.muted} style={{ marginTop: spacing.xxl, marginBottom: spacing.sm }}>
+        Mouvements récents
+      </AppText>
+      {(summary?.transactions ?? []).length === 0 ? (
+        <EmptyHint text="Aucun mouvement." />
+      ) : (
+        <View style={{ gap: spacing.sm }}>{summary!.transactions.map((tx) => <TxRow key={tx.id} tx={tx} />)}</View>
+      )}
 
       <TopupModal
         visible={topupModal}
         onClose={() => setTopupModal(false)}
         onCreated={async () => { setTopupModal(false); await load(); }}
       />
-    </SafeAreaView>
-  );
-}
-
-function SectionTitle({ children }: { children: string }) {
-  return (
-    <Text style={{ marginTop: 24, fontSize: 13, fontWeight: '700', color: '#64748b', letterSpacing: 0.5 }}>
-      {children.toUpperCase()}
-    </Text>
+    </Screen>
   );
 }
 
 function EmptyHint({ text }: { text: string }) {
-  return (
-    <Text style={{ marginTop: 12, fontSize: 13, color: '#94a3b8' }}>{text}</Text>
-  );
+  return <AppText variant="body" color={colors.muted} style={{ marginTop: spacing.xs }}>{text}</AppText>;
 }
 
+const PILL: Record<TopupStatus, { bg: string; fg: string }> = {
+  pending:   { bg: colors.saffronSoft, fg: '#9A6711' },
+  approved:  { bg: colors.successSoft, fg: colors.success },
+  partial:   { bg: '#FBEFCB', fg: '#9A6711' },
+  rejected:  { bg: colors.dangerSoft, fg: colors.danger },
+  duplicate: { bg: colors.surfaceAlt, fg: colors.muted },
+};
+
 function TopupRow({ t }: { t: Topup }) {
-  const statusColor: Record<TopupStatus, string> = {
-    pending: '#92400e',
-    approved: '#15803d',
-    partial: '#854d0e',
-    rejected: '#b91c1c',
-    duplicate: '#475569',
-  };
-  const statusBg: Record<TopupStatus, string> = {
-    pending: '#fef3c7',
-    approved: '#dcfce7',
-    partial: '#fef9c3',
-    rejected: '#fee2e2',
-    duplicate: '#e2e8f0',
-  };
+  const pill = PILL[t.status];
   return (
-    <View style={{
-      marginTop: 8, backgroundColor: '#fff', borderRadius: 12, padding: 12,
-      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    }}>
+    <Card padding={spacing.md} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
       <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 14, fontWeight: '600', color: '#0f172a' }}>
+        <AppText variant="bodyStrong">
           {PROVIDER_LABELS[t.provider]} · {formatMru(t.claimedAmountKhoums)}
-        </Text>
-        <Text style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+        </AppText>
+        <AppText variant="caption" color={colors.muted} style={{ marginTop: 2 }}>
           Réf #{t.referenceCode} · {new Date(t.createdAt).toLocaleDateString('fr-FR')}
-        </Text>
+        </AppText>
         {t.rejectReason ? (
-          <Text style={{ fontSize: 11, color: '#b91c1c', marginTop: 2 }}>{t.rejectReason}</Text>
+          <AppText variant="caption" color={colors.danger} style={{ marginTop: 2 }}>{t.rejectReason}</AppText>
         ) : null}
       </View>
-      <View style={{
-        backgroundColor: statusBg[t.status], paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8,
-      }}>
-        <Text style={{ fontSize: 11, fontWeight: '700', color: statusColor[t.status] }}>
-          {t.status.toUpperCase()}
-        </Text>
+      <View style={{ backgroundColor: pill.bg, paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.sm }}>
+        <AppText variant="overline" color={pill.fg} style={{ letterSpacing: 0.6 }}>{t.status}</AppText>
       </View>
-    </View>
+    </Card>
   );
 }
 
@@ -193,26 +172,18 @@ function TxRow({ tx }: { tx: Tx }) {
     bonus: 'Bonus',
   };
   return (
-    <View style={{
-      marginTop: 8, backgroundColor: '#fff', borderRadius: 12, padding: 12,
-      flexDirection: 'row', justifyContent: 'space-between',
-    }}>
+    <Card padding={spacing.md} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
       <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 14, fontWeight: '600', color: '#0f172a' }}>
-          {labels[tx.type]}
-        </Text>
-        <Text style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+        <AppText variant="bodyStrong">{labels[tx.type]}</AppText>
+        <AppText variant="caption" color={colors.muted} style={{ marginTop: 2 }}>
           {new Date(tx.createdAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}
           {tx.reason ? ` · ${tx.reason}` : ''}
-        </Text>
+        </AppText>
       </View>
-      <Text style={{
-        fontSize: 14, fontWeight: '700',
-        color: positive ? '#15803d' : '#b91c1c',
-      }}>
+      <AppText variant="title" color={positive ? colors.success : colors.danger}>
         {positive ? '+' : ''}{formatMru(tx.amountKhoums)}
-      </Text>
-    </View>
+      </AppText>
+    </Card>
   );
 }
 
@@ -283,98 +254,86 @@ function TopupModal({
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
-        <ScrollView contentContainerStyle={{ padding: 20 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={{ fontSize: 22, fontWeight: '700', color: '#0f172a' }}>
-              Nouvelle recharge
-            </Text>
-            <Pressable onPress={onClose}><Text style={{ color: '#64748b', fontSize: 15 }}>Fermer</Text></Pressable>
-          </View>
-
-          <Text style={{ marginTop: 16, fontSize: 13, color: '#64748b', lineHeight: 18 }}>
-            Effectuez le virement sur le numéro Tewiz, puis joignez la capture pour validation.
-          </Text>
-
-          <Text style={{ marginTop: 20, fontSize: 13, fontWeight: '600', color: '#475569' }}>
-            Fournisseur
-          </Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
-            {(Object.keys(PROVIDER_LABELS) as Provider[]).map((p) => (
-              <Pressable
-                key={p}
-                onPress={() => setProvider(p)}
-                style={({ pressed }) => ({
-                  paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999,
-                  backgroundColor: provider === p ? '#0f172a' : (pressed ? '#e2e8f0' : '#fff'),
-                  borderWidth: 1, borderColor: provider === p ? '#0f172a' : '#e2e8f0',
-                })}
-              >
-                <Text style={{
-                  color: provider === p ? '#fff' : '#0f172a',
-                  fontSize: 13, fontWeight: '600',
-                }}>{PROVIDER_LABELS[p]}</Text>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
+        <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.huge }}>
+          <ScreenHeader
+            title="Nouvelle recharge"
+            right={
+              <Pressable onPress={onClose} hitSlop={10}>
+                <Icon name="close" size={26} color={colors.ink2} />
               </Pressable>
-            ))}
+            }
+          />
+
+          <AppText variant="body" color={colors.ink2}>
+            Effectuez le virement sur le numéro {APP_NAME}, puis joignez la capture pour validation.
+          </AppText>
+
+          <AppText variant="label" color={colors.ink2} style={{ marginTop: spacing.xl, marginBottom: spacing.sm }}>
+            Fournisseur
+          </AppText>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+            {(Object.keys(PROVIDER_LABELS) as Provider[]).map((p) => {
+              const active = provider === p;
+              return (
+                <Pressable
+                  key={p}
+                  onPress={() => setProvider(p)}
+                  style={{
+                    paddingHorizontal: 16, paddingVertical: 10, borderRadius: radius.pill,
+                    backgroundColor: active ? colors.ember : colors.surface,
+                    borderWidth: 1.5, borderColor: active ? colors.ember : colors.line,
+                  }}
+                >
+                  <AppText variant="label" color={active ? colors.onEmber : colors.ink}>
+                    {PROVIDER_LABELS[p]}
+                  </AppText>
+                </Pressable>
+              );
+            })}
           </View>
 
-          <Text style={{ marginTop: 20, fontSize: 13, fontWeight: '600', color: '#475569' }}>
-            Montant (MRU)
-          </Text>
-          <TextInput
+          <TextField
+            containerStyle={{ marginTop: spacing.xl }}
+            label="Montant (MRU)"
+            icon="cash"
             value={amountMru}
             onChangeText={(t) => setAmountMru(t.replace(/[^\d.]/g, ''))}
             keyboardType="decimal-pad"
             placeholder="1000"
-            placeholderTextColor="#94a3b8"
-            style={{
-              marginTop: 6, borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 12,
-              paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, backgroundColor: '#fff',
-            }}
           />
 
-          <Text style={{ marginTop: 20, fontSize: 13, fontWeight: '600', color: '#475569' }}>
-            N° de référence (facultatif)
-          </Text>
-          <TextInput
+          <TextField
+            containerStyle={{ marginTop: spacing.base }}
+            label="N° de référence (facultatif)"
             value={refNumber}
             onChangeText={setRefNumber}
             placeholder="TXN123456"
-            placeholderTextColor="#94a3b8"
-            style={{
-              marginTop: 6, borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 12,
-              paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, backgroundColor: '#fff',
-            }}
+            autoCapitalize="characters"
           />
 
           <Pressable
             onPress={pickPhoto}
             style={({ pressed }) => ({
-              marginTop: 20, padding: 16, borderRadius: 12,
-              borderWidth: 1, borderColor: '#cbd5e1', borderStyle: 'dashed',
-              backgroundColor: pressed ? '#f1f5f9' : '#fff', alignItems: 'center',
+              marginTop: spacing.xl, padding: spacing.lg, borderRadius: radius.lg,
+              borderWidth: 1.5, borderColor: photoUri ? colors.success : colors.lineStrong, borderStyle: 'dashed',
+              backgroundColor: photoUri ? colors.successSoft : (pressed ? colors.surfaceAlt : colors.surface),
+              alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: spacing.sm,
             })}
           >
-            <Text style={{ color: photoUri ? '#15803d' : '#475569', fontSize: 14, fontWeight: '600' }}>
-              {photoUri ? '✓ Capture jointe — toucher pour remplacer' : 'Joindre la capture d\'écran'}
-            </Text>
+            <Icon name={photoUri ? 'check' : 'document'} size={20} color={photoUri ? colors.success : colors.ink2} />
+            <AppText variant="bodyStrong" color={photoUri ? colors.success : colors.ink2}>
+              {photoUri ? 'Capture jointe — toucher pour remplacer' : 'Joindre la capture d\'écran'}
+            </AppText>
           </Pressable>
 
-          <Pressable
-            disabled={submitting}
+          <Button
+            title="Envoyer pour validation"
+            iconRight="send"
+            busy={submitting}
             onPress={submit}
-            style={({ pressed }) => ({
-              marginTop: 24, backgroundColor: pressed ? '#0f7c4a' : '#10a35e',
-              opacity: submitting ? 0.5 : 1,
-              paddingVertical: 16, borderRadius: 12, alignItems: 'center',
-              flexDirection: 'row', justifyContent: 'center', gap: 8,
-            })}
-          >
-            {submitting && <ActivityIndicator color="#fff" />}
-            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>
-              Envoyer pour validation
-            </Text>
-          </Pressable>
+            style={{ marginTop: spacing.xl }}
+          />
         </ScrollView>
       </SafeAreaView>
     </Modal>
