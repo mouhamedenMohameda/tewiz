@@ -1,3 +1,5 @@
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -73,6 +75,31 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: { code: 'rate_limited', message: 'Trop de requêtes, réessayez plus tard.' } },
 });
+
+// --- Public legal docs (privacy policy, terms) ---
+// Required by the App Store and Google Play for the store listings.
+// Served from the repo's docs/legal/ so there's a single source of truth
+// for the HTML and it's covered by the same TLS cert as the API.
+//
+// Path is resolved relative to this source file so it survives any cwd
+// (pm2 starts the process from /opt/tewiz/apps/api but tsx can be launched
+// from anywhere). `../../../docs/legal` walks src → apps/api → apps → repo root.
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const LEGAL_DIR = resolve(__dirname, '../../../docs/legal');
+app.use(
+  '/legal',
+  express.static(LEGAL_DIR, {
+    // Browsers and the App Store reviewer will follow /legal/privacy-policy
+    // (no extension); resolve those to the .html file.
+    extensions: ['html'],
+    // 1h cache is enough — these docs change rarely but we want updates to
+    // propagate within a working session, not stay pinned for a day.
+    maxAge: '1h',
+    // Force a 404 (handled below) instead of falling through to the SPA
+    // notFound handler if someone probes /legal/secret.env.
+    fallthrough: false,
+  }),
+);
 
 app.use(healthRouter);
 app.use('/dev', devRouter);
