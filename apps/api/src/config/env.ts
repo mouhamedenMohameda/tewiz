@@ -63,6 +63,11 @@ const EnvSchema = z.object({
   // never see). Defaults assume both apps run on the same host.
   VOICE_API_INTERNAL_URL: z.string().url().default('http://127.0.0.1:4100'),
   VOICE_API_KEY: z.string().min(10).optional(),
+
+  // Comma-separated browser origins allowed by CORS (e.g. the admin-web URL).
+  // When empty, CORS stays open but logs a startup warning — set this in
+  // production to lock the API down to known origins.
+  CORS_ORIGINS: z.string().default(''),
 });
 
 export const env = EnvSchema.parse(process.env);

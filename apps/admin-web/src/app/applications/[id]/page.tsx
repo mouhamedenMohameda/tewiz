@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AppShell } from '@/components/AppShell';
 import { AuthImage } from '@/components/AuthImage';
 import { api } from '@/lib/api';
+import { APP_NAME } from '@/lib/brand';
 import { DOCUMENT_LABELS, DOCUMENT_TYPES, type ApplicationDetail, type DocumentType } from '@/lib/types';
 import clsx from 'clsx';
 
@@ -307,7 +308,7 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
             <div className="flex justify-end gap-2">
               <a
                 href={`https://wa.me/${app.phone.replace(/[^\d]/g, '')}?text=${encodeURIComponent(
-                  `Bonjour ${app.full_name ?? ''}, votre compte chauffeur Tewiz est validé. Mot de passe : ${captainPassword}`,
+                  `Bonjour ${app.full_name ?? ''}, votre compte chauffeur ${APP_NAME} est validé. Mot de passe : ${captainPassword}`,
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"

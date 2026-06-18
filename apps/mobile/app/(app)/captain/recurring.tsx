@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import {
-  ActivityIndicator, Alert, Pressable, RefreshControl,
-  ScrollView, Text, View,
-} from 'react-native';
+import { ActivityIndicator, Alert, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '@/lib/api';
 import { formatMru } from '@/lib/format';
+import { AppText, Button, Card, Icon, Screen, ScreenHeader } from '@/components/ui';
+import { colors, radius, spacing } from '@/theme';
 
 type RecurringStatus = 'proposed' | 'active' | 'paused' | 'cancelled' | 'expired';
 
@@ -65,113 +63,93 @@ export default function RecurringScreen() {
   const mine = items.filter((i) => i.status === 'active');
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
-      <ScrollView
-        contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
-      >
-        <Pressable onPress={() => router.back()}>
-          <Text style={{ color: '#64748b', fontSize: 14 }}>‹ Retour</Text>
-        </Pressable>
-        <Text style={{ fontSize: 24, fontWeight: '700', color: '#0f172a', marginTop: 12 }}>
-          Courses récurrentes
-        </Text>
-        <Text style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>
-          Des passagers proposent des trajets réguliers. Acceptez-en un et le tarif est verrouillé.
-        </Text>
+    <Screen scroll onRefresh={load} refreshing={loading}>
+      <ScreenHeader title="Courses récurrentes" onBack={() => router.back()} />
+      <AppText variant="body" color={colors.ink2}>
+        Des passagers proposent des trajets réguliers. Acceptez-en un et le tarif est verrouillé.
+      </AppText>
 
-        <Section title="Mes engagements">
-          {mine.length === 0 ? (
-            <Empty text="Aucun trajet récurrent actif." />
-          ) : mine.map((it) => (
-            <Row key={it.id} item={it}>
-              <Pill bg="#dcfce7" fg="#166534" label="LOCKÉ" />
-            </Row>
-          ))}
-        </Section>
+      <Section title="Mes engagements">
+        {mine.length === 0 ? (
+          <Empty text="Aucun trajet récurrent actif." />
+        ) : mine.map((it) => (
+          <Row key={it.id} item={it}>
+            <View style={{
+              flexDirection: 'row', alignItems: 'center', gap: 4,
+              backgroundColor: colors.successSoft, paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill,
+            }}>
+              <Icon name="checkSmall" size={13} color={colors.success} />
+              <AppText variant="overline" color={colors.success}>Locké</AppText>
+            </View>
+          </Row>
+        ))}
+      </Section>
 
-        <Section title="Propositions">
-          {loading && proposed.length === 0 ? (
-            <View style={{ marginTop: 12, alignItems: 'center' }}><ActivityIndicator /></View>
-          ) : proposed.length === 0 ? (
-            <Empty text="Aucune proposition pour le moment." />
-          ) : proposed.map((it) => (
-            <Row key={it.id} item={it}>
-              <Pressable
-                disabled={accepting === it.id}
-                onPress={() => accept(it.id)}
-                style={({ pressed }) => ({
-                  backgroundColor: pressed ? '#0f7c4a' : '#10a35e',
-                  paddingHorizontal: 18, paddingVertical: 10, borderRadius: 10,
-                  flexDirection: 'row', alignItems: 'center', gap: 6,
-                  opacity: accepting === it.id ? 0.5 : 1,
-                })}
-              >
-                {accepting === it.id && <ActivityIndicator color="#fff" size="small" />}
-                <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>Accepter</Text>
-              </Pressable>
-            </Row>
-          ))}
-        </Section>
-      </ScrollView>
-    </SafeAreaView>
+      <Section title="Propositions">
+        {loading && proposed.length === 0 ? (
+          <View style={{ marginTop: spacing.md, alignItems: 'center' }}><ActivityIndicator color={colors.ember} /></View>
+        ) : proposed.length === 0 ? (
+          <Empty text="Aucune proposition pour le moment." />
+        ) : proposed.map((it) => (
+          <Row key={it.id} item={it}>
+            <Button
+              title="Accepter"
+              size="sm"
+              fullWidth={false}
+              busy={accepting === it.id}
+              onPress={() => accept(it.id)}
+            />
+          </Row>
+        ))}
+      </Section>
+    </Screen>
   );
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <View style={{ marginTop: 24 }}>
-      <Text style={{ fontSize: 13, fontWeight: '700', color: '#64748b', letterSpacing: 0.5 }}>
-        {title.toUpperCase()}
-      </Text>
+    <View style={{ marginTop: spacing.xxl }}>
+      <AppText variant="overline" color={colors.muted} style={{ marginBottom: spacing.xs }}>{title}</AppText>
       {children}
     </View>
   );
 }
 
 function Empty({ text }: { text: string }) {
-  return (
-    <Text style={{ marginTop: 12, fontSize: 13, color: '#94a3b8' }}>{text}</Text>
-  );
-}
-
-function Pill({ bg, fg, label }: { bg: string; fg: string; label: string }) {
-  return (
-    <View style={{ backgroundColor: bg, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
-      <Text style={{ color: fg, fontSize: 11, fontWeight: '700' }}>{label}</Text>
-    </View>
-  );
+  return <AppText variant="body" color={colors.muted} style={{ marginTop: spacing.sm }}>{text}</AppText>;
 }
 
 function Row({ item, children }: { item: Recurring; children: React.ReactNode }) {
   return (
-    <View style={{ marginTop: 12, backgroundColor: '#fff', borderRadius: 14, padding: 16 }}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Text style={{ fontSize: 14, fontWeight: '700', color: '#0f172a' }}>
-          {decodeDays(item.daysOfWeek)} · {item.timeOfDay.slice(0, 5)}
-        </Text>
+    <Card padding={spacing.base} style={{ marginTop: spacing.md }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+          <Icon name="calendar" size={16} color={colors.ember} />
+          <AppText variant="bodyStrong" numberOfLines={1}>
+            {decodeDays(item.daysOfWeek)} · {item.timeOfDay.slice(0, 5)}
+          </AppText>
+        </View>
         {children}
       </View>
 
-      <View style={{ marginTop: 10 }}>
-        <Text style={{ fontSize: 12, color: '#64748b' }}>De</Text>
-        <Text style={{ fontSize: 14, color: '#0f172a' }} numberOfLines={1}>
+      <View style={{ marginTop: spacing.md }}>
+        <AppText variant="caption" color={colors.muted}>De</AppText>
+        <AppText variant="body" color={colors.ink} numberOfLines={1}>
           {item.pickup.label ?? `${item.pickup.lat.toFixed(4)}, ${item.pickup.lng.toFixed(4)}`}
-        </Text>
-        <Text style={{ fontSize: 12, color: '#64748b', marginTop: 6 }}>Vers</Text>
-        <Text style={{ fontSize: 14, color: '#0f172a' }} numberOfLines={1}>
+        </AppText>
+        <AppText variant="caption" color={colors.muted} style={{ marginTop: spacing.sm }}>Vers</AppText>
+        <AppText variant="body" color={colors.ink} numberOfLines={1}>
           {item.dropoff.label ?? `${item.dropoff.lat.toFixed(4)}, ${item.dropoff.lng.toFixed(4)}`}
-        </Text>
+        </AppText>
       </View>
 
       <View style={{
-        marginTop: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+        marginTop: spacing.md, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.line,
+        flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
       }}>
-        <Text style={{ fontSize: 13, color: '#64748b' }}>Tarif verrouillé</Text>
-        <Text style={{ fontSize: 17, fontWeight: '700', color: '#0f172a' }}>
-          {formatMru(item.lockedFareKhoums)}
-        </Text>
+        <AppText variant="caption" color={colors.ink2}>Tarif verrouillé</AppText>
+        <AppText variant="title">{formatMru(item.lockedFareKhoums)}</AppText>
       </View>
-    </View>
+    </Card>
   );
 }

@@ -11,6 +11,7 @@ import {
   type ApplicationDto, type ApplicationStatus,
   DOCUMENT_ORDER, docsComplete, personalFieldsComplete, vehicleFieldsComplete,
 } from '@/lib/kyc';
+import { APP_NAME } from '@/lib/brand';
 
 export default function BecomeCaptainHome() {
   const router = useRouter();
@@ -109,7 +110,7 @@ export default function BecomeCaptainHome() {
         </View>
 
         <Text style={{ fontSize: 28, fontWeight: '700', color: '#0f172a', marginTop: 24 }}>
-          Devenir chauffeur Tewiz
+          Devenir chauffeur {APP_NAME}
         </Text>
 
         {!app
@@ -177,7 +178,7 @@ function NoApplication({ onStart, busy }: { onStart: () => void; busy: boolean }
   return (
     <View style={{ marginTop: 16 }}>
       <Text style={{ fontSize: 15, color: '#475569', lineHeight: 22 }}>
-        Pour conduire pour Tewiz, vous devez fournir vos informations personnelles,
+        Pour conduire pour {APP_NAME}, vous devez fournir vos informations personnelles,
         14 photos (NNI, permis, carte grise, assurance, vignette, visite technique,
         et photos du véhicule) et attendre la validation de l'équipe.
       </Text>
@@ -259,7 +260,7 @@ function StatusBanner({ status }: { status: ApplicationStatus }) {
     needs_correction: { bg: '#fef3c7', fg: '#92400e', label: 'Corrections demandées',
       desc: 'Refaites les documents marqués et soumettez à nouveau.' },
     approved: { bg: '#dcfce7', fg: '#166534', label: 'Approuvé',
-      desc: 'Bienvenue chez Tewiz.' },
+      desc: `Bienvenue chez ${APP_NAME}.` },
     rejected: { bg: '#fee2e2', fg: '#991b1b', label: 'Rejeté',
       desc: 'Votre dossier a été refusé.' },
   };
