@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
+import { setUser as setSentryUser } from './sentry';
 
 export interface AuthUser {
   id: string;
@@ -60,6 +61,9 @@ export const useAuth = create<AuthState>((set, get) => ({
     const activeMode = defaultMode(s.user.role);
     await persist({ ...s, activeMode });
     set({ user: s.user, accessToken: s.accessToken, refreshToken: s.refreshToken, activeMode });
+    // Tag crash reports with the signed-in user so we can correlate
+    // crashes to specific accounts on the Sentry dashboard.
+    setSentryUser({ id: s.user.id, phone: s.user.phone ?? '(no-phone)' });
   },
 
   setUser: async (u) => {
@@ -104,6 +108,7 @@ export const useAuth = create<AuthState>((set, get) => ({
   clear: async () => {
     await AsyncStorage.removeItem(KEY);
     set({ user: null, accessToken: null, refreshToken: null, activeMode: 'rider' });
+    setSentryUser(null);
   },
 
   hydrate: async () => {
@@ -119,6 +124,7 @@ export const useAuth = create<AuthState>((set, get) => ({
             activeMode: defaultMode(p.user.role, p.activeMode),
             hydrated: true,
           });
+          setSentryUser({ id: p.user.id, phone: p.user.phone ?? '(no-phone)' });
           return;
         }
       }

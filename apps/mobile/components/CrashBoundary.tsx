@@ -1,6 +1,7 @@
 import { Component, type ReactNode } from 'react';
 import { ScrollView, Text, View, StyleSheet } from 'react-native';
 import { saveCrash } from '@/lib/crash-reporter';
+import { reportError } from '@/lib/sentry';
 
 interface State {
   error: Error | null;
@@ -21,6 +22,7 @@ export class CrashBoundary extends Component<{ children: ReactNode }, State> {
 
   componentDidCatch(error: Error): void {
     void saveCrash('react', error);
+    reportError(error, { source: 'react-error-boundary' });
   }
 
   render() {
