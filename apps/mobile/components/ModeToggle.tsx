@@ -1,6 +1,8 @@
 import { useRouter } from 'expo-router';
-import { Pressable, Text, View } from 'react-native';
+import { View } from 'react-native';
 import { type ActiveMode, useAuth } from '@/lib/auth';
+import { AppText, Icon, PressableScale, type IconName } from '@/components/ui';
+import { colors, radius, shadow, spacing } from '@/theme';
 
 /**
  * Segmented switch — visible only for users whose role is `captain`.
@@ -24,37 +26,38 @@ export function ModeToggle() {
   return (
     <View style={{
       flexDirection: 'row',
-      backgroundColor: '#e2e8f0',
-      borderRadius: 999,
+      backgroundColor: colors.sunken,
+      borderRadius: radius.pill,
       padding: 4,
       gap: 4,
     }}>
-      <Segment label="Passager" active={activeMode === 'rider'} onPress={() => pick('rider')} />
-      <Segment label="Chauffeur" active={activeMode === 'captain'} onPress={() => pick('captain')} />
+      <Segment label="Passager" icon="person" active={activeMode === 'rider'} onPress={() => pick('rider')} />
+      <Segment label="Chauffeur" icon="captain" active={activeMode === 'captain'} onPress={() => pick('captain')} />
     </View>
   );
 }
 
-function Segment({ label, active, onPress }: {
-  label: string; active: boolean; onPress: () => void;
+function Segment({ label, icon, active, onPress }: {
+  label: string; icon: IconName; active: boolean; onPress: () => void;
 }) {
   return (
-    <Pressable
+    <PressableScale
       onPress={onPress}
-      style={({ pressed }) => ({
-        paddingVertical: 8,
-        paddingHorizontal: 14,
-        borderRadius: 999,
-        backgroundColor: active ? '#0f172a' : (pressed ? '#cbd5e1' : 'transparent'),
-      })}
+      scaleTo={0.97}
+      style={{
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: spacing.sm,
+        paddingVertical: 10,
+        borderRadius: radius.pill,
+        backgroundColor: active ? colors.ember : 'transparent',
+        ...(active ? shadow.ember : null),
+      }}
     >
-      <Text style={{
-        color: active ? '#fff' : '#475569',
-        fontSize: 13,
-        fontWeight: '600',
-      }}>
-        {label}
-      </Text>
-    </Pressable>
+      <Icon name={icon} size={17} color={active ? colors.onEmber : colors.muted} />
+      <AppText variant="label" color={active ? colors.onEmber : colors.ink2}>{label}</AppText>
+    </PressableScale>
   );
 }

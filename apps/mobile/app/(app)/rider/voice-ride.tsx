@@ -1,15 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert, Animated, Easing, Pressable, Text, View,
+  ActivityIndicator, Alert, Animated, Easing, Pressable, View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useVoiceRecorder } from '@/lib/useVoiceRecorder';
 import { usePolling } from '@/lib/usePolling';
 import {
   createVoiceRide, getVoiceRide, cancelVoiceRide,
   type VoiceRideRequest,
 } from '@/lib/voiceRides';
+import { AppText, Button, Icon } from '@/components/ui';
+import { colors, gradients, radius, spacing } from '@/theme';
 
 type Phase = 'record' | 'uploading' | 'waiting' | 'rejected';
 
@@ -96,17 +99,25 @@ export default function VoiceRideScreen() {
   }, []);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#0f172a' }}>
-      <View style={{ flex: 1, padding: 24 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.espresso }}>
+      <View style={{ flex: 1, paddingHorizontal: spacing.xl, paddingBottom: spacing.xl }}>
         {/* Header */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Pressable onPress={() => router.back()} hitSlop={12}>
-            <Text style={{ color: '#cbd5e1', fontSize: 15 }}>‹ Retour</Text>
+        <View style={{
+          flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+          marginTop: spacing.sm,
+        }}>
+          <Pressable
+            onPress={() => router.back()}
+            hitSlop={12}
+            style={{
+              width: 42, height: 42, borderRadius: radius.md,
+              backgroundColor: colors.espressoAlt, alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <Icon name="chevronBack" size={22} color={colors.onEspresso} />
           </Pressable>
-          <Text style={{ color: '#64748b', fontSize: 12, fontWeight: '700', letterSpacing: 1 }}>
-            COMMANDE VOCALE
-          </Text>
-          <View style={{ width: 56 }} />
+          <AppText variant="overline" color={colors.saffron}>Commande vocale</AppText>
+          <View style={{ width: 42 }} />
         </View>
 
         {phase === 'record' && (
@@ -119,7 +130,7 @@ export default function VoiceRideScreen() {
         )}
 
         {phase === 'uploading' && (
-          <CenterStatus emoji="📤" title="Envoi de votre demande…" />
+          <CenterStatus icon="send" title="Envoi de votre demande…" />
         )}
 
         {phase === 'waiting' && (
@@ -144,50 +155,69 @@ function RecordView({
   useEffect(() => {
     if (!isRecording) { pulse.setValue(0); return; }
     const loop = Animated.loop(Animated.sequence([
-      Animated.timing(pulse, { toValue: 1, duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      Animated.timing(pulse, { toValue: 0, duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      Animated.timing(pulse, { toValue: 1, duration: 1100, easing: Easing.out(Easing.ease), useNativeDriver: true }),
+      Animated.timing(pulse, { toValue: 0, duration: 0, useNativeDriver: true }),
     ]));
     loop.start();
     return () => loop.stop();
   }, [isRecording, pulse]);
-  const scale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.18] });
+
+  // Expanding "sonar" ring while recording.
+  const ringScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 2.1] });
+  const ringOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.45, 0] });
 
   const secs = Math.floor(durationMs / 1000);
   const mmss = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
 
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ color: '#fff', fontSize: 24, fontWeight: '700', textAlign: 'center' }}>
+      <AppText variant="h1" color={colors.onEspresso} align="center">
         {isRecording ? 'À l’écoute…' : 'Dites votre course'}
-      </Text>
-      <Text style={{ color: '#94a3b8', fontSize: 14, textAlign: 'center', marginTop: 10, lineHeight: 20, maxWidth: 300 }}>
+      </AppText>
+      <AppText variant="body" color={colors.onEspressoMuted} align="center" style={{ marginTop: spacing.md, maxWidth: 300 }}>
         {isRecording
           ? 'Indiquez votre point de départ et votre destination, puis appuyez pour arrêter.'
-          : 'Appuyez et dites par exemple : « De chez moi à Carrefour Madrid ». Un agent placera votre course.'}
-      </Text>
+          : 'Appuyez et dites par ex. : « De chez moi à Carrefour Madrid ». Un agent placera votre course.'}
+      </AppText>
 
-      <Animated.View style={{ marginTop: 48, transform: [{ scale }] }}>
-        <Pressable
-          onPress={onToggle}
-          style={({ pressed }) => ({
-            width: 132, height: 132, borderRadius: 66,
-            backgroundColor: isRecording ? '#dc2626' : '#10a35e',
-            alignItems: 'center', justifyContent: 'center',
-            opacity: pressed ? 0.85 : 1,
-            shadowColor: isRecording ? '#dc2626' : '#10a35e',
-            shadowOpacity: 0.5, shadowRadius: 24, shadowOffset: { width: 0, height: 0 },
-          })}
-        >
-          <Text style={{ fontSize: 52 }}>{isRecording ? '⏹' : '🎙'}</Text>
+      <View style={{ marginTop: spacing.mega, width: 160, height: 160, alignItems: 'center', justifyContent: 'center' }}>
+        {/* Sonar ring */}
+        {isRecording ? (
+          <Animated.View
+            style={{
+              position: 'absolute', width: 132, height: 132, borderRadius: 66,
+              borderWidth: 2, borderColor: colors.danger,
+              transform: [{ scale: ringScale }], opacity: ringOpacity,
+            }}
+          />
+        ) : null}
+
+        <Pressable onPress={onToggle} style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}>
+          <LinearGradient
+            colors={isRecording ? ['#E5604A', '#D6452F'] : gradients.ember}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{
+              width: 132, height: 132, borderRadius: 66,
+              alignItems: 'center', justifyContent: 'center',
+              shadowColor: isRecording ? colors.danger : colors.ember,
+              shadowOpacity: 0.55, shadowRadius: 30, shadowOffset: { width: 0, height: 0 },
+              elevation: 12,
+            }}
+          >
+            <Icon name={isRecording ? 'close' : 'voice'} size={54} color={colors.white} />
+          </LinearGradient>
         </Pressable>
-      </Animated.View>
+      </View>
 
-      <Text style={{ color: '#e2e8f0', fontSize: 18, fontWeight: '600', marginTop: 28 }}>
+      <AppText variant="h2" color={colors.onEspresso} style={{ marginTop: spacing.xl }}>
         {isRecording ? mmss : 'Appuyez pour parler'}
-      </Text>
+      </AppText>
 
       {error ? (
-        <Text style={{ color: '#fca5a5', fontSize: 13, marginTop: 16, textAlign: 'center' }}>{error}</Text>
+        <AppText variant="caption" color="#F4A99A" align="center" style={{ marginTop: spacing.base }}>
+          {error}
+        </AppText>
       ) : null}
     </View>
   );
@@ -197,13 +227,18 @@ function RecordView({
 function WaitingView({ onCancel }: { onCancel: () => void }) {
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <ActivityIndicator size="large" color="#10a35e" />
-      <Text style={{ color: '#fff', fontSize: 22, fontWeight: '700', marginTop: 28, textAlign: 'center' }}>
+      <View style={{
+        width: 92, height: 92, borderRadius: 46,
+        backgroundColor: 'rgba(246,166,35,0.14)', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <ActivityIndicator size="large" color={colors.saffron} />
+      </View>
+      <AppText variant="h1" color={colors.onEspresso} align="center" style={{ marginTop: spacing.xl }}>
         Demande envoyée
-      </Text>
-      <Text style={{ color: '#94a3b8', fontSize: 14, textAlign: 'center', marginTop: 10, lineHeight: 20, maxWidth: 300 }}>
+      </AppText>
+      <AppText variant="body" color={colors.onEspressoMuted} align="center" style={{ marginTop: spacing.md, maxWidth: 300 }}>
         Un agent écoute votre message et prépare votre course. Vous serez notifié dès qu’elle est confirmée.
-      </Text>
+      </AppText>
 
       <Pressable
         onPress={() => {
@@ -213,11 +248,11 @@ function WaitingView({ onCancel }: { onCancel: () => void }) {
           ]);
         }}
         style={({ pressed }) => ({
-          marginTop: 40, paddingVertical: 14, paddingHorizontal: 28, borderRadius: 12,
-          borderWidth: 1, borderColor: '#475569', backgroundColor: pressed ? '#1e293b' : 'transparent',
+          marginTop: spacing.huge, paddingVertical: 14, paddingHorizontal: 28, borderRadius: radius.lg,
+          borderWidth: 1.5, borderColor: colors.espressoAlt, backgroundColor: pressed ? colors.espressoAlt : 'transparent',
         })}
       >
-        <Text style={{ color: '#cbd5e1', fontSize: 15, fontWeight: '600' }}>Annuler la demande</Text>
+        <AppText variant="bodyStrong" color={colors.onEspressoMuted}>Annuler la demande</AppText>
       </Pressable>
     </View>
   );
@@ -227,33 +262,41 @@ function WaitingView({ onCancel }: { onCancel: () => void }) {
 function RejectedView({ reason, onRetry }: { reason: string | null; onRetry: () => void }) {
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ fontSize: 56 }}>😕</Text>
-      <Text style={{ color: '#fff', fontSize: 22, fontWeight: '700', marginTop: 16, textAlign: 'center' }}>
+      <View style={{
+        width: 92, height: 92, borderRadius: 46,
+        backgroundColor: 'rgba(214,69,47,0.16)', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Icon name="alert" size={48} color={colors.danger} />
+      </View>
+      <AppText variant="h1" color={colors.onEspresso} align="center" style={{ marginTop: spacing.lg }}>
         Demande non aboutie
-      </Text>
-      <Text style={{ color: '#94a3b8', fontSize: 14, textAlign: 'center', marginTop: 10, lineHeight: 20, maxWidth: 300 }}>
+      </AppText>
+      <AppText variant="body" color={colors.onEspressoMuted} align="center" style={{ marginTop: spacing.md, maxWidth: 300 }}>
         {reason ?? 'L’agent n’a pas pu traiter votre message. Réessayez en parlant clairement.'}
-      </Text>
-      <Pressable
+      </AppText>
+      <Button
+        title="Réessayer"
+        icon="voice"
+        fullWidth={false}
         onPress={onRetry}
-        style={({ pressed }) => ({
-          marginTop: 36, paddingVertical: 15, paddingHorizontal: 40, borderRadius: 12,
-          backgroundColor: pressed ? '#0a9050' : '#10a35e',
-        })}
-      >
-        <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>Réessayer</Text>
-      </Pressable>
+        style={{ marginTop: spacing.xl }}
+      />
     </View>
   );
 }
 
 // ── Generic centered status ──────────────────────────────────────────────────
-function CenterStatus({ emoji, title }: { emoji: string; title: string }) {
+function CenterStatus({ icon, title }: { icon: 'send'; title: string }) {
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ fontSize: 48 }}>{emoji}</Text>
-      <ActivityIndicator size="large" color="#10a35e" style={{ marginTop: 20 }} />
-      <Text style={{ color: '#fff', fontSize: 18, fontWeight: '600', marginTop: 20 }}>{title}</Text>
+      <View style={{
+        width: 92, height: 92, borderRadius: 46,
+        backgroundColor: colors.emberSoft, alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Icon name={icon} size={42} color={colors.ember} />
+      </View>
+      <ActivityIndicator size="large" color={colors.ember} style={{ marginTop: spacing.xl }} />
+      <AppText variant="h2" color={colors.onEspresso} style={{ marginTop: spacing.base }}>{title}</AppText>
     </View>
   );
 }

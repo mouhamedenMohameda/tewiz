@@ -1,0 +1,22 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Alo Mama app icon — A as a roof / home">
+  <defs>
+    <linearGradient id="sahara" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F6A623"/>
+      <stop offset="0.55" stop-color="#F2682C"/>
+      <stop offset="1" stop-color="#D9531B"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="1024" height="1024" rx="232" fill="url(#sahara)"/>
+  <!-- The A reads as a roof: solid triangle apex over an open house body -->
+  <g fill="none" stroke="#FFFCF6" stroke-width="86" stroke-linecap="round" stroke-linejoin="round">
+    <!-- roof = top of the A -->
+    <path d="M286 560 L512 286 L738 560"/>
+    <!-- crossbar / eaves = the A's bar, also the home's threshold -->
+    <path d="M372 560 L652 560"/>
+    <!-- walls descending = house body -->
+    <path d="M348 560 L348 760"/>
+    <path d="M676 560 L676 760"/>
+  </g>
+  <!-- doorway: warmth inside the home -->
+  <rect x="466" y="636" width="92" height="124" rx="20" fill="#FFFCF6"/>
+</svg>

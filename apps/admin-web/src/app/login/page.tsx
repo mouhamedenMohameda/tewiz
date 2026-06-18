@@ -12,6 +12,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { APP_NAME } from '@/lib/brand';
 
 const DEVICE_ID_PREFIX = 'tewiz-admin-web-';
 
@@ -82,7 +83,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
       <div className="card w-full max-w-md p-8">
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-semibold text-slate-900">Tewiz Admin</h1>
+          <h1 className="text-2xl font-semibold text-slate-900">{APP_NAME} Admin</h1>
           <p className="text-sm text-slate-500 mt-1">
             Connexion par téléphone et mot de passe
           </p>

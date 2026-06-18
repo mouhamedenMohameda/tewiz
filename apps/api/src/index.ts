@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import pinoHttp from 'pino-http';
 import pino from 'pino';
 import { env } from './config/env.js';
@@ -26,14 +27,56 @@ const logger = pino({
 
 const app = express();
 
+// Behind nginx (which terminates TLS and reverse-proxies to 127.0.0.1), trust
+// the first proxy hop so req.ip and express-rate-limit see the real client IP
+// from X-Forwarded-For instead of 127.0.0.1.
+app.set('trust proxy', 1);
+
 app.use(helmet());
-app.use(cors());
+
+// --- CORS ---
+// Lock the API to known browser origins (the admin-web). Native clients
+// (mobile app, curl, server-to-server) send no Origin header and are allowed.
+const allowedOrigins = env.CORS_ORIGINS.split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+if (allowedOrigins.length === 0) {
+  logger.warn(
+    'CORS_ORIGINS is empty — the API currently accepts requests from ANY ' +
+      'origin. Set CORS_ORIGINS (comma-separated) in production to lock it down.',
+  );
+}
+app.use(
+  cors({
+    origin(origin, cb) {
+      if (!origin) return cb(null, true); // non-browser client (mobile/curl)
+      if (allowedOrigins.length === 0) return cb(null, true); // permissive fallback (see warning)
+      if (allowedOrigins.includes(origin)) return cb(null, true);
+      return cb(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+  }),
+);
+
 app.use(express.json({ limit: '1mb' }));
 app.use(pinoHttp({ logger }));
 
+// --- Rate limiting ---
+// Tight limiter on credential endpoints. The per-phone DB throttle stops a
+// targeted attack on ONE account; this stops an attacker spraying many phone
+// numbers from a single IP. Deliberately scoped to /auth only — a global
+// limiter would risk false 429s for mobile users behind carrier-grade NAT.
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 100,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: { code: 'rate_limited', message: 'Trop de requêtes, réessayez plus tard.' } },
+});
+
 app.use(healthRouter);
 app.use('/dev', devRouter);
-app.use('/auth', authRouter);
+app.use('/auth', authLimiter, authRouter);
 app.use('/public', publicRouter);
 app.use('/captain', captainRouter);
 app.use('/rider', riderRouter);

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
+import { APP_NAME } from '@/lib/brand';
 import clsx from 'clsx';
 
 const NAV = [
@@ -42,7 +43,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-slate-200 flex flex-col">
         <div className="px-6 py-5 border-b border-slate-200">
-          <div className="text-xl font-bold text-brand-900">Tewiz</div>
+          <div className="text-xl font-bold text-brand-900">{APP_NAME}</div>
           <div className="text-xs text-slate-500">Back-office</div>
         </div>
 

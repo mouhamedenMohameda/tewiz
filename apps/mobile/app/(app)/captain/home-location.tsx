@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
-import {
-  ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
-  Pressable, ScrollView, Text, View,
-} from 'react-native';
+import { ActivityIndicator, Alert, Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { api } from '@/lib/api';
 import { Field, PrimaryButton } from '@/lib/form';
+import { AppText, Button, Card, Icon, Screen, ScreenHeader } from '@/components/ui';
+import { colors, radius, spacing } from '@/theme';
+import { APP_NAME } from '@/lib/brand';
 
 interface Home {
   captainId: string;
@@ -55,7 +55,7 @@ export default function HomeLocationScreen() {
     try {
       const perm = await Location.requestForegroundPermissionsAsync();
       if (perm.status !== 'granted') {
-        Alert.alert('Position requise', 'Tewiz doit vérifier que vous êtes bien sur place.');
+        Alert.alert('Position requise', `${APP_NAME} doit vérifier que vous êtes bien sur place.`);
         return;
       }
       const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
@@ -81,8 +81,8 @@ export default function HomeLocationScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator />
+      <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.canvas }}>
+        <ActivityIndicator color={colors.ember} />
       </SafeAreaView>
     );
   }
@@ -96,85 +96,71 @@ export default function HomeLocationScreen() {
   const canEdit = !home || !isLocked || inCorrectionWindow;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1 }}
-      >
-        <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
-          <Pressable onPress={() => router.back()}>
-            <Text style={{ color: '#64748b', fontSize: 14 }}>‹ Retour</Text>
-          </Pressable>
-          <Text style={{ fontSize: 24, fontWeight: '700', color: '#0f172a', marginTop: 12 }}>
-            Mon domicile
-          </Text>
-          <Text style={{ fontSize: 13, color: '#64748b', marginTop: 6 }}>
-            Sert au mode "Je rentre chez moi". Verrouillé 30 jours et vérifié par GPS (200 m).
-          </Text>
+    <Screen scroll>
+      <ScreenHeader title="Mon domicile" onBack={() => router.back()} />
+      <AppText variant="body" color={colors.ink2}>
+        Sert au mode « Je rentre chez moi ». Verrouillé 30 jours et vérifié par GPS (200 m).
+      </AppText>
 
-          {home && !editing ? (
-            <View style={{ marginTop: 24, backgroundColor: '#fff', borderRadius: 14, padding: 16 }}>
-              <Text style={{ fontSize: 13, color: '#64748b' }}>Adresse</Text>
-              <Text style={{ fontSize: 17, fontWeight: '600', color: '#0f172a', marginTop: 4 }}>
-                {home.label}
-              </Text>
-              <Text style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
-                {home.lat.toFixed(5)}, {home.lng.toFixed(5)}
-              </Text>
-
-              <View style={{
-                marginTop: 16, padding: 12, borderRadius: 10,
-                backgroundColor: isLocked ? '#fef9c3' : '#dcfce7',
-              }}>
-                <Text style={{
-                  fontSize: 12, fontWeight: '700',
-                  color: isLocked ? '#854d0e' : '#166534', letterSpacing: 0.5,
-                }}>
-                  {isLocked ? 'VERROUILLÉ' : 'MODIFIABLE'}
-                </Text>
-                <Text style={{
-                  fontSize: 12, marginTop: 4,
-                  color: isLocked ? '#854d0e' : '#166534',
-                }}>
-                  {isLocked
-                    ? `Jusqu'au ${new Date(home.lockedUntil).toLocaleDateString('fr-FR')}`
-                    : 'La période de verrouillage est terminée.'}
-                  {inCorrectionWindow ? ' · Correction encore possible.' : ''}
-                </Text>
-              </View>
-
-              {canEdit ? (
-                <Pressable
-                  onPress={() => setEditing(true)}
-                  style={({ pressed }) => ({
-                    marginTop: 16, padding: 12, borderRadius: 10,
-                    backgroundColor: pressed ? '#e2e8f0' : '#f1f5f9', alignItems: 'center',
-                  })}
-                >
-                  <Text style={{ color: '#0f172a', fontWeight: '600' }}>
-                    {inCorrectionWindow ? 'Corriger' : 'Modifier'}
-                  </Text>
-                </Pressable>
-              ) : null}
+      {home && !editing ? (
+        <Card padding={spacing.lg} style={{ marginTop: spacing.lg }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+            <View style={{
+              width: 48, height: 48, borderRadius: radius.md,
+              backgroundColor: colors.emberSoft, alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Icon name="home" size={24} color={colors.ember} />
             </View>
-          ) : (
-            <View style={{ marginTop: 16 }}>
-              <Field label="Adresse (description)" value={label} onChangeText={setLabel}
-                placeholder="Tevragh Zeina, près mosquée Saudique"
-                helper="Vous devez être physiquement sur place — la position GPS sera vérifiée." />
-              <PrimaryButton title="Enregistrer mon domicile" onPress={save} busy={saving} />
-              {home ? (
-                <Pressable
-                  onPress={() => { setEditing(false); setLabel(home.label); }}
-                  style={{ marginTop: 12, padding: 12, alignItems: 'center' }}
-                >
-                  <Text style={{ color: '#64748b' }}>Annuler</Text>
-                </Pressable>
-              ) : null}
+            <View style={{ flex: 1 }}>
+              <AppText variant="overline" color={colors.muted}>Adresse</AppText>
+              <AppText variant="title" numberOfLines={2}>{home.label}</AppText>
             </View>
-          )}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+          </View>
+          <AppText variant="caption" color={colors.muted} style={{ marginTop: spacing.md }}>
+            {home.lat.toFixed(5)}, {home.lng.toFixed(5)}
+          </AppText>
+
+          <View style={{
+            marginTop: spacing.base, padding: spacing.md, borderRadius: radius.md,
+            backgroundColor: isLocked ? colors.saffronSoft : colors.successSoft,
+          }}>
+            <AppText variant="overline" color={isLocked ? '#9A6711' : '#166534'}>
+              {isLocked ? 'Verrouillé' : 'Modifiable'}
+            </AppText>
+            <AppText variant="caption" color={isLocked ? '#9A6711' : '#166534'} style={{ marginTop: 3 }}>
+              {isLocked
+                ? `Jusqu'au ${new Date(home.lockedUntil).toLocaleDateString('fr-FR')}`
+                : 'La période de verrouillage est terminée.'}
+              {inCorrectionWindow ? ' · Correction encore possible.' : ''}
+            </AppText>
+          </View>
+
+          {canEdit ? (
+            <Button
+              title={inCorrectionWindow ? 'Corriger' : 'Modifier'}
+              variant="secondary"
+              icon="pin"
+              onPress={() => setEditing(true)}
+              style={{ marginTop: spacing.base }}
+            />
+          ) : null}
+        </Card>
+      ) : (
+        <View style={{ marginTop: spacing.xs }}>
+          <Field label="Adresse (description)" value={label} onChangeText={setLabel}
+            placeholder="Tevragh Zeina, près mosquée Saudique"
+            helper="Vous devez être physiquement sur place — la position GPS sera vérifiée." />
+          <PrimaryButton title="Enregistrer mon domicile" onPress={save} busy={saving} />
+          {home ? (
+            <Pressable
+              onPress={() => { setEditing(false); setLabel(home.label); }}
+              style={{ marginTop: spacing.md, padding: spacing.md, alignItems: 'center' }}
+            >
+              <AppText variant="bodyStrong" color={colors.ink2}>Annuler</AppText>
+            </Pressable>
+          ) : null}
+        </View>
+      )}
+    </Screen>
   );
 }

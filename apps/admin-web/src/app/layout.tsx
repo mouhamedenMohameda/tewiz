@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Providers } from '@/lib/query-client';
+import { APP_NAME } from '@/lib/brand';
 
 export const metadata: Metadata = {
-  title: 'Tewiz Admin',
-  description: 'Back-office Tewiz — KYC, top-ups, captains',
+  title: `${APP_NAME} Admin`,
+  description: `Back-office ${APP_NAME} — KYC, top-ups, captains`,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
