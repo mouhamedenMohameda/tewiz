@@ -101,3 +101,22 @@ adminRidesRouter.post('/', async (req, res) => {
   });
   res.json(ride);
 });
+
+/**
+ * POST /admin/rides/:id/rebroadcast
+ * Re-push the ride to currently-online, in-radius captains. Used when a
+ * ride has been sitting in 'searching' and the passenger called back.
+ */
+adminRidesRouter.post('/:id/rebroadcast', async (req, res) => {
+  const adminId = (req as AuthedRequest).user.id;
+  const rideId = req.params.id!;
+  const result = await rides.rebroadcastRide(rideId);
+  await audit({
+    adminId,
+    action: 'rebroadcast_ride',
+    targetType: 'ride',
+    targetId: rideId,
+    after: { captainsNotified: result.captainsNotified },
+  });
+  res.json(result);
+});

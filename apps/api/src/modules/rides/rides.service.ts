@@ -681,6 +681,33 @@ async function lockRide(client: pg.PoolClient, rideId: string): Promise<RideRow>
   return r.rows[0];
 }
 
+/**
+ * Re-push the "new ride" notification to currently-eligible captains for a
+ * ride still in 'searching'. No state change — just another broadcast for an
+ * operator that calls back asking why no captain has accepted yet.
+ */
+export async function rebroadcastRide(rideId: string): Promise<{ captainsNotified: number }> {
+  const r = await pool.query<{ status: RideStatus; ride_type: RideType; fare_estimate_mru: number | null }>(
+    `SELECT status, ride_type, fare_estimate_mru FROM rides WHERE id = $1`,
+    [rideId],
+  );
+  const ride = r.rows[0];
+  if (!ride) throw new HttpError(404, 'not_found', 'Ride not found');
+  if (ride.status !== 'searching') {
+    throw new HttpError(409, 'not_searching',
+      `Ride is ${ride.status}, only 'searching' rides can be rebroadcast`);
+  }
+  const captainIds = await eligibleCaptainsForRide(rideId);
+  if (captainIds.length > 0) {
+    await notifyCaptainsNewRide(captainIds, {
+      id: rideId,
+      rideType: ride.ride_type,
+      fareEstimateMru: ride.fare_estimate_mru,
+    });
+  }
+  return { captainsNotified: captainIds.length };
+}
+
 export async function acceptRide(rideId: string, captainId: string) {
   return withTx(async (client) => {
     const ride = await lockRide(client, rideId);

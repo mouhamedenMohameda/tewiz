@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { AppShell } from '@/components/AppShell';
 import { api } from '@/lib/api';
 import clsx from 'clsx';
@@ -63,6 +63,30 @@ const STATUS_PILL: Record<RideStatus, { label: string; cls: string }> = {
 
 export default function RidesPage() {
   const [filter, setFilter] = useState<StatusFilter>('active');
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  const rebroadcast = useMutation({
+    mutationFn: async (rideId: string) => {
+      const r = await api.post<{ captainsNotified: number }>(
+        `/admin/rides/${rideId}/rebroadcast`,
+      );
+      return r.data;
+    },
+    onMutate: (rideId) => setBusyId(rideId),
+    onSettled: () => setBusyId(null),
+    onSuccess: (data) => {
+      alert(
+        data.captainsNotified > 0
+          ? `Course relancée — ${data.captainsNotified} chauffeur${data.captainsNotified > 1 ? 's' : ''} notifié${data.captainsNotified > 1 ? 's' : ''}.`
+          : 'Aucun chauffeur en ligne à proximité.',
+      );
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { message?: string } } })
+        ?.response?.data?.message ?? 'Échec de la relance';
+      alert(msg);
+    },
+  });
 
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['rides', filter],
@@ -127,6 +151,7 @@ export default function RidesPage() {
                   <th className="text-left px-4 py-3 font-semibold">Tarif</th>
                   <th className="text-left px-4 py-3 font-semibold">Commission</th>
                   <th className="text-left px-4 py-3 font-semibold">État</th>
+                  <th className="text-right px-4 py-3 font-semibold">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -174,6 +199,17 @@ export default function RidesPage() {
                         )}>
                           {pill.label}
                         </span>
+                      </td>
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        {r.status === 'searching' ? (
+                          <button
+                            onClick={() => rebroadcast.mutate(r.id)}
+                            disabled={busyId === r.id}
+                            className="text-xs font-medium px-3 py-1.5 rounded-md bg-brand-50 text-brand-700 hover:bg-brand-100 disabled:opacity-50"
+                          >
+                            {busyId === r.id ? 'Relance…' : '↻ Relancer'}
+                          </button>
+                        ) : null}
                       </td>
                     </tr>
                   );
