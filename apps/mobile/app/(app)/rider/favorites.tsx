@@ -4,6 +4,7 @@ import {
   RefreshControl, Text, View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '@/lib/api';
 
@@ -19,6 +20,7 @@ interface Favorite {
 
 export default function FavoritesScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [items, setItems] = useState<Favorite[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -36,18 +38,18 @@ export default function FavoritesScreen() {
 
   async function remove(captainId: string, name: string) {
     Alert.alert(
-      'Retirer ce chauffeur ?',
-      `${name} ne sera plus prioritaire pour vos prochaines courses.`,
+      t('rider.favorites.removeTitle'),
+      t('rider.favorites.removeBody', { name }),
       [
-        { text: 'Non', style: 'cancel' },
+        { text: t('common.no'), style: 'cancel' },
         {
-          text: 'Retirer', style: 'destructive',
+          text: t('rider.favorites.remove'), style: 'destructive',
           onPress: async () => {
             try {
               await api.delete(`/rider/favorites/${captainId}`);
               await load();
             } catch (e: any) {
-              Alert.alert('Impossible', e.response?.data?.error?.message ?? 'Échec.');
+              Alert.alert(t('common.impossible'), e.response?.data?.error?.message ?? t('errors.generic'));
             }
           },
         },
@@ -59,14 +61,13 @@ export default function FavoritesScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
       <View style={{ padding: 20 }}>
         <Pressable onPress={() => router.back()}>
-          <Text style={{ color: '#64748b', fontSize: 14 }}>‹ Retour</Text>
+          <Text style={{ color: '#64748b', fontSize: 14 }}>‹ {t('common.back')}</Text>
         </Pressable>
         <Text style={{ fontSize: 22, fontWeight: '700', color: '#0f172a', marginTop: 8 }}>
-          Mes chauffeurs
+          {t('rider.favorites.title')}
         </Text>
         <Text style={{ fontSize: 13, color: '#64748b', marginTop: 4, lineHeight: 18 }}>
-          Vos favoris sont proposés en premier (pendant 30 s) avant de basculer
-          sur les autres chauffeurs.
+          {t('rider.favorites.intro')}
         </Text>
       </View>
 
@@ -85,16 +86,19 @@ export default function FavoritesScreen() {
               backgroundColor: '#fff', borderRadius: 14, padding: 28, alignItems: 'center',
             }}>
               <Text style={{ color: '#0f172a', fontSize: 15, fontWeight: '600' }}>
-                Aucun favori pour le moment
+                {t('rider.favorites.emptyTitle')}
               </Text>
               <Text style={{ color: '#64748b', fontSize: 13, marginTop: 6, textAlign: 'center' }}>
-                Après une course 5 étoiles, vous pourrez ajouter le chauffeur ici.
+                {t('rider.favorites.emptyBody')}
               </Text>
             </View>
           )
         }
         renderItem={({ item }) => {
-          const name = item.nickname ?? item.captainName ?? 'Chauffeur';
+          const name = item.nickname ?? item.captainName ?? t('rider.favorites.fallbackName');
+          const ratingDisplay = item.ratingAvg > 0
+            ? item.ratingAvg.toFixed(1)
+            : t('rider.favorites.noRating');
           return (
             <View style={{ backgroundColor: '#fff', borderRadius: 14, padding: 16 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -109,7 +113,7 @@ export default function FavoritesScreen() {
                     {name}
                   </Text>
                   <Text style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
-                    ⭐ {item.ratingAvg > 0 ? item.ratingAvg.toFixed(1) : '—'} · {item.totalRides} courses
+                    ⭐ {t('rider.favorites.ratingCount', { rating: ratingDisplay, count: item.totalRides })}
                   </Text>
                 </View>
                 <Pressable
@@ -132,7 +136,7 @@ export default function FavoritesScreen() {
                 })}
               >
                 <Text style={{ color: '#dc2626', fontSize: 13, fontWeight: '600' }}>
-                  Retirer des favoris
+                  {t('rider.favorites.removeAction')}
                 </Text>
               </Pressable>
             </View>

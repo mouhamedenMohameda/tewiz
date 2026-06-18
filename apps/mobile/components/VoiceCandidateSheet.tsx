@@ -28,6 +28,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import type { Candidate, SideBlock, Side } from '@/lib/voiceLocation';
 
 interface Props {
@@ -48,7 +49,12 @@ export function VoiceCandidateSheet({
   onClose,
   onSelect,
 }: Props) {
-  const sideLabel = side === 'pickup' ? 'départ' : side === 'destination' ? 'destination' : '';
+  const { t } = useTranslation();
+  const title = side === 'pickup'
+    ? t('voiceCandidate.questionPickup')
+    : side === 'destination'
+      ? t('voiceCandidate.questionDestination')
+      : '';
   const candidates = block?.candidates ?? [];
   const transcript = block?.extracted.raw_phrase ?? null;
 
@@ -63,10 +69,10 @@ export function VoiceCandidateSheet({
       <View style={styles.sheet}>
         <View style={styles.handle} />
         <View style={styles.header}>
-          <Text style={styles.title}>Quel {sideLabel} ?</Text>
+          <Text style={styles.title}>{title}</Text>
           {transcript ? (
             <Text style={styles.subtitle} numberOfLines={2}>
-              Vous avez dit : « {transcript} »
+              {t('voiceCandidate.youSaid', { text: transcript })}
             </Text>
           ) : null}
         </View>
@@ -74,8 +80,7 @@ export function VoiceCandidateSheet({
         {candidates.length === 0 ? (
           <View style={styles.empty}>
             <Text style={styles.emptyText}>
-              Aucun lieu correspondant n'a été trouvé. Touchez la carte ou
-              tapez le nom du lieu.
+              {t('voiceCandidate.emptyBody')}
             </Text>
           </View>
         ) : (
@@ -95,7 +100,7 @@ export function VoiceCandidateSheet({
         )}
 
         <Pressable style={styles.cancel} onPress={onClose}>
-          <Text style={styles.cancelText}>Annuler</Text>
+          <Text style={styles.cancelText}>{t('common.cancel')}</Text>
         </Pressable>
       </View>
     </Modal>
@@ -113,12 +118,13 @@ function CandidateRow({
   preselected: boolean;
   onPress: () => void;
 }) {
+  const { t } = useTranslation();
   const kind = candidate.osm_value
     ? `${candidate.osm_kind} · ${candidate.osm_value}`
     : candidate.osm_kind;
 
   const distanceLabel = candidate.distance_to_landmarks_m
-    ? `à ${formatMeters(candidate.distance_to_landmarks_m)} du repère`
+    ? t('voiceCandidate.distanceToLandmark', { distance: formatMeters(candidate.distance_to_landmarks_m) })
     : null;
 
   const confColor =

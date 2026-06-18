@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { api } from '@/lib/api';
@@ -21,6 +22,7 @@ interface Home {
 
 export default function HomeLocationScreen() {
   const router = useRouter();
+  const { t, i18n } = useTranslation();
   const [home, setHome] = useState<Home | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -48,14 +50,14 @@ export default function HomeLocationScreen() {
 
   async function save() {
     if (label.trim().length < 2) {
-      Alert.alert('Adresse', 'Décrivez l\'endroit (ex. "près mosquée Saudique").');
+      Alert.alert(t('captain.homeLocation.errorTitle'), t('captain.homeLocation.errorBody'));
       return;
     }
     setSaving(true);
     try {
       const perm = await Location.requestForegroundPermissionsAsync();
       if (perm.status !== 'granted') {
-        Alert.alert('Position requise', `${APP_NAME} doit vérifier que vous êtes bien sur place.`);
+        Alert.alert(t('captain.state.locationRequiredTitle'), t('captain.homeLocation.locationRequiredBody', { app: APP_NAME }));
         return;
       }
       const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
@@ -70,10 +72,12 @@ export default function HomeLocationScreen() {
       const r = await api[method]<Home>('/captain/home', body);
       setHome(r.data);
       setEditing(false);
-      Alert.alert('Domicile enregistré',
-        `Verrouillé jusqu'au ${new Date(r.data.lockedUntil).toLocaleDateString('fr-FR')}.`);
+      Alert.alert(
+        t('captain.homeLocation.savedTitle'),
+        t('captain.homeLocation.savedBody', { date: new Date(r.data.lockedUntil).toLocaleDateString(i18n.language) }),
+      );
     } catch (e: any) {
-      Alert.alert('Impossible', e.response?.data?.error?.message ?? 'Échec.');
+      Alert.alert(t('common.impossible'), e.response?.data?.error?.message ?? t('errors.generic'));
     } finally {
       setSaving(false);
     }
@@ -97,9 +101,9 @@ export default function HomeLocationScreen() {
 
   return (
     <Screen scroll>
-      <ScreenHeader title="Mon domicile" onBack={() => router.back()} />
+      <ScreenHeader title={t('captain.homeLocation.title')} onBack={() => router.back()} />
       <AppText variant="body" color={colors.ink2}>
-        Sert au mode « Je rentre chez moi ». Verrouillé 30 jours et vérifié par GPS (200 m).
+        {t('captain.homeLocation.intro')}
       </AppText>
 
       {home && !editing ? (
@@ -112,7 +116,7 @@ export default function HomeLocationScreen() {
               <Icon name="home" size={24} color={colors.ember} />
             </View>
             <View style={{ flex: 1 }}>
-              <AppText variant="overline" color={colors.muted}>Adresse</AppText>
+              <AppText variant="overline" color={colors.muted}>{t('captain.homeLocation.addressLabel')}</AppText>
               <AppText variant="title" numberOfLines={2}>{home.label}</AppText>
             </View>
           </View>
@@ -125,19 +129,19 @@ export default function HomeLocationScreen() {
             backgroundColor: isLocked ? colors.saffronSoft : colors.successSoft,
           }}>
             <AppText variant="overline" color={isLocked ? '#9A6711' : '#166534'}>
-              {isLocked ? 'Verrouillé' : 'Modifiable'}
+              {isLocked ? t('captain.homeLocation.locked') : t('captain.homeLocation.editable')}
             </AppText>
             <AppText variant="caption" color={isLocked ? '#9A6711' : '#166534'} style={{ marginTop: 3 }}>
               {isLocked
-                ? `Jusqu'au ${new Date(home.lockedUntil).toLocaleDateString('fr-FR')}`
-                : 'La période de verrouillage est terminée.'}
-              {inCorrectionWindow ? ' · Correction encore possible.' : ''}
+                ? t('captain.homeLocation.lockedUntil', { date: new Date(home.lockedUntil).toLocaleDateString(i18n.language) })
+                : t('captain.homeLocation.lockedDone')}
+              {inCorrectionWindow ? t('captain.homeLocation.correctionPossible') : ''}
             </AppText>
           </View>
 
           {canEdit ? (
             <Button
-              title={inCorrectionWindow ? 'Corriger' : 'Modifier'}
+              title={inCorrectionWindow ? t('captain.homeLocation.correct') : t('captain.homeLocation.edit')}
               variant="secondary"
               icon="pin"
               onPress={() => setEditing(true)}
@@ -147,16 +151,16 @@ export default function HomeLocationScreen() {
         </Card>
       ) : (
         <View style={{ marginTop: spacing.xs }}>
-          <Field label="Adresse (description)" value={label} onChangeText={setLabel}
-            placeholder="Tevragh Zeina, près mosquée Saudique"
-            helper="Vous devez être physiquement sur place — la position GPS sera vérifiée." />
-          <PrimaryButton title="Enregistrer mon domicile" onPress={save} busy={saving} />
+          <Field label={t('captain.homeLocation.addressFieldLabel')} value={label} onChangeText={setLabel}
+            placeholder={t('captain.homeLocation.addressPlaceholder')}
+            helper={t('captain.homeLocation.addressHelper')} />
+          <PrimaryButton title={t('captain.homeLocation.save')} onPress={save} busy={saving} />
           {home ? (
             <Pressable
               onPress={() => { setEditing(false); setLabel(home.label); }}
               style={{ marginTop: spacing.md, padding: spacing.md, alignItems: 'center' }}
             >
-              <AppText variant="bodyStrong" color={colors.ink2}>Annuler</AppText>
+              <AppText variant="bodyStrong" color={colors.ink2}>{t('common.cancel')}</AppText>
             </Pressable>
           ) : null}
         </View>

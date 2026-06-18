@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { type ActiveMode, useAuth } from '@/lib/auth';
 import { AppText, Icon, PressableScale, type IconName } from '@/components/ui';
 import { colors, radius, shadow, spacing } from '@/theme';
@@ -11,6 +12,7 @@ import { colors, radius, shadow, spacing } from '@/theme';
  */
 export function ModeToggle() {
   const router = useRouter();
+  const { t } = useTranslation();
   const user = useAuth((s) => s.user);
   const activeMode = useAuth((s) => s.activeMode);
   const setActiveMode = useAuth((s) => s.setActiveMode);
@@ -31,8 +33,8 @@ export function ModeToggle() {
       padding: 4,
       gap: 4,
     }}>
-      <Segment label="Passager" icon="person" active={activeMode === 'rider'} onPress={() => pick('rider')} />
-      <Segment label="Chauffeur" icon="captain" active={activeMode === 'captain'} onPress={() => pick('captain')} />
+      <Segment label={t('modeToggle.rider')} icon="person" active={activeMode === 'rider'} onPress={() => pick('rider')} />
+      <Segment label={t('modeToggle.captain')} icon="captain" active={activeMode === 'captain'} onPress={() => pick('captain')} />
     </View>
   );
 }

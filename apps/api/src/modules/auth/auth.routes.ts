@@ -337,6 +337,74 @@ authRouter.get('/me', requireAuth, async (req, res) => {
 });
 
 /**
+ * PATCH /auth/me
+ *
+ * Self-service updates of the authenticated user's profile. Used by the mobile
+ * Settings screen to change the display name and the preferred language. Both
+ * fields are optional so the client can send only what changed.
+ *
+ * Role/phone/password are intentionally excluded: role escalation is admin-only,
+ * phone is set via POST /auth/me/phone (with uniqueness checks), and passwords
+ * are issued by the admin.
+ */
+const patchMeBody = z.object({
+  fullName: z.string().trim().min(1).max(80).nullable().optional(),
+  language: z.enum(['fr', 'ar', 'en']).optional(),
+});
+
+authRouter.patch('/me', requireAuth, async (req, res) => {
+  const userId = (req as AuthedRequest).user.id;
+  const body = patchMeBody.parse(req.body);
+
+  const sets: string[] = [];
+  const params: unknown[] = [];
+  if (body.fullName !== undefined) {
+    params.push(body.fullName);
+    sets.push(`full_name = $${params.length}`);
+  }
+  if (body.language !== undefined) {
+    params.push(body.language);
+    sets.push(`language = $${params.length}`);
+  }
+  if (sets.length === 0) {
+    // Nothing to change — return current record so the client stays in sync.
+    const user = await getUserById(userId);
+    if (!user) throw new HttpError(401, 'user_missing', 'User not found');
+    res.json({
+      id: user.id,
+      phone: user.phone,
+      role: user.role,
+      fullName: user.full_name,
+      language: user.language,
+      isGuest: user.is_guest ?? false,
+      mustResetPassword: user.must_reset_password ?? false,
+    });
+    return;
+  }
+
+  params.push(userId);
+  const { rows } = await pool.query<UserRow>(
+    `UPDATE users SET ${sets.join(', ')}
+      WHERE id = $${params.length}
+      RETURNING id, phone, role, full_name, language,
+                COALESCE(is_guest, false) AS is_guest,
+                COALESCE(must_reset_password, false) AS must_reset_password`,
+    params,
+  );
+  const u = rows[0];
+  if (!u) throw new HttpError(401, 'user_missing', 'User not found');
+  res.json({
+    id: u.id,
+    phone: u.phone,
+    role: u.role,
+    fullName: u.full_name,
+    language: u.language,
+    isGuest: u.is_guest ?? false,
+    mustResetPassword: u.must_reset_password ?? false,
+  });
+});
+
+/**
  * DELETE /auth/me
  * Header: Authorization: Bearer <accessToken>
  *

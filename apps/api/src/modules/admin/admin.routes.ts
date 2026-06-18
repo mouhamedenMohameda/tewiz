@@ -36,6 +36,44 @@ adminRouter.delete('/road-reports/:id', async (req, res) => {
   res.json(await roadReports.adminRemove(req.params.id!));
 });
 
+// ─── Captains directory ──────────────────────────────────────────────────────
+
+/**
+ * GET /admin/captains
+ * Returns every approved captain with their live presence + last known
+ * location. Used by the back-office "Chauffeurs" page to show who is
+ * connected on the map.
+ */
+adminRouter.get('/captains', async (_req, res) => {
+  const r = await pool.query(
+    `SELECT
+        c.user_id                              AS id,
+        u.full_name,
+        u.phone,
+        c.status,
+        c.rating_avg,
+        c.total_rides,
+        COALESCE(cs.presence::text, 'offline') AS presence,
+        cs.updated_at                          AS last_seen,
+        ST_X(cs.location::geometry)            AS lng,
+        ST_Y(cs.location::geometry)            AS lat,
+        v.plate, v.brand, v.model, v.color
+       FROM captains c
+       JOIN users u           ON u.id = c.user_id
+       LEFT JOIN captain_state cs ON cs.captain_id = c.user_id
+       LEFT JOIN vehicles v   ON v.captain_id = c.user_id AND v.is_active = true
+      ORDER BY
+        CASE COALESCE(cs.presence::text, 'offline')
+          WHEN 'on_ride' THEN 0
+          WHEN 'online'  THEN 1
+          WHEN 'paused'  THEN 2
+          ELSE 3
+        END,
+        u.full_name NULLS LAST`,
+  );
+  res.json(r.rows);
+});
+
 // ─── Applications queue ──────────────────────────────────────────────────────
 
 const listQuery = z.object({

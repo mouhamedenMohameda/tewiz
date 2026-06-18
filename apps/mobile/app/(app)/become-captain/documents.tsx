@@ -4,16 +4,19 @@ import {
   Text, TextInput, View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { api } from '@/lib/api';
 import {
   type AppDoc, type ApplicationDto, type DocumentType,
-  DOC_LABELS, DOCUMENTS_WITH_EXPIRY, DOCUMENT_ORDER,
+  DOCUMENTS_WITH_EXPIRY, DOCUMENT_ORDER,
 } from '@/lib/kyc';
 
 export default function DocumentsScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
+  const docLabel = (type: DocumentType) => t(`becomeCaptain.documents.${type}` as const);
   const [app, setApp] = useState<ApplicationDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploadingType, setUploadingType] = useState<DocumentType | null>(null);
@@ -46,7 +49,7 @@ export default function DocumentsScreen() {
       ? await ImagePicker.requestCameraPermissionsAsync()
       : await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (perm.status !== 'granted') {
-      Alert.alert('Permission requise', 'Accordez l\'accès dans les réglages.');
+      Alert.alert(t('common.permissionRequired'), t('common.permissionRequiredBody'));
       return;
     }
     const r = source === 'camera'
@@ -72,7 +75,7 @@ export default function DocumentsScreen() {
   async function confirmExpiry() {
     if (!pendingUpload) return;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(expiryInput)) {
-      Alert.alert('Date invalide', 'Format attendu : AAAA-MM-JJ.');
+      Alert.alert(t('becomeCaptain.docs.expiryInvalidTitle'), t('becomeCaptain.docs.expiryInvalidBody'));
       return;
     }
     const { type, uri } = pendingUpload;
@@ -96,7 +99,7 @@ export default function DocumentsScreen() {
       });
       await load();
     } catch (e: any) {
-      Alert.alert('Échec', e.response?.data?.error?.message ?? 'Impossible d\'envoyer le document.');
+      Alert.alert(t('captain.wallet.topupModal.failTitle'), e.response?.data?.error?.message ?? t('becomeCaptain.docs.uploadFail'));
     } finally {
       setUploadingType(null);
     }
@@ -105,18 +108,18 @@ export default function DocumentsScreen() {
   async function deleteDoc(doc: AppDoc) {
     if (!editable) return;
     Alert.alert(
-      'Supprimer le document ?',
-      DOC_LABELS[doc.type],
+      t('becomeCaptain.docs.deleteTitle'),
+      docLabel(doc.type),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Supprimer', style: 'destructive',
+          text: t('common.delete'), style: 'destructive',
           onPress: async () => {
             try {
               await api.delete(`/captain/applications/me/documents/${doc.id}`);
               await load();
             } catch (e: any) {
-              Alert.alert('Erreur', e.response?.data?.error?.message ?? 'Échec.');
+              Alert.alert(t('common.error'), e.response?.data?.error?.message ?? t('errors.generic'));
             }
           },
         },
@@ -126,12 +129,12 @@ export default function DocumentsScreen() {
 
   function openPicker(type: DocumentType) {
     Alert.alert(
-      DOC_LABELS[type],
-      'Choisissez la source',
+      docLabel(type),
+      t('becomeCaptain.docs.sourceTitle'),
       [
-        { text: 'Appareil photo', onPress: () => pickAndUpload(type, 'camera') },
-        { text: 'Galerie', onPress: () => pickAndUpload(type, 'library') },
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('becomeCaptain.docs.sourceCamera'), onPress: () => pickAndUpload(type, 'camera') },
+        { text: t('becomeCaptain.docs.sourceGallery'), onPress: () => pickAndUpload(type, 'library') },
+        { text: t('common.cancel'), style: 'cancel' },
       ],
     );
   }
@@ -148,27 +151,28 @@ export default function DocumentsScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         <Pressable onPress={() => router.back()}>
-          <Text style={{ color: '#64748b', fontSize: 14 }}>‹ Retour</Text>
+          <Text style={{ color: '#64748b', fontSize: 14 }}>‹ {t('common.back')}</Text>
         </Pressable>
         <Text style={{ fontSize: 24, fontWeight: '700', color: '#0f172a', marginTop: 12 }}>
-          Documents
+          {t('becomeCaptain.docs.title')}
         </Text>
         <Text style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>
-          Envoyez les 14 photos requises. Bien éclairées, sans reflet.
+          {t('becomeCaptain.docs.intro')}
         </Text>
 
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 16 }}>
-          {DOCUMENT_ORDER.map((t) => {
-            const doc = byType.get(t);
-            const uploading = uploadingType === t;
+          {DOCUMENT_ORDER.map((type) => {
+            const doc = byType.get(type);
+            const uploading = uploadingType === type;
             return (
               <DocCard
-                key={t}
-                type={t}
+                key={type}
+                type={type}
                 doc={doc}
                 uploading={uploading}
                 editable={editable}
-                onPick={() => openPicker(t)}
+                label={docLabel(type)}
+                onPick={() => openPicker(type)}
                 onDelete={() => doc && deleteDoc(doc)}
               />
             );
@@ -188,16 +192,16 @@ export default function DocumentsScreen() {
         }}>
           <View style={{ backgroundColor: '#fff', borderRadius: 14, padding: 20 }}>
             <Text style={{ fontSize: 17, fontWeight: '700', color: '#0f172a' }}>
-              Date d'expiration
+              {t('becomeCaptain.docs.expiryTitle')}
             </Text>
             <Text style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>
-              {pendingUpload ? DOC_LABELS[pendingUpload.type] : ''} — entrez la date au format AAAA-MM-JJ.
+              {t('becomeCaptain.docs.expiryHint', { label: pendingUpload ? docLabel(pendingUpload.type) : '' })}
             </Text>
             <TextInput
               autoFocus
               value={expiryInput}
               onChangeText={setExpiryInput}
-              placeholder="2026-12-31"
+              placeholder={t('becomeCaptain.docs.expiryPlaceholder')}
               keyboardType="numeric"
               maxLength={10}
               placeholderTextColor="#94a3b8"
@@ -216,7 +220,7 @@ export default function DocumentsScreen() {
                   alignItems: 'center',
                 })}
               >
-                <Text style={{ color: '#0f172a', fontWeight: '600' }}>Annuler</Text>
+                <Text style={{ color: '#0f172a', fontWeight: '600' }}>{t('common.cancel')}</Text>
               </Pressable>
               <Pressable
                 onPress={confirmExpiry}
@@ -226,7 +230,7 @@ export default function DocumentsScreen() {
                   alignItems: 'center',
                 })}
               >
-                <Text style={{ color: '#fff', fontWeight: '600' }}>Envoyer</Text>
+                <Text style={{ color: '#fff', fontWeight: '600' }}>{t('common.send')}</Text>
               </Pressable>
             </View>
           </View>
@@ -237,15 +241,17 @@ export default function DocumentsScreen() {
 }
 
 function DocCard({
-  type, doc, uploading, editable, onPick, onDelete,
+  type, doc, uploading, editable, label, onPick, onDelete,
 }: {
   type: DocumentType;
   doc?: AppDoc;
   uploading: boolean;
   editable: boolean;
+  label: string;
   onPick: () => void;
   onDelete: () => void;
 }) {
+  const { t } = useTranslation();
   const status = doc?.status;
   const borderColor =
     status === 'approved' ? '#bbf7d0' :
@@ -268,13 +274,13 @@ function DocCard({
       })}
     >
       <Text style={{ fontSize: 13, fontWeight: '600', color: '#0f172a' }} numberOfLines={2}>
-        {DOC_LABELS[type]}
+        {label}
       </Text>
       <View style={{ flex: 1 }} />
       {uploading ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <ActivityIndicator size="small" />
-          <Text style={{ fontSize: 12, color: '#64748b' }}>Envoi…</Text>
+          <Text style={{ fontSize: 12, color: '#64748b' }}>{t('common.sending')}</Text>
         </View>
       ) : doc ? (
         <View>
@@ -285,14 +291,14 @@ function DocCard({
               status === 'rejected' ? '#b91c1c' :
               '#92400e',
           }}>
-            {status === 'approved' ? '✓ VALIDÉ' :
-              status === 'rejected' ? '✕ REJETÉ' :
-              status === 'expired' ? 'EXPIRÉ' :
-              '⏳ EN ATTENTE'}
+            {status === 'approved' ? `✓ ${t('becomeCaptain.docs.statusApproved')}` :
+              status === 'rejected' ? `✕ ${t('becomeCaptain.docs.statusRejected')}` :
+              status === 'expired' ? t('becomeCaptain.docs.statusExpired') :
+              `⏳ ${t('becomeCaptain.docs.statusPending')}`}
           </Text>
           {doc.expiresAt ? (
             <Text style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>
-              exp. {doc.expiresAt.slice(0, 10)}
+              {t('becomeCaptain.docs.expiresPrefix', { date: doc.expiresAt.slice(0, 10) })}
             </Text>
           ) : null}
           {doc.rejectReason ? (
@@ -302,13 +308,13 @@ function DocCard({
           ) : null}
           {editable ? (
             <Text style={{ fontSize: 10, color: '#64748b', marginTop: 4 }}>
-              Touchez pour remplacer · Maintenir pour supprimer
+              {t('becomeCaptain.docs.replaceHint')}
             </Text>
           ) : null}
         </View>
       ) : (
         <Text style={{ fontSize: 12, color: '#64748b' }}>
-          {editable ? 'Touchez pour ajouter' : 'Non envoyé'}
+          {editable ? t('becomeCaptain.docs.tapToAdd') : t('common.notSent')}
         </Text>
       )}
     </Pressable>

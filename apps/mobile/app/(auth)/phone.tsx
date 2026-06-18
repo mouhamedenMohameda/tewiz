@@ -10,6 +10,7 @@ import {
   Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, View, Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Application from 'expo-application';
 import { api } from '@/lib/api';
@@ -22,6 +23,7 @@ const DEVICE_ID_FALLBACK = 'unknown-device';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const setSession = useAuth((s) => s.setSession);
 
   const [phone, setPhone] = useState('+222');
@@ -34,11 +36,11 @@ export default function LoginScreen() {
 
   async function submit() {
     if (phone.replace(/\D/g, '').length < 11) {
-      Alert.alert('Numéro invalide', 'Vérifiez votre numéro de téléphone.');
+      Alert.alert(t('auth.login.invalidPhoneTitle'), t('auth.login.invalidPhoneBody'));
       return;
     }
     if (password.length < 4) {
-      Alert.alert('Mot de passe manquant', 'Entrez le mot de passe fourni par l\'administrateur.');
+      Alert.alert(t('auth.login.missingPasswordTitle'), t('auth.login.missingPasswordBody'));
       return;
     }
 
@@ -74,18 +76,18 @@ export default function LoginScreen() {
     } catch (e: any) {
       const err = e.response?.data?.error;
       const status = e.response?.status;
-      let title = 'Erreur';
-      let msg = err?.message ?? 'Impossible de joindre le serveur.';
+      let title = t('common.error');
+      let msg = err?.message ?? t('errors.server');
 
       if (status === 401 || err?.code === 'invalid_credentials') {
-        title = 'Identifiants invalides';
-        msg = 'Numéro ou mot de passe incorrect.';
+        title = t('auth.login.invalidCredsTitle');
+        msg = t('auth.login.invalidCredsBody');
       } else if (status === 403 && err?.code === 'no_password_set') {
-        title = 'Compte non activé';
-        msg = 'Aucun mot de passe défini. Contactez l\'administrateur.';
+        title = t('auth.login.notActivatedTitle');
+        msg = t('auth.login.notActivatedBody');
       } else if (status === 429) {
-        title = 'Trop d\'essais';
-        msg = err?.message ?? 'Réessayez dans quelques minutes.';
+        title = t('auth.login.tooManyTitle');
+        msg = err?.message ?? t('auth.login.tooManyBody');
       }
       Alert.alert(title, msg);
     } finally {
@@ -95,7 +97,7 @@ export default function LoginScreen() {
 
   function contactAdmin() {
     const url = 'https://wa.me/33656696974?text=' +
-      encodeURIComponent(`Bonjour, je voudrais créer un compte ${APP_NAME}.`);
+      encodeURIComponent(t('auth.login.contactMessage', { app: APP_NAME }));
     Linking.openURL(url).catch(() => undefined);
   }
 
@@ -134,16 +136,16 @@ export default function LoginScreen() {
               <Icon name="person" size={34} color={colors.ember} />
             </View>
             <AppText variant="display" style={{ marginTop: spacing.lg }}>
-              Bon retour
+              {t('auth.login.title')}
             </AppText>
             <AppText variant="body" color={colors.ink2} style={{ marginTop: spacing.sm, maxWidth: 320 }}>
-              Entrez votre numéro et le mot de passe transmis par l'administrateur sur WhatsApp.
+              {t('auth.login.subtitle')}
             </AppText>
           </FadeInView>
 
           <FadeInView delay={120} style={{ marginTop: spacing.xxl, gap: spacing.base }}>
             <TextField
-              label="Numéro de téléphone"
+              label={t('auth.login.phoneLabel')}
               icon="phone"
               autoFocus
               keyboardType="phone-pad"
@@ -156,7 +158,7 @@ export default function LoginScreen() {
             />
 
             <TextField
-              label="Mot de passe"
+              label={t('auth.login.passwordLabel')}
               icon="lock"
               secure
               mono
@@ -172,12 +174,12 @@ export default function LoginScreen() {
 
           <View style={{ flex: 1, minHeight: spacing.xl }} />
 
-          <Button title="Se connecter" iconRight="arrow" busy={busy} onPress={submit} />
+          <Button title={t('auth.login.submit')} iconRight="arrow" busy={busy} onPress={submit} />
 
           <Pressable onPress={contactAdmin} style={{ marginTop: spacing.xl, alignItems: 'center' }}>
             <AppText variant="caption" color={colors.ink2} align="center">
-              Pas de compte ?{' '}
-              <AppText variant="caption" color={colors.ember}>Contactez l'administrateur</AppText>
+              {t('auth.login.noAccount')}{' '}
+              <AppText variant="caption" color={colors.ember}>{t('auth.login.contactAdmin')}</AppText>
             </AppText>
           </Pressable>
         </ScrollView>

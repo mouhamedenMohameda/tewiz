@@ -16,6 +16,7 @@ import { api } from '@/lib/api';
 import { type AuthUser, useAuth } from '@/lib/auth';
 import { registerForPushNotifications } from '@/lib/notifications';
 import { readAndClearCrash } from '@/lib/crash-reporter';
+import { initI18n } from '@/lib/i18n';
 import { CrashBoundary } from '@/components/CrashBoundary';
 import { colors, fontAssets } from '@/theme';
 
@@ -27,6 +28,13 @@ export default function RootLayout() {
   const hydrate = useAuth((s) => s.hydrate);
   const [crashShown, setCrashShown] = useState(false);
   const [fontsLoaded, fontError] = useFonts(fontAssets);
+  const [i18nReady, setI18nReady] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    initI18n().finally(() => { if (mounted) setI18nReady(true); });
+    return () => { mounted = false; };
+  }, []);
 
   // Show the previous crash (if any) as an Alert on first mount.
   useEffect(() => {
@@ -78,7 +86,8 @@ export default function RootLayout() {
 
   // Don't render the app shell until fonts resolve (or fail) — avoids a
   // flash-of-system-font. On font error we still proceed (system fallback).
-  const ready = fontsLoaded || !!fontError;
+  // Also gate on i18n so the first paint already has translations.
+  const ready = (fontsLoaded || !!fontError) && i18nReady;
   useEffect(() => {
     if (ready) SplashScreen.hideAsync().catch(() => {});
   }, [ready]);

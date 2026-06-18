@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator, Alert, Modal, Pressable, Text, TextInput, View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Circle, Marker } from 'react-native-maps';
 import { api } from '@/lib/api';
@@ -24,14 +25,14 @@ interface RoadReport {
   status: string;
 }
 
-const REASON_META: Record<RoadReason, { label: string; emoji: string; color: string }> = {
-  sand:              { label: 'Sable',             emoji: '🏜️', color: '#ca8a04' },
-  flood:             { label: 'Inondation',         emoji: '🌊', color: '#0891b2' },
-  construction:      { label: 'Travaux',            emoji: '🚧', color: '#f59e0b' },
-  police_checkpoint: { label: 'Contrôle police',    emoji: '👮', color: '#1e40af' },
-  accident:          { label: 'Accident',           emoji: '💥', color: '#dc2626' },
-  protest:           { label: 'Manifestation',      emoji: '✊', color: '#7c3aed' },
-  other:             { label: 'Autre',              emoji: '⚠️', color: '#475569' },
+const REASON_META: Record<RoadReason, { emoji: string; color: string }> = {
+  sand:              { emoji: '🏜️', color: '#ca8a04' },
+  flood:             { emoji: '🌊', color: '#0891b2' },
+  construction:      { emoji: '🚧', color: '#f59e0b' },
+  police_checkpoint: { emoji: '👮', color: '#1e40af' },
+  accident:          { emoji: '💥', color: '#dc2626' },
+  protest:           { emoji: '✊', color: '#7c3aed' },
+  other:             { emoji: '⚠️', color: '#475569' },
 };
 
 /**
@@ -73,6 +74,7 @@ export function RoadReportMarkers({
   reports: RoadReport[];
   onPress?: (r: RoadReport) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <>
       {reports.map((r) => {
@@ -94,8 +96,8 @@ export function RoadReportMarkers({
           <Marker
             key={`pin-${r.id}`}
             coordinate={{ latitude: r.location.lat, longitude: r.location.lng }}
-            title={`${m.emoji} ${m.label}`}
-            description={r.note ?? `Signalé · ${r.confirmations}✓ ${r.dismissals}✗`}
+            title={`${m.emoji} ${t(`roadReports.reasons.${r.reason}` as const)}`}
+            description={r.note ?? t('roadReports.markerDesc', { up: r.confirmations, down: r.dismissals })}
             pinColor={m.color}
             onPress={onPress ? () => onPress(r) : undefined}
           />
@@ -120,6 +122,7 @@ export function RoadReportButton({
   onCreated?: () => void;
   bottom?: number;
 }) {
+  const { t } = useTranslation();
   const [sheetOpen, setSheetOpen] = useState(false);
 
   return (
@@ -142,7 +145,7 @@ export function RoadReportButton({
           })}
         >
           <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>
-            ⚠️ Signaler
+            {t('roadReports.reportBtn')}
           </Text>
         </Pressable>
       </View>
@@ -165,6 +168,7 @@ function ReportSheet({
   onClose: () => void;
   onCreated: () => void;
 }) {
+  const { t } = useTranslation();
   const [reason, setReason] = useState<RoadReason | null>(null);
   const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -173,7 +177,7 @@ function ReportSheet({
 
   async function submit() {
     if (!at || !reason) {
-      Alert.alert('Incomplet', 'Choisissez une raison et assurez-vous que la position est connue.');
+      Alert.alert(t('common.incomplete'), t('roadReports.incompleteBody'));
       return;
     }
     setSubmitting(true);
@@ -187,7 +191,7 @@ function ReportSheet({
       onCreated();
     } catch (e: any) {
       const err = e.response?.data?.error;
-      Alert.alert('Impossible', err?.issues?.[0]?.message ?? err?.message ?? 'Échec.');
+      Alert.alert(t('common.impossible'), err?.issues?.[0]?.message ?? err?.message ?? t('errors.generic'));
     } finally {
       setSubmitting(false);
     }
@@ -203,15 +207,14 @@ function ReportSheet({
           <View style={{ padding: 20, gap: 14 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <Text style={{ fontSize: 18, fontWeight: '700', color: '#0f172a' }}>
-                Signaler une zone
+                {t('roadReports.sheetTitle')}
               </Text>
               <Pressable onPress={onClose}>
                 <Text style={{ color: '#64748b', fontSize: 18 }}>✕</Text>
               </Pressable>
             </View>
             <Text style={{ fontSize: 12, color: '#64748b' }}>
-              Le signalement est visible par tous pendant 6h. Les autres usagers
-              peuvent confirmer ou démentir.
+              {t('roadReports.sheetHint')}
             </Text>
 
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -233,7 +236,7 @@ function ReportSheet({
                       fontSize: 13, fontWeight: '600',
                       color: active ? '#fff' : '#0f172a',
                     }}>
-                      {m.label}
+                      {t(`roadReports.reasons.${r}` as const)}
                     </Text>
                   </Pressable>
                 );
@@ -243,7 +246,7 @@ function ReportSheet({
             <TextInput
               value={note}
               onChangeText={setNote}
-              placeholder="Détail (optionnel) — ex: route fermée 100m"
+              placeholder={t('roadReports.notePlaceholder')}
               placeholderTextColor="#94a3b8"
               multiline
               maxLength={500}
@@ -267,7 +270,7 @@ function ReportSheet({
             >
               {submitting && <ActivityIndicator color="#fff" />}
               <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>
-                Envoyer le signalement
+                {t('roadReports.submit')}
               </Text>
             </Pressable>
           </View>
