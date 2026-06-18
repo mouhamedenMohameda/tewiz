@@ -138,7 +138,19 @@ async function ensureApprovedCaptain(userId: string): Promise<void> {
     [userId, appId],
   );
 
-  // 3. Active vehicle. Deactivate any previous active one first so the
+  // 3. Wallet row. The wallet table has captain_id as PK; the captain UI
+  //    queries GET /captain/wallet which 404s ("no_wallet") without this row.
+  //    Real captains get their wallet created at first top-up, but the
+  //    reviewer will tap the wallet screen before topping up — so we
+  //    pre-create it with a zero balance.
+  await pool.query(
+    `INSERT INTO wallets (captain_id, balance_khoums)
+     VALUES ($1, 0)
+     ON CONFLICT (captain_id) DO NOTHING`,
+    [userId],
+  );
+
+  // 4. Active vehicle. Deactivate any previous active one first so the
   //    partial unique index on (captain_id) WHERE is_active doesn't fire.
   await pool.query(
     `UPDATE vehicles SET is_active = false

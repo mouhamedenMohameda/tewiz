@@ -127,13 +127,21 @@ async function mutateWallet(c: pg.PoolClient, m: MutateInput): Promise<TxResult>
 
 /**
  * Read-only: balance + recent N transactions.
+ *
+ * Treats a missing wallet row as a freshly-approved captain who hasn't
+ * topped up yet — returns a zero balance instead of 404. The old behaviour
+ * surfaced an "AxiosError 404" alert the first time a captain opened the
+ * wallet screen, which also tripped App Store reviewers on the test
+ * captain account.
  */
 export async function getWalletSummary(captainId: string, limit = 20) {
   const w = await pool.query<{ balance_khoums: string; updated_at: Date }>(
     `SELECT balance_khoums, updated_at FROM wallets WHERE captain_id = $1`,
     [captainId],
   );
-  if (!w.rows[0]) throw new HttpError(404, 'no_wallet', 'No wallet');
+  if (!w.rows[0]) {
+    return { balanceKhoums: 0, updatedAt: new Date(), transactions: [] };
+  }
 
   const txs = await pool.query(
     `SELECT id, type, amount_khoums, balance_after, ride_id, topup_id, reason, created_at
@@ -168,6 +176,9 @@ export async function getBalance(captainId: string): Promise<number> {
     `SELECT balance_khoums FROM wallets WHERE captain_id = $1`,
     [captainId],
   );
-  if (!r.rows[0]) throw new HttpError(404, 'no_wallet', 'No wallet');
+  // Mirror getWalletSummary: a brand-new captain with no wallet row yet
+  // has an effective zero balance. Avoids 404s on /captain/state where
+  // a balance lookup is part of the going-home / online flow.
+  if (!r.rows[0]) return 0;
   return Number(r.rows[0].balance_khoums);
 }
