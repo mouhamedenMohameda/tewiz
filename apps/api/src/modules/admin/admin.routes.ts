@@ -43,33 +43,47 @@ adminRouter.delete('/road-reports/:id', async (req, res) => {
 
 /**
  * GET /admin/captains
- * Returns every approved captain with their live presence + last known
- * location. Used by the back-office "Chauffeurs" page to show who is
- * connected on the map.
+ * Returns EVERY user with role='captain' (approved or not) with their live
+ * presence + last known location. Used by the back-office "Chauffeurs" page
+ * to show who is connected on the map.
+ *
+ * Presence resolution:
+ *   1. captain_state.presence when the captain has toggled online/paused
+ *      from the mobile app (live, includes on_ride).
+ *   2. Otherwise, fall back to users.last_seen_at (bumped by the heartbeat
+ *      middleware on every authenticated request) — "online" if seen in the
+ *      last 5 minutes, else "offline".
  */
 adminRouter.get('/captains', async (_req, res) => {
   const r = await pool.query(
     `SELECT
-        c.user_id                              AS id,
+        u.id                                    AS id,
         u.full_name,
         u.phone,
-        c.status,
+        COALESCE(c.status, 'pending')           AS status,
         c.rating_avg,
         c.total_rides,
-        COALESCE(cs.presence::text, 'offline') AS presence,
-        cs.updated_at                          AS last_seen,
-        ST_X(cs.location::geometry)            AS lng,
-        ST_Y(cs.location::geometry)            AS lat,
+        CASE
+          WHEN cs.presence IS NOT NULL THEN cs.presence::text
+          WHEN u.last_seen_at > now() - interval '5 minutes' THEN 'online'
+          ELSE 'offline'
+        END                                     AS presence,
+        GREATEST(cs.updated_at, u.last_seen_at) AS last_seen,
+        ST_X(cs.location::geometry)             AS lng,
+        ST_Y(cs.location::geometry)             AS lat,
         v.plate, v.brand, v.model, v.color
-       FROM captains c
-       JOIN users u           ON u.id = c.user_id
-       LEFT JOIN captain_state cs ON cs.captain_id = c.user_id
-       LEFT JOIN vehicles v   ON v.captain_id = c.user_id AND v.is_active = true
+       FROM users u
+       LEFT JOIN captains c       ON c.user_id    = u.id
+       LEFT JOIN captain_state cs ON cs.captain_id = u.id
+       LEFT JOIN vehicles v       ON v.captain_id  = u.id AND v.is_active = true
+      WHERE u.role = 'captain'
+        AND COALESCE(u.is_guest, false) = false
       ORDER BY
-        CASE COALESCE(cs.presence::text, 'offline')
-          WHEN 'on_ride' THEN 0
-          WHEN 'online'  THEN 1
-          WHEN 'paused'  THEN 2
+        CASE
+          WHEN cs.presence::text = 'on_ride' THEN 0
+          WHEN cs.presence::text = 'online'  THEN 1
+          WHEN u.last_seen_at > now() - interval '5 minutes' THEN 1
+          WHEN cs.presence::text = 'paused'  THEN 2
           ELSE 3
         END,
         u.full_name NULLS LAST`,
