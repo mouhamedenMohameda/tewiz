@@ -197,6 +197,7 @@ export default function CaptainHome() {
           toggling={toggling}
           onGoOnline={goOnline}
           onGoOffline={goOffline}
+          onOpenRide={() => router.push('/(app)/captain/rides')}
         />
       </FadeInView>
 
@@ -301,16 +302,18 @@ export default function CaptainHome() {
 /* ------------------------------------------------------------------ */
 
 function StateCard({
-  presence, toggling, onGoOnline, onGoOffline,
+  presence, toggling, onGoOnline, onGoOffline, onOpenRide,
 }: {
-  presence: Presence; toggling: boolean; onGoOnline: () => void; onGoOffline: () => void;
+  presence: Presence; toggling: boolean;
+  onGoOnline: () => void; onGoOffline: () => void;
+  onOpenRide: () => void;
 }) {
   const { t } = useTranslation();
   const online = presence === 'online' || presence === 'on_ride';
   const onRide = presence === 'on_ride';
 
   if (online) {
-    return (
+    const gradient = (
       <LinearGradient
         colors={onRide ? gradients.espresso : gradients.sunrise}
         start={{ x: 0, y: 0 }}
@@ -328,7 +331,20 @@ function StateCard({
           {onRide ? t('captain.state.onRideBody') : t('captain.state.onlineBody')}
         </AppText>
 
-        {!onRide ? (
+        {onRide ? (
+          <View
+            style={{
+              marginTop: spacing.lg,
+              borderRadius: radius.lg, paddingVertical: 13,
+              flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
+              borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.6)',
+            }}
+          >
+            <Icon name="ride" size={19} color={colors.white} />
+            <AppText variant="bodyStrong" color={colors.white}>{t('captain.state.openRide')}</AppText>
+            <Icon name="chevron" size={18} color={colors.white} />
+          </View>
+        ) : (
           <PressableScale
             onPress={onGoOffline}
             disabled={toggling}
@@ -344,9 +360,17 @@ function StateCard({
               : <Icon name="power" size={19} color={colors.white} />}
             <AppText variant="bodyStrong" color={colors.white}>{t('captain.state.goOffline')}</AppText>
           </PressableScale>
-        ) : null}
+        )}
       </LinearGradient>
     );
+    if (onRide) {
+      return (
+        <PressableScale onPress={onOpenRide} accessibilityLabel={t('captain.state.openRide')}>
+          {gradient}
+        </PressableScale>
+      );
+    }
+    return gradient;
   }
 
   return (

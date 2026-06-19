@@ -313,6 +313,7 @@
       "offline": "Offline",
       "onRide": "On a ride",
       "onRideBody": "Ride in progress — drive safe.",
+      "openRide": "Open current ride",
       "onlineBody": "You are receiving nearby rides.",
       "offlineBody": "Go online to start receiving rides.",
       "goOnline": "Go online",
