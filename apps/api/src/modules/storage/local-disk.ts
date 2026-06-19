@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { env } from '../../config/env.js';
-import type { StorageProvider } from './storage.js';
+import { StorageNotFoundError, type StorageProvider } from './storage.js';
 
 /**
  * Stores files under env.UPLOAD_DIR.
@@ -31,7 +31,14 @@ export class LocalDiskStorage implements StorageProvider {
   }
 
   async get(key: string): Promise<Buffer> {
-    return fs.readFile(this.safePath(key));
+    try {
+      return await fs.readFile(this.safePath(key));
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code === 'ENOENT') {
+        throw new StorageNotFoundError(key);
+      }
+      throw e;
+    }
   }
 
   async delete(key: string): Promise<void> {

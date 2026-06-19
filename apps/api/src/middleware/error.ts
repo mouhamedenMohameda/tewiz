@@ -1,6 +1,7 @@
 import type { ErrorRequestHandler, RequestHandler } from 'express';
 import { ZodError } from 'zod';
 import { env } from '../config/env.js';
+import { StorageNotFoundError } from '../modules/storage/storage.js';
 
 export class HttpError extends Error {
   constructor(
@@ -25,6 +26,16 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
         message: 'Invalid request',
         issues: err.issues,
       },
+    });
+    return;
+  }
+
+  if (err instanceof StorageNotFoundError) {
+    // Log the missing key so the operator can correlate (was the file
+    // wiped on redeploy? wrong UPLOAD_DIR? key mismatch?).
+    req.log?.warn({ key: err.key }, 'storage: file missing');
+    res.status(404).json({
+      error: { code: 'file_missing', message: 'File not found in storage', details: { key: err.key } },
     });
     return;
   }
