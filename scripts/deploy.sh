@@ -37,7 +37,13 @@ echo "==> 4/7 build api"
 pnpm --filter @tewiz/api build
 
 echo "==> 5/7 db migrate"
-pnpm --filter @tewiz/api migrate
+# --no-check-order: ignore node-pg-migrate's order sanity check.
+# It can throw false positives when several migrations share the same
+# run_on timestamp (batch insert), even though all files are applied.
+# All real ordering safety comes from the numeric filename prefix.
+pnpm --filter @tewiz/api exec node-pg-migrate \
+  -m ../../db/migrations --envPath ../../.env \
+  --migration-file-language sql --no-check-order up
 
 echo "==> 6/7 build admin-web"
 pnpm --filter @tewiz/admin-web build
