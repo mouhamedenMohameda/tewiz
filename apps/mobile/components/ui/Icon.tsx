@@ -34,6 +34,8 @@ const REGISTRY = {
   logout: { set: 'ion', glyph: 'log-out-outline' },
   chevron: { set: 'ion', glyph: 'chevron-forward' },
   chevronBack: { set: 'ion', glyph: 'chevron-back' },
+  chevronDown: { set: 'ion', glyph: 'chevron-down' },
+  search: { set: 'ion', glyph: 'search' },
   arrow: { set: 'ion', glyph: 'arrow-forward' },
   eye: { set: 'ion', glyph: 'eye-outline' },
   eyeOff: { set: 'ion', glyph: 'eye-off-outline' },

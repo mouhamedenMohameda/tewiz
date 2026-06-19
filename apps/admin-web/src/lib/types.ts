@@ -33,6 +33,7 @@ export interface ApplicationDocument {
 export interface ApplicationDetail {
   application: {
     id: string;
+    user_id: string | null;
     phone: string;
     full_name: string | null;
     nni: string | null;

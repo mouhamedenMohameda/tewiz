@@ -1,6 +1,7 @@
 {
   "common": {
     "cancel": "Annuler",
+    "confirm": "Valider",
     "save": "Enregistrer",
     "saveAndContinue": "Enregistrer et continuer",
     "send": "Envoyer",
@@ -36,6 +37,25 @@
     "network": "Impossible de se connecter au serveur. Vérifiez votre connexion.",
     "generic": "Échec.",
     "load": "Impossible de charger."
+  },
+  "months": [
+    "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+    "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
+  ],
+  "vehicleColors": {
+    "white": "Blanc",
+    "black": "Noir",
+    "silver": "Argenté",
+    "gray": "Gris",
+    "beige": "Beige",
+    "red": "Rouge",
+    "blue": "Bleu",
+    "navy": "Bleu marine",
+    "green": "Vert",
+    "yellow": "Jaune",
+    "orange": "Orange",
+    "brown": "Marron",
+    "gold": "Doré"
   },
   "auth": {
     "welcome": {
@@ -541,6 +561,8 @@
       "nniInvalidBody": "Le NNI doit contenir 6 à 15 chiffres.",
       "dob": "Date de naissance",
       "dobPlaceholder": "AAAA-MM-JJ",
+      "dobTapToPick": "Touchez pour choisir une date",
+      "dobMinAgeHelper": "Vous devez avoir au moins 18 ans.",
       "dobHelper": "Format : 1990-05-23",
       "dobInvalidTitle": "Date invalide",
       "dobInvalidBody": "Format attendu : AAAA-MM-JJ (ex 1990-05-23).",
@@ -558,15 +580,21 @@
       "platePlaceholder": "1234 AB",
       "brand": "Marque",
       "brandPlaceholder": "Toyota",
+      "brandTapToPick": "Touchez pour choisir la marque",
+      "brandSearchPlaceholder": "Rechercher une marque…",
       "model": "Modèle",
       "modelPlaceholder": "Corolla",
       "year": "Année",
       "yearPlaceholder": "2018",
+      "yearTapToPick": "Touchez pour choisir l'année",
       "yearInvalidTitle": "Année invalide",
       "yearInvalidBody": "Entre 1980 et {{max}}.",
       "color": "Couleur",
       "colorPlaceholder": "Blanc",
+      "colorTapToPick": "Touchez pour choisir la couleur",
       "seats": "Nombre de places passagers",
+      "seatsCount_one": "{{count}} place",
+      "seatsCount_other": "{{count}} places",
       "seatsInvalidTitle": "Places invalides",
       "seatsInvalidBody": "Entre 1 et 8.",
       "colisTitle": "Accepter les colis",
@@ -581,6 +609,8 @@
       "intro": "Envoyez les 14 photos requises. Bien éclairées, sans reflet.",
       "expiryTitle": "Date d'expiration",
       "expiryHint": "{{label}} — entrez la date au format AAAA-MM-JJ.",
+      "expiryHintPicker": "{{label}} — choisissez la date d'expiration.",
+      "expiryTapToPick": "Touchez pour choisir la date",
       "expiryPlaceholder": "2026-12-31",
       "expiryInvalidTitle": "Date invalide",
       "expiryInvalidBody": "Format attendu : AAAA-MM-JJ.",

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
   Pressable, ScrollView, Text, View,
@@ -9,6 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '@/lib/api';
 import { type ApplicationDto } from '@/lib/kyc';
 import { Field, PrimaryButton } from '@/lib/form';
+import { DateField } from '@/components/ui';
 
 export default function PersonalScreen() {
   const router = useRouter();
@@ -39,6 +40,16 @@ export default function PersonalScreen() {
       }
     })();
   }, []);
+
+  const monthLabels = useMemo(
+    () => (t('months', { returnObjects: true }) as string[] | string) as string[],
+    [t],
+  );
+
+  // Captains must be at least 18 years old.
+  const today = new Date();
+  const maxDob = `${today.getFullYear() - 18}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+  const minDob = `${today.getFullYear() - 80}-01-01`;
 
   async function save() {
     if (!/^\d{6,15}$/.test(nni)) {
@@ -94,9 +105,20 @@ export default function PersonalScreen() {
           <Field label={t('becomeCaptain.personal.nni')} value={nni} onChangeText={(v) => setNni(v.replace(/\D/g, ''))}
             placeholder="1234567890" keyboardType="number-pad" maxLength={15}
             helper={t('becomeCaptain.personal.nniHelper')} />
-          <Field label={t('becomeCaptain.personal.dob')} value={dob} onChangeText={setDob}
-            placeholder={t('becomeCaptain.personal.dobPlaceholder')} keyboardType="numeric" maxLength={10}
-            helper={t('becomeCaptain.personal.dobHelper')} />
+          <DateField
+            containerStyle={{ marginTop: 16 }}
+            label={t('becomeCaptain.personal.dob')}
+            value={dob}
+            onChange={setDob}
+            placeholder={t('becomeCaptain.personal.dobTapToPick')}
+            helper={t('becomeCaptain.personal.dobMinAgeHelper')}
+            monthLabels={Array.isArray(monthLabels) ? monthLabels : undefined}
+            modalTitle={t('becomeCaptain.personal.dob')}
+            cancelLabel={t('common.cancel')}
+            confirmLabel={t('common.confirm')}
+            minDate={minDob}
+            maxDate={maxDob}
+          />
           <Field label={t('becomeCaptain.personal.address')} value={address} onChangeText={setAddress}
             placeholder={t('becomeCaptain.personal.addressPlaceholder')} />
           <Field label={t('becomeCaptain.personal.emergencyName')} value={emergencyName} onChangeText={setEmergencyName}
@@ -111,3 +133,5 @@ export default function PersonalScreen() {
     </SafeAreaView>
   );
 }
+
+function pad(n: number) { return n < 10 ? `0${n}` : String(n); }

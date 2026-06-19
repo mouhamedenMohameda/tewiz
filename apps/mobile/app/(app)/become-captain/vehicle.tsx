@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
   Pressable, ScrollView, Switch, Text, View,
@@ -9,6 +9,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '@/lib/api';
 import { type ApplicationDto } from '@/lib/kyc';
 import { Field, PrimaryButton } from '@/lib/form';
+import { SelectField, type SelectOption } from '@/components/ui';
+import { VEHICLE_BRANDS, VEHICLE_COLORS } from '@/lib/vehicle-options';
 
 export default function VehicleScreen() {
   const router = useRouter();
@@ -34,7 +36,10 @@ export default function VehicleScreen() {
           setBrand(r.data.vehicleBrand ?? '');
           setModel(r.data.vehicleModel ?? '');
           setYear(r.data.vehicleYear?.toString() ?? '');
-          setColor(r.data.vehicleColor ?? '');
+          // Normalize color to lowercase key (older drafts may have stored
+          // a localized string; if it doesn't match a known key, leave blank).
+          const storedColor = (r.data.vehicleColor ?? '').toLowerCase();
+          setColor(VEHICLE_COLORS.some((c) => c.key === storedColor) ? storedColor : '');
           setSeats(r.data.vehicleSeats?.toString() ?? '4');
           setAcceptsColis(r.data.acceptsColis);
           setAcceptsLongDistance(r.data.acceptsLongDistance);
@@ -44,6 +49,37 @@ export default function VehicleScreen() {
       }
     })();
   }, []);
+
+  const brandOptions: SelectOption[] = useMemo(
+    () => VEHICLE_BRANDS.map((b) => ({ value: b, label: b })),
+    [],
+  );
+
+  const colorOptions: SelectOption[] = useMemo(
+    () => VEHICLE_COLORS.map((c) => ({
+      value: c.key,
+      label: t(`vehicleColors.${c.key}` as const, c.key),
+      swatch: c.hex,
+    })),
+    [t],
+  );
+
+  const yearOptions: SelectOption[] = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const arr: SelectOption[] = [];
+    for (let y = currentYear + 1; y >= 1980; y--) {
+      arr.push({ value: String(y), label: String(y) });
+    }
+    return arr;
+  }, []);
+
+  const seatOptions: SelectOption[] = useMemo(
+    () => [1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({
+      value: String(n),
+      label: t('becomeCaptain.vehicle.seatsCount', { count: n, defaultValue: `${n}` }),
+    })),
+    [t],
+  );
 
   async function save() {
     const yearNum = Number(year);
@@ -101,18 +137,51 @@ export default function VehicleScreen() {
 
           <Field label={t('becomeCaptain.vehicle.plate')} value={plate}
             onChangeText={setPlate} placeholder={t('becomeCaptain.vehicle.platePlaceholder')} autoCapitalize="characters" />
-          <Field label={t('becomeCaptain.vehicle.brand')} value={brand} onChangeText={setBrand}
-            placeholder={t('becomeCaptain.vehicle.brandPlaceholder')} autoCapitalize="words" />
+
+          <SelectField
+            containerStyle={{ marginTop: 16 }}
+            label={t('becomeCaptain.vehicle.brand')}
+            value={brand}
+            onChange={setBrand}
+            options={brandOptions}
+            placeholder={t('becomeCaptain.vehicle.brandTapToPick')}
+            modalTitle={t('becomeCaptain.vehicle.brand')}
+            searchable
+            searchPlaceholder={t('becomeCaptain.vehicle.brandSearchPlaceholder')}
+          />
+
           <Field label={t('becomeCaptain.vehicle.model')} value={model} onChangeText={setModel}
             placeholder={t('becomeCaptain.vehicle.modelPlaceholder')} autoCapitalize="words" />
-          <Field label={t('becomeCaptain.vehicle.year')} value={year}
-            onChangeText={(v) => setYear(v.replace(/\D/g, '').slice(0, 4))}
-            placeholder={t('becomeCaptain.vehicle.yearPlaceholder')} keyboardType="number-pad" maxLength={4} />
-          <Field label={t('becomeCaptain.vehicle.color')} value={color} onChangeText={setColor}
-            placeholder={t('becomeCaptain.vehicle.colorPlaceholder')} autoCapitalize="words" />
-          <Field label={t('becomeCaptain.vehicle.seats')} value={seats}
-            onChangeText={(v) => setSeats(v.replace(/\D/g, '').slice(0, 1))}
-            placeholder="4" keyboardType="number-pad" maxLength={1} />
+
+          <SelectField
+            containerStyle={{ marginTop: 16 }}
+            label={t('becomeCaptain.vehicle.year')}
+            value={year}
+            onChange={setYear}
+            options={yearOptions}
+            placeholder={t('becomeCaptain.vehicle.yearTapToPick')}
+            modalTitle={t('becomeCaptain.vehicle.year')}
+          />
+
+          <SelectField
+            containerStyle={{ marginTop: 16 }}
+            label={t('becomeCaptain.vehicle.color')}
+            value={color}
+            onChange={setColor}
+            options={colorOptions}
+            placeholder={t('becomeCaptain.vehicle.colorTapToPick')}
+            modalTitle={t('becomeCaptain.vehicle.color')}
+          />
+
+          <SelectField
+            containerStyle={{ marginTop: 16 }}
+            label={t('becomeCaptain.vehicle.seats')}
+            value={seats}
+            onChange={setSeats}
+            options={seatOptions}
+            placeholder="4"
+            modalTitle={t('becomeCaptain.vehicle.seats')}
+          />
 
           <View style={{
             marginTop: 24, backgroundColor: '#fff', borderRadius: 14, padding: 16,

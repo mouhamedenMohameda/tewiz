@@ -1,6 +1,7 @@
 {
   "common": {
     "cancel": "إلغاء",
+    "confirm": "تأكيد",
     "save": "حفظ",
     "saveAndContinue": "حفظ ومتابعة",
     "send": "إرسال",
@@ -36,6 +37,25 @@
     "network": "تعذّر الاتصال بالخادم. تحقّق من اتصالك بالإنترنت.",
     "generic": "فشل.",
     "load": "تعذّر التحميل."
+  },
+  "months": [
+    "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
+    "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
+  ],
+  "vehicleColors": {
+    "white": "أبيض",
+    "black": "أسود",
+    "silver": "فضي",
+    "gray": "رمادي",
+    "beige": "بيج",
+    "red": "أحمر",
+    "blue": "أزرق",
+    "navy": "أزرق داكن",
+    "green": "أخضر",
+    "yellow": "أصفر",
+    "orange": "برتقالي",
+    "brown": "بني",
+    "gold": "ذهبي"
   },
   "auth": {
     "welcome": {
@@ -474,6 +494,8 @@
       "nniInvalidBody": "يجب أن يحتوي على 6 إلى 15 رقماً.",
       "dob": "تاريخ الميلاد",
       "dobPlaceholder": "س س س س - ش ش - ي ي",
+      "dobTapToPick": "اضغط لاختيار التاريخ",
+      "dobMinAgeHelper": "يجب أن يكون عمرك 18 سنة على الأقل.",
       "dobHelper": "الصيغة: 1990-05-23",
       "dobInvalidTitle": "تاريخ غير صحيح",
       "dobInvalidBody": "الصيغة المتوقّعة: س س س س - ش ش - ي ي.",
@@ -491,15 +513,21 @@
       "platePlaceholder": "1234 AB",
       "brand": "الماركة",
       "brandPlaceholder": "Toyota",
+      "brandTapToPick": "اضغط لاختيار الماركة",
+      "brandSearchPlaceholder": "ابحث عن ماركة…",
       "model": "الموديل",
       "modelPlaceholder": "Corolla",
       "year": "السنة",
       "yearPlaceholder": "2018",
+      "yearTapToPick": "اضغط لاختيار السنة",
       "yearInvalidTitle": "سنة غير صحيحة",
       "yearInvalidBody": "بين 1980 و {{max}}.",
       "color": "اللون",
       "colorPlaceholder": "أبيض",
+      "colorTapToPick": "اضغط لاختيار اللون",
       "seats": "عدد مقاعد الركّاب",
+      "seatsCount_one": "{{count}} مقعد",
+      "seatsCount_other": "{{count}} مقاعد",
       "seatsInvalidTitle": "عدد مقاعد غير صحيح",
       "seatsInvalidBody": "بين 1 و 8.",
       "colisTitle": "قبول الطرود",
@@ -514,6 +542,8 @@
       "intro": "أرسل الصور الـ 14 المطلوبة. مضاءة جيداً وبدون انعكاسات.",
       "expiryTitle": "تاريخ الانتهاء",
       "expiryHint": "{{label}} — أدخل التاريخ بصيغة س س س س - ش ش - ي ي.",
+      "expiryHintPicker": "{{label}} — اختر تاريخ الانتهاء.",
+      "expiryTapToPick": "اضغط لاختيار التاريخ",
       "expiryPlaceholder": "2026-12-31",
       "expiryInvalidTitle": "تاريخ غير صحيح",
       "expiryInvalidBody": "الصيغة المتوقّعة: س س س س - ش ش - ي ي.",
