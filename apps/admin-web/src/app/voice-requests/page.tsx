@@ -482,10 +482,14 @@ function SourceBadge({ source }: { source: PoiCandidate['source'] }) {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function extractError(err: any): string {
-  return (
+  const raw =
     err?.response?.data?.message ??
     err?.response?.data?.error ??
-    err?.message ??
-    'Erreur lors de la confirmation'
-  );
+    err?.message;
+  if (typeof raw === 'string' && raw.trim()) return raw;
+  if (raw && typeof raw === 'object') {
+    if (typeof raw.message === 'string') return raw.message;
+    try { return JSON.stringify(raw); } catch { /* fallthrough */ }
+  }
+  return 'Erreur lors de la confirmation';
 }
