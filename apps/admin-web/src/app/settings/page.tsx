@@ -16,6 +16,9 @@ interface PricingSettings {
   baseFareMru: number;
   perKmMru: number;
   minFareMru: number;
+  colisBaseFareMru: number;
+  colisPerKmMru: number;
+  colisMinFareMru: number;
   defaultCommissionBps: number;
   colisCommissionBps: number;
   updatedAt: string;
@@ -26,6 +29,9 @@ interface FormState {
   baseFareMru: string;
   perKmMru: string;
   minFareMru: string;
+  colisBaseFareMru: string;
+  colisPerKmMru: string;
+  colisMinFareMru: string;
   defaultCommissionPct: string;
   colisCommissionPct: string;
 }
@@ -34,6 +40,9 @@ const EMPTY_FORM: FormState = {
   baseFareMru: '',
   perKmMru: '',
   minFareMru: '',
+  colisBaseFareMru: '',
+  colisPerKmMru: '',
+  colisMinFareMru: '',
   defaultCommissionPct: '',
   colisCommissionPct: '',
 };
@@ -43,6 +52,9 @@ function settingsToForm(s: PricingSettings): FormState {
     baseFareMru: String(s.baseFareMru),
     perKmMru: String(s.perKmMru),
     minFareMru: String(s.minFareMru),
+    colisBaseFareMru: String(s.colisBaseFareMru),
+    colisPerKmMru: String(s.colisPerKmMru),
+    colisMinFareMru: String(s.colisMinFareMru),
     defaultCommissionPct: (s.defaultCommissionBps / 100).toString(),
     colisCommissionPct: (s.colisCommissionBps / 100).toString(),
   };
@@ -73,6 +85,9 @@ export default function SettingsPage() {
         baseFareMru: parseInt(form.baseFareMru, 10),
         perKmMru: parseInt(form.perKmMru, 10),
         minFareMru: parseInt(form.minFareMru, 10),
+        colisBaseFareMru: parseInt(form.colisBaseFareMru, 10),
+        colisPerKmMru: parseInt(form.colisPerKmMru, 10),
+        colisMinFareMru: parseInt(form.colisMinFareMru, 10),
         defaultCommissionBps: Math.round(parseFloat(form.defaultCommissionPct) * 100),
         colisCommissionBps: Math.round(parseFloat(form.colisCommissionPct) * 100),
       };
@@ -128,7 +143,7 @@ export default function SettingsPage() {
         {query.data && (
           <>
             <section className="card p-5 mb-4">
-              <h2 className="font-semibold text-slate-900 mb-1">Tarification</h2>
+              <h2 className="font-semibold text-slate-900 mb-1">Tarification passagers</h2>
               <p className="text-xs text-slate-500 mb-4">
                 Formule : <code className="font-mono">prix = max(course minimum, frais de départ + km × prix/km)</code>
               </p>
@@ -151,6 +166,35 @@ export default function SettingsPage() {
                   suffix="MRU"
                   value={form.minFareMru}
                   onChange={(v) => setForm({ ...form, minFareMru: v })}
+                />
+              </div>
+            </section>
+
+            <section className="card p-5 mb-4">
+              <h2 className="font-semibold text-slate-900 mb-1">Tarification colis</h2>
+              <p className="text-xs text-slate-500 mb-4">
+                Même formule, appliquée aux livraisons de colis (généralement moins
+                chères qu&apos;une course passager).
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <Field
+                  label="Prix au kilomètre"
+                  suffix="MRU / km"
+                  value={form.colisPerKmMru}
+                  onChange={(v) => setForm({ ...form, colisPerKmMru: v })}
+                />
+                <Field
+                  label="Frais de départ"
+                  suffix="MRU"
+                  value={form.colisBaseFareMru}
+                  onChange={(v) => setForm({ ...form, colisBaseFareMru: v })}
+                />
+                <Field
+                  label="Course minimum"
+                  suffix="MRU"
+                  value={form.colisMinFareMru}
+                  onChange={(v) => setForm({ ...form, colisMinFareMru: v })}
                 />
               </div>
             </section>
@@ -261,7 +305,10 @@ function extractErrorDetail(e: any): string {
 }
 
 function isFormValid(f: FormState): boolean {
-  const ints = [f.baseFareMru, f.perKmMru, f.minFareMru].map((v) => parseInt(v, 10));
+  const ints = [
+    f.baseFareMru, f.perKmMru, f.minFareMru,
+    f.colisBaseFareMru, f.colisPerKmMru, f.colisMinFareMru,
+  ].map((v) => parseInt(v, 10));
   if (ints.some((n) => Number.isNaN(n) || n < 0 || n > 10_000)) return false;
   const pcts = [f.defaultCommissionPct, f.colisCommissionPct].map(parseFloat);
   if (pcts.some((n) => Number.isNaN(n) || n < 0 || n > 50)) return false;

@@ -81,12 +81,15 @@ export default function NewRideScreen() {
     api.post<{ fareMru: number; distanceM: number }>('/rider/rides/estimate', {
       pickup: { lat: pickup.lat, lng: pickup.lng },
       dropoff: { lat: dropoff.lat, lng: dropoff.lng },
+      // Colis runs use a different (cheaper) tariff — make sure the price
+      // shown matches what will actually be charged at booking time.
+      rideType: kind === 'colis' ? 'colis' : 'passenger',
     })
       .then((r) => { if (!cancelled) setEstimate(r.data); })
       .catch(() => { if (!cancelled) setEstimate(null); })
       .finally(() => { if (!cancelled) setEstimating(false); });
     return () => { cancelled = true; };
-  }, [pickup, dropoff]);
+  }, [pickup, dropoff, kind]);
 
   const onMapPress = useCallback((e: { nativeEvent: { coordinate: { latitude: number; longitude: number } } }) => {
     const { latitude, longitude } = e.nativeEvent.coordinate;

@@ -15,6 +15,12 @@ export interface PricingSettings {
   baseFareMru: number;
   perKmMru: number;
   minFareMru: number;
+  // Colis-specific tariff (migration 0019). Operators reported that package
+  // runs cost less to perform than passenger rides, so they get their own
+  // base fare / per-km / minimum. Commission was already differentiated.
+  colisBaseFareMru: number;
+  colisPerKmMru: number;
+  colisMinFareMru: number;
   defaultCommissionBps: number;
   colisCommissionBps: number;
   updatedAt: string;
@@ -28,6 +34,9 @@ interface Row {
   base_fare_mru: number;
   per_km_mru: number;
   min_fare_mru: number;
+  colis_base_fare_mru: number;
+  colis_per_km_mru: number;
+  colis_min_fare_mru: number;
   default_commission_bps: number;
   colis_commission_bps: number;
   updated_at: Date;
@@ -39,6 +48,9 @@ function toSettings(r: Row): PricingSettings {
     baseFareMru: r.base_fare_mru,
     perKmMru: r.per_km_mru,
     minFareMru: r.min_fare_mru,
+    colisBaseFareMru: r.colis_base_fare_mru,
+    colisPerKmMru: r.colis_per_km_mru,
+    colisMinFareMru: r.colis_min_fare_mru,
     defaultCommissionBps: r.default_commission_bps,
     colisCommissionBps: r.colis_commission_bps,
     updatedAt: r.updated_at.toISOString(),
@@ -52,6 +64,7 @@ export async function getPricingSettings(): Promise<PricingSettings> {
   }
   const { rows } = await pool.query<Row>(
     `SELECT base_fare_mru, per_km_mru, min_fare_mru,
+            colis_base_fare_mru, colis_per_km_mru, colis_min_fare_mru,
             default_commission_bps, colis_commission_bps,
             updated_at, updated_by
        FROM app_settings WHERE id = 1`,
@@ -70,6 +83,9 @@ export interface PricingSettingsPatch {
   baseFareMru?: number;
   perKmMru?: number;
   minFareMru?: number;
+  colisBaseFareMru?: number;
+  colisPerKmMru?: number;
+  colisMinFareMru?: number;
   defaultCommissionBps?: number;
   colisCommissionBps?: number;
 }
@@ -83,18 +99,25 @@ export async function updatePricingSettings(
         SET base_fare_mru           = COALESCE($1, base_fare_mru),
             per_km_mru              = COALESCE($2, per_km_mru),
             min_fare_mru            = COALESCE($3, min_fare_mru),
-            default_commission_bps  = COALESCE($4, default_commission_bps),
-            colis_commission_bps    = COALESCE($5, colis_commission_bps),
+            colis_base_fare_mru     = COALESCE($4, colis_base_fare_mru),
+            colis_per_km_mru        = COALESCE($5, colis_per_km_mru),
+            colis_min_fare_mru      = COALESCE($6, colis_min_fare_mru),
+            default_commission_bps  = COALESCE($7, default_commission_bps),
+            colis_commission_bps    = COALESCE($8, colis_commission_bps),
             updated_at              = now(),
-            updated_by              = $6
+            updated_by              = $9
       WHERE id = 1
       RETURNING base_fare_mru, per_km_mru, min_fare_mru,
+                colis_base_fare_mru, colis_per_km_mru, colis_min_fare_mru,
                 default_commission_bps, colis_commission_bps,
                 updated_at, updated_by`,
     [
       patch.baseFareMru ?? null,
       patch.perKmMru ?? null,
       patch.minFareMru ?? null,
+      patch.colisBaseFareMru ?? null,
+      patch.colisPerKmMru ?? null,
+      patch.colisMinFareMru ?? null,
       patch.defaultCommissionBps ?? null,
       patch.colisCommissionBps ?? null,
       adminId,
