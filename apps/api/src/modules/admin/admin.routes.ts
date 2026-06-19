@@ -60,7 +60,7 @@ adminRouter.get('/captains', async (_req, res) => {
         u.id                                    AS id,
         u.full_name,
         u.phone,
-        COALESCE(c.status, 'pending')           AS status,
+        COALESCE(c.status::text, 'pending')     AS status,
         c.rating_avg,
         c.total_rides,
         CASE
