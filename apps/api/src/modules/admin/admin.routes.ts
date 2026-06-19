@@ -13,6 +13,7 @@ import { adminRidesRouter } from '../rides/admin-rides.routes.js';
 import { adminUsersRouter } from './users.routes.js';
 import { adminSettingsRouter } from './settings.routes.js';
 import { adminVoiceRidesRouter } from '../voice-rides/admin-voice-rides.routes.js';
+import { adminRestaurantsRouter } from '../restaurants/admin-restaurants.routes.js';
 import * as roadReports from '../reports/road-reports.service.js';
 import type { ApplicationStatus } from '@tewiz/shared-types';
 
@@ -33,6 +34,8 @@ adminRouter.use('/users', adminUsersRouter);
 adminRouter.use('/settings', adminSettingsRouter);
 // Voice-ride dispatch queue (listen → pin pickup/dropoff → confirm)
 adminRouter.use('/voice-rides', adminVoiceRidesRouter);
+// Restaurants directory — CRUD + bulk-import for the rider mobile catalog.
+adminRouter.use('/restaurants', adminRestaurantsRouter);
 
 // Admin can also drop abusive road reports.
 adminRouter.delete('/road-reports/:id', async (req, res) => {

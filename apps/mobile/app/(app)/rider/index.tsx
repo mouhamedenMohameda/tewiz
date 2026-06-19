@@ -194,13 +194,15 @@ export default function RiderHome() {
         <AppText variant="overline" color={colors.muted} style={{ marginTop: spacing.xxl, marginBottom: spacing.md }}>
           {t('rider.home.shortcuts')}
         </AppText>
-        <View style={{ flexDirection: 'row', gap: spacing.md }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md }}>
           <QuickTile icon="history" label={t('rider.home.history')} tint={colors.emberSoft} fg={colors.ember}
             onPress={() => router.push('/(app)/rider/history')} />
           <QuickTile icon="drivers" label={t('rider.home.drivers')} tint={colors.saffronSoft} fg={colors.warning}
             onPress={() => router.push('/(app)/rider/favorites')} />
           <QuickTile icon="recurring" label={t('rider.home.recurring')} tint="#E9EFE6" fg={colors.success}
             onPress={() => router.push('/(app)/rider/recurring')} />
+          <QuickTile icon="restaurant" label={t('rider.home.restaurants')} tint="#FDE2D7" fg={colors.emberDeep}
+            onPress={() => router.push('/(app)/rider/restaurants')} />
         </View>
       </FadeInView>
 
@@ -372,7 +374,7 @@ function QuickTile({
   icon, label, tint, fg, onPress,
 }: { icon: IconName; label: string; tint: string; fg: string; onPress: () => void }) {
   return (
-    <Card onPress={onPress} padding={spacing.base} style={{ flex: 1, alignItems: 'flex-start' }}>
+    <Card onPress={onPress} padding={spacing.base} style={{ flexBasis: '47%', flexGrow: 1, alignItems: 'flex-start' }}>
       <View style={{
         width: 46, height: 46, borderRadius: radius.md,
         backgroundColor: tint, alignItems: 'center', justifyContent: 'center',
