@@ -8,9 +8,10 @@ import { api } from '@/lib/api';
 import { CaptainsMap, type CaptainMarker } from './CaptainsMap';
 
 type Captain = CaptainMarker & {
-  status: 'active' | 'suspended' | 'banned';
-  rating_avg: number;
-  total_rides: number;
+  // 'pending' = user with role='captain' but no captains row (never approved)
+  status: 'active' | 'suspended' | 'banned' | 'pending';
+  rating_avg: number | null;
+  total_rides: number | null;
   last_seen: string | null;
   plate: string | null;
   brand: string | null;
