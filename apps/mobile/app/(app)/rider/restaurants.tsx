@@ -1,0 +1,349 @@
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Image, Pressable, ScrollView, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import {
+  AppText, FadeInView, Icon, PressableScale, Screen, ScreenHeader, TextField,
+} from '@/components/ui';
+import { colors, gradients, radius, shadow, spacing } from '@/theme';
+import { CUISINE_CATEGORIES, fetchRestaurants, type Restaurant } from '@/lib/restaurants';
+
+type CuisineKey = (typeof CUISINE_CATEGORIES)[number]['key'];
+
+export default function RestaurantsScreen() {
+  const router = useRouter();
+  const [query, setQuery] = useState('');
+  const [cuisine, setCuisine] = useState<CuisineKey>('all');
+  const [items, setItems] = useState<Restaurant[] | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // The mobile app has no shared React-Query layer; we use a plain fetch and
+  // re-pull on focus / pull-to-refresh, matching the rest of /rider/*.
+  const load = useCallback(async () => {
+    setError(null);
+    try {
+      const data = await fetchRestaurants();
+      setItems(data);
+    } catch (e: any) {
+      setError(e?.response?.data?.error?.message ?? 'Impossible de charger les restaurants.');
+      setItems([]);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  }, [load]);
+
+  // Filtering happens client-side so chip + search are instant. Search and
+  // cuisine are also accepted by the API for the rare case of paging through
+  // a very large dataset — not relevant yet.
+  const filtered = useMemo(() => {
+    if (!items) return [];
+    const q = query.trim().toLowerCase();
+    return items.filter((r) => {
+      if (cuisine !== 'all' && r.cuisine !== cuisine) return false;
+      if (!q) return true;
+      const hay = `${r.name} ${r.nameFr ?? ''} ${r.nameAr ?? ''} ${r.zone ?? ''} ${r.tags.join(' ')}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }, [items, query, cuisine]);
+
+  return (
+    <Screen scroll onRefresh={onRefresh} refreshing={refreshing}>
+      <ScreenHeader
+        title="Restaurants"
+        subtitle="Nouakchott"
+        onBack={() => router.back()}
+      />
+
+      <FadeInView>
+        <HeroBanner count={items?.length ?? null} />
+      </FadeInView>
+
+      <FadeInView delay={60} style={{ marginTop: spacing.lg }}>
+        <TextField
+          icon="search"
+          placeholder="Rechercher un restaurant, un plat…"
+          value={query}
+          onChangeText={setQuery}
+          autoCorrect={false}
+          autoCapitalize="none"
+        />
+      </FadeInView>
+
+      <FadeInView delay={120} style={{ marginTop: spacing.base, marginHorizontal: -spacing.lg }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: spacing.sm }}
+        >
+          {CUISINE_CATEGORIES.map((c) => (
+            <CategoryChip
+              key={c.key}
+              label={c.label}
+              icon={c.icon}
+              active={cuisine === c.key}
+              onPress={() => setCuisine(c.key)}
+            />
+          ))}
+        </ScrollView>
+      </FadeInView>
+
+      <View style={{
+        flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between',
+        marginTop: spacing.xl, marginBottom: spacing.md,
+      }}>
+        <AppText variant="overline" color={colors.muted}>
+          {items === null
+            ? 'Chargement…'
+            : `${filtered.length} ${filtered.length > 1 ? 'adresses' : 'adresse'}`}
+        </AppText>
+        <AppText variant="caption" color={colors.muted}>Triés par popularité</AppText>
+      </View>
+
+      {items === null ? (
+        <LoadingList />
+      ) : error ? (
+        <ErrorState message={error} onRetry={load} />
+      ) : filtered.length === 0 ? (
+        <EmptyState onReset={() => { setQuery(''); setCuisine('all'); }} />
+      ) : (
+        <View style={{ gap: spacing.lg }}>
+          {filtered.map((r, i) => (
+            <FadeInView key={r.id} delay={Math.min(60 + i * 30, 400)}>
+              <RestaurantCard
+                restaurant={r}
+                onPress={() => router.push(`/(app)/rider/restaurant/${r.id}`)}
+              />
+            </FadeInView>
+          ))}
+        </View>
+      )}
+    </Screen>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+
+function HeroBanner({ count }: { count: number | null }) {
+  return (
+    <LinearGradient
+      colors={gradients.sunrise}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={{ borderRadius: radius.xxl, padding: spacing.xl, ...shadow.ember }}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+        <View style={{
+          width: 40, height: 40, borderRadius: radius.md,
+          backgroundColor: 'rgba(255,255,255,0.22)',
+          alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Icon name="restaurant" size={22} color={colors.white} />
+        </View>
+        <AppText variant="overline" color="#FFF1DD">À table</AppText>
+      </View>
+      <AppText variant="h1" color={colors.white} style={{ marginTop: spacing.md, maxWidth: 260 }}>
+        Les meilleures tables de Nouakchott
+      </AppText>
+      <AppText variant="body" color="#FFF1DD" style={{ marginTop: spacing.xs, maxWidth: 280 }}>
+        {count === null
+          ? 'On charge la sélection…'
+          : `${count} restaurants triés sur le volet — bientôt avec leurs cartes.`}
+      </AppText>
+    </LinearGradient>
+  );
+}
+
+function CategoryChip({
+  label, icon, active, onPress,
+}: { label: string; icon: string; active: boolean; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} hitSlop={6}>
+      <View style={{
+        flexDirection: 'row', alignItems: 'center', gap: 6,
+        paddingHorizontal: spacing.base, paddingVertical: 10,
+        borderRadius: radius.pill,
+        backgroundColor: active ? colors.ember : colors.surface,
+        borderWidth: 1,
+        borderColor: active ? colors.ember : colors.line,
+        ...(active ? shadow.ember : shadow.card),
+      }}>
+        <AppText variant="caption" color={active ? colors.white : colors.ink}>{icon}</AppText>
+        <AppText variant="label" color={active ? colors.white : colors.ink}>{label}</AppText>
+      </View>
+    </Pressable>
+  );
+}
+
+function RestaurantCard({ restaurant, onPress }: { restaurant: Restaurant; onPress: () => void }) {
+  const hasPhoto = !!restaurant.photo;
+  const eta = restaurant.etaMin != null && restaurant.etaMax != null
+    ? `${restaurant.etaMin}-${restaurant.etaMax} min`
+    : null;
+  const subtitleParts = [restaurant.zone, eta].filter(Boolean);
+
+  return (
+    <PressableScale
+      onPress={onPress}
+      scaleTo={0.98}
+      style={{
+        borderRadius: radius.xl,
+        backgroundColor: colors.surface,
+        overflow: 'hidden',
+        ...shadow.card,
+      }}
+    >
+      <View style={{ position: 'relative', height: hasPhoto ? 180 : 120, backgroundColor: colors.surfaceAlt }}>
+        {hasPhoto ? (
+          <Image source={{ uri: restaurant.photo! }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+        ) : (
+          <PhotoPlaceholder name={restaurant.name} />
+        )}
+        {hasPhoto ? (
+          <LinearGradient
+            colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.55)']}
+            style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 90 }}
+          />
+        ) : null}
+
+        {restaurant.rating != null ? (
+          <View style={{
+            position: 'absolute', top: spacing.md, left: spacing.md,
+            backgroundColor: 'rgba(255,255,255,0.92)',
+            paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill,
+            flexDirection: 'row', alignItems: 'center', gap: 4,
+          }}>
+            <Icon name="star" size={13} color={colors.warning} />
+            <AppText variant="label" color={colors.ink}>{restaurant.rating.toFixed(1)}</AppText>
+          </View>
+        ) : null}
+        {restaurant.priceLevel ? (
+          <View style={{
+            position: 'absolute', top: spacing.md, right: spacing.md,
+            backgroundColor: 'rgba(0,0,0,0.55)',
+            paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill,
+          }}>
+            <AppText variant="label" color={colors.white}>{restaurant.priceLevel}</AppText>
+          </View>
+        ) : null}
+
+        {hasPhoto && subtitleParts.length > 0 ? (
+          <View style={{ position: 'absolute', left: spacing.base, right: spacing.base, bottom: spacing.sm }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Icon name="pin" size={13} color="rgba(255,255,255,0.85)" />
+              <AppText variant="caption" color="rgba(255,255,255,0.85)" numberOfLines={1}>
+                {subtitleParts.join(' · ')}
+              </AppText>
+            </View>
+          </View>
+        ) : null}
+      </View>
+
+      <View style={{ padding: spacing.base, gap: 6 }}>
+        <AppText variant="title" numberOfLines={1}>{restaurant.name}</AppText>
+        {!hasPhoto && subtitleParts.length > 0 ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Icon name="pin" size={13} color={colors.muted} />
+            <AppText variant="caption" color={colors.muted} numberOfLines={1}>
+              {subtitleParts.join(' · ')}
+            </AppText>
+          </View>
+        ) : null}
+        {restaurant.tags.length > 0 ? (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+            {restaurant.tags.slice(0, 3).map((tag) => (
+              <View
+                key={tag}
+                style={{
+                  backgroundColor: colors.surfaceAlt,
+                  paddingHorizontal: 9, paddingVertical: 3, borderRadius: radius.pill,
+                }}
+              >
+                <AppText variant="caption" color={colors.ink2}>{tag}</AppText>
+              </View>
+            ))}
+          </View>
+        ) : null}
+      </View>
+    </PressableScale>
+  );
+}
+
+/** Friendly fallback when a row has no curated photo yet. */
+function PhotoPlaceholder({ name }: { name: string }) {
+  const initial = name.trim().charAt(0).toUpperCase() || '?';
+  return (
+    <LinearGradient
+      colors={gradients.dawn}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
+    >
+      <View style={{
+        width: 56, height: 56, borderRadius: radius.lg,
+        backgroundColor: colors.emberSoft,
+        alignItems: 'center', justifyContent: 'center',
+      }}>
+        <AppText variant="display" color={colors.ember}>{initial}</AppText>
+      </View>
+    </LinearGradient>
+  );
+}
+
+function LoadingList() {
+  return (
+    <View style={{ alignItems: 'center', paddingVertical: spacing.huge }}>
+      <ActivityIndicator color={colors.ember} />
+    </View>
+  );
+}
+
+function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <View style={{ alignItems: 'center', paddingVertical: spacing.huge, gap: spacing.md }}>
+      <View style={{
+        width: 64, height: 64, borderRadius: radius.lg,
+        backgroundColor: colors.dangerSoft,
+        alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Icon name="alert" size={30} color={colors.danger} />
+      </View>
+      <AppText variant="title">Une erreur est survenue</AppText>
+      <AppText variant="body" color={colors.ink2} style={{ textAlign: 'center', maxWidth: 280 }}>
+        {message}
+      </AppText>
+      <Pressable onPress={onRetry} hitSlop={8}>
+        <AppText variant="bodyStrong" color={colors.ember}>Réessayer</AppText>
+      </Pressable>
+    </View>
+  );
+}
+
+function EmptyState({ onReset }: { onReset: () => void }) {
+  return (
+    <View style={{
+      alignItems: 'center', paddingVertical: spacing.huge, gap: spacing.md,
+    }}>
+      <View style={{
+        width: 64, height: 64, borderRadius: radius.lg,
+        backgroundColor: colors.emberSoft,
+        alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Icon name="search" size={30} color={colors.ember} />
+      </View>
+      <AppText variant="title">Aucune adresse trouvée</AppText>
+      <AppText variant="body" color={colors.ink2} style={{ textAlign: 'center', maxWidth: 280 }}>
+        Essayez un autre mot-clé ou changez de catégorie.
+      </AppText>
+      <Pressable onPress={onReset} hitSlop={8}>
+        <AppText variant="bodyStrong" color={colors.ember}>Réinitialiser les filtres</AppText>
+      </Pressable>
+    </View>
+  );
+}
