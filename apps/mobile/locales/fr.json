@@ -313,6 +313,7 @@
       "offline": "Hors ligne",
       "onRide": "En course",
       "onRideBody": "Course en cours — bonne route.",
+      "openRide": "Ouvrir la course actuelle",
       "onlineBody": "Vous recevez les courses proches de vous.",
       "offlineBody": "Passez en ligne pour commencer à recevoir des courses.",
       "goOnline": "Passer en ligne",

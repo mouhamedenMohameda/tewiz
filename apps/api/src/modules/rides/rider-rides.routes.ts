@@ -47,7 +47,7 @@ riderRidesRouter.post('/estimate', async (req, res) => {
     body.pickup.lat, body.pickup.lng,
     body.dropoff.lat, body.dropoff.lng,
   );
-  const { fareMru, distanceEstimateM } = estimateFareMru(crow);
+  const { fareMru, distanceEstimateM } = await estimateFareMru(crow);
   res.json({ fareMru, distanceM: distanceEstimateM });
 });
 
