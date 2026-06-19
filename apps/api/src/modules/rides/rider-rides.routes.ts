@@ -39,6 +39,9 @@ const createBody = z.object({
 const estimateBody = z.object({
   pickup: locationSchema,
   dropoff: locationSchema,
+  // Optional so older mobile builds (which don't send it) still work and get
+  // the passenger tariff by default.
+  rideType: z.enum(['passenger', 'colis']).default('passenger'),
 });
 
 riderRidesRouter.post('/estimate', async (req, res) => {
@@ -47,7 +50,7 @@ riderRidesRouter.post('/estimate', async (req, res) => {
     body.pickup.lat, body.pickup.lng,
     body.dropoff.lat, body.dropoff.lng,
   );
-  const { fareMru, distanceEstimateM } = await estimateFareMru(crow);
+  const { fareMru, distanceEstimateM } = await estimateFareMru(crow, body.rideType);
   res.json({ fareMru, distanceM: distanceEstimateM });
 });
 

@@ -150,9 +150,9 @@ export async function createRide(input: CreateRideInput) {
     throw new HttpError(400, 'distance_too_short',
       'Pickup and dropoff are too close (<50 m)');
   }
-  const { fareMru, distanceEstimateM } = await estimateFareMru(dStraight);
-
   const rideType = input.rideType ?? 'passenger';
+  const { fareMru, distanceEstimateM } = await estimateFareMru(dStraight, rideType);
+
   const settings = await getPricingSettings();
   const commissionBps = rideType === 'colis'
     ? settings.colisCommissionBps
@@ -864,7 +864,10 @@ export async function completeRide(input: CompleteInput) {
     let fareFinalMru = Number(ride.fare_estimate_mru ?? 0);
     if (input.actualDistanceM && input.actualDistanceM !== ride.distance_m) {
       const { estimateFareMru: estimate } = await import('./pricing.js');
-      const { fareMru } = await estimate(input.actualDistanceM / env.ROUTE_MULTIPLIER);
+      const { fareMru } = await estimate(
+        input.actualDistanceM / env.ROUTE_MULTIPLIER,
+        ride.ride_type,
+      );
       fareFinalMru = fareMru;
     }
 

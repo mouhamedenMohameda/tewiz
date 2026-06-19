@@ -29,6 +29,9 @@ const patchBody = z.object({
   baseFareMru:           z.number().int().min(0).max(10_000).optional(),
   perKmMru:              z.number().int().min(0).max(10_000).optional(),
   minFareMru:            z.number().int().min(0).max(10_000).optional(),
+  colisBaseFareMru:      z.number().int().min(0).max(10_000).optional(),
+  colisPerKmMru:         z.number().int().min(0).max(10_000).optional(),
+  colisMinFareMru:       z.number().int().min(0).max(10_000).optional(),
   defaultCommissionBps:  z.number().int().min(0).max(5_000).optional(),
   colisCommissionBps:    z.number().int().min(0).max(5_000).optional(),
 }).refine(
