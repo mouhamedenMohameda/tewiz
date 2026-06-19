@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction, RequestHandler } from 'express';
 import type { UserRole } from '@tewiz/shared-types';
 import { verifyAccessToken } from '../modules/auth/jwt.js';
 import { HttpError } from './error.js';
+import { bumpHeartbeat } from './heartbeat.js';
 
 export interface AuthedRequest extends Request {
   user: { id: string; role: UserRole; sid: string };
@@ -26,6 +27,7 @@ export const requireAuth: RequestHandler = (req, _res, next) => {
       role: payload.role,
       sid: payload.sid,
     };
+    bumpHeartbeat(payload.sub);
     next();
   } catch {
     next(new HttpError(401, 'invalid_token', 'Token invalid or expired'));

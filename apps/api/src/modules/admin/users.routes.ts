@@ -26,9 +26,14 @@ export const adminUsersRouter = Router();
 // GET /admin/users
 // ---------------------------------------------------------------------------
 
+// A user is considered "online" if any authenticated request bumped
+// last_seen_at within this window. Matches the throttle in middleware/heartbeat.
+const ONLINE_WINDOW = "interval '5 minutes'";
+
 const listQuery = z.object({
   role: z.enum(['rider', 'captain', 'admin']).optional(),
   search: z.string().trim().min(1).optional(),     // matches phone or full_name
+  online: z.enum(['true', 'false']).optional(),
   limit: z.coerce.number().min(1).max(200).default(50),
   offset: z.coerce.number().min(0).default(0),
 });
@@ -50,6 +55,11 @@ adminUsersRouter.get('/', async (req, res) => {
     params.push(`%${q.search}%`);
     where.push(`(phone ILIKE $${params.length} OR full_name ILIKE $${params.length})`);
   }
+  if (q.online === 'true') {
+    where.push(`last_seen_at > now() - ${ONLINE_WINDOW}`);
+  } else if (q.online === 'false') {
+    where.push(`(last_seen_at IS NULL OR last_seen_at <= now() - ${ONLINE_WINDOW})`);
+  }
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
   params.push(q.limit);
@@ -59,21 +69,27 @@ adminUsersRouter.get('/', async (req, res) => {
     `SELECT id, phone, role, status, full_name, language,
             (password_hash IS NOT NULL) AS has_password,
             must_reset_password,
-            password_updated_at, last_seen_at, created_at
+            password_updated_at, last_seen_at, created_at,
+            (last_seen_at > now() - ${ONLINE_WINDOW}) AS online
        FROM users
        ${whereSql}
-       ORDER BY created_at DESC
+       ORDER BY (last_seen_at > now() - ${ONLINE_WINDOW}) DESC NULLS LAST,
+                last_seen_at DESC NULLS LAST,
+                created_at DESC
        LIMIT $${params.length - 1} OFFSET $${params.length}`,
     params,
   );
 
-  const { rows: countRows } = await pool.query<{ count: string }>(
-    `SELECT COUNT(*) AS count FROM users ${whereSql}`,
+  const { rows: countRows } = await pool.query<{ count: string; online: string }>(
+    `SELECT COUNT(*) AS count,
+            COUNT(*) FILTER (WHERE last_seen_at > now() - ${ONLINE_WINDOW}) AS online
+       FROM users ${whereSql}`,
     params.slice(0, params.length - 2),
   );
   res.json({
     users: rows,
     total: parseInt(countRows[0]?.count ?? '0', 10),
+    onlineCount: parseInt(countRows[0]?.online ?? '0', 10),
     limit: q.limit,
     offset: q.offset,
   });

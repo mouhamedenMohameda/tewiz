@@ -30,12 +30,14 @@ interface UserRow {
   must_reset_password: boolean;
   password_updated_at: string | null;
   last_seen_at: string | null;
+  online: boolean;
   created_at: string;
 }
 
 interface ListResponse {
   users: UserRow[];
   total: number;
+  onlineCount: number;
   limit: number;
   offset: number;
 }
@@ -52,18 +54,21 @@ export default function UsersPage() {
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<UserRow['role'] | 'all'>('all');
+  const [onlineOnly, setOnlineOnly] = useState(false);
   const [reveal, setReveal] = useState<PasswordReveal | null>(null);
   const [showCreate, setShowCreate] = useState(false);
 
   const list = useQuery<ListResponse>({
-    queryKey: ['admin-users', search, roleFilter],
+    queryKey: ['admin-users', search, roleFilter, onlineOnly],
     queryFn: async () => {
       const params = new URLSearchParams({ limit: '100' });
       if (search.trim()) params.set('search', search.trim());
       if (roleFilter !== 'all') params.set('role', roleFilter);
+      if (onlineOnly) params.set('online', 'true');
       const r = await api.get(`/admin/users?${params.toString()}`);
       return r.data as ListResponse;
     },
+    refetchInterval: 15_000,
   });
 
   const regenerate = useMutation({
@@ -92,7 +97,17 @@ export default function UsersPage() {
           <div>
             <h1 className="text-2xl font-bold text-slate-900 mb-1">Utilisateurs</h1>
             <p className="text-sm text-slate-500">
-              {list.data ? `${list.data.total} comptes` : 'Chargement...'}
+              {list.data ? (
+                <>
+                  {list.data.total} comptes ·{' '}
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    {list.data.onlineCount} en ligne
+                  </span>
+                </>
+              ) : (
+                'Chargement...'
+              )}
             </p>
           </div>
           <button
@@ -122,6 +137,18 @@ export default function UsersPage() {
             <option value="captain">Chauffeurs</option>
             <option value="admin">Admins</option>
           </select>
+          <button
+            type="button"
+            onClick={() => setOnlineOnly((v) => !v)}
+            className={`px-3 py-2 text-sm rounded-lg border transition flex items-center gap-2 ${
+              onlineOnly
+                ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
+                : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            <span className={`w-2 h-2 rounded-full ${onlineOnly ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+            En ligne uniquement
+          </button>
         </div>
 
         {list.isLoading && <div className="text-slate-500">Chargement...</div>}
@@ -143,7 +170,23 @@ export default function UsersPage() {
               <tbody className="divide-y divide-slate-200">
                 {list.data.users.map((u) => (
                   <tr key={u.id} className="hover:bg-slate-50">
-                    <td className="px-4 py-3 font-medium">{u.full_name ?? '—'}</td>
+                    <td className="px-4 py-3 font-medium">
+                      <div className="flex items-center gap-2">
+                        <span
+                          title={
+                            u.online
+                              ? 'En ligne (vu < 5 min)'
+                              : u.last_seen_at
+                              ? `Vu ${formatLastSeen(u.last_seen_at)}`
+                              : 'Jamais connecté'
+                          }
+                          className={`w-2 h-2 rounded-full shrink-0 ${
+                            u.online ? 'bg-emerald-500 ring-2 ring-emerald-100' : 'bg-slate-300'
+                          }`}
+                        />
+                        <span>{u.full_name ?? '—'}</span>
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-slate-600 font-mono">{u.phone}</td>
                     <td className="px-4 py-3">
                       <span className={`px-2 py-1 text-xs rounded-md font-medium ${roleBadge(u.role)}`}>
@@ -216,6 +259,16 @@ function roleBadge(role: UserRow['role']) {
     case 'captain': return 'bg-blue-100 text-blue-700';
     case 'rider':   return 'bg-slate-100 text-slate-700';
   }
+}
+
+function formatLastSeen(iso: string): string {
+  const d = new Date(iso);
+  const min = Math.floor((Date.now() - d.getTime()) / 60_000);
+  if (min < 1) return "à l'instant";
+  if (min < 60) return `il y a ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `il y a ${h} h`;
+  return `le ${d.toLocaleDateString('fr-FR')}`;
 }
 
 // ---------------------------------------------------------------------------
