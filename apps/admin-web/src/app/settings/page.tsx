@@ -108,7 +108,22 @@ export default function SettingsPage() {
         </div>
 
         {query.isLoading && <div className="text-slate-500">Chargement...</div>}
-        {query.error && <div className="text-red-600">Erreur de chargement.</div>}
+        {query.error && (
+          <div className="card p-4 bg-red-50 border-red-200">
+            <div className="text-sm font-medium text-red-700 mb-1">
+              Erreur de chargement
+            </div>
+            <div className="text-xs text-red-600 font-mono break-all">
+              {extractErrorDetail(query.error)}
+            </div>
+            <div className="text-xs text-slate-600 mt-3">
+              Causes habituelles : l&apos;API n&apos;a pas été redéployée (404 sur
+              <code className="mx-1">/admin/settings</code>) ou la migration
+              <code className="mx-1">0018_app_settings.sql</code> n&apos;a pas été
+              appliquée (500 sur la BDD).
+            </div>
+          </div>
+        )}
 
         {query.data && (
           <>
@@ -230,6 +245,19 @@ function Field({
       </div>
     </label>
   );
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function extractErrorDetail(e: any): string {
+  const status = e?.response?.status;
+  const code = e?.response?.data?.error?.code;
+  const msg = e?.response?.data?.error?.message ?? e?.message;
+  const parts = [
+    status ? `HTTP ${status}` : null,
+    code ? `[${code}]` : null,
+    msg,
+  ].filter(Boolean);
+  return parts.join(' ') || 'unknown error';
 }
 
 function isFormValid(f: FormState): boolean {

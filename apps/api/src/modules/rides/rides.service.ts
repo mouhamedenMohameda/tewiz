@@ -35,8 +35,8 @@ export interface CreateRideInput {
   recipientName?: string;
   recipientPhone?: string;
   packageDescription?: string;
-  // Admin-only: skip the "one active ride per booker" check. An admin operator
-  // booking for several phone-in passengers may have many in flight at once.
+  // Kept for backwards compatibility with callers. The booker active-ride
+  // limit was removed (a passenger may book multiple rides at once).
   skipBookerActiveCheck?: boolean;
   // Admin-only: skip the SMS "course pour quelqu'un d'autre" confirmation step.
   // When a passenger calls the operator, they have already consented — the ride
@@ -138,19 +138,8 @@ function shape(r: RideRow, opts: { revealCode: boolean } = { revealCode: false }
 // Create
 
 export async function createRide(input: CreateRideInput) {
-  // 1. The booker can't have another active ride (skipped for admin operators).
-  if (!input.skipBookerActiveCheck) {
-    const existing = await pool.query(
-      `SELECT id, status FROM rides
-        WHERE booker_id = $1
-          AND status IN ('pending_passenger_confirm','searching','accepted','arrived','in_progress')`,
-      [input.bookerId],
-    );
-    if ((existing.rowCount ?? 0) > 0) {
-      throw new HttpError(409, 'ride_in_progress',
-        'You already have an active ride');
-    }
-  }
+  // A passenger (including a captain who books as a rider) may have multiple
+  // active rides at once — no booker-side limit.
 
   // 2. Pricing
   const dStraight = await distanceMeters(
@@ -882,13 +871,23 @@ export async function completeRide(input: CompleteInput) {
     const commission = commissionMru(fareFinalMru, ride.commission_rate_bps);
 
     // Debit the captain wallet for the commission (atomically inside this tx).
-    const debit = await debitWallet({
-      captainId: input.captainId,
-      amountMru: commission,
-      type: 'commission',
-      rideId: ride.id,
-      reason: `Commission ${(ride.commission_rate_bps / 100).toFixed(2)}% on ride ${ride.id}`,
-    }, client);
+    // When commission is 0 (e.g. admin set rate to 0%), there's nothing to debit;
+    // skip the wallet write so we don't hit the "amount must be positive" guard.
+    const debit = commission > 0
+      ? await debitWallet({
+          captainId: input.captainId,
+          amountMru: commission,
+          type: 'commission',
+          rideId: ride.id,
+          reason: `Commission ${(ride.commission_rate_bps / 100).toFixed(2)}% on ride ${ride.id}`,
+        }, client)
+      : { transactionId: null, balanceAfter: await (async () => {
+          const r = await client.query<{ balance_mru: string }>(
+            `SELECT balance_mru FROM wallets WHERE captain_id = $1`,
+            [input.captainId],
+          );
+          return r.rows[0] ? Number(r.rows[0].balance_mru) : 0;
+        })() };
 
     const upd = await client.query<RideRow>(
       `UPDATE rides
