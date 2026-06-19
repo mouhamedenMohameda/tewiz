@@ -36,6 +36,7 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
   });
 
   const [captainPassword, setCaptainPassword] = useState<string | null>(null);
+  const [regeneratedPassword, setRegeneratedPassword] = useState<string | null>(null);
 
   const approveApp = useMutation({
     mutationFn: async () => {
@@ -48,6 +49,16 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
       if (res.captainPassword) setCaptainPassword(res.captainPassword);
       else router.replace('/applications');
     },
+  });
+
+  const regeneratePassword = useMutation({
+    mutationFn: async (userId: string) => {
+      const r = await api.post<{ password: string }>(
+        `/admin/users/${userId}/regenerate-password`,
+      );
+      return r.data.password;
+    },
+    onSuccess: (password) => setRegeneratedPassword(password),
   });
 
   const reqCorr = useMutation({
@@ -232,6 +243,29 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
           </div>
         )}
 
+        {/* Approved-captain actions: regenerate password */}
+        {app.status === 'approved' && app.user_id && (
+          <div className="card p-5">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <h2 className="font-semibold text-slate-900 mb-1">Mot de passe</h2>
+                <p className="text-sm text-slate-500">
+                  Pour des raisons de sécurité, le mot de passe actuel n&apos;est pas
+                  consultable. Vous pouvez en générer un nouveau et le transmettre
+                  au chauffeur.
+                </p>
+              </div>
+              <button
+                onClick={() => regeneratePassword.mutate(app.user_id!)}
+                disabled={regeneratePassword.isPending}
+                className="btn-secondary whitespace-nowrap"
+              >
+                {regeneratePassword.isPending ? 'Génération…' : 'Régénérer le mot de passe'}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Modals */}
         {rejectingDocId && (
           <Modal title="Refuser ce document" onClose={() => setRejectingDocId(null)}>
@@ -315,6 +349,36 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
                 className="btn-primary"
               >Envoyer via WhatsApp</a>
               <button onClick={() => router.replace('/applications')} className="btn-ghost">Fermer</button>
+            </div>
+          </Modal>
+        )}
+
+        {regeneratedPassword && (
+          <Modal title="Nouveau mot de passe" onClose={() => setRegeneratedPassword(null)}>
+            <p className="text-sm text-slate-600 mb-3">
+              Le mot de passe de {app.full_name ?? 'ce chauffeur'} a été régénéré.
+              Toutes ses sessions ont été déconnectées. Transmettez-lui ce nouveau
+              mot de passe (affiché une seule fois) :
+            </p>
+            <div className="flex items-center gap-2 mb-4">
+              <code className="flex-1 px-3 py-2 bg-slate-100 rounded font-mono text-lg tracking-wider text-slate-900">
+                {regeneratedPassword}
+              </code>
+              <button
+                onClick={() => navigator.clipboard?.writeText(regeneratedPassword)}
+                className="btn-secondary text-xs"
+              >Copier</button>
+            </div>
+            <div className="flex justify-end gap-2">
+              <a
+                href={`https://wa.me/${app.phone.replace(/[^\d]/g, '')}?text=${encodeURIComponent(
+                  `Bonjour ${app.full_name ?? ''}, votre nouveau mot de passe ${APP_NAME} : ${regeneratedPassword}`,
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-primary"
+              >Envoyer via WhatsApp</a>
+              <button onClick={() => setRegeneratedPassword(null)} className="btn-ghost">Fermer</button>
             </div>
           </Modal>
         )}

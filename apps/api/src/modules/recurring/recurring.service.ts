@@ -1,7 +1,7 @@
 import { pool, withTx } from '../../db/pool.js';
 import { HttpError } from '../../middleware/error.js';
-import { env } from '../../config/env.js';
 import { estimateFareMru } from '../rides/pricing.js';
+import { getPricingSettings } from '../admin/app-settings.service.js';
 import { distanceMeters } from '../rides/dispatch.service.js';
 import type { RecurringStatus } from '@tewiz/shared-types';
 
@@ -74,7 +74,7 @@ export async function proposeRecurring(input: ProposeInput) {
     input.dropoff.lat, input.dropoff.lng,
   );
   // Locked fare with 5% rider discount (incentive for committing).
-  const { fareMru } = estimateFareMru(dStraight);
+  const { fareMru } = await estimateFareMru(dStraight);
   const lockedFare = Math.round(fareMru * 0.95);
 
   const r = await pool.query<RecurringRow>(
@@ -217,6 +217,7 @@ export async function processOccurrences() {
   `);
 
   let dispatched = 0;
+  const settings = await getPricingSettings();
   for (const occ of due.rows) {
     try {
       await withTx(async (client) => {
@@ -250,7 +251,7 @@ export async function processOccurrences() {
             occ.rider_id,
             occ.pickup_lng, occ.pickup_lat, occ.pickup_label,
             occ.dropoff_lng, occ.dropoff_lat, occ.dropoff_label,
-            Number(occ.locked_fare_mru), env.DEFAULT_COMMISSION_BPS,
+            Number(occ.locked_fare_mru), settings.defaultCommissionBps,
             code, occ.captain_id, occ.recurring_ride_id,
           ],
         );

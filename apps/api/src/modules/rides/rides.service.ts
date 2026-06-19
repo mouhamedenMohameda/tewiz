@@ -4,6 +4,7 @@ import { pool, withTx } from '../../db/pool.js';
 import { HttpError } from '../../middleware/error.js';
 import { env } from '../../config/env.js';
 import { estimateFareMru, commissionMru } from './pricing.js';
+import { getPricingSettings } from '../admin/app-settings.service.js';
 import { distanceMeters, eligibleCaptainsForRide } from './dispatch.service.js';
 import { debitWallet } from '../wallet/wallet.service.js';
 import { sms } from '../auth/sms.js';
@@ -160,12 +161,13 @@ export async function createRide(input: CreateRideInput) {
     throw new HttpError(400, 'distance_too_short',
       'Pickup and dropoff are too close (<50 m)');
   }
-  const { fareMru, distanceEstimateM } = estimateFareMru(dStraight);
+  const { fareMru, distanceEstimateM } = await estimateFareMru(dStraight);
 
   const rideType = input.rideType ?? 'passenger';
+  const settings = await getPricingSettings();
   const commissionBps = rideType === 'colis'
-    ? env.COLIS_COMMISSION_BPS
-    : env.DEFAULT_COMMISSION_BPS;
+    ? settings.colisCommissionBps
+    : settings.defaultCommissionBps;
 
   // Validate colis-specific inputs
   if (rideType === 'colis') {
@@ -872,8 +874,8 @@ export async function completeRide(input: CompleteInput) {
     // Recompute fare from final distance (if actual provided), else use estimate.
     let fareFinalMru = Number(ride.fare_estimate_mru ?? 0);
     if (input.actualDistanceM && input.actualDistanceM !== ride.distance_m) {
-      const { fareMru } = (await import('./pricing.js'))
-        .estimateFareMru(input.actualDistanceM / env.ROUTE_MULTIPLIER);
+      const { estimateFareMru: estimate } = await import('./pricing.js');
+      const { fareMru } = await estimate(input.actualDistanceM / env.ROUTE_MULTIPLIER);
       fareFinalMru = fareMru;
     }
 

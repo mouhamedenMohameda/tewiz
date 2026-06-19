@@ -15,6 +15,7 @@ const NAV = [
   { href: '/voice-requests', label: 'Demandes vocales', icon: '🎙️' },
   { href: '/rides',          label: 'Courses',     icon: '🛣️' },
   { href: '/rides/new',      label: 'Nouvelle course', icon: '🗺️' },
+  { href: '/settings',       label: 'Paramètres',  icon: '⚙️' },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {

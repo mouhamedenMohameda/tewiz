@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator, Alert, Modal, Pressable, ScrollView,
-  Text, TextInput, View,
+  Text, View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -12,6 +12,7 @@ import {
   type AppDoc, type ApplicationDto, type DocumentType,
   DOCUMENTS_WITH_EXPIRY, DOCUMENT_ORDER,
 } from '@/lib/kyc';
+import { DateField } from '@/components/ui';
 
 export default function DocumentsScreen() {
   const router = useRouter();
@@ -37,6 +38,16 @@ export default function DocumentsScreen() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  const monthLabels = useMemo(
+    () => (t('months', { returnObjects: true }) as unknown) as string[],
+    [t],
+  );
+
+  // Expiry must be in the future. Allow up to 30 years out.
+  const today = new Date();
+  const minExpiry = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+  const maxExpiry = `${today.getFullYear() + 30}-12-31`;
 
   const byType = new Map<DocumentType, AppDoc>();
   for (const d of app?.documents ?? []) byType.set(d.type, d);
@@ -195,21 +206,19 @@ export default function DocumentsScreen() {
               {t('becomeCaptain.docs.expiryTitle')}
             </Text>
             <Text style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>
-              {t('becomeCaptain.docs.expiryHint', { label: pendingUpload ? docLabel(pendingUpload.type) : '' })}
+              {t('becomeCaptain.docs.expiryHintPicker', { label: pendingUpload ? docLabel(pendingUpload.type) : '' })}
             </Text>
-            <TextInput
-              autoFocus
+            <DateField
+              containerStyle={{ marginTop: 12 }}
               value={expiryInput}
-              onChangeText={setExpiryInput}
-              placeholder={t('becomeCaptain.docs.expiryPlaceholder')}
-              keyboardType="numeric"
-              maxLength={10}
-              placeholderTextColor="#94a3b8"
-              style={{
-                marginTop: 12, borderWidth: 1, borderColor: '#cbd5e1',
-                borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12,
-                fontSize: 16, color: '#0f172a',
-              }}
+              onChange={setExpiryInput}
+              placeholder={t('becomeCaptain.docs.expiryTapToPick')}
+              modalTitle={t('becomeCaptain.docs.expiryTitle')}
+              cancelLabel={t('common.cancel')}
+              confirmLabel={t('common.confirm')}
+              minDate={minExpiry}
+              maxDate={maxExpiry}
+              monthLabels={Array.isArray(monthLabels) ? monthLabels : undefined}
             />
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
               <Pressable
@@ -320,3 +329,5 @@ function DocCard({
     </Pressable>
   );
 }
+
+function pad(n: number) { return n < 10 ? `0${n}` : String(n); }

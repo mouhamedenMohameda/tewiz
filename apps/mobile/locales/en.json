@@ -1,6 +1,7 @@
 {
   "common": {
     "cancel": "Cancel",
+    "confirm": "Confirm",
     "save": "Save",
     "saveAndContinue": "Save and continue",
     "send": "Send",
@@ -36,6 +37,25 @@
     "network": "Cannot reach the server. Check your connection.",
     "generic": "Failed.",
     "load": "Could not load."
+  },
+  "months": [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ],
+  "vehicleColors": {
+    "white": "White",
+    "black": "Black",
+    "silver": "Silver",
+    "gray": "Grey",
+    "beige": "Beige",
+    "red": "Red",
+    "blue": "Blue",
+    "navy": "Navy blue",
+    "green": "Green",
+    "yellow": "Yellow",
+    "orange": "Orange",
+    "brown": "Brown",
+    "gold": "Gold"
   },
   "auth": {
     "welcome": {
@@ -523,6 +543,8 @@
       "nniInvalidBody": "The NNI must be 6 to 15 digits.",
       "dob": "Date of birth",
       "dobPlaceholder": "YYYY-MM-DD",
+      "dobTapToPick": "Tap to pick a date",
+      "dobMinAgeHelper": "You must be at least 18 years old.",
       "dobHelper": "Format: 1990-05-23",
       "dobInvalidTitle": "Invalid date",
       "dobInvalidBody": "Expected format: YYYY-MM-DD (e.g. 1990-05-23).",
@@ -540,15 +562,21 @@
       "platePlaceholder": "1234 AB",
       "brand": "Brand",
       "brandPlaceholder": "Toyota",
+      "brandTapToPick": "Tap to pick the brand",
+      "brandSearchPlaceholder": "Search a brand…",
       "model": "Model",
       "modelPlaceholder": "Corolla",
       "year": "Year",
       "yearPlaceholder": "2018",
+      "yearTapToPick": "Tap to pick the year",
       "yearInvalidTitle": "Invalid year",
       "yearInvalidBody": "Between 1980 and {{max}}.",
       "color": "Colour",
       "colorPlaceholder": "White",
+      "colorTapToPick": "Tap to pick the colour",
       "seats": "Passenger seats",
+      "seatsCount_one": "{{count}} seat",
+      "seatsCount_other": "{{count}} seats",
       "seatsInvalidTitle": "Invalid seats",
       "seatsInvalidBody": "Between 1 and 8.",
       "colisTitle": "Accept parcels",
@@ -563,6 +591,8 @@
       "intro": "Send the 14 required photos. Well lit, no glare.",
       "expiryTitle": "Expiry date",
       "expiryHint": "{{label}} — enter the date in format YYYY-MM-DD.",
+      "expiryHintPicker": "{{label}} — pick the expiry date.",
+      "expiryTapToPick": "Tap to pick a date",
       "expiryPlaceholder": "2026-12-31",
       "expiryInvalidTitle": "Invalid date",
       "expiryInvalidBody": "Expected format: YYYY-MM-DD.",
