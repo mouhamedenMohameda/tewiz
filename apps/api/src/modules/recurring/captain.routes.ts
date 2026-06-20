@@ -6,11 +6,11 @@ import * as svc from './recurring.service.js';
 export const captainRecurringRouter = Router();
 
 captainRecurringRouter.get('/', async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   res.json(await svc.listForCaptain(userId));
 });
 
 captainRecurringRouter.post('/:id/accept', async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   res.json(await svc.acceptByCaptain(req.params.id!, userId));
 });

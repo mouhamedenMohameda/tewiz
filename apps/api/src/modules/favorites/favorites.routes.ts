@@ -12,18 +12,18 @@ const addBody = z.object({
 });
 
 riderFavoritesRouter.get('/', async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   res.json(await svc.listMyFavorites(userId));
 });
 
 riderFavoritesRouter.post('/', async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   const body = addBody.parse(req.body);
   res.json(await svc.addFavorite(userId, body.captainId, body.nickname));
 });
 
 riderFavoritesRouter.delete('/:captainId', async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   await svc.removeFavorite(userId, req.params.captainId!);
   res.json({ ok: true });
 });

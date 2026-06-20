@@ -61,7 +61,7 @@ adminRidesRouter.get('/', async (req, res) => {
  * can watch the ride move through its lifecycle.
  */
 adminRidesRouter.get('/:id', async (req, res) => {
-  const adminId = (req as AuthedRequest).user.id;
+  const adminId = req.user!.id;
   res.json(await rides.getRideForUser(req.params.id!, adminId, 'admin'));
 });
 
@@ -72,7 +72,7 @@ adminRidesRouter.get('/:id', async (req, res) => {
  * SMS confirmation is skipped (the passenger called us — they've consented).
  */
 adminRidesRouter.post('/', async (req, res) => {
-  const adminId = (req as AuthedRequest).user.id;
+  const adminId = req.user!.id;
   const body = createBody.parse(req.body);
   const ride = await rides.createRide({
     bookerId: adminId,
@@ -108,7 +108,7 @@ adminRidesRouter.post('/', async (req, res) => {
  * ride has been sitting in 'searching' and the passenger called back.
  */
 adminRidesRouter.post('/:id/rebroadcast', async (req, res) => {
-  const adminId = (req as AuthedRequest).user.id;
+  const adminId = req.user!.id;
   const rideId = req.params.id!;
   const result = await rides.rebroadcastRide(rideId);
   await audit({

@@ -21,7 +21,7 @@ const inboxQuery = z.object({
  * If the captain didn't pass a location, we use their last known state.
  */
 captainRidesRouter.get('/inbox', async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   const q = inboxQuery.parse(req.query);
 
   let lat = q.lat;
@@ -50,7 +50,7 @@ captainRidesRouter.get('/inbox', async (req, res) => {
 });
 
 captainRidesRouter.get('/current', async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   const r = await rides.getCurrentRideForCaptain(userId);
   if (!r) {
     res.status(204).end();
@@ -60,28 +60,28 @@ captainRidesRouter.get('/current', async (req, res) => {
 });
 
 captainRidesRouter.get('/history', async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   res.json(await rides.listCaptainHistory(userId, 30));
 });
 
 captainRidesRouter.get('/:id', async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   res.json(await rides.getRideForUser(req.params.id!, userId, 'captain'));
 });
 
 captainRidesRouter.post('/:id/accept', async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   res.json(await rides.acceptRide(req.params.id!, userId));
 });
 
 captainRidesRouter.post('/:id/arrive', async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   res.json(await rides.arriveRide(req.params.id!, userId));
 });
 
 const startBody = z.object({ code: z.string().regex(/^\d{4}$/) });
 captainRidesRouter.post('/:id/start', async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   const body = startBody.parse(req.body);
   res.json(await rides.startRide(req.params.id!, userId, body.code));
 });
@@ -92,7 +92,7 @@ const completeBody = z.object({
   dropOtp: z.string().regex(/^\d{4}$/).optional(),  // required for colis
 });
 captainRidesRouter.post('/:id/complete', async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   const body = completeBody.parse(req.body ?? {});
   res.json(await rides.completeRide({
     rideId: req.params.id!,
@@ -105,7 +105,7 @@ captainRidesRouter.post('/:id/complete', async (req, res) => {
 
 const cancelBody = z.object({ reason: z.string().min(2).max(500) });
 captainRidesRouter.post('/:id/cancel', async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   const body = cancelBody.parse(req.body);
   res.json(await rides.cancelRide({
     rideId: req.params.id!,

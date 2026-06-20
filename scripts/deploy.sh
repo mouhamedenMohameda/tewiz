@@ -52,9 +52,17 @@ echo "==> 5/8 db migrate"
 # It can throw false positives when several migrations share the same
 # run_on timestamp (batch insert), even though all files are applied.
 # All real ordering safety comes from the numeric filename prefix.
+#
+# The grep -v filters the "Can't determine timestamp for 000X" log lines
+# the runner emits because our migrations use sequential 0001_, 0002_…
+# prefixes instead of Unix timestamps. They're warnings, not errors —
+# every migration still applies in numerical order. We use PIPESTATUS to
+# keep the script fail-fast on actual migrate failures.
+set -o pipefail
 pnpm --filter @tewiz/api exec node-pg-migrate \
   -m ../../db/migrations --envPath ../../.env \
-  --migration-file-language sql --no-check-order up
+  --migration-file-language sql --no-check-order up \
+  2>&1 | grep -v "^Can't determine timestamp for"
 
 echo "==> 6/8 seed restaurants (idempotent UPSERT)"
 # Deterministic OSM slugs make this safe to re-run on every deploy —

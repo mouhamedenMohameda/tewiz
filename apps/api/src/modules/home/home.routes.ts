@@ -15,7 +15,7 @@ const upsertBody = z.object({
 });
 
 captainHomeRouter.get('/', async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   const home = await svc.getHome(userId);
   if (!home) {
     res.status(204).end();
@@ -25,13 +25,13 @@ captainHomeRouter.get('/', async (req, res) => {
 });
 
 captainHomeRouter.post('/', async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   const body = upsertBody.parse(req.body);
   res.json(await svc.createHome({ captainId: userId, ...body }));
 });
 
 captainHomeRouter.patch('/', async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   const body = upsertBody.parse(req.body);
   res.json(await svc.updateHome({ captainId: userId, ...body }));
 });

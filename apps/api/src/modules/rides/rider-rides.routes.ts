@@ -60,7 +60,7 @@ riderRidesRouter.post('/estimate', async (req, res) => {
  * which the rider must read aloud to the captain before the ride starts.
  */
 riderRidesRouter.post('/', requirePhone, async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   const body = createBody.parse(req.body);
   const ride = await rides.createRide({
     bookerId: userId,
@@ -78,7 +78,7 @@ riderRidesRouter.post('/', requirePhone, async (req, res) => {
 });
 
 riderRidesRouter.get('/current', async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   const ride = await rides.getCurrentRideForRider(userId);
   if (!ride) {
     res.status(204).end();
@@ -88,12 +88,12 @@ riderRidesRouter.get('/current', async (req, res) => {
 });
 
 riderRidesRouter.get('/history', async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   res.json(await rides.listRiderHistory(userId, 30));
 });
 
 riderRidesRouter.get('/:id', async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   res.json(await rides.getRideForUser(req.params.id!, userId, 'rider'));
 });
 
@@ -109,7 +109,7 @@ const ratingBody = z.object({
   comment: z.string().max(500).optional(),
 });
 riderRidesRouter.post('/:id/rating', async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   const body = ratingBody.parse(req.body);
   res.json(await rides.rateCaptain({
     rideId: req.params.id!,
@@ -122,7 +122,7 @@ riderRidesRouter.post('/:id/rating', async (req, res) => {
 const cancelBody = z.object({ reason: z.string().min(2).max(500) });
 
 riderRidesRouter.post('/:id/cancel', async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   const body = cancelBody.parse(req.body);
   res.json(await rides.cancelRide({
     rideId: req.params.id!,

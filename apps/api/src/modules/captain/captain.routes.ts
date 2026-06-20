@@ -30,7 +30,7 @@ const requireRiderOrCaptain = requireRole('rider', 'captain');
  * Returns the current open application, or creates a new draft.
  */
 captainRouter.post('/applications', requireRiderOrCaptain, async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   res.json(await svc.getOrCreateDraft(userId));
 });
 
@@ -38,7 +38,7 @@ captainRouter.post('/applications', requireRiderOrCaptain, async (req, res) => {
  * GET /captain/applications/me
  */
 captainRouter.get('/applications/me', requireRiderOrCaptain, async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   const app = await svc.getMyApplication(userId);
   if (!app) throw new HttpError(404, 'no_application', 'No application');
   res.json(app);
@@ -66,7 +66,7 @@ const updateBody = z.object({
 });
 
 captainRouter.patch('/applications/me', requireRiderOrCaptain, async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   const body = updateBody.parse(req.body);
   res.json(await svc.updateMyApplication(userId, body));
 });
@@ -93,7 +93,7 @@ captainRouter.post(
   upload.single('file'),
   async (req, res) => {
     if (!req.file) throw new HttpError(400, 'no_file', 'Missing "file" field');
-    const userId = (req as AuthedRequest).user.id;
+    const userId = req.user!.id;
     const body = uploadBody.parse(req.body);
     const doc = await svc.uploadDocument(userId, {
       type: body.type,
@@ -109,8 +109,8 @@ captainRouter.post(
  * DELETE /captain/applications/me/documents/:docId
  */
 captainRouter.delete('/applications/me/documents/:docId', requireRiderOrCaptain, async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
-  await svc.deleteDocument(userId, req.params.docId!);
+  const userId = req.user!.id;
+  await svc.deleteDocument(userId, String(req.params.docId));
   res.json({ ok: true });
 });
 
@@ -119,6 +119,6 @@ captainRouter.delete('/applications/me/documents/:docId', requireRiderOrCaptain,
  * Validates completeness and moves to "submitted" status.
  */
 captainRouter.post('/applications/me/submit', requireRiderOrCaptain, async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   res.json(await svc.submitApplication(userId));
 });

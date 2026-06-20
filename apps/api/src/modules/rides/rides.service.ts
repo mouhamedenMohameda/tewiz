@@ -271,7 +271,8 @@ export async function createRide(input: CreateRideInput) {
           await notifyCaptainsNewRide(captainIds, {
             id: ride.id,
             rideType: ride.ride_type,
-            fareEstimateMru: ride.fare_estimate_mru,
+            // numeric column comes back as string from pg; widen to number for the DTO.
+            fareEstimateMru: ride.fare_estimate_mru == null ? null : Number(ride.fare_estimate_mru),
           });
         } catch (err) {
           // eslint-disable-next-line no-console
@@ -340,7 +341,7 @@ export async function confirmPassengerRide(input: {
         await notifyCaptainsNewRide(captainIds, {
           id: updated.id,
           rideType: updated.ride_type,
-          fareEstimateMru: updated.fare_estimate_mru,
+          fareEstimateMru: updated.fare_estimate_mru == null ? null : Number(updated.fare_estimate_mru),
         });
       } catch (err) {
         // eslint-disable-next-line no-console

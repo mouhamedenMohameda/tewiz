@@ -27,7 +27,7 @@ const createBody = z.object({
   note: z.string().min(2).max(500).optional(),
 });
 roadReportsRouter.post('/', async (req, res) => {
-  const user = (req as AuthedRequest).user;
+  const user = req.user!;
   const body = createBody.parse(req.body);
   res.json(await svc.createReport({
     reporterId: user.id,
@@ -38,7 +38,7 @@ roadReportsRouter.post('/', async (req, res) => {
 
 const voteBody = z.object({ confirm: z.boolean() });
 roadReportsRouter.post('/:id/vote', async (req, res) => {
-  const user = (req as AuthedRequest).user;
+  const user = req.user!;
   const body = voteBody.parse(req.body);
   res.json(await svc.voteReport({
     reportId: req.params.id!,
