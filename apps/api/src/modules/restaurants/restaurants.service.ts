@@ -314,6 +314,26 @@ function inferCuisine(
  *   - name picks name_fr → name → name_default → name_en → name_ar so the
  *     rider screen shows a clean French name when available.
  */
+/**
+ * Build a slug that's stable across re-runs of the seed for the same OSM
+ * entry. Without this, the upsert path would call uniqueSlug() and append
+ * -2, -3 every time a re-import sees an existing slug, producing duplicate
+ * rows instead of merging.
+ *
+ * The recipe: slugified name + a 5-char base36 hash of the rounded coords
+ * (3dp ≈ 110 m). That tolerates OSM jitter on tiny re-edits while keeping
+ * two distinct restaurants with the same name at different addresses on
+ * separate ids.
+ */
+function deterministicOsmSlug(name: string, lat: number, lng: number): string {
+  const base = slugify(name).slice(0, 50) || 'restaurant';
+  const fp = `${Math.round(lat * 1000)}|${Math.round(lng * 1000)}`;
+  let h = 5381;
+  for (let i = 0; i < fp.length; i++) h = ((h << 5) + h + fp.charCodeAt(i)) | 0;
+  const tag = Math.abs(h).toString(36).slice(0, 5);
+  return `${base}-${tag}`;
+}
+
 export function fromOsmSeed(raw: Record<string, unknown>): UpsertInput {
   const lat = Number(raw['lat']);
   const lng = Number(raw['lng']);
@@ -325,10 +345,13 @@ export function fromOsmSeed(raw: Record<string, unknown>): UpsertInput {
 
   const osmValue = (raw['osm_value'] as string | undefined) ?? null;
   const rawTags = (raw['raw_tags'] as Record<string, unknown> | undefined) ?? {};
-  const cuisine = inferCuisine(osmValue, rawTags, display || nameDefault);
+  const finalName = display || nameDefault || 'Sans nom';
+  const cuisine = inferCuisine(osmValue, rawTags, finalName);
 
   return {
-    name: display || nameDefault || 'Sans nom',
+    // Stable id so re-runs UPSERT instead of inserting duplicates.
+    id: deterministicOsmSlug(finalName, lat, lng),
+    name: finalName,
     nameFr,
     nameAr,
     nameEn,
