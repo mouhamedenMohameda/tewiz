@@ -4,7 +4,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import pinoHttp from 'pino-http';
+import { pinoHttp } from 'pino-http';
 import pino from 'pino';
 import { env } from './config/env.js';
 import { healthRouter } from './modules/health/health.routes.js';

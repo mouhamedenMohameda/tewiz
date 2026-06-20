@@ -90,7 +90,7 @@ const confirmBody = z.object({
  * picks into the corpus, and pushes the rider.
  */
 adminVoiceRidesRouter.post('/:id/confirm', async (req, res) => {
-  const adminId = (req as AuthedRequest).user.id;
+  const adminId = req.user!.id;
   const body = confirmBody.parse(req.body);
   res.json(
     await voiceRides.confirmVoiceRideRequest({
@@ -109,7 +109,7 @@ const rejectBody = z.object({ reason: z.string().min(2).max(500) });
  * POST /admin/voice-rides/:id/reject
  */
 adminVoiceRidesRouter.post('/:id/reject', async (req, res) => {
-  const adminId = (req as AuthedRequest).user.id;
+  const adminId = req.user!.id;
   const body = rejectBody.parse(req.body);
   if (!body.reason) {
     throw new HttpError(400, 'reason_required', 'A reject reason is required');

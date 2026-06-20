@@ -21,7 +21,7 @@ const onlineBody = z.object({
  * already on a ride.
  */
 captainStateRouter.post('/online', async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   const body = onlineBody.parse(req.body ?? {});
 
   // 1. Ensure captain row exists and is active.
@@ -84,7 +84,7 @@ captainStateRouter.post('/online', async (req, res) => {
  * POST /captain/state/offline
  */
 captainStateRouter.post('/offline', async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
 
   const current = await pool.query<{ presence: string }>(
     `SELECT presence FROM captain_state WHERE captain_id = $1`,
@@ -110,7 +110,7 @@ captainStateRouter.post('/offline', async (req, res) => {
  * GET /captain/state
  */
 captainStateRouter.get('/', async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   const r = await pool.query(
     `SELECT presence, updated_at,
             ST_X(location::geometry) AS lng,
@@ -128,7 +128,7 @@ captainStateRouter.get('/', async (req, res) => {
  * be prioritized in the dispatch.
  */
 captainStateRouter.post('/going-home', async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   res.json(await goingHome.startSession(userId));
 });
 
@@ -137,7 +137,7 @@ captainStateRouter.post('/going-home', async (req, res) => {
  * Cancel the active going-home session.
  */
 captainStateRouter.delete('/going-home', async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   res.json(await goingHome.endSession({ captainId: userId, reason: 'cancelled' }));
 });
 
@@ -146,7 +146,7 @@ captainStateRouter.delete('/going-home', async (req, res) => {
  * Return the active session (204 if none).
  */
 captainStateRouter.get('/going-home', async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   const s = await goingHome.getActiveSession(userId);
   if (!s) {
     res.status(204).end();

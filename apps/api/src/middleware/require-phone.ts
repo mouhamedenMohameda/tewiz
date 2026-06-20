@@ -12,7 +12,7 @@ import type { AuthedRequest } from './auth.js';
  */
 export const requirePhone: RequestHandler = async (req, _res, next) => {
   try {
-    const userId = (req as AuthedRequest).user.id;
+    const userId = req.user!.id;
     const { rows } = await pool.query<{ phone: string | null }>(
       `SELECT phone FROM users WHERE id = $1`,
       [userId],

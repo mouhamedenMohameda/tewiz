@@ -14,7 +14,7 @@ export const captainWalletRouter = Router();
  * Balance + 20 most recent transactions.
  */
 captainWalletRouter.get('/', async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   res.json(await walletSvc.getWalletSummary(userId, 20));
 });
 
@@ -25,7 +25,7 @@ const txQuery = z.object({
   limit: z.coerce.number().min(1).max(200).default(50),
 });
 captainWalletRouter.get('/transactions', async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   const q = txQuery.parse(req.query);
   const s = await walletSvc.getWalletSummary(userId, q.limit);
   res.json(s.transactions);
@@ -43,7 +43,7 @@ const createTopupBody = z.object({
 
 captainWalletRouter.post('/topups', upload.single('file'), async (req, res) => {
   if (!req.file) throw new HttpError(400, 'no_file', 'Missing "file" field');
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   const body = createTopupBody.parse(req.body);
   const t = await topupSvc.createTopup({
     captainId: userId,
@@ -59,6 +59,6 @@ captainWalletRouter.post('/topups', upload.single('file'), async (req, res) => {
  * GET /captain/wallet/topups
  */
 captainWalletRouter.get('/topups', async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   res.json(await topupSvc.listMyTopups(userId));
 });

@@ -40,7 +40,7 @@ const patchBody = z.object({
 );
 
 adminSettingsRouter.put('/', async (req, res) => {
-  const adminId = (req as AuthedRequest).user.id;
+  const adminId = req.user!.id;
   const patch = patchBody.parse(req.body);
 
   const before = await getPricingSettings();

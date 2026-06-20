@@ -102,7 +102,7 @@ adminRestaurantsRouter.get('/:id', async (req, res) => {
 // ---------------------------------------------------------------------------
 
 adminRestaurantsRouter.post('/', async (req, res) => {
-  const adminId = (req as AuthedRequest).user.id;
+  const adminId = req.user!.id;
   const body = upsertSchema.parse(req.body);
 
   const created = await withTx(async (client) => {
@@ -120,7 +120,7 @@ adminRestaurantsRouter.post('/', async (req, res) => {
 });
 
 adminRestaurantsRouter.patch('/:id', async (req, res) => {
-  const adminId = (req as AuthedRequest).user.id;
+  const adminId = req.user!.id;
   const body = patchSchema.parse(req.body);
   const before = await getRestaurant(req.params.id!, true);
   if (!before) throw new HttpError(404, 'not_found', 'Restaurant introuvable');
@@ -140,7 +140,7 @@ adminRestaurantsRouter.patch('/:id', async (req, res) => {
 });
 
 adminRestaurantsRouter.delete('/:id', async (req, res) => {
-  const adminId = (req as AuthedRequest).user.id;
+  const adminId = req.user!.id;
   const before = await getRestaurant(req.params.id!, true);
   if (!before) throw new HttpError(404, 'not_found', 'Restaurant introuvable');
 
@@ -178,7 +178,7 @@ function looksLikeOsmShape(raw: Record<string, unknown>): boolean {
 }
 
 adminRestaurantsRouter.post('/bulk-import', async (req, res) => {
-  const adminId = (req as AuthedRequest).user.id;
+  const adminId = req.user!.id;
   const body = bulkBody.parse(req.body);
 
   const inputs: UpsertInput[] = [];

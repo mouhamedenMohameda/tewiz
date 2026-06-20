@@ -4,9 +4,6 @@
     "rootDir": "src",
     "outDir": "dist",
     "baseUrl": "src",
-    "paths": {
-      "@tewiz/shared-types": ["../../../packages/shared-types/src/index.ts"]
-    },
     // Runtime-only: don't emit .d.ts files. pnpm's non-flat
     // node_modules layout otherwise raises "type cannot be named"
     // errors for every Router() definition (see voice-location-api
@@ -14,5 +11,11 @@
     "declaration": false,
     "sourceMap": false
   },
+  // shared-types is consumed as a TS project reference: tsc -b builds it
+  // first, the API sees the emitted .d.ts files, and `rootDir: "src"` is
+  // no longer violated by imports outside src/.
+  "references": [
+    { "path": "../../packages/shared-types" }
+  ],
   "include": ["src/**/*.ts"]
 }

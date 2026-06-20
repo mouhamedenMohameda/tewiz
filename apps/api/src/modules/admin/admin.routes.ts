@@ -156,7 +156,7 @@ const docReviewBody = z.object({
 });
 
 adminRouter.patch('/applications/:id/documents/:docId', async (req, res) => {
-  const adminId = (req as AuthedRequest).user.id;
+  const adminId = req.user!.id;
   const body = docReviewBody.parse(req.body);
   if (body.status === 'rejected' && !body.rejectReason) {
     throw new HttpError(400, 'reject_reason_required', 'rejectReason required when rejecting');
@@ -194,7 +194,7 @@ adminRouter.patch('/applications/:id/documents/:docId', async (req, res) => {
  * Move a submitted application to under_review (admin claims it).
  */
 adminRouter.post('/applications/:id/claim', async (req, res) => {
-  const adminId = (req as AuthedRequest).user.id;
+  const adminId = req.user!.id;
   const upd = await pool.query(
     `UPDATE captain_applications
         SET status = 'under_review'
@@ -220,7 +220,7 @@ adminRouter.post('/applications/:id/claim', async (req, res) => {
  * Creates: captain row, vehicle, wallet, captain_state.
  */
 adminRouter.post('/applications/:id/approve', async (req, res) => {
-  const adminId = (req as AuthedRequest).user.id;
+  const adminId = req.user!.id;
 
   const result = await withTx(async (client) => {
     const a = await client.query(
@@ -373,7 +373,7 @@ const correctionsBody = z.object({
   notes: z.string().min(5).max(2000),
 });
 adminRouter.post('/applications/:id/request-corrections', async (req, res) => {
-  const adminId = (req as AuthedRequest).user.id;
+  const adminId = req.user!.id;
   const body = correctionsBody.parse(req.body);
   const upd = await pool.query(
     `UPDATE captain_applications
@@ -406,7 +406,7 @@ const rejectBody = z.object({
   reason: z.string().min(5).max(2000),
 });
 adminRouter.post('/applications/:id/reject', async (req, res) => {
-  const adminId = (req as AuthedRequest).user.id;
+  const adminId = req.user!.id;
   const body = rejectBody.parse(req.body);
   const upd = await pool.query(
     `UPDATE captain_applications

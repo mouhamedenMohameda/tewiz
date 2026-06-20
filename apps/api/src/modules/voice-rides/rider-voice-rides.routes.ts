@@ -16,7 +16,7 @@ export const riderVoiceRidesRouter = Router();
  * screen and start polling GET /rider/voice-rides/:id.
  */
 riderVoiceRidesRouter.post('/', requirePhone, uploadAudio.single('audio'), async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   const file = req.file;
   if (!file) {
     throw new HttpError(
@@ -48,7 +48,7 @@ riderVoiceRidesRouter.post('/', requirePhone, uploadAudio.single('audio'), async
  * request has been confirmed by an admin.
  */
 riderVoiceRidesRouter.get('/:id', async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   res.json(await voiceRides.getVoiceRideRequestForUser(req.params.id!, userId));
 });
 
@@ -57,6 +57,6 @@ riderVoiceRidesRouter.get('/:id', async (req, res) => {
  * Rider cancels while the request is still pending (waiting-screen button).
  */
 riderVoiceRidesRouter.post('/:id/cancel', async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   res.json(await voiceRides.cancelVoiceRideRequest(req.params.id!, userId));
 });

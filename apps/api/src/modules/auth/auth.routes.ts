@@ -183,7 +183,7 @@ authRouter.post('/guest', async (req, res) => {
 const setPhoneBody = z.object({ phone: phoneSchema });
 
 authRouter.post('/me/phone', requireAuth, async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   const { phone } = setPhoneBody.parse(req.body);
 
   const dup = await pool.query<{ id: string }>(
@@ -286,7 +286,7 @@ const pushTokenBody = z.object({
 });
 
 authRouter.post('/push-token', requireAuth, async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   const { deviceId, token, platform } = pushTokenBody.parse(req.body);
   await pool.query(
     `INSERT INTO push_tokens (user_id, device_id, token, platform)
@@ -304,7 +304,7 @@ authRouter.post('/push-token', requireAuth, async (req, res) => {
  * Drops the push token on logout so we stop sending notifications.
  */
 authRouter.delete('/push-token', requireAuth, async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   const deviceId = z.string().min(8).max(128).parse(req.body?.deviceId);
   await pool.query(
     `DELETE FROM push_tokens WHERE user_id = $1 AND device_id = $2`,
@@ -322,7 +322,7 @@ authRouter.delete('/push-token', requireAuth, async (req, res) => {
  * captain in the database but still has 'rider' in their local token cache.
  */
 authRouter.get('/me', requireAuth, async (req, res) => {
-  const auth = (req as AuthedRequest).user;
+  const auth = req.user!;
   const user = await getUserById(auth.id);
   if (!user) throw new HttpError(401, 'user_missing', 'User not found');
   res.json({
@@ -353,7 +353,7 @@ const patchMeBody = z.object({
 });
 
 authRouter.patch('/me', requireAuth, async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   const body = patchMeBody.parse(req.body);
 
   const sets: string[] = [];
@@ -422,7 +422,7 @@ authRouter.patch('/me', requireAuth, async (req, res) => {
  * A deleted account can no longer authenticate; returning users start fresh.
  */
 authRouter.delete('/me', requireAuth, async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
 
   await withTx(async (client) => {
     await client.query(

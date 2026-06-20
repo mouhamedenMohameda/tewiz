@@ -37,7 +37,7 @@ const approveBody = z.object({
 });
 
 adminTopupRouter.post('/:id/approve', async (req, res) => {
-  const adminId = (req as AuthedRequest).user.id;
+  const adminId = req.user!.id;
   const body = approveBody.parse(req.body ?? {});
   const result = await topupSvc.approveTopup({
     adminId,
@@ -61,7 +61,7 @@ const rejectBody = z.object({
 });
 
 adminTopupRouter.post('/:id/reject', async (req, res) => {
-  const adminId = (req as AuthedRequest).user.id;
+  const adminId = req.user!.id;
   const body = rejectBody.parse(req.body);
   const topup = await topupSvc.rejectTopup({
     adminId,

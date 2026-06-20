@@ -110,7 +110,7 @@ const createBody = z.object({
 
 adminUsersRouter.post('/', async (req, res) => {
   const body = createBody.parse(req.body);
-  const adminId = (req as AuthedRequest).user.id;
+  const adminId = req.user!.id;
 
   // Reject duplicate phones cleanly so the admin can retry without
   // bumping into a 500.
@@ -170,7 +170,7 @@ const idParam = z.object({ id: z.string().uuid() });
 
 adminUsersRouter.post('/:id/regenerate-password', async (req, res) => {
   const { id } = idParam.parse(req.params);
-  const adminId = (req as AuthedRequest).user.id;
+  const adminId = req.user!.id;
 
   const user = await pool.query<{ phone: string; full_name: string | null }>(
     `SELECT phone, full_name FROM users WHERE id = $1 LIMIT 1`,

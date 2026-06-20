@@ -24,17 +24,17 @@ const proposeBody = z.object({
 });
 
 riderRecurringRouter.get('/', async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   res.json(await svc.listMyRecurring(userId));
 });
 
 riderRecurringRouter.post('/', async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   const body = proposeBody.parse(req.body);
   res.json(await svc.proposeRecurring({ riderId: userId, ...body }));
 });
 
 riderRecurringRouter.post('/:id/cancel', async (req, res) => {
-  const userId = (req as AuthedRequest).user.id;
+  const userId = req.user!.id;
   res.json(await svc.cancelByRider(req.params.id!, userId));
 });
