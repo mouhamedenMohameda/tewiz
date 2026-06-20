@@ -43,16 +43,33 @@ export default function RestaurantsScreen() {
   // Filtering happens client-side so chip + search are instant. Search and
   // cuisine are also accepted by the API for the rare case of paging through
   // a very large dataset — not relevant yet.
+  // Chip counts — only counts entries matching the current search, so the
+  // numbers actually reflect what'll show after a tap. Calculated once and
+  // reused for both the chip badges and the visible list.
+  const matchesSearch = useCallback((r: Restaurant) => {
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    const hay = `${r.name} ${r.nameFr ?? ''} ${r.nameAr ?? ''} ${r.zone ?? ''} ${r.tags.join(' ')}`.toLowerCase();
+    return hay.includes(q);
+  }, [query]);
+
+  const counts = useMemo(() => {
+    const m: Record<string, number> = { all: 0 };
+    for (const r of items ?? []) {
+      if (!matchesSearch(r)) continue;
+      m['all'] = (m['all'] ?? 0) + 1;
+      if (r.cuisine) m[r.cuisine] = (m[r.cuisine] ?? 0) + 1;
+    }
+    return m;
+  }, [items, matchesSearch]);
+
   const filtered = useMemo(() => {
     if (!items) return [];
-    const q = query.trim().toLowerCase();
     return items.filter((r) => {
       if (cuisine !== 'all' && r.cuisine !== cuisine) return false;
-      if (!q) return true;
-      const hay = `${r.name} ${r.nameFr ?? ''} ${r.nameAr ?? ''} ${r.zone ?? ''} ${r.tags.join(' ')}`.toLowerCase();
-      return hay.includes(q);
+      return matchesSearch(r);
     });
-  }, [items, query, cuisine]);
+  }, [items, cuisine, matchesSearch]);
 
   return (
     <Screen scroll onRefresh={onRefresh} refreshing={refreshing}>
@@ -83,15 +100,20 @@ export default function RestaurantsScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: spacing.sm }}
         >
-          {CUISINE_CATEGORIES.map((c) => (
-            <CategoryChip
-              key={c.key}
-              label={c.label}
-              icon={c.icon}
-              active={cuisine === c.key}
-              onPress={() => setCuisine(c.key)}
-            />
-          ))}
+          {CUISINE_CATEGORIES.map((c) => {
+            const count = counts[c.key] ?? 0;
+            return (
+              <CategoryChip
+                key={c.key}
+                label={c.label}
+                icon={c.icon}
+                count={count}
+                disabled={count === 0 && c.key !== 'all'}
+                active={cuisine === c.key}
+                onPress={() => setCuisine(c.key)}
+              />
+            );
+          })}
         </ScrollView>
       </FadeInView>
 
@@ -162,21 +184,47 @@ function HeroBanner({ count }: { count: number | null }) {
 }
 
 function CategoryChip({
-  label, icon, active, onPress,
-}: { label: string; icon: string; active: boolean; onPress: () => void }) {
+  label, icon, count, active, disabled, onPress,
+}: {
+  label: string;
+  icon: string;
+  count: number;
+  active: boolean;
+  disabled: boolean;
+  onPress: () => void;
+}) {
+  // Disabled chips stay visible (you should still see "Pizza" exists in the
+  // catalog) but they look dim and non-clickable, so the user understands
+  // there's nothing matching that filter right now.
+  const fg = disabled ? colors.faint : active ? colors.white : colors.ink;
+  const bg = disabled ? colors.surfaceAlt : active ? colors.ember : colors.surface;
   return (
-    <Pressable onPress={onPress} hitSlop={6}>
+    <Pressable onPress={disabled ? undefined : onPress} hitSlop={6} disabled={disabled}>
       <View style={{
         flexDirection: 'row', alignItems: 'center', gap: 6,
         paddingHorizontal: spacing.base, paddingVertical: 10,
         borderRadius: radius.pill,
-        backgroundColor: active ? colors.ember : colors.surface,
+        backgroundColor: bg,
         borderWidth: 1,
-        borderColor: active ? colors.ember : colors.line,
-        ...(active ? shadow.ember : shadow.card),
+        borderColor: disabled ? colors.line : active ? colors.ember : colors.line,
+        opacity: disabled ? 0.55 : 1,
+        ...(active && !disabled ? shadow.ember : disabled ? {} : shadow.card),
       }}>
-        <AppText variant="caption" color={active ? colors.white : colors.ink}>{icon}</AppText>
-        <AppText variant="label" color={active ? colors.white : colors.ink}>{label}</AppText>
+        <AppText variant="caption" color={fg}>{icon}</AppText>
+        <AppText variant="label" color={fg}>{label}</AppText>
+        <View style={{
+          minWidth: 18, paddingHorizontal: 5, paddingVertical: 1,
+          borderRadius: 9,
+          backgroundColor: active && !disabled ? 'rgba(255,255,255,0.25)' : colors.surfaceAlt,
+        }}>
+          <AppText
+            variant="caption"
+            color={active && !disabled ? colors.white : disabled ? colors.faint : colors.muted}
+            style={{ textAlign: 'center' }}
+          >
+            {count}
+          </AppText>
+        </View>
       </View>
     </Pressable>
   );
