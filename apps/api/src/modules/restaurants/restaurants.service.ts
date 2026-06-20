@@ -223,16 +223,96 @@ export interface UpsertInput {
 }
 
 /**
+ * Map the free-form `cuisine` OSM tag (or osm_value/name fallback) to the
+ * narrow set of buckets the mobile filter chips understand. OSM uses
+ * semicolons to multi-tag ("pizza;italian"); we walk the list and keep the
+ * first match. Returning null is safe — the mobile UI shows the row under
+ * the "Tout" chip and won't crash filtering.
+ */
+function inferCuisine(
+  osmValue: string | null,
+  rawTags: Record<string, unknown>,
+  name: string,
+): string | null {
+  const cuisineRaw = (rawTags['cuisine'] as string | undefined)?.toLowerCase() ?? '';
+  const tokens = cuisineRaw.split(/[;,]+/).map((s) => s.trim()).filter(Boolean);
+
+  // Bucket lookup — OSM tags on the left, our chip key on the right.
+  const TAG_TO_BUCKET: Record<string, string> = {
+    pizza: 'pizza', pizzeria: 'pizza', italian: 'pizza', pasta: 'pizza',
+
+    burger: 'burger', burgers: 'burger', american: 'burger',
+    sandwich: 'burger', hot_dog: 'burger',
+
+    lebanese: 'libanais', syrian: 'libanais', levantine: 'libanais',
+    shawarma: 'libanais', kebab: 'libanais', turkish: 'libanais',
+
+    chinese: 'asiatique', japanese: 'asiatique', korean: 'asiatique',
+    asian: 'asiatique', sushi: 'asiatique', thai: 'asiatique',
+    vietnamese: 'asiatique', indian: 'asiatique', noodle: 'asiatique',
+    ramen: 'asiatique',
+
+    mauritanian: 'mauritanien', moroccan: 'mauritanien',
+    north_african: 'mauritanien', african: 'mauritanien',
+    arab: 'mauritanien', arabic: 'mauritanien', regional: 'mauritanien',
+    couscous: 'mauritanien', tagine: 'mauritanien', tajine: 'mauritanien',
+
+    bbq: 'grillades', grill: 'grillades', steak_house: 'grillades',
+    barbecue: 'grillades', meat: 'grillades',
+
+    coffee_shop: 'cafe', tea: 'cafe', cafe: 'cafe',
+
+    dessert: 'patisserie', ice_cream: 'patisserie',
+    cake: 'patisserie', pastry: 'patisserie', donut: 'patisserie',
+    chocolate: 'patisserie', french: 'patisserie',
+  };
+
+  for (const t of tokens) {
+    if (TAG_TO_BUCKET[t]) return TAG_TO_BUCKET[t];
+  }
+
+  // osm_value fallback — captures rows that don't carry a cuisine tag.
+  switch (osmValue) {
+    case 'cafe': return 'cafe';
+    case 'fast_food': return 'burger';     // dominant in MR (burger + shawarma)
+    case 'ice_cream': return 'patisserie';
+    case 'bakery':
+    case 'pastry':
+    case 'confectionery': return 'patisserie';
+    case 'pub':
+    case 'bar':
+    case 'biergarten': return null;        // no chip for these; surface in "Tout"
+    case 'food_court': return null;
+    case 'restaurant': break;              // fall through to name heuristic
+  }
+
+  // Last-chance name heuristic — catches "Pizza Lina", "Burger King", etc.
+  // Conservative: only triggers on a clean keyword in the name.
+  const lo = name.toLowerCase();
+  if (/\bpizza|pizzeria/.test(lo)) return 'pizza';
+  if (/\bburger|sandwich/.test(lo)) return 'burger';
+  if (/\bcafé|cafe|coffee\b/.test(lo)) return 'cafe';
+  if (/\bgrill|brochette|méchoui|mechoui/.test(lo)) return 'grillades';
+  if (/\bshawarma|chawarma|libanais/.test(lo)) return 'libanais';
+  if (/\bchinois|chinese|sushi|asiatique|wok|nouille/.test(lo)) return 'asiatique';
+  if (/\bpâtisserie|patisserie|boulangerie|bakery/.test(lo)) return 'patisserie';
+
+  return null;
+}
+
+/**
  * Normalize the OSM-shape JSON produced by the POI ingester
  * (apps/voice-location-api/scripts/ingest-poi-nouakchott.ts) into the
  * UpsertInput shape used by the bulk-import endpoint.
  *
  * Behavior:
- *   - cuisine defaults to 'cafe' when osm_value='cafe', else stays null.
- *   - tags is empty; the admin enriches later.
+ *   - cuisine is inferred from raw_tags.cuisine, then osm_value, then a
+ *     conservative name heuristic. Stays null when nothing matches so the
+ *     mobile filter chips reflect honest data.
+ *   - tags stays empty; the admin enriches later.
  *   - photo / description / rating left null.
- *   - name picks name_fr → name → name_default in that order so the rider
- *     screen shows a clean French name when available.
+ *   - name picks name_fr → name → name_default → name_en → name_ar so the
+ *     rider screen shows a clean French name when available.
  */
 export function fromOsmSeed(raw: Record<string, unknown>): UpsertInput {
   const lat = Number(raw['lat']);
@@ -244,7 +324,8 @@ export function fromOsmSeed(raw: Record<string, unknown>): UpsertInput {
   const display = (nameFr || nameDefault || nameEn || nameAr || '').replace(/\s+/g, ' ').trim();
 
   const osmValue = (raw['osm_value'] as string | undefined) ?? null;
-  const cuisine = osmValue === 'cafe' ? 'cafe' : null;
+  const rawTags = (raw['raw_tags'] as Record<string, unknown> | undefined) ?? {};
+  const cuisine = inferCuisine(osmValue, rawTags, display || nameDefault);
 
   return {
     name: display || nameDefault || 'Sans nom',
@@ -256,7 +337,7 @@ export function fromOsmSeed(raw: Record<string, unknown>): UpsertInput {
     osmValue,
     cuisine,
     popularity: Number(raw['popularity'] ?? 0) || 0,
-    rawTags: (raw['raw_tags'] as Record<string, unknown> | undefined) ?? {},
+    rawTags,
   };
 }
 
