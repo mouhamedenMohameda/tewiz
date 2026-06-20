@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import {
   AppText, Button, FadeInView, Icon, PressableScale, Screen,
 } from '@/components/ui';
-import { colors, radius, shadow, spacing } from '@/theme';
+import { colors, gradients, radius, shadow, spacing } from '@/theme';
 import { fetchRestaurantById, type Restaurant } from '@/lib/restaurants';
 import { resolveRestaurantPhoto } from '@/lib/restaurantPhotos';
 
@@ -76,6 +76,9 @@ export default function RestaurantDetailScreen() {
   }
 
   const photo = resolveRestaurantPhoto(restaurant);
+  // Same defensive fallback as the list — if Unsplash 404s the URL, fall
+  // back to the branded gradient hero so we never show a broken image.
+  const [imgFailed, setImgFailed] = useState(false);
   const eta = restaurant.etaMin != null && restaurant.etaMax != null
     ? `${restaurant.etaMin}-${restaurant.etaMax} min`
     : null;
@@ -114,7 +117,28 @@ export default function RestaurantDetailScreen() {
     <Screen scroll padded={false} edges={['left', 'right']}>
       {/* Hero photo with overlaid back button */}
       <View style={{ position: 'relative', height: 280 }}>
-        <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+        {imgFailed ? (
+          <LinearGradient
+            colors={gradients.sunrise}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <View style={{
+              width: 96, height: 96, borderRadius: radius.xl,
+              backgroundColor: 'rgba(255,255,255,0.22)',
+              alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Icon name="restaurant" size={44} color={colors.white} />
+            </View>
+          </LinearGradient>
+        ) : (
+          <Image
+            source={{ uri: photo }}
+            style={{ width: '100%', height: '100%' }}
+            resizeMode="cover"
+            onError={() => setImgFailed(true)}
+          />
+        )}
         <LinearGradient
           colors={['rgba(0,0,0,0.45)', 'rgba(0,0,0,0)', 'rgba(0,0,0,0.55)']}
           style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
