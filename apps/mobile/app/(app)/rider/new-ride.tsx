@@ -3,7 +3,7 @@ import {
   ActivityIndicator, Alert, FlatList, KeyboardAvoidingView, Modal,
   Platform, Pressable, Text, TextInput, View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Marker, PROVIDER_DEFAULT, type Region } from 'react-native-maps';
@@ -28,20 +28,55 @@ interface GeoResult { id: string; label: string; name: string; lat: number; lng:
 
 type RideKind = 'self' | 'other' | 'colis';
 
+/** Parse a Point from a (lat, lng, label) triple that came from query params. */
+function parsePoint(
+  lat: string | string[] | undefined,
+  lng: string | string[] | undefined,
+  label: string | string[] | undefined,
+): Point | null {
+  const latStr = Array.isArray(lat) ? lat[0] : lat;
+  const lngStr = Array.isArray(lng) ? lng[0] : lng;
+  if (!latStr || !lngStr) return null;
+  const latN = Number(latStr);
+  const lngN = Number(lngStr);
+  if (!Number.isFinite(latN) || !Number.isFinite(lngN)) return null;
+  const labelStr = Array.isArray(label) ? label[0] : label;
+  return { lat: latN, lng: lngN, label: labelStr || undefined };
+}
+
 export default function NewRideScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const mapRef = useRef<MapView>(null);
 
-  const [pickup, setPickup] = useState<Point | null>(null);
-  const [dropoff, setDropoff] = useState<Point | null>(null);
+  // Deep-link params let other screens (e.g. the Restaurants directory) push
+  // here with one or both ends already pinned. We just pre-fill the state and
+  // wait — booking still requires the user to tap Confirmer.
+  //   ?pickupLat/Lng/Label      — pin pickup from caller
+  //   ?dropoffLat/Lng/Label     — pin dropoff from caller
+  //   ?kind=self|other|colis    — pre-select the course type
+  const params = useLocalSearchParams<{
+    pickupLat?: string; pickupLng?: string; pickupLabel?: string;
+    dropoffLat?: string; dropoffLng?: string; dropoffLabel?: string;
+    kind?: string;
+  }>();
+  const prefilledPickup = parsePoint(params.pickupLat, params.pickupLng, params.pickupLabel);
+  const prefilledDropoff = parsePoint(params.dropoffLat, params.dropoffLng, params.dropoffLabel);
+  const prefilledKind: RideKind | null =
+    params.kind === 'self' || params.kind === 'other' || params.kind === 'colis'
+      ? params.kind
+      : null;
+
+  const [pickup, setPickup] = useState<Point | null>(prefilledPickup);
+  const [dropoff, setDropoff] = useState<Point | null>(prefilledDropoff);
   const [active, setActive] = useState<'pickup' | 'dropoff' | null>(null);
   const [estimate, setEstimate] = useState<{ fareMru: number; distanceM: number } | null>(null);
   const [estimating, setEstimating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Course type + per-type fields. Default = self (most common).
-  const [kind, setKind] = useState<RideKind>('self');
+  // Course type + per-type fields. Default = self (most common), unless a
+  // caller deep-linked us with an explicit kind.
+  const [kind, setKind] = useState<RideKind>(prefilledKind ?? 'self');
   // 'other' = course pour quelqu'un d'autre (no app, SMS confirmation)
   const [passengerName, setPassengerName] = useState('');
   const [passengerPhone, setPassengerPhone] = useState('+222');
@@ -52,7 +87,11 @@ export default function NewRideScreen() {
 
   const { reports, refresh: refreshReports } = useRoadReports();
 
-  // Try to pre-fill pickup from GPS.
+  // Try to pre-fill the missing end (pickup OR dropoff) from GPS.
+  //   - Standard ride: pickup empty → GPS fills pickup, dropoff stays empty.
+  //   - Restaurant ride (dropoff pre-pinned): GPS fills the empty pickup.
+  //   - Restaurant colis (pickup pre-pinned): GPS fills the empty dropoff so
+  //     the parcel goes from restaurant to "Ma position".
   useEffect(() => {
     (async () => {
       try {
@@ -64,13 +103,17 @@ export default function NewRideScreen() {
           lng: loc.coords.longitude,
           label: 'Ma position',
         };
-        setPickup(p);
+        if (!pickup) setPickup(p);
+        else if (!dropoff) setDropoff(p);
         mapRef.current?.animateToRegion({
           latitude: p.lat, longitude: p.lng,
           latitudeDelta: 0.03, longitudeDelta: 0.03,
         }, 500);
       } catch {}
     })();
+    // Run once at mount — we don't want to keep stomping pickup/dropoff when
+    // the user changes them later.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Recompute estimate whenever both ends are set.

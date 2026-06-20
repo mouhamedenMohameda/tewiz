@@ -7,6 +7,7 @@ import {
 } from '@/components/ui';
 import { colors, gradients, radius, shadow, spacing } from '@/theme';
 import { CUISINE_CATEGORIES, fetchRestaurants, type Restaurant } from '@/lib/restaurants';
+import { resolveRestaurantPhoto } from '@/lib/restaurantPhotos';
 
 type CuisineKey = (typeof CUISINE_CATEGORIES)[number]['key'];
 
@@ -182,7 +183,9 @@ function CategoryChip({
 }
 
 function RestaurantCard({ restaurant, onPress }: { restaurant: Restaurant; onPress: () => void }) {
-  const hasPhoto = !!restaurant.photo;
+  // Every card now shows a photo: curated when present, deterministic Unsplash
+  // fallback otherwise. Keeps the list visually consistent — no blank tiles.
+  const photo = resolveRestaurantPhoto(restaurant);
   const eta = restaurant.etaMin != null && restaurant.etaMax != null
     ? `${restaurant.etaMin}-${restaurant.etaMax} min`
     : null;
@@ -199,18 +202,12 @@ function RestaurantCard({ restaurant, onPress }: { restaurant: Restaurant; onPre
         ...shadow.card,
       }}
     >
-      <View style={{ position: 'relative', height: hasPhoto ? 180 : 120, backgroundColor: colors.surfaceAlt }}>
-        {hasPhoto ? (
-          <Image source={{ uri: restaurant.photo! }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-        ) : (
-          <PhotoPlaceholder name={restaurant.name} />
-        )}
-        {hasPhoto ? (
-          <LinearGradient
-            colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.55)']}
-            style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 90 }}
-          />
-        ) : null}
+      <View style={{ position: 'relative', height: 180, backgroundColor: colors.surfaceAlt }}>
+        <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+        <LinearGradient
+          colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.55)']}
+          style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 90 }}
+        />
 
         {restaurant.rating != null ? (
           <View style={{
@@ -233,66 +230,37 @@ function RestaurantCard({ restaurant, onPress }: { restaurant: Restaurant; onPre
           </View>
         ) : null}
 
-        {hasPhoto && subtitleParts.length > 0 ? (
-          <View style={{ position: 'absolute', left: spacing.base, right: spacing.base, bottom: spacing.sm }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+        <View style={{ position: 'absolute', left: spacing.base, right: spacing.base, bottom: spacing.md }}>
+          <AppText variant="h2" color={colors.white} numberOfLines={1}>
+            {restaurant.name}
+          </AppText>
+          {subtitleParts.length > 0 ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
               <Icon name="pin" size={13} color="rgba(255,255,255,0.85)" />
               <AppText variant="caption" color="rgba(255,255,255,0.85)" numberOfLines={1}>
                 {subtitleParts.join(' · ')}
               </AppText>
             </View>
-          </View>
-        ) : null}
+          ) : null}
+        </View>
       </View>
 
-      <View style={{ padding: spacing.base, gap: 6 }}>
-        <AppText variant="title" numberOfLines={1}>{restaurant.name}</AppText>
-        {!hasPhoto && subtitleParts.length > 0 ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            <Icon name="pin" size={13} color={colors.muted} />
-            <AppText variant="caption" color={colors.muted} numberOfLines={1}>
-              {subtitleParts.join(' · ')}
-            </AppText>
-          </View>
-        ) : null}
-        {restaurant.tags.length > 0 ? (
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-            {restaurant.tags.slice(0, 3).map((tag) => (
-              <View
-                key={tag}
-                style={{
-                  backgroundColor: colors.surfaceAlt,
-                  paddingHorizontal: 9, paddingVertical: 3, borderRadius: radius.pill,
-                }}
-              >
-                <AppText variant="caption" color={colors.ink2}>{tag}</AppText>
-              </View>
-            ))}
-          </View>
-        ) : null}
-      </View>
+      {restaurant.tags.length > 0 ? (
+        <View style={{ padding: spacing.base, flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+          {restaurant.tags.slice(0, 3).map((tag) => (
+            <View
+              key={tag}
+              style={{
+                backgroundColor: colors.surfaceAlt,
+                paddingHorizontal: 9, paddingVertical: 3, borderRadius: radius.pill,
+              }}
+            >
+              <AppText variant="caption" color={colors.ink2}>{tag}</AppText>
+            </View>
+          ))}
+        </View>
+      ) : null}
     </PressableScale>
-  );
-}
-
-/** Friendly fallback when a row has no curated photo yet. */
-function PhotoPlaceholder({ name }: { name: string }) {
-  const initial = name.trim().charAt(0).toUpperCase() || '?';
-  return (
-    <LinearGradient
-      colors={gradients.dawn}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
-    >
-      <View style={{
-        width: 56, height: 56, borderRadius: radius.lg,
-        backgroundColor: colors.emberSoft,
-        alignItems: 'center', justifyContent: 'center',
-      }}>
-        <AppText variant="display" color={colors.ember}>{initial}</AppText>
-      </View>
-    </LinearGradient>
   );
 }
 

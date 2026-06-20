@@ -222,11 +222,13 @@ adminRestaurantsRouter.post('/bulk-import', async (req, res) => {
     return upserted;
   });
 
+  // Bulk import — there's no single target row, so targetId stays null.
+  // The count / error tally is kept in `after` for the audit trail.
   await audit({
     adminId,
     action: 'restaurant_bulk_import',
     targetType: 'restaurant',
-    targetId: 'bulk',
+    targetId: null,
     after: { count: result.length, errors: errors.length },
   });
 
