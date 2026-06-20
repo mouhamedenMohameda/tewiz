@@ -5,8 +5,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import {
   AppText, Button, FadeInView, Icon, PressableScale, Screen,
 } from '@/components/ui';
-import { colors, gradients, radius, shadow, spacing } from '@/theme';
+import { colors, radius, shadow, spacing } from '@/theme';
 import { fetchRestaurantById, type Restaurant } from '@/lib/restaurants';
+import { resolveRestaurantPhoto } from '@/lib/restaurantPhotos';
 
 export default function RestaurantDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -74,40 +75,50 @@ export default function RestaurantDetailScreen() {
     );
   }
 
-  const hasPhoto = !!restaurant.photo;
+  const photo = resolveRestaurantPhoto(restaurant);
   const eta = restaurant.etaMin != null && restaurant.etaMax != null
     ? `${restaurant.etaMin}-${restaurant.etaMax} min`
     : null;
 
+  // Build the params we'll forward to /new-ride. Two flows:
+  //   - "ride": user is going TO this restaurant → restaurant is the dropoff,
+  //     pickup auto-fills from GPS on the next screen.
+  //   - "colis": user wants a delivery FROM this restaurant → restaurant is
+  //     the pickup, dropoff auto-fills from GPS.
+  // In both cases /new-ride lands pre-filled but waits for the user to
+  // confirm — we never POST a ride from here.
+  const goAsRide = () => {
+    router.push({
+      pathname: '/(app)/rider/new-ride',
+      params: {
+        dropoffLat: String(restaurant.lat),
+        dropoffLng: String(restaurant.lng),
+        dropoffLabel: restaurant.name,
+        kind: 'self',
+      },
+    });
+  };
+  const goAsColis = () => {
+    router.push({
+      pathname: '/(app)/rider/new-ride',
+      params: {
+        pickupLat: String(restaurant.lat),
+        pickupLng: String(restaurant.lng),
+        pickupLabel: restaurant.name,
+        kind: 'colis',
+      },
+    });
+  };
+
   return (
     <Screen scroll padded={false} edges={['left', 'right']}>
-      {/* Hero photo (or branded gradient placeholder) with overlaid back button */}
+      {/* Hero photo with overlaid back button */}
       <View style={{ position: 'relative', height: 280 }}>
-        {hasPhoto ? (
-          <Image source={{ uri: restaurant.photo! }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-        ) : (
-          <LinearGradient
-            colors={gradients.sunrise}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
-          >
-            <View style={{
-              width: 96, height: 96, borderRadius: radius.xl,
-              backgroundColor: 'rgba(255,255,255,0.25)',
-              alignItems: 'center', justifyContent: 'center',
-            }}>
-              <AppText variant="hero" color={colors.white}>
-                {(restaurant.name.trim().charAt(0) || '?').toUpperCase()}
-              </AppText>
-            </View>
-          </LinearGradient>
-        )}
-        {hasPhoto ? (
-          <LinearGradient
-            colors={['rgba(0,0,0,0.45)', 'rgba(0,0,0,0)', 'rgba(0,0,0,0.55)']}
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-          />
-        ) : null}
+        <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+        <LinearGradient
+          colors={['rgba(0,0,0,0.45)', 'rgba(0,0,0,0)', 'rgba(0,0,0,0.55)']}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+        />
         <Pressable
           onPress={() => router.back()}
           hitSlop={10}
@@ -220,14 +231,12 @@ export default function RestaurantDetailScreen() {
         ) : null}
       </View>
 
-      {/* CTA — Voir la carte (menu) */}
-      <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.xl, marginBottom: spacing.huge }}>
+      {/* CTAs — primary actions */}
+      <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.xl, marginBottom: spacing.huge, gap: spacing.sm }}>
         <FadeInView delay={260}>
+          {/* Primary: take a ride to this restaurant. */}
           <PressableScale
-            onPress={() => Alert.alert(
-              'Carte du restaurant',
-              `La carte des plats de ${restaurant.name} sera disponible très bientôt. Restez connecté !`,
-            )}
+            onPress={goAsRide}
             scaleTo={0.97}
             style={{
               backgroundColor: colors.ember,
@@ -238,16 +247,41 @@ export default function RestaurantDetailScreen() {
               ...shadow.ember,
             }}
           >
-            <Icon name="menu" size={22} color={colors.white} />
-            <AppText variant="title" color={colors.white}>Voir la carte des plats</AppText>
+            <Icon name="ride" size={22} color={colors.white} />
+            <AppText variant="title" color={colors.white}>Aller à ce restaurant</AppText>
           </PressableScale>
+        </FadeInView>
 
+        <FadeInView delay={310}>
+          {/* Secondary: send a parcel FROM this restaurant to current location. */}
+          <PressableScale
+            onPress={goAsColis}
+            scaleTo={0.97}
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: radius.lg,
+              paddingVertical: 15,
+              flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+              gap: spacing.sm,
+              borderWidth: 1.5, borderColor: colors.line,
+              ...shadow.card,
+            }}
+          >
+            <Icon name="parcel" size={22} color={colors.ember} />
+            <AppText variant="title" color={colors.ember}>Livrer un colis d'ici</AppText>
+          </PressableScale>
+        </FadeInView>
+
+        <FadeInView delay={360}>
           <Button
             variant="ghost"
-            title="Commander une course jusqu'ici"
-            icon="ride"
-            onPress={() => router.push('/(app)/rider/voice-ride')}
-            style={{ marginTop: spacing.sm }}
+            title="Voir la carte des plats"
+            icon="menu"
+            onPress={() => Alert.alert(
+              'Carte du restaurant',
+              `La carte des plats de ${restaurant.name} sera disponible très bientôt. Restez connecté !`,
+            )}
+            style={{ marginTop: spacing.xs }}
           />
         </FadeInView>
       </View>
