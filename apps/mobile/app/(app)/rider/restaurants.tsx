@@ -234,6 +234,9 @@ function RestaurantCard({ restaurant, onPress }: { restaurant: Restaurant; onPre
   // Every card now shows a photo: curated when present, deterministic Unsplash
   // fallback otherwise. Keeps the list visually consistent — no blank tiles.
   const photo = resolveRestaurantPhoto(restaurant);
+  // If the photo URL 404s (Unsplash sometimes prunes IDs) we drop into a
+  // branded gradient placeholder rather than show an empty box.
+  const [imgFailed, setImgFailed] = useState(false);
   const eta = restaurant.etaMin != null && restaurant.etaMax != null
     ? `${restaurant.etaMin}-${restaurant.etaMax} min`
     : null;
@@ -251,7 +254,28 @@ function RestaurantCard({ restaurant, onPress }: { restaurant: Restaurant; onPre
       }}
     >
       <View style={{ position: 'relative', height: 180, backgroundColor: colors.surfaceAlt }}>
-        <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+        {imgFailed ? (
+          <LinearGradient
+            colors={gradients.sunrise}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <View style={{
+              width: 64, height: 64, borderRadius: radius.lg,
+              backgroundColor: 'rgba(255,255,255,0.22)',
+              alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Icon name="restaurant" size={32} color={colors.white} />
+            </View>
+          </LinearGradient>
+        ) : (
+          <Image
+            source={{ uri: photo }}
+            style={{ width: '100%', height: '100%' }}
+            resizeMode="cover"
+            onError={() => setImgFailed(true)}
+          />
+        )}
         <LinearGradient
           colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.55)']}
           style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 90 }}
