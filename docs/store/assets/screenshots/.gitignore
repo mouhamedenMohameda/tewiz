@@ -1,0 +1,7 @@
+# Only the numbered finals (01-05.png) go in the repo. Anything else
+# — draft captures, the source folder from the simulator, unused alts —
+# stays local. Keeps the repo lean and avoids confusion about which
+# image is actually uploaded to the App Store.
+*
+!.gitignore
+!0?-*.png
