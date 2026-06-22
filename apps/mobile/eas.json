@@ -9,14 +9,17 @@
       "distribution": "internal",
       "android": { "buildType": "apk" },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://tewiz-api.radar-mr.com"
+        "EXPO_PUBLIC_API_URL": "https://tewiz-api.radar-mr.com",
+        "EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_KEY": "AIzaSyARxoD218-5Bs9gXMY538axgUwGYwm8j3M"
       }
     },
     "preview": {
       "distribution": "internal",
       "android": { "buildType": "apk" },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://tewiz-api.radar-mr.com"
+        "EXPO_PUBLIC_API_URL": "https://tewiz-api.radar-mr.com",
+        "EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_KEY": "AIzaSyARxoD218-5Bs9gXMY538axgUwGYwm8j3M",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       }
     },
     "production": {
@@ -24,8 +27,10 @@
       "android": { "buildType": "app-bundle" },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://tewiz-api.radar-mr.com",
+        "EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_KEY": "AIzaSyARxoD218-5Bs9gXMY538axgUwGYwm8j3M",
         "EXPO_PUBLIC_ENV": "production",
-        "EXPO_PUBLIC_SENTRY_DSN": "https://b6a772c57ae3c4d37d02bc20131089ba@o4511585457537024.ingest.de.sentry.io/4511585473069136"
+        "EXPO_PUBLIC_SENTRY_DSN": "https://b6a772c57ae3c4d37d02bc20131089ba@o4511585457537024.ingest.de.sentry.io/4511585473069136",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       }
     }
   },
