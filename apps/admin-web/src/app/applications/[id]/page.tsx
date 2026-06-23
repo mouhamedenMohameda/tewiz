@@ -246,18 +246,38 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
                         {doc.reject_reason && (
                           <span className="text-[10px] text-red-600">{doc.reject_reason}</span>
                         )}
-                        {doc.status === 'pending' && (
-                          <div className="flex gap-1 mt-1">
-                            <button
-                              onClick={() => reviewDoc.mutate({ docId: doc.id, status: 'approved' })}
-                              className="flex-1 px-2 py-1 text-[10px] rounded bg-green-100 text-green-800 hover:bg-green-200"
-                            >✓</button>
-                            <button
-                              onClick={() => { setRejectingDocId(doc.id); setRejectReason(''); }}
-                              className="flex-1 px-2 py-1 text-[10px] rounded bg-red-100 text-red-800 hover:bg-red-200"
-                            >✗</button>
-                          </div>
-                        )}
+                        {/* Approve / reject controls. Visible at all times so an
+                            admin can REVOKE an earlier approval (or reverse a
+                            rejection) when they realise they were wrong — e.g.
+                            before sending the dossier back for corrections.
+                            The button matching the current status is highlighted
+                            and disabled. */}
+                        <div className="flex gap-1 mt-1">
+                          <button
+                            onClick={() => reviewDoc.mutate({ docId: doc.id, status: 'approved' })}
+                            disabled={doc.status === 'approved' || reviewDoc.isPending}
+                            title="Approuver"
+                            className={clsx(
+                              'flex-1 px-2 py-1 text-[10px] rounded transition',
+                              doc.status === 'approved'
+                                ? 'bg-green-200 text-green-900 cursor-default'
+                                : 'bg-slate-100 text-slate-600 hover:bg-green-100 hover:text-green-800',
+                            )}
+                          >✓ Approuver</button>
+                          <button
+                            onClick={() => { setRejectingDocId(doc.id); setRejectReason(doc.reject_reason ?? ''); }}
+                            disabled={reviewDoc.isPending}
+                            title={doc.status === 'approved'
+                              ? 'Annuler cette approbation et marquer comme à corriger'
+                              : 'Rejeter ce document'}
+                            className={clsx(
+                              'flex-1 px-2 py-1 text-[10px] rounded transition',
+                              doc.status === 'rejected'
+                                ? 'bg-red-200 text-red-900 cursor-default'
+                                : 'bg-slate-100 text-slate-600 hover:bg-red-100 hover:text-red-800',
+                            )}
+                          >{doc.status === 'approved' ? '↩ Annuler' : '✗ Rejeter'}</button>
+                        </div>
                       </div>
                     )}
                   </div>
