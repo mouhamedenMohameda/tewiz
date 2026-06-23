@@ -603,6 +603,9 @@
     "docs": {
       "title": "Documents",
       "intro": "Send the 14 required photos. Well lit, no glare.",
+      "introV2": "Send the requested photos. Well lit, no glare. Documents marked \"Optional\" are not required.",
+      "optionalBadge": "OPTIONAL",
+      "tapToAddOptional": "Optional · Tap to add",
       "expiryTitle": "Expiry date",
       "expiryHint": "{{label}} — enter the date in format YYYY-MM-DD.",
       "expiryHintPicker": "{{label}} — pick the expiry date.",

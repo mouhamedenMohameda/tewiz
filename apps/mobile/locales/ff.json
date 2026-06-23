@@ -526,6 +526,9 @@
     "docs": {
       "title": "Documents",
       "intro": "Neldu 14 nataal soklaaɗo. Jaynaaɗi moƴƴi, jaynirgal walaa.",
+      "introV2": "Neldu nataal ɗii naamnaa. Jaynaaɗi moƴƴi, jaynirgal walaa. Documents jokkiraaɗi « Facultatif » alaa tilaade.",
+      "optionalBadge": "FACULTATIF",
+      "tapToAddOptional": "Facultatif · Memto ngam beydu",
       "expiryTitle": "Ñalnde expiration",
       "expiryHint": "{{label}} — naatnu ñalnde format HHHH-LL-NN.",
       "expiryPlaceholder": "2026-12-31",

@@ -10,7 +10,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { api } from '@/lib/api';
 import {
   type AppDoc, type ApplicationDto, type DocumentType,
-  DOCUMENTS_WITH_EXPIRY, DOCUMENT_ORDER,
+  DOCUMENTS_WITH_EXPIRY, DOCUMENT_ORDER, isDocRequired,
 } from '@/lib/kyc';
 import { DateField } from '@/components/ui';
 
@@ -168,13 +168,14 @@ export default function DocumentsScreen() {
           {t('becomeCaptain.docs.title')}
         </Text>
         <Text style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>
-          {t('becomeCaptain.docs.intro')}
+          {t('becomeCaptain.docs.introV2')}
         </Text>
 
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 16 }}>
           {DOCUMENT_ORDER.map((type) => {
             const doc = byType.get(type);
             const uploading = uploadingType === type;
+            const required = app ? isDocRequired(app, type) : true;
             return (
               <DocCard
                 key={type}
@@ -182,6 +183,7 @@ export default function DocumentsScreen() {
                 doc={doc}
                 uploading={uploading}
                 editable={editable}
+                required={required}
                 label={docLabel(type)}
                 onPick={() => openPicker(type)}
                 onDelete={() => doc && deleteDoc(doc)}
@@ -250,12 +252,13 @@ export default function DocumentsScreen() {
 }
 
 function DocCard({
-  type, doc, uploading, editable, label, onPick, onDelete,
+  type, doc, uploading, editable, required, label, onPick, onDelete,
 }: {
   type: DocumentType;
   doc?: AppDoc;
   uploading: boolean;
   editable: boolean;
+  required: boolean;
   label: string;
   onPick: () => void;
   onDelete: () => void;
@@ -282,9 +285,24 @@ function DocCard({
         padding: 12, minHeight: 110,
       })}
     >
-      <Text style={{ fontSize: 13, fontWeight: '600', color: '#0f172a' }} numberOfLines={2}>
-        {label}
-      </Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <Text
+          style={{ flex: 1, fontSize: 13, fontWeight: '600', color: '#0f172a' }}
+          numberOfLines={2}
+        >
+          {label}
+        </Text>
+        {!required ? (
+          <View style={{
+            backgroundColor: '#e0e7ff',
+            paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4,
+          }}>
+            <Text style={{ fontSize: 9, fontWeight: '700', color: '#4338ca' }}>
+              {t('becomeCaptain.docs.optionalBadge')}
+            </Text>
+          </View>
+        ) : null}
+      </View>
       <View style={{ flex: 1 }} />
       {uploading ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -323,7 +341,11 @@ function DocCard({
         </View>
       ) : (
         <Text style={{ fontSize: 12, color: '#64748b' }}>
-          {editable ? t('becomeCaptain.docs.tapToAdd') : t('common.notSent')}
+          {editable
+            ? (required
+              ? t('becomeCaptain.docs.tapToAdd')
+              : t('becomeCaptain.docs.tapToAddOptional'))
+            : t('common.notSent')}
         </Text>
       )}
     </Pressable>

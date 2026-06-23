@@ -5,25 +5,11 @@ import { pool, withTx } from '../../db/pool.js';
 import { HttpError } from '../../middleware/error.js';
 import { env } from '../../config/env.js';
 import { defaultStorage } from '../storage/local-disk.js';
+import {
+  getDocumentRequirements,
+  getRequiredDocumentTypes,
+} from '../admin/document-requirements.service.js';
 import type { DocumentType, ApplicationStatus } from '@tewiz/shared-types';
-
-// All 14 documents are required to submit a captain application.
-const REQUIRED_DOCS: DocumentType[] = [
-  'selfie',
-  'nni_front',
-  'nni_back',
-  'license_front',
-  'license_back',
-  'carte_grise',
-  'assurance',
-  'vignette',
-  'visite_technique',
-  'car_front',
-  'car_back',
-  'car_left',
-  'car_right',
-  'car_interior',
-];
 
 const DOCS_WITH_EXPIRY: DocumentType[] = ['assurance', 'vignette', 'visite_technique'];
 
@@ -266,7 +252,8 @@ export async function submitApplication(userId: string) {
       [app.id],
     );
     const have = new Set(docs.rows.map((d) => d.type));
-    for (const t of REQUIRED_DOCS) {
+    const requiredDocs = await getRequiredDocumentTypes();
+    for (const t of requiredDocs) {
       if (!have.has(t)) missing.push(`Document manquant: ${t}`);
     }
 
@@ -312,6 +299,7 @@ async function withDocuments(app: ApplicationRow, client?: pg.PoolClient) {
       ORDER BY type`,
     [app.id],
   );
+  const reqs = await getDocumentRequirements();
   return {
     id: app.id,
     status: app.status,
@@ -336,5 +324,6 @@ async function withDocuments(app: ApplicationRow, client?: pg.PoolClient) {
     createdAt: app.created_at,
     updatedAt: app.updated_at,
     documents: docs.rows,
+    documentRequirements: reqs.map((r) => ({ type: r.type, isRequired: r.isRequired })),
   };
 }

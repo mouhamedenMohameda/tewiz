@@ -526,6 +526,9 @@
     "docs": {
       "title": "Documents",
       "intro": "14 nataal faabu. Lampe a wari, reflet nta.",
+      "introV2": "Nataal yi a tini faabu. Lampe a wari, reflet nta. Documents « Facultatif » nta obligation.",
+      "optionalBadge": "FACULTATIF",
+      "tapToAddOptional": "Facultatif · Maaga ka bira",
       "expiryTitle": "Expiration ñani",
       "expiryHint": "{{label}} — ñani format AAAA-MM-JJ.",
       "expiryPlaceholder": "2026-12-31",

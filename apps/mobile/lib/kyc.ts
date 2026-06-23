@@ -72,6 +72,21 @@ export interface ApplicationDto {
   acceptsLongDistance: boolean;
   rejectReason?: string | null;
   documents: AppDoc[];
+  documentRequirements?: { type: DocumentType; isRequired: boolean }[];
+}
+
+/** Types currently marked as required by the admin. Defaults to "all required"
+ *  when the server doesn't (yet) return the requirement list. */
+export function requiredDocTypes(a: ApplicationDto): Set<DocumentType> {
+  if (!a.documentRequirements) return new Set(DOCUMENT_ORDER);
+  return new Set(
+    a.documentRequirements.filter((r) => r.isRequired).map((r) => r.type),
+  );
+}
+
+export function isDocRequired(a: ApplicationDto, type: DocumentType): boolean {
+  if (!a.documentRequirements) return true;
+  return a.documentRequirements.find((r) => r.type === type)?.isRequired ?? true;
 }
 
 export function personalFieldsComplete(a: ApplicationDto): boolean {
@@ -90,5 +105,9 @@ export function vehicleFieldsComplete(a: ApplicationDto): boolean {
 
 export function docsComplete(a: ApplicationDto): boolean {
   const have = new Set(a.documents.map((d) => d.type));
-  return DOCUMENT_ORDER.every((t) => have.has(t));
+  const required = requiredDocTypes(a);
+  for (const t of required) {
+    if (!have.has(t)) return false;
+  }
+  return true;
 }
