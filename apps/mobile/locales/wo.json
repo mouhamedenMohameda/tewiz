@@ -289,7 +289,19 @@
       "heatmapTitle": "Bérab yu tàng",
       "heatmapSubtitle": "Fan la demande nekk leegi",
       "recurringTitle": "Course yu ñu fexee",
-      "recurringSubtitle": "Engagements yu ay ayubés"
+      "recurringSubtitle": "Engagements yu ay ayubés",
+      "preferencesTitle": "Préférences",
+      "preferencesSubtitle": "Colis, course yu sori"
+    },
+    "preferences": {
+      "title": "Préférences chauffeur",
+      "intro": "Mën nga soppi yi ci kanam saa-yu nekk. Dafay xëy ci course yu bees yi.",
+      "colis": "Damay nangu colis",
+      "colisHint": "Dinga jot livraison colis (amul passager).",
+      "longDistance": "Damay nangu course yu sori",
+      "longDistanceHint": "Dinga jot course yu sori (Nouakchott — Nouadhibou, ak yeneen).",
+      "saved": "Préférence denc na",
+      "saveError": "Mënu fa soppi préférence bi."
     },
     "rides": {
       "title": "Course-yi",
@@ -337,7 +349,7 @@
     "wallet": {
       "title": "Portefeuille",
       "balance": "Solde wallet",
-      "commissionNote": "Commission 7% (10% ngir colis) génnees na ci pare bu course bu nekk.",
+      "commissionNote": "Commission bi génnees na ci pare bu course bu nekk.",
       "uploadReceipt": "Yonnee capture recharge",
       "topups": "Recharge",
       "noTopups": "Recharge amul.",
@@ -617,6 +629,8 @@
     "pause5": "Pause 5 min",
     "pauseSub": "alerte amul",
     "unavailable": "Course bi amul.",
+    "alreadyTakenTitle": "Course jëlees na",
+    "alreadyTaken": "Course bi, beneen chauffeur moo ko jël ba pare.",
     "pausedBadge": "🔕 Notifications ci pause · {{mins}} min · Door waat"
   },
   "voiceCandidate": {

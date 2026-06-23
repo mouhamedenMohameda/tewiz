@@ -334,7 +334,19 @@
       "heatmapTitle": "Zones chaudes",
       "heatmapSubtitle": "Où se trouve la demande maintenant",
       "recurringTitle": "Courses récurrentes",
-      "recurringSubtitle": "Engagements hebdomadaires"
+      "recurringSubtitle": "Engagements hebdomadaires",
+      "preferencesTitle": "Préférences",
+      "preferencesSubtitle": "Colis, longues distances"
+    },
+    "preferences": {
+      "title": "Préférences chauffeur",
+      "intro": "Vous pouvez modifier ces préférences à tout moment. Elles s'appliquent immédiatement aux nouvelles courses proposées.",
+      "colis": "J'accepte les colis",
+      "colisHint": "Vous recevrez les courses de livraison de colis (sans passager).",
+      "longDistance": "J'accepte les courses inter-villes",
+      "longDistanceHint": "Vous recevrez les courses de longue distance (Nouakchott — Nouadhibou, etc.).",
+      "saved": "Préférence enregistrée",
+      "saveError": "Impossible de modifier la préférence."
     },
     "rides": {
       "title": "Courses",
@@ -382,7 +394,7 @@
     "wallet": {
       "title": "Portefeuille",
       "balance": "Solde wallet",
-      "commissionNote": "La commission 7 % (10 % colis) est débitée à la fin de chaque course.",
+      "commissionNote": "La commission est débitée automatiquement à la fin de chaque course.",
       "uploadReceipt": "Envoyer une capture de recharge",
       "topups": "Recharges",
       "noTopups": "Aucune recharge envoyée.",
@@ -718,6 +730,8 @@
     "pause5": "Pause 5 min",
     "pauseSub": "aucune alerte",
     "unavailable": "Course indisponible.",
+    "alreadyTakenTitle": "Course prise",
+    "alreadyTaken": "Cette course vient d'être prise par un autre chauffeur.",
     "pausedBadge": "🔕 Notifications en pause · {{mins}} min · Reprendre"
   },
   "voiceCandidate": {

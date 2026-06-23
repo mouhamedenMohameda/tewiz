@@ -1,6 +1,28 @@
+import { Platform } from 'react-native';
 import * as Application from 'expo-application';
 import { api } from './api';
 import { useAuth } from './auth';
+
+/**
+ * Reads a stable, anonymous device identifier per platform. Crucially,
+ * `getIosIdForVendorAsync()` THROWS `ERR_UNAVAILABLE` on Android (it doesn't
+ * just return null), so we must branch on Platform.OS — otherwise the whole
+ * guest login rejects before the network call ever happens.
+ */
+async function getDeviceId(): Promise<string> {
+  try {
+    if (Platform.OS === 'ios') {
+      const id = await Application.getIosIdForVendorAsync();
+      if (id) return id;
+    } else if (Platform.OS === 'android') {
+      const id = Application.getAndroidId();
+      if (id) return id;
+    }
+  } catch {
+    // fall through to random fallback
+  }
+  return `guest-${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+}
 
 /**
  * Provisions an anonymous "guest" rider session (POST /auth/guest) and stores
@@ -9,10 +31,7 @@ import { useAuth } from './auth';
  * time it's needed (before a ride or a captain application).
  */
 export async function loginAsGuest(): Promise<void> {
-  const deviceId =
-    (await Application.getIosIdForVendorAsync()) ??
-    Application.getAndroidId() ??
-    `guest-${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+  const deviceId = await getDeviceId();
 
   const r = await api.post<{
     user: {

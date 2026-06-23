@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator, Alert, Linking, Pressable, TextInput, View,
 } from 'react-native';
@@ -105,16 +105,29 @@ export default function RidesScreen() {
 function InboxList({ items, onAccepted }: { items: InboxItem[]; onAccepted: () => void }) {
   const { t } = useTranslation();
   const [accepting, setAccepting] = useState<string | null>(null);
+  // Synchronous guard: blocks a 2nd tap that arrives before React re-renders
+  // the disabled state. Without it, two near-simultaneous taps would fire two
+  // requests and surface a spurious "already taken" alert.
+  const pendingRef = useRef(false);
 
   async function accept(id: string) {
+    if (pendingRef.current) return;
+    pendingRef.current = true;
     setAccepting(id);
     try {
       await api.post(`/captain/rides/${id}/accept`);
       onAccepted();
     } catch (e: any) {
-      Alert.alert(t('common.impossible'), e.response?.data?.error?.message ?? t('errors.generic'));
+      const code = e.response?.data?.error?.code;
+      if (code === 'not_searching') {
+        Alert.alert(t('captainAlert.alreadyTakenTitle'), t('captainAlert.alreadyTaken'));
+        onAccepted();
+      } else {
+        Alert.alert(t('common.impossible'), e.response?.data?.error?.message ?? t('errors.generic'));
+      }
     } finally {
       setAccepting(null);
+      pendingRef.current = false;
     }
   }
 
@@ -165,6 +178,7 @@ function InboxList({ items, onAccepted }: { items: InboxItem[]; onAccepted: () =
                     fullWidth={false}
                     icon="checkSmall"
                     busy={accepting === it.id}
+                    disabled={accepting !== null && accepting !== it.id}
                     onPress={() => accept(it.id)}
                   />
                 </View>

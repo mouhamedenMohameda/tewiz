@@ -22,6 +22,8 @@ function normalizeMrPhone(raw: string): string {
 // ────────────────────────────────────────────────────────────────────────────
 // Public types
 
+export type RideSource = 'app' | 'operator';
+
 export interface CreateRideInput {
   bookerId: string;
   pickup: { lat: number; lng: number; label?: string };
@@ -42,6 +44,10 @@ export interface CreateRideInput {
   // When a passenger calls the operator, they have already consented — the ride
   // can go straight to "searching" without a return SMS.
   skipPassengerConfirm?: boolean;
+  // Where the ride came from. Defaults to 'app' (rider self-served from the
+  // mobile app). Set to 'operator' when an admin books on behalf of a
+  // passenger who called by phone — this picks a dedicated commission rate.
+  source?: RideSource;
 }
 
 interface RideRow {
@@ -54,6 +60,7 @@ interface RideRow {
   passenger_confirmed_at: Date | null;
   captain_id: string | null;
   ride_type: RideType;
+  source: RideSource;
   status: RideStatus;
   pickup_lat: number;
   pickup_lng: number;
@@ -83,7 +90,7 @@ interface RideRow {
 
 const RIDE_COLUMNS = `
   id, booker_id, passenger_user_id, passenger_name, passenger_phone,
-  is_for_other, passenger_confirmed_at, captain_id, ride_type, status,
+  is_for_other, passenger_confirmed_at, captain_id, ride_type, source, status,
   ST_Y(pickup_location::geometry)  AS pickup_lat,
   ST_X(pickup_location::geometry)  AS pickup_lng,
   pickup_label,
@@ -113,6 +120,7 @@ function shape(r: RideRow, opts: { revealCode: boolean } = { revealCode: false }
     passengerConfirmedAt: r.passenger_confirmed_at,
     captainId: r.captain_id,
     rideType: r.ride_type,
+    source: r.source,
     status: r.status,
     pickup: { lat: r.pickup_lat, lng: r.pickup_lng, label: r.pickup_label },
     dropoff: { lat: r.dropoff_lat, lng: r.dropoff_lng, label: r.dropoff_label },
@@ -154,9 +162,14 @@ export async function createRide(input: CreateRideInput) {
   const { fareMru, distanceEstimateM } = await estimateFareMru(dStraight, rideType);
 
   const settings = await getPricingSettings();
-  const commissionBps = rideType === 'colis'
-    ? settings.colisCommissionBps
-    : settings.defaultCommissionBps;
+  const source: RideSource = input.source ?? 'app';
+  const commissionBps = source === 'operator'
+    ? (rideType === 'colis'
+        ? settings.operatorColisCommissionBps
+        : settings.operatorPassengerCommissionBps)
+    : (rideType === 'colis'
+        ? settings.colisCommissionBps
+        : settings.defaultCommissionBps);
 
   // Validate colis-specific inputs
   if (rideType === 'colis') {
@@ -203,13 +216,13 @@ export async function createRide(input: CreateRideInput) {
          pickup_location, pickup_label,
          dropoff_location, dropoff_label,
          fare_estimate_mru, commission_rate_bps,
-         distance_m, payment_method, verification_code
+         distance_m, payment_method, verification_code, source
        )
        VALUES (
          $1::uuid, $14::uuid, $15, $16, $13, $2, $17,
          ST_SetSRID(ST_MakePoint($3, $4), 4326)::geography, $5,
          ST_SetSRID(ST_MakePoint($6, $7), 4326)::geography, $8,
-         $9, $10, $11, $12, $18
+         $9, $10, $11, $12, $18, $19
        )
        RETURNING ${RIDE_COLUMNS}`,
       [
@@ -224,6 +237,7 @@ export async function createRide(input: CreateRideInput) {
         normalizedPassengerPhone,
         initialStatus,
         verificationCode,
+        source,
       ],
     );
     const ride = r.rows[0]!;

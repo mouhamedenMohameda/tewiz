@@ -27,20 +27,65 @@ const FALLBACK_REGION: Region = {
   latitudeDelta: 0.08, longitudeDelta: 0.08,
 };
 
-// Visual circle radius — 5 km = 10 km diameter. Each hot cell paints a wide
-// halo so the captain reads "this whole area is hot" rather than "this block".
-// Neighbouring cells fully overlap into a single heat blob.
-const CELL_RADIUS_M = 5000;
+// Snap-style heat blob: thin concentric rings of low alpha stacked
+// outer→inner. Alpha accumulates toward the centre into a smooth radial
+// fade. Snap's palette is warm-only (faint yellow halo → orange → red core)
+// — no cool tones, despite some thermal-map references.
+const BLOB_RING_COUNT = 10;
+const BLOB_OUTER_M = 350;   // soft halo edge
+const BLOB_INNER_M = 12;    // hot dot
+const BLOB_RING_ALPHA = 0.06;
+
+// Cap how many cells we paint per frame. ~1000 demo rides produce 100+ cells;
+// drawing all of them with 10 rings each (~1000 Circles) tanks Apple Maps.
+// 80 cells × 10 = 800 Circles, smooth on iOS.
+const MAX_VISIBLE_CELLS = 80;
+
+// Quadratic ease packs rings near the centre — bright core, gentle halo.
+const BLOB_RING_RADII: number[] = Array.from(
+  { length: BLOB_RING_COUNT },
+  (_, i) => {
+    const t = i / (BLOB_RING_COUNT - 1);
+    const ease = t * t;
+    return BLOB_OUTER_M - (BLOB_OUTER_M - BLOB_INNER_M) * ease;
+  },
+);
+
+// Warm palette stops (outer → inner). RGB only; alpha applied at render.
+const WARM_STOPS: Array<[number, [number, number, number]]> = [
+  [0.00, [255, 230, 130]],   // soft yellow halo
+  [0.45, [255, 165, 50]],    // orange
+  [0.80, [232, 70, 30]],     // bright red
+  [1.00, [180, 24, 18]],     // deep red core
+];
+
+function accentFor(score: number): string {
+  if (score >= 0.66) return '#B41812';
+  if (score >= 0.33) return '#E84620';
+  return '#FFA532';
+}
 
 /**
- * demand_score is 0..1. We bin it into 3 tiers on a warm heat ramp
- * (gold → orange → red) so the captain can see at a glance where the highest
- * demand is concentrated.
+ * Warm gradient colour for ring index `i`. Hotter cells reach further into
+ * the deep-red end; cooler cells top out at orange.
  */
-function colorFor(score: number) {
-  if (score >= 0.66) return { fill: 'rgba(214, 69, 47, 0.45)', stroke: '#D6452F' };  // red — very hot
-  if (score >= 0.33) return { fill: 'rgba(242, 104, 44, 0.38)', stroke: '#F2682C' }; // ember — warm
-  return                  { fill: 'rgba(246, 166, 35, 0.30)',  stroke: '#F6A623' };   // gold — mild
+function ringColor(score: number, ringIdx: number): string {
+  const t = (ringIdx / (BLOB_RING_COUNT - 1)) * (0.55 + 0.45 * score);
+
+  let from = WARM_STOPS[0]!, to = WARM_STOPS[WARM_STOPS.length - 1]!;
+  for (let i = 0; i < WARM_STOPS.length - 1; i++) {
+    if (t >= WARM_STOPS[i]![0] && t <= WARM_STOPS[i + 1]![0]) {
+      from = WARM_STOPS[i]!;
+      to = WARM_STOPS[i + 1]!;
+      break;
+    }
+  }
+  const span = to[0] - from[0];
+  const local = span === 0 ? 0 : (t - from[0]) / span;
+  const r = Math.round(from[1][0] + (to[1][0] - from[1][0]) * local);
+  const g = Math.round(from[1][1] + (to[1][1] - from[1][1]) * local);
+  const b = Math.round(from[1][2] + (to[1][2] - from[1][2]) * local);
+  return `rgba(${r}, ${g}, ${b}, ${BLOB_RING_ALPHA})`;
 }
 
 interface Cluster {
@@ -150,11 +195,18 @@ export default function HeatmapScreen() {
     })();
   }, []);
 
-  // Merge cells within one circle-diameter of each other into a single blob
-  // centred on the isobarycentre (weighted by ride count). Any zone with
-  // ≥ 2 rides therefore renders as one circle, not two overlapping ones.
-  const clusters = clusterCells(cells, CELL_RADIUS_M);
+  // Top-3 list groups cells within ~800 m so adjacent activity reads as one
+  // zone in the side list. The map itself ignores clustering — every cell
+  // paints its own gradient blob, and overlapping blobs blend additively.
+  const clusters = clusterCells(cells, 800);
   const hottest = [...clusters].sort((a, b) => b.score - a.score).slice(0, 3);
+  // Cut noise + cap to top N hottest cells so the map stays smooth on iOS.
+  // Apple Maps degrades sharply past ~1000 Circle overlays; 80 cells × 10
+  // rings ≈ 800 Circles is the sweet spot.
+  const visibleCells = cells
+    .filter((c) => c.demandScore >= 0.10)
+    .sort((a, b) => b.demandScore - a.demandScore)
+    .slice(0, MAX_VISIBLE_CELLS);
 
   function flyToCluster(c: Cluster) {
     mapRef.current?.animateToRegion({
@@ -204,18 +256,21 @@ export default function HeatmapScreen() {
           showsUserLocation
           showsMyLocationButton
         >
-          {clusters.map((c, idx) => {
-            const col = colorFor(c.score);
-            return (
+          {/* Snap-style heat blobs — many thin concentric rings per cell
+              with constant low alpha so they accumulate into a smooth radial
+              gradient with no visible bands. */}
+          {visibleCells.flatMap((cell) => {
+            const center = { latitude: cell.centroid.lat, longitude: cell.centroid.lng };
+            return BLOB_RING_RADII.map((r, ring) => (
               <Circle
-                key={`cluster-${idx}`}
-                center={{ latitude: c.centerLat, longitude: c.centerLng }}
-                radius={CELL_RADIUS_M}
-                fillColor={col.fill}
-                strokeColor={col.stroke}
-                strokeWidth={1}
+                key={`${cell.h3Index}-${ring}`}
+                center={center}
+                radius={r}
+                fillColor={ringColor(cell.demandScore, ring)}
+                strokeColor="rgba(0,0,0,0)"
+                strokeWidth={0}
               />
-            );
+            ));
           })}
           {/* Tap-able markers on top-3 clusters so the captain can identify them */}
           {hottest.map((c, i) => (
@@ -266,9 +321,9 @@ export default function HeatmapScreen() {
             backgroundColor: 'rgba(255, 252, 246, 0.96)',
             borderRadius: radius.md, padding: spacing.sm + 2, gap: 6, ...shadow.card,
           }}>
-            <LegendRow color="#D6452F" label={t('captain.heatmap.legendHigh')} />
-            <LegendRow color="#F2682C" label={t('captain.heatmap.legendMid')} />
-            <LegendRow color="#F6A623" label={t('captain.heatmap.legendLow')} />
+            <LegendRow color="#B41812" label={t('captain.heatmap.legendHigh')} />
+            <LegendRow color="#E84620" label={t('captain.heatmap.legendMid')} />
+            <LegendRow color="#FFA532" label={t('captain.heatmap.legendLow')} />
           </View>
         ) : null}
       </View>
@@ -293,7 +348,7 @@ export default function HeatmapScreen() {
             >
               <View style={{
                 width: 30, height: 30, borderRadius: 15,
-                backgroundColor: colorFor(c.score).stroke,
+                backgroundColor: accentFor(c.score),
                 alignItems: 'center', justifyContent: 'center',
               }}>
                 <AppText variant="label" color={colors.white}>{i + 1}</AppText>

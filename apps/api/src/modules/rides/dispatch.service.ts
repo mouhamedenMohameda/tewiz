@@ -1,5 +1,6 @@
 import { pool } from '../../db/pool.js';
 import { env } from '../../config/env.js';
+import { getPricingSettings } from '../admin/app-settings.service.js';
 
 /**
  * Returns nearby searching rides for a captain, scored by:
@@ -21,6 +22,7 @@ export async function captainInbox(input: {
 }) {
   const radius = input.radiusM ?? env.DISPATCH_RADIUS_M;
   const limit = input.limit ?? env.DISPATCH_TOP_N;
+  const { longDistanceThresholdM } = await getPricingSettings();
 
   // Score model (smaller = better, since we ORDER BY ASC):
   //   raw = distance_to_pickup_m
@@ -33,7 +35,7 @@ export async function captainInbox(input: {
       SELECT ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography AS pt
     ),
     cap AS (
-      SELECT accepts_colis FROM captains WHERE user_id = $5
+      SELECT accepts_colis, accepts_long_distance FROM captains WHERE user_id = $5
     ),
     gh AS (
       SELECT s.home_snapshot
@@ -72,6 +74,10 @@ export async function captainInbox(input: {
     WHERE r.status = 'searching'
       AND ST_DWithin(r.pickup_location, me.pt, $3)
       AND (r.ride_type <> 'colis' OR cap.accepts_colis = true)
+      -- Long-distance gate: rides whose total trip is >= the admin threshold
+      -- are only offered to captains who opted in. distance_m may be null on
+      -- legacy rows — treat null as "not long-distance" to stay permissive.
+      AND (COALESCE(r.distance_m, 0) < $6 OR cap.accepts_long_distance = true)
       -- A captain who booked a ride in rider mode must never be offered their own ride.
       AND r.booker_id <> $5
       -- If in going-home mode: drop rides that move us AWAY from home
@@ -107,7 +113,7 @@ export async function captainInbox(input: {
     LIMIT $4
   `;
 
-  const r = await pool.query(sql, [input.lng, input.lat, radius, limit, input.captainId]);
+  const r = await pool.query(sql, [input.lng, input.lat, radius, limit, input.captainId, longDistanceThresholdM]);
   return r.rows.map((row) => ({
     id: row.id,
     rideType: row.ride_type,
@@ -131,10 +137,11 @@ export async function captainInbox(input: {
  */
 export async function eligibleCaptainsForRide(rideId: string): Promise<string[]> {
   const radius = env.DISPATCH_RADIUS_M;
+  const { longDistanceThresholdM } = await getPricingSettings();
   const { rows } = await pool.query<{ captain_id: string }>(
     `
     WITH r AS (
-      SELECT id, booker_id, ride_type, pickup_location
+      SELECT id, booker_id, ride_type, pickup_location, distance_m
         FROM rides WHERE id = $1
     )
     SELECT s.captain_id
@@ -145,9 +152,10 @@ export async function eligibleCaptainsForRide(rideId: string): Promise<string[]>
        AND s.location IS NOT NULL
        AND ST_DWithin(s.location, r.pickup_location, $2)
        AND (r.ride_type <> 'colis' OR c.accepts_colis = true)
+       AND (COALESCE(r.distance_m, 0) < $3 OR c.accepts_long_distance = true)
        AND s.captain_id <> r.booker_id
     `,
-    [rideId, radius],
+    [rideId, radius, longDistanceThresholdM],
   );
   return rows.map((row) => row.captain_id);
 }

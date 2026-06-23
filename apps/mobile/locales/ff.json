@@ -289,7 +289,19 @@
       "heatmapTitle": "Nokku-ɗe wuli",
       "heatmapSubtitle": "Toi ƴamre woni jooni",
       "recurringTitle": "Course yowitiiɗe",
-      "recurringSubtitle": "Engagements yontiijo"
+      "recurringSubtitle": "Engagements yontiijo",
+      "preferencesTitle": "Préférences",
+      "preferencesSubtitle": "Colis, course yaadi"
+    },
+    "preferences": {
+      "title": "Préférences chauffeur",
+      "intro": "Aɗa waawi waylude ɗii sahaa kala. Ko ɗum gollotoo ɗoo e course keso.",
+      "colis": "Mi jaɓii colis",
+      "colisHint": "A jaɓoyto course livraison colis (alaa passager).",
+      "longDistance": "Mi jaɓii course hakkunde gure",
+      "longDistanceHint": "A jaɓoyto course yaaduɗe (Nouakchott — Nouadhibou, ekn).",
+      "saved": "Préférence reenaama",
+      "saveError": "Mi waawaani waylude préférence."
     },
     "rides": {
       "title": "Course-ɗe",
@@ -337,7 +349,7 @@
     "wallet": {
       "title": "Portefeuille",
       "balance": "Solde wallet",
-      "commissionNote": "Commission 7% (10% colis) yaltinte e gasol kala course.",
+      "commissionNote": "Commission yaltinte e gasol kala course.",
       "uploadReceipt": "Neldu capture recharge",
       "topups": "Recharge",
       "noTopups": "Recharge walaa.",
@@ -617,6 +629,8 @@
     "pause5": "Pause 5 min",
     "pauseSub": "alerte walaa",
     "unavailable": "Course walaa.",
+    "alreadyTakenTitle": "Course jaɓaama",
+    "alreadyTaken": "Course nde, chauffeur goɗɗo jaɓii nde ɓooyaa.",
     "pausedBadge": "🔕 Notifications e pause · {{mins}} min · Fuɗɗintinu"
   },
   "voiceCandidate": {

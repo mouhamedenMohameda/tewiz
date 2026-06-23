@@ -21,6 +21,9 @@ interface PricingSettings {
   colisMinFareMru: number;
   defaultCommissionBps: number;
   colisCommissionBps: number;
+  longDistanceThresholdM: number;
+  operatorPassengerCommissionBps: number;
+  operatorColisCommissionBps: number;
   updatedAt: string;
   updatedBy: string | null;
 }
@@ -34,6 +37,9 @@ interface FormState {
   colisMinFareMru: string;
   defaultCommissionPct: string;
   colisCommissionPct: string;
+  operatorPassengerCommissionPct: string;
+  operatorColisCommissionPct: string;
+  longDistanceThresholdKm: string;
 }
 
 const EMPTY_FORM: FormState = {
@@ -45,6 +51,9 @@ const EMPTY_FORM: FormState = {
   colisMinFareMru: '',
   defaultCommissionPct: '',
   colisCommissionPct: '',
+  operatorPassengerCommissionPct: '',
+  operatorColisCommissionPct: '',
+  longDistanceThresholdKm: '',
 };
 
 function settingsToForm(s: PricingSettings): FormState {
@@ -57,6 +66,9 @@ function settingsToForm(s: PricingSettings): FormState {
     colisMinFareMru: String(s.colisMinFareMru),
     defaultCommissionPct: (s.defaultCommissionBps / 100).toString(),
     colisCommissionPct: (s.colisCommissionBps / 100).toString(),
+    operatorPassengerCommissionPct: (s.operatorPassengerCommissionBps / 100).toString(),
+    operatorColisCommissionPct: (s.operatorColisCommissionBps / 100).toString(),
+    longDistanceThresholdKm: (s.longDistanceThresholdM / 1000).toString(),
   };
 }
 
@@ -90,6 +102,9 @@ export default function SettingsPage() {
         colisMinFareMru: parseInt(form.colisMinFareMru, 10),
         defaultCommissionBps: Math.round(parseFloat(form.defaultCommissionPct) * 100),
         colisCommissionBps: Math.round(parseFloat(form.colisCommissionPct) * 100),
+        operatorPassengerCommissionBps: Math.round(parseFloat(form.operatorPassengerCommissionPct) * 100),
+        operatorColisCommissionBps: Math.round(parseFloat(form.operatorColisCommissionPct) * 100),
+        longDistanceThresholdM: Math.round(parseFloat(form.longDistanceThresholdKm) * 1000),
       };
       const r = await api.put<PricingSettings>('/admin/settings', payload);
       return r.data;
@@ -203,7 +218,7 @@ export default function SettingsPage() {
               <h2 className="font-semibold text-slate-900 mb-1">Commission plateforme</h2>
               <p className="text-xs text-slate-500 mb-4">
                 Pourcentage débité du portefeuille chauffeur à la fin de chaque
-                course (ex. 7 = 7 %).
+                course auto-réservée depuis l&apos;app (ex. 7 = 7 %).
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -220,6 +235,50 @@ export default function SettingsPage() {
                   value={form.colisCommissionPct}
                   onChange={(v) => setForm({ ...form, colisCommissionPct: v })}
                   step="0.1"
+                />
+              </div>
+            </section>
+
+            <section className="card p-5 mb-4">
+              <h2 className="font-semibold text-slate-900 mb-1">Commission call-center</h2>
+              <p className="text-xs text-slate-500 mb-4">
+                Pourcentage appliqué aux courses créées par un opérateur (passager
+                ayant appelé). Permet de couvrir le temps du call-center.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field
+                  label="Passagers (call-center)"
+                  suffix="%"
+                  value={form.operatorPassengerCommissionPct}
+                  onChange={(v) => setForm({ ...form, operatorPassengerCommissionPct: v })}
+                  step="0.1"
+                />
+                <Field
+                  label="Colis (call-center)"
+                  suffix="%"
+                  value={form.operatorColisCommissionPct}
+                  onChange={(v) => setForm({ ...form, operatorColisCommissionPct: v })}
+                  step="0.1"
+                />
+              </div>
+            </section>
+
+            <section className="card p-5 mb-4">
+              <h2 className="font-semibold text-slate-900 mb-1">Courses inter-villes</h2>
+              <p className="text-xs text-slate-500 mb-4">
+                Au-dessus de ce seuil, une course est considérée longue distance.
+                Elle n&apos;est proposée qu&apos;aux chauffeurs ayant activé
+                « J&apos;accepte les courses inter-villes » dans leurs préférences.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field
+                  label="Seuil longue distance"
+                  suffix="km"
+                  value={form.longDistanceThresholdKm}
+                  onChange={(v) => setForm({ ...form, longDistanceThresholdKm: v })}
+                  step="1"
                 />
               </div>
             </section>
@@ -310,7 +369,12 @@ function isFormValid(f: FormState): boolean {
     f.colisBaseFareMru, f.colisPerKmMru, f.colisMinFareMru,
   ].map((v) => parseInt(v, 10));
   if (ints.some((n) => Number.isNaN(n) || n < 0 || n > 10_000)) return false;
-  const pcts = [f.defaultCommissionPct, f.colisCommissionPct].map(parseFloat);
+  const pcts = [
+    f.defaultCommissionPct, f.colisCommissionPct,
+    f.operatorPassengerCommissionPct, f.operatorColisCommissionPct,
+  ].map(parseFloat);
   if (pcts.some((n) => Number.isNaN(n) || n < 0 || n > 50)) return false;
+  const km = parseFloat(f.longDistanceThresholdKm);
+  if (Number.isNaN(km) || km < 1 || km > 1000) return false;
   return true;
 }
