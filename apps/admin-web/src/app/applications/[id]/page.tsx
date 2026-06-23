@@ -99,6 +99,29 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [appRejectReason, setAppRejectReason] = useState('');
 
+  // Per-field "this is wrong" flags raised by the reviewer on the identity /
+  // vehicle cards. Local state only — they're materialised as text inside the
+  // correction-request message sent to the captain, no DB shape needed.
+  const [fieldFlags, setFieldFlags] = useState<{ key: string; label: string; reason: string }[]>([]);
+  const [flaggingField, setFlaggingField] = useState<{ key: string; label: string } | null>(null);
+  const [flagReason, setFlagReason] = useState('');
+
+  function upsertFlag(key: string, label: string, reason: string) {
+    setFieldFlags((prev) => {
+      const others = prev.filter((f) => f.key !== key);
+      return [...others, { key, label, reason }];
+    });
+  }
+  function removeFlag(key: string) {
+    setFieldFlags((prev) => prev.filter((f) => f.key !== key));
+  }
+  function buildCorrectionMessage(): string {
+    if (fieldFlags.length === 0) return '';
+    const header = 'Corrections demandées :';
+    const lines = fieldFlags.map((f) => `- ${f.label} : ${f.reason}`);
+    return [header, ...lines].join('\n');
+  }
+
   if (isLoading) return <AppShell><div className="p-6 text-slate-500">Chargement...</div></AppShell>;
   if (error || !data) return <AppShell><div className="p-6 text-red-600">Erreur</div></AppShell>;
 
@@ -155,25 +178,88 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
           <div className="card p-5">
             <h2 className="font-semibold text-slate-900 mb-3">Identité</h2>
             <dl className="space-y-2 text-sm">
-              <Row label="NNI" value={app.nni} />
-              <Row label="Date naissance" value={app.date_of_birth} />
-              <Row label="Adresse" value={app.address_label} />
-              <Row label="Contact urgence" value={app.emergency_contact_name} />
-              <Row label="Tel urgence" value={app.emergency_contact_phone} />
+              <Row k="identity.nni" label="NNI" value={app.nni}
+                flag={fieldFlags.find((f) => f.key === 'identity.nni')}
+                onFlag={(k, l) => { setFlaggingField({ key: k, label: l }); setFlagReason(fieldFlags.find((f) => f.key === k)?.reason ?? ''); }}
+                onUnflag={removeFlag} />
+              <Row k="identity.date_of_birth" label="Date naissance" value={app.date_of_birth}
+                flag={fieldFlags.find((f) => f.key === 'identity.date_of_birth')}
+                onFlag={(k, l) => { setFlaggingField({ key: k, label: l }); setFlagReason(fieldFlags.find((f) => f.key === k)?.reason ?? ''); }}
+                onUnflag={removeFlag} />
+              <Row k="identity.address" label="Adresse" value={app.address_label}
+                flag={fieldFlags.find((f) => f.key === 'identity.address')}
+                onFlag={(k, l) => { setFlaggingField({ key: k, label: l }); setFlagReason(fieldFlags.find((f) => f.key === k)?.reason ?? ''); }}
+                onUnflag={removeFlag} />
+              <Row k="identity.emergency_contact_name" label="Contact urgence" value={app.emergency_contact_name}
+                flag={fieldFlags.find((f) => f.key === 'identity.emergency_contact_name')}
+                onFlag={(k, l) => { setFlaggingField({ key: k, label: l }); setFlagReason(fieldFlags.find((f) => f.key === k)?.reason ?? ''); }}
+                onUnflag={removeFlag} />
+              <Row k="identity.emergency_contact_phone" label="Tel urgence" value={app.emergency_contact_phone}
+                flag={fieldFlags.find((f) => f.key === 'identity.emergency_contact_phone')}
+                onFlag={(k, l) => { setFlaggingField({ key: k, label: l }); setFlagReason(fieldFlags.find((f) => f.key === k)?.reason ?? ''); }}
+                onUnflag={removeFlag} />
             </dl>
           </div>
           <div className="card p-5">
             <h2 className="font-semibold text-slate-900 mb-3">Véhicule</h2>
             <dl className="space-y-2 text-sm">
-              <Row label="Plaque" value={app.vehicle_plate} />
-              <Row label="Marque/Modèle" value={[app.vehicle_brand, app.vehicle_model].filter(Boolean).join(' ') || null} />
-              <Row label="Année" value={String(app.vehicle_year ?? '—')} />
-              <Row label="Couleur" value={app.vehicle_color} />
-              <Row label="Places" value={String(app.vehicle_seats ?? '—')} />
-              <Row label="Accepte colis" value={app.accepts_colis ? 'Oui' : 'Non'} />
+              <Row k="vehicle.plate" label="Plaque" value={app.vehicle_plate}
+                flag={fieldFlags.find((f) => f.key === 'vehicle.plate')}
+                onFlag={(k, l) => { setFlaggingField({ key: k, label: l }); setFlagReason(fieldFlags.find((f) => f.key === k)?.reason ?? ''); }}
+                onUnflag={removeFlag} />
+              <Row k="vehicle.brand_model" label="Marque/Modèle" value={[app.vehicle_brand, app.vehicle_model].filter(Boolean).join(' ') || null}
+                flag={fieldFlags.find((f) => f.key === 'vehicle.brand_model')}
+                onFlag={(k, l) => { setFlaggingField({ key: k, label: l }); setFlagReason(fieldFlags.find((f) => f.key === k)?.reason ?? ''); }}
+                onUnflag={removeFlag} />
+              <Row k="vehicle.year" label="Année" value={String(app.vehicle_year ?? '—')}
+                flag={fieldFlags.find((f) => f.key === 'vehicle.year')}
+                onFlag={(k, l) => { setFlaggingField({ key: k, label: l }); setFlagReason(fieldFlags.find((f) => f.key === k)?.reason ?? ''); }}
+                onUnflag={removeFlag} />
+              <Row k="vehicle.color" label="Couleur" value={app.vehicle_color}
+                flag={fieldFlags.find((f) => f.key === 'vehicle.color')}
+                onFlag={(k, l) => { setFlaggingField({ key: k, label: l }); setFlagReason(fieldFlags.find((f) => f.key === k)?.reason ?? ''); }}
+                onUnflag={removeFlag} />
+              <Row k="vehicle.seats" label="Places" value={String(app.vehicle_seats ?? '—')}
+                flag={fieldFlags.find((f) => f.key === 'vehicle.seats')}
+                onFlag={(k, l) => { setFlaggingField({ key: k, label: l }); setFlagReason(fieldFlags.find((f) => f.key === k)?.reason ?? ''); }}
+                onUnflag={removeFlag} />
+              <Row k="vehicle.accepts_colis" label="Accepte colis" value={app.accepts_colis ? 'Oui' : 'Non'}
+                flag={fieldFlags.find((f) => f.key === 'vehicle.accepts_colis')}
+                onFlag={(k, l) => { setFlaggingField({ key: k, label: l }); setFlagReason(fieldFlags.find((f) => f.key === k)?.reason ?? ''); }}
+                onUnflag={removeFlag} />
             </dl>
           </div>
         </div>
+
+        {fieldFlags.length > 0 && (
+          <div className="card p-5 mb-6 border-amber-200 bg-amber-50/40">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-semibold text-amber-900">
+                🚩 Problèmes signalés ({fieldFlags.length})
+              </h2>
+              <button onClick={() => setFieldFlags([])} className="text-xs text-amber-700 hover:text-amber-900 underline">
+                Tout effacer
+              </button>
+            </div>
+            <ul className="space-y-2 text-sm">
+              {fieldFlags.map((f) => (
+                <li key={f.key} className="flex items-start gap-2">
+                  <span className="text-amber-600 mt-0.5">•</span>
+                  <span className="flex-1">
+                    <span className="font-medium text-slate-900">{f.label}</span>
+                    <span className="text-slate-600"> : {f.reason}</span>
+                  </span>
+                  <button onClick={() => removeFlag(f.key)} className="text-slate-400 hover:text-red-600 text-xs">
+                    ✕
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <p className="text-xs text-amber-700/80 mt-3">
+              Ces problèmes seront inclus automatiquement dans le message envoyé au chauffeur quand tu cliqueras sur <strong>Demander corrections</strong>.
+            </p>
+          </div>
+        )}
 
         {/* Documents */}
         <div className="card p-5 mb-6">
@@ -299,9 +385,17 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
                 className="btn-danger"
               >Refuser définitivement</button>
               <button
-                onClick={() => setShowCorrModal(true)}
+                onClick={() => {
+                  setCorrNotes((prev) => prev || buildCorrectionMessage());
+                  setShowCorrModal(true);
+                }}
                 className="btn-secondary"
-              >Demander corrections</button>
+                title={fieldFlags.length > 0
+                  ? `${fieldFlags.length} problème(s) signalé(s) seront inclus dans le message`
+                  : undefined}
+              >
+                Demander corrections{fieldFlags.length > 0 ? ` (${fieldFlags.length})` : ''}
+              </button>
               <button
                 onClick={() => { setActionError(null); approveApp.mutate(); }}
                 disabled={!hasAnyRequired || !requiredReady || approveApp.isPending}
@@ -363,14 +457,53 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
           </Modal>
         )}
 
+        {flaggingField && (
+          <Modal
+            title={`Signaler un problème — ${flaggingField.label}`}
+            onClose={() => { setFlaggingField(null); setFlagReason(''); }}
+          >
+            <p className="text-sm text-slate-600 mb-3">
+              Décris ce qui ne va pas avec ce champ. Le chauffeur recevra le détail
+              quand tu cliqueras sur <strong>Demander corrections</strong>.
+            </p>
+            <textarea
+              autoFocus rows={3} value={flagReason} onChange={(e) => setFlagReason(e.target.value)}
+              className="input mb-4" placeholder="Ex. NNI illisible, plaque ne correspond pas à la carte grise…"
+            />
+            <div className="flex justify-end gap-2">
+              <button onClick={() => { setFlaggingField(null); setFlagReason(''); }} className="btn-ghost">
+                Annuler
+              </button>
+              <button
+                onClick={() => {
+                  upsertFlag(flaggingField.key, flaggingField.label, flagReason.trim());
+                  setFlaggingField(null);
+                  setFlagReason('');
+                }}
+                disabled={flagReason.trim().length < 2}
+                className="btn-primary"
+              >Signaler</button>
+            </div>
+          </Modal>
+        )}
+
         {showCorrModal && (
           <Modal title="Demander des corrections" onClose={() => setShowCorrModal(false)}>
             <label className="block text-sm text-slate-700 mb-1">Message au chauffeur</label>
             <textarea
-              autoFocus rows={4} value={corrNotes} onChange={(e) => setCorrNotes(e.target.value)}
-              className="input mb-4" placeholder="Veuillez re-uploader le NNI lisible..."
+              autoFocus rows={6} value={corrNotes} onChange={(e) => setCorrNotes(e.target.value)}
+              className="input mb-2" placeholder="Veuillez re-uploader le NNI lisible..."
             />
-            <div className="flex justify-end gap-2">
+            {fieldFlags.length > 0 && corrNotes !== buildCorrectionMessage() && (
+              <button
+                type="button"
+                onClick={() => setCorrNotes(buildCorrectionMessage())}
+                className="text-xs text-brand-700 hover:underline mb-3 block"
+              >
+                ↻ Repré-remplir avec les {fieldFlags.length} problème(s) signalé(s)
+              </button>
+            )}
+            <div className="flex justify-end gap-2 mt-2">
               <button onClick={() => setShowCorrModal(false)} className="btn-ghost">Annuler</button>
               <button
                 onClick={() => reqCorr.mutate(corrNotes)}
@@ -472,11 +605,44 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
   );
 }
 
-function Row({ label, value }: { label: string; value: string | null | undefined }) {
+function Row({
+  k, label, value, flag, onFlag, onUnflag,
+}: {
+  k: string;
+  label: string;
+  value: string | null | undefined;
+  flag?: { key: string; label: string; reason: string };
+  onFlag: (key: string, label: string) => void;
+  onUnflag: (key: string) => void;
+}) {
   return (
-    <div className="grid grid-cols-3 gap-2">
-      <dt className="text-slate-500 col-span-1">{label}</dt>
-      <dd className="col-span-2 text-slate-900">{value || <span className="text-slate-400">—</span>}</dd>
+    <div className="grid grid-cols-[1fr_2fr_auto] gap-2 items-start group">
+      <dt className="text-slate-500">{label}</dt>
+      <dd className={clsx('text-slate-900', flag && 'line-through decoration-amber-500/60')}>
+        {value || <span className="text-slate-400">—</span>}
+        {flag && (
+          <div className="mt-1 text-[11px] text-amber-700 not-italic no-underline">
+            🚩 {flag.reason}
+          </div>
+        )}
+      </dd>
+      {flag ? (
+        <button
+          onClick={() => onUnflag(k)}
+          title="Retirer le signalement"
+          className="text-amber-600 hover:text-amber-800 text-xs px-1.5 py-0.5 rounded hover:bg-amber-100"
+        >
+          ✕
+        </button>
+      ) : (
+        <button
+          onClick={() => onFlag(k, label)}
+          title="Signaler un problème sur ce champ"
+          className="text-slate-300 hover:text-amber-600 text-xs px-1.5 py-0.5 rounded hover:bg-amber-50 opacity-0 group-hover:opacity-100 transition"
+        >
+          🚩
+        </button>
+      )}
     </div>
   );
 }
