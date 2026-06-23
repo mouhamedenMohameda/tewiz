@@ -24,6 +24,7 @@ interface PricingSettings {
   longDistanceThresholdM: number;
   operatorPassengerCommissionBps: number;
   operatorColisCommissionBps: number;
+  searchingTimeoutS: number;
   updatedAt: string;
   updatedBy: string | null;
 }
@@ -40,6 +41,7 @@ interface FormState {
   operatorPassengerCommissionPct: string;
   operatorColisCommissionPct: string;
   longDistanceThresholdKm: string;
+  searchingTimeoutMin: string;
 }
 
 const EMPTY_FORM: FormState = {
@@ -54,6 +56,7 @@ const EMPTY_FORM: FormState = {
   operatorPassengerCommissionPct: '',
   operatorColisCommissionPct: '',
   longDistanceThresholdKm: '',
+  searchingTimeoutMin: '',
 };
 
 function settingsToForm(s: PricingSettings): FormState {
@@ -69,6 +72,7 @@ function settingsToForm(s: PricingSettings): FormState {
     operatorPassengerCommissionPct: (s.operatorPassengerCommissionBps / 100).toString(),
     operatorColisCommissionPct: (s.operatorColisCommissionBps / 100).toString(),
     longDistanceThresholdKm: (s.longDistanceThresholdM / 1000).toString(),
+    searchingTimeoutMin: (s.searchingTimeoutS / 60).toString(),
   };
 }
 
@@ -105,6 +109,7 @@ export default function SettingsPage() {
         operatorPassengerCommissionBps: Math.round(parseFloat(form.operatorPassengerCommissionPct) * 100),
         operatorColisCommissionBps: Math.round(parseFloat(form.operatorColisCommissionPct) * 100),
         longDistanceThresholdM: Math.round(parseFloat(form.longDistanceThresholdKm) * 1000),
+        searchingTimeoutS: Math.round(parseFloat(form.searchingTimeoutMin) * 60),
       };
       const r = await api.put<PricingSettings>('/admin/settings', payload);
       return r.data;
@@ -283,6 +288,25 @@ export default function SettingsPage() {
               </div>
             </section>
 
+            <section className="card p-5 mb-4">
+              <h2 className="font-semibold text-slate-900 mb-1">Expiration des courses</h2>
+              <p className="text-xs text-slate-500 mb-4">
+                Une course qui reste en « Recherche » plus longtemps que ce délai
+                est automatiquement annulée par le système. Mettez 0 pour désactiver
+                cette fonctionnalité.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field
+                  label="Délai avant annulation"
+                  suffix="min"
+                  value={form.searchingTimeoutMin}
+                  onChange={(v) => setForm({ ...form, searchingTimeoutMin: v })}
+                  step="1"
+                />
+              </div>
+            </section>
+
             {error && (
               <div className="card p-3 mb-4 text-sm text-red-700 bg-red-50 border-red-200">
                 {error}
@@ -376,5 +400,9 @@ function isFormValid(f: FormState): boolean {
   if (pcts.some((n) => Number.isNaN(n) || n < 0 || n > 50)) return false;
   const km = parseFloat(f.longDistanceThresholdKm);
   if (Number.isNaN(km) || km < 1 || km > 1000) return false;
+  const timeoutMin = parseFloat(f.searchingTimeoutMin);
+  // 0 disables the feature, otherwise between 1 and 60 minutes.
+  if (Number.isNaN(timeoutMin) || timeoutMin < 0 || timeoutMin > 60) return false;
+  if (timeoutMin > 0 && timeoutMin < 1) return false;
   return true;
 }

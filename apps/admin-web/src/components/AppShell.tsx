@@ -16,6 +16,7 @@ const NAV = [
   { href: '/rides',          label: 'Courses',     icon: '🛣️' },
   { href: '/rides/new',      label: 'Nouvelle course', icon: '🗺️' },
   { href: '/restaurants',    label: 'Restaurants', icon: '🍽️' },
+  { href: '/stats',          label: 'Statistiques', icon: '📊' },
   { href: '/settings',       label: 'Paramètres',  icon: '⚙️' },
 ];
 

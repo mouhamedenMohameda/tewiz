@@ -15,9 +15,12 @@ import { i18n } from '@/lib/i18n';
 
 type RideType = 'passenger' | 'colis';
 
+type RideSource = 'app' | 'operator';
+
 interface InboxItem {
   id: string;
   rideType: RideType;
+  source?: RideSource;
   isForOther: boolean;
   pickup: { lat: number; lng: number; label: string | null };
   dropoff: { lat: number; lng: number; label: string | null };
@@ -303,9 +306,15 @@ export function CaptainRideWatcher() {
   }, [alertRide, router, stopRinging, t]);
 
   const refuseAlert = useCallback(async () => {
+    const rideId = alertRide?.id;
     await stopRinging();
     setAlertRide(null);
-  }, [stopRinging]);
+    // Fire-and-forget: server-side decline so the ride is never re-offered
+    // to this captain even after a reinstall or seenRides cache miss.
+    if (rideId) {
+      api.post(`/captain/rides/${rideId}/decline`).catch(() => {});
+    }
+  }, [alertRide, stopRinging]);
 
   const pauseFiveMin = useCallback(async () => {
     await stopRinging();
@@ -361,9 +370,21 @@ export function CaptainRideWatcher() {
         {alertRide ? (
           <View style={{ flex: 1, padding: 24, justifyContent: 'space-between' }}>
             <View>
-              <Text style={{ color: '#bfdbfe', fontSize: 13, fontWeight: '700', letterSpacing: 1 }}>
-                {alertRide.rideType === 'colis' ? t('captainAlert.newColisCaps') : t('captainAlert.newRideCaps')}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <Text style={{ color: '#bfdbfe', fontSize: 13, fontWeight: '700', letterSpacing: 1 }}>
+                  {alertRide.rideType === 'colis' ? t('captainAlert.newColisCaps') : t('captainAlert.newRideCaps')}
+                </Text>
+                {alertRide.source === 'operator' ? (
+                  <View style={{
+                    backgroundColor: '#7c3aed', paddingHorizontal: 8, paddingVertical: 3,
+                    borderRadius: 6,
+                  }}>
+                    <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700', letterSpacing: 0.5 }}>
+                      {t('captainAlert.callCenterBadge')}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
               <Text style={{ color: '#fff', fontSize: 48, fontWeight: '800', marginTop: 8 }}>
                 {(alertRide.distanceToPickupM / 1000).toFixed(1)} {t('common.kmShort')}
               </Text>

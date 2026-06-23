@@ -661,6 +661,7 @@
     "unavailable": "الرحلة غير متاحة.",
     "alreadyTakenTitle": "تم أخذ الرحلة",
     "alreadyTaken": "تم قبول هذه الرحلة للتو من قِبل سائق آخر.",
+    "callCenterBadge": "📞 مركز الاتصال",
     "pausedBadge": "🔕 الإشعارات موقوفة · {{mins}} دقيقة · استئناف"
   },
   "voiceCandidate": {

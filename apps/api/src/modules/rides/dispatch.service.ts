@@ -46,6 +46,7 @@ export async function captainInbox(input: {
     SELECT
       r.id,
       r.ride_type,
+      r.source,
       r.is_for_other,
       r.pickup_label,
       r.dropoff_label,
@@ -80,6 +81,12 @@ export async function captainInbox(input: {
       AND (COALESCE(r.distance_m, 0) < $6 OR cap.accepts_long_distance = true)
       -- A captain who booked a ride in rider mode must never be offered their own ride.
       AND r.booker_id <> $5
+      -- A captain who already pressed "Refuser" on this ride should never see
+      -- it again — neither in the inbox list nor in the alert modal.
+      AND NOT EXISTS (
+        SELECT 1 FROM ride_declines d
+         WHERE d.ride_id = r.id AND d.captain_id = $5
+      )
       -- If in going-home mode: drop rides that move us AWAY from home
       AND (
         NOT EXISTS (SELECT 1 FROM gh)
@@ -117,6 +124,7 @@ export async function captainInbox(input: {
   return r.rows.map((row) => ({
     id: row.id,
     rideType: row.ride_type,
+    source: row.source,
     isForOther: row.is_for_other,
     pickup: { lat: row.pickup_lat, lng: row.pickup_lng, label: row.pickup_label },
     dropoff: { lat: row.dropoff_lat, lng: row.dropoff_lng, label: row.dropoff_label },
@@ -154,6 +162,10 @@ export async function eligibleCaptainsForRide(rideId: string): Promise<string[]>
        AND (r.ride_type <> 'colis' OR c.accepts_colis = true)
        AND (COALESCE(r.distance_m, 0) < $3 OR c.accepts_long_distance = true)
        AND s.captain_id <> r.booker_id
+       AND NOT EXISTS (
+         SELECT 1 FROM ride_declines d
+          WHERE d.ride_id = r.id AND d.captain_id = s.captain_id
+       )
     `,
     [rideId, radius, longDistanceThresholdM],
   );

@@ -12,6 +12,7 @@ import { adminJobsRouter } from '../jobs/admin-jobs.routes.js';
 import { adminRidesRouter } from '../rides/admin-rides.routes.js';
 import { adminUsersRouter } from './users.routes.js';
 import { adminSettingsRouter } from './settings.routes.js';
+import { adminStatsRouter } from './stats.routes.js';
 import { adminVoiceRidesRouter } from '../voice-rides/admin-voice-rides.routes.js';
 import { adminRestaurantsRouter } from '../restaurants/admin-restaurants.routes.js';
 import * as roadReports from '../reports/road-reports.service.js';
@@ -32,6 +33,8 @@ adminRouter.use('/rides', adminRidesRouter);
 adminRouter.use('/users', adminUsersRouter);
 // Pricing + commission knobs editable from the admin panel
 adminRouter.use('/settings', adminSettingsRouter);
+// Aggregated stats for the operator dashboard (app vs operator split, accept rates…)
+adminRouter.use('/stats', adminStatsRouter);
 // Voice-ride dispatch queue (listen → pin pickup/dropoff → confirm)
 adminRouter.use('/voice-rides', adminVoiceRidesRouter);
 // Restaurants directory — CRUD + bulk-import for the rider mobile catalog.

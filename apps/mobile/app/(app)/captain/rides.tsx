@@ -24,9 +24,12 @@ type RideStatus =
 
 type RideType = 'passenger' | 'colis';
 
+type RideSource = 'app' | 'operator';
+
 interface InboxItem {
   id: string;
   rideType: RideType;
+  source?: RideSource;
   isForOther: boolean;
   pickup: { lat: number; lng: number; label: string | null };
   dropoff: { lat: number; lng: number; label: string | null };
@@ -158,6 +161,7 @@ function InboxList({ items, onAccepted }: { items: InboxItem[]; onAccepted: () =
                       bg={isColis ? colors.espresso : colors.emberSoft}
                       fg={isColis ? colors.saffron : colors.ember} />
                     {it.isFavorite ? <Chip icon="star" label={t('captain.rides.favorite')} bg={colors.saffronSoft} fg={colors.warning} /> : null}
+                    {it.source === 'operator' ? <Chip icon="phone" label={t('captainAlert.callCenterBadge')} bg="#ede9fe" fg="#6d28d9" /> : null}
                     {it.homewardProgressM && it.homewardProgressM > 0
                       ? <Chip icon="home" label={t('captain.rides.getsCloser')} bg={colors.successSoft} fg={colors.success} /> : null}
                   </View>

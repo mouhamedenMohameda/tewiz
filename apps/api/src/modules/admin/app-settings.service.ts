@@ -31,6 +31,9 @@ export interface PricingSettings {
   // standard commission until the admin sets a different value.
   operatorPassengerCommissionBps: number;
   operatorColisCommissionBps: number;
+  // Migration 0025. A ride in 'searching' longer than this is auto-cancelled
+  // by the background expiry job. 0 disables the job.
+  searchingTimeoutS: number;
   updatedAt: string;
   updatedBy: string | null;
 }
@@ -50,6 +53,7 @@ interface Row {
   long_distance_threshold_m: number;
   operator_passenger_commission_bps: number;
   operator_colis_commission_bps: number;
+  searching_timeout_s: number;
   updated_at: Date;
   updated_by: string | null;
 }
@@ -67,6 +71,7 @@ function toSettings(r: Row): PricingSettings {
     longDistanceThresholdM: r.long_distance_threshold_m,
     operatorPassengerCommissionBps: r.operator_passenger_commission_bps,
     operatorColisCommissionBps: r.operator_colis_commission_bps,
+    searchingTimeoutS: r.searching_timeout_s,
     updatedAt: r.updated_at.toISOString(),
     updatedBy: r.updated_by,
   };
@@ -82,6 +87,7 @@ export async function getPricingSettings(): Promise<PricingSettings> {
             default_commission_bps, colis_commission_bps,
             long_distance_threshold_m,
             operator_passenger_commission_bps, operator_colis_commission_bps,
+            searching_timeout_s,
             updated_at, updated_by
        FROM app_settings WHERE id = 1`,
   );
@@ -107,6 +113,7 @@ export interface PricingSettingsPatch {
   longDistanceThresholdM?: number;
   operatorPassengerCommissionBps?: number;
   operatorColisCommissionBps?: number;
+  searchingTimeoutS?: number;
 }
 
 export async function updatePricingSettings(
@@ -126,14 +133,16 @@ export async function updatePricingSettings(
             long_distance_threshold_m         = COALESCE($9, long_distance_threshold_m),
             operator_passenger_commission_bps = COALESCE($10, operator_passenger_commission_bps),
             operator_colis_commission_bps     = COALESCE($11, operator_colis_commission_bps),
+            searching_timeout_s               = COALESCE($12, searching_timeout_s),
             updated_at                        = now(),
-            updated_by                        = $12
+            updated_by                        = $13
       WHERE id = 1
       RETURNING base_fare_mru, per_km_mru, min_fare_mru,
                 colis_base_fare_mru, colis_per_km_mru, colis_min_fare_mru,
                 default_commission_bps, colis_commission_bps,
                 long_distance_threshold_m,
                 operator_passenger_commission_bps, operator_colis_commission_bps,
+                searching_timeout_s,
                 updated_at, updated_by`,
     [
       patch.baseFareMru ?? null,
@@ -147,6 +156,7 @@ export async function updatePricingSettings(
       patch.longDistanceThresholdM ?? null,
       patch.operatorPassengerCommissionBps ?? null,
       patch.operatorColisCommissionBps ?? null,
+      patch.searchingTimeoutS ?? null,
       adminId,
     ],
   );

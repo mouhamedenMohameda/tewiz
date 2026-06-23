@@ -631,6 +631,7 @@
     "unavailable": "Course walaa.",
     "alreadyTakenTitle": "Course jaɓaama",
     "alreadyTaken": "Course nde, chauffeur goɗɗo jaɓii nde ɓooyaa.",
+    "callCenterBadge": "📞 CALL-CENTER",
     "pausedBadge": "🔕 Notifications e pause · {{mins}} min · Fuɗɗintinu"
   },
   "voiceCandidate": {

@@ -732,6 +732,7 @@
     "unavailable": "Course indisponible.",
     "alreadyTakenTitle": "Course prise",
     "alreadyTaken": "Cette course vient d'être prise par un autre chauffeur.",
+    "callCenterBadge": "📞 CALL-CENTER",
     "pausedBadge": "🔕 Notifications en pause · {{mins}} min · Reprendre"
   },
   "voiceCandidate": {
