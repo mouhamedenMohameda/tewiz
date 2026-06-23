@@ -42,8 +42,7 @@ captainRouter.post('/applications', requireRiderOrCaptain, async (req, res) => {
 captainRouter.get('/applications/me', requireRiderOrCaptain, async (req, res) => {
   const userId = req.user!.id;
   const app = await svc.getMyApplication(userId);
-  if (!app) throw new HttpError(404, 'no_application', 'No application');
-  res.json(app);
+  res.json(app ?? null);
 });
 
 /**
