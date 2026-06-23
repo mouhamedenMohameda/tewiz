@@ -121,6 +121,13 @@ export default function BecomeCaptainHome() {
             <View style={{ marginTop: 16 }}>
               <StatusBanner status={app.status} />
 
+              {app.status === 'needs_correction' && app.correctionNotes ? (
+                <CorrectionCard
+                  title={t('becomeCaptain.correctionNotesTitle')}
+                  body={app.correctionNotes}
+                />
+              ) : null}
+
               {app.status === 'rejected' && app.rejectReason ? (
                 <ErrorCard title={t('becomeCaptain.rejectReason')} body={app.rejectReason} />
               ) : null}
@@ -246,6 +253,18 @@ function ErrorCard({ title, body }: { title: string; body: string }) {
     }}>
       <Text style={{ fontSize: 14, fontWeight: '600', color: '#b91c1c' }}>{title}</Text>
       <Text style={{ fontSize: 13, color: '#7f1d1d', marginTop: 6 }}>{body}</Text>
+    </View>
+  );
+}
+
+function CorrectionCard({ title, body }: { title: string; body: string }) {
+  return (
+    <View style={{
+      marginTop: 16, backgroundColor: '#fffbeb', borderRadius: 14, padding: 16,
+      borderWidth: 1, borderColor: '#fde68a',
+    }}>
+      <Text style={{ fontSize: 14, fontWeight: '700', color: '#92400e' }}>{title}</Text>
+      <Text style={{ fontSize: 14, color: '#78350f', marginTop: 8, lineHeight: 20 }}>{body}</Text>
     </View>
   );
 }

@@ -501,6 +501,7 @@
     "submit": "Submit my application",
     "completeFirst": "Complete every step first",
     "rejectReason": "Reason for rejection",
+    "correctionNotesTitle": "Corrections requested by admin",
     "stepPersonalTitle": "Personal information",
     "stepPersonalSub": "Name, ID, date of birth, address, emergency contact",
     "stepVehicleTitle": "Vehicle",
