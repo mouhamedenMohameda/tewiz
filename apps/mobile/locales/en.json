@@ -714,6 +714,7 @@
     "unavailable": "Ride unavailable.",
     "alreadyTakenTitle": "Ride taken",
     "alreadyTaken": "This ride was just accepted by another captain.",
+    "callCenterBadge": "📞 CALL CENTER",
     "pausedBadge": "🔕 Notifications paused · {{mins}} min · Resume"
   },
   "voiceCandidate": {

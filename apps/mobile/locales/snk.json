@@ -631,6 +631,7 @@
     "unavailable": "Course nta.",
     "alreadyTakenTitle": "Course gaaba",
     "alreadyTaken": "Course gaaba do chauffeur tana ya.",
+    "callCenterBadge": "📞 CALL-CENTER",
     "pausedBadge": "🔕 Notifications pause do · {{mins}} min · Don koota"
   },
   "voiceCandidate": {

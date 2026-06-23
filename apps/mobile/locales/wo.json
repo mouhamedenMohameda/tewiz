@@ -631,6 +631,7 @@
     "unavailable": "Course bi amul.",
     "alreadyTakenTitle": "Course jëlees na",
     "alreadyTaken": "Course bi, beneen chauffeur moo ko jël ba pare.",
+    "callCenterBadge": "📞 CALL-CENTER",
     "pausedBadge": "🔕 Notifications ci pause · {{mins}} min · Door waat"
   },
   "voiceCandidate": {

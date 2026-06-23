@@ -17,6 +17,7 @@ import { publicRouter } from './modules/public/public.routes.js';
 import { roadReportsRouter } from './modules/reports/road-reports.routes.js';
 import { geocodeRouter } from './modules/geocode/geocode.routes.js';
 import { startHeatmapCron } from './modules/heatmap/heatmap.service.js';
+import { startRideExpiryCron } from './modules/rides/expiry.service.js';
 import { errorHandler, notFound } from './middleware/error.js';
 
 const logger = pino({
@@ -123,4 +124,6 @@ app.listen(env.PORT, '127.0.0.1', () => {
   logger.info(`Health: http://127.0.0.1:${env.PORT}/health`);
   // Recompute the demand heatmap every 5 min so captains always see fresh data.
   startHeatmapCron();
+  // Auto-cancel rides that no captain accepted within the configured timeout.
+  startRideExpiryCron();
 });

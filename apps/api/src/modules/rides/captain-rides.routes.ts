@@ -74,6 +74,26 @@ captainRidesRouter.post('/:id/accept', async (req, res) => {
   res.json(await rides.acceptRide(req.params.id!, userId));
 });
 
+/**
+ * POST /captain/rides/:id/decline
+ * The captain explicitly refuses a ride. Idempotent — re-pressing "Refuser"
+ * is a no-op. After this call the ride is filtered out of this captain's
+ * future inbox queries and broadcast notifications.
+ */
+captainRidesRouter.post('/:id/decline', async (req, res) => {
+  const userId = req.user!.id;
+  const rideId = req.params.id!;
+  // ON CONFLICT DO NOTHING because the client might fire decline twice
+  // (network retry, fast-refresh, etc.).
+  await pool.query(
+    `INSERT INTO ride_declines (ride_id, captain_id)
+     VALUES ($1, $2)
+     ON CONFLICT (ride_id, captain_id) DO NOTHING`,
+    [rideId, userId],
+  );
+  res.json({ ok: true });
+});
+
 captainRidesRouter.post('/:id/arrive', async (req, res) => {
   const userId = req.user!.id;
   res.json(await rides.arriveRide(req.params.id!, userId));

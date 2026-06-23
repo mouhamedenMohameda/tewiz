@@ -39,6 +39,11 @@ const patchBody = z.object({
   longDistanceThresholdM:           z.number().int().min(1_000).max(1_000_000).optional(),
   operatorPassengerCommissionBps:   z.number().int().min(0).max(5_000).optional(),
   operatorColisCommissionBps:       z.number().int().min(0).max(5_000).optional(),
+  // 0 disables auto-cancel ; otherwise between 60 s (1 min) and 3 600 s (1 h).
+  searchingTimeoutS:                z.number().int().refine(
+                                      (n) => n === 0 || (n >= 60 && n <= 3_600),
+                                      'Must be 0 or between 60 and 3600',
+                                    ).optional(),
 }).refine(
   (b) => Object.values(b).some((v) => v !== undefined),
   { message: 'At least one field is required' },
