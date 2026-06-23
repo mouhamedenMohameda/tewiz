@@ -647,7 +647,10 @@
       "encourageSimilar": "Aktiwite ya bi-saare — ke gisi course tana.",
       "encourageEmpty": "App bi fore ya, données dañ yokkune. Ke nta wakke course nta fofu — jéem.",
       "errorTitle": "Statistiques bérab nta",
-      "errorBody": "Ya nta yebbi données yi foroyni."
+      "errorBody": "Ya nta yebbi données yi foroyni.",
+      "nearbyTitle": "Bérab yi foroyni",
+      "seeMore": "Wone {{count}} kasa",
+      "seeLess": "Wone tuuti"
     },
     "rider": {
       "title": "Passager profile",

@@ -730,7 +730,10 @@
       "encourageSimilar": "Similar to yesterday — you should pick up another ride at this pace.",
       "encourageEmpty": "The app is still new and data is building up. It doesn't mean there are no rides over there — give it a shot.",
       "errorTitle": "Zone stats unavailable",
-      "errorBody": "Could not load the data right now."
+      "errorBody": "Could not load the data right now.",
+      "nearbyTitle": "Nearby places",
+      "seeMore": "Show {{count}} more",
+      "seeLess": "Show less"
     },
     "rider": {
       "title": "Rider profile",

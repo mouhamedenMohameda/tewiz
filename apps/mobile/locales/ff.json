@@ -647,7 +647,10 @@
       "encourageSimilar": "Aktiwite ya hanki — a yiyay course goɗɗo e ɗii lormaaji.",
       "encourageEmpty": "App nde keso, données ngolloyii ɗii. Ɗum firtaani alaa course ɗoo — wakkilo ko.",
       "errorTitle": "Statistiques ɓooti walaa",
-      "errorBody": "Mi waawaani jaɓi données ɗii jooni."
+      "errorBody": "Mi waawaani jaɓi données ɗii jooni.",
+      "nearbyTitle": "Ɓooti ɓadiiɗi",
+      "seeMore": "Hollir {{count}} goɗɗi",
+      "seeLess": "Hollir famɗude"
     },
     "rider": {
       "title": "Profil passager",

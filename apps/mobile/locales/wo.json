@@ -647,7 +647,10 @@
       "encourageSimilar": "Aktiwite bu mu démb — dinga gis beneen course ci xemu boobu.",
       "encourageEmpty": "App bi bees na, données yi dañuy yokku ndànk. Bu ko jàppe ne amul course foofu — jéem ko.",
       "errorTitle": "Statistiques bérab amul",
-      "errorBody": "Mënu fa yebbi données yi leegi."
+      "errorBody": "Mënu fa yebbi données yi leegi.",
+      "nearbyTitle": "Bérab yu jege",
+      "seeMore": "Wone {{count}} yeneen",
+      "seeLess": "Wone gënn tuuti"
     },
     "rider": {
       "title": "Profile passager bi",

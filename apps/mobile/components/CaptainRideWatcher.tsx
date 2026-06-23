@@ -4,8 +4,9 @@ import {
 } from 'react-native';
 // Use the app's typographic component so Arabic and Latin scripts both use
 // the same font stack as the rest of the app instead of the system default.
-import { AppText as Text } from '@/components/ui';
+import { AppText as Text, Button, Card, Icon } from '@/components/ui';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Audio } from 'expo-av';
@@ -15,6 +16,7 @@ import { api } from '@/lib/api';
 import { formatMru } from '@/lib/format';
 import { useAuth } from '@/lib/auth';
 import { i18n } from '@/lib/i18n';
+import { colors, gradients, radius, shadow, spacing } from '@/theme';
 
 type RideType = 'passenger' | 'colis';
 
@@ -38,6 +40,7 @@ interface InboxItem {
 interface PoiLite {
   name: string;
   distanceM: number;
+  category: string | null;
 }
 
 interface EndpointEnrichment {
@@ -51,6 +54,7 @@ interface RideInsights {
     ridesLast2h: number;
     ridesYesterdaySameHour: number;
     trend: 'hotter' | 'cooler' | 'similar';
+    nearbyPois: PoiLite[];
   };
   rider: {
     userId: string | null;
@@ -410,13 +414,14 @@ export function CaptainRideWatcher() {
           <Pressable
             onPress={resumeNotifications}
             style={({ pressed }) => ({
-              backgroundColor: pressed ? '#a16207' : '#ca8a04',
-              paddingHorizontal: 16, paddingVertical: 10, borderRadius: 999,
+              backgroundColor: pressed ? colors.emberDeep : colors.warning,
+              paddingHorizontal: spacing.base, paddingVertical: 10, borderRadius: radius.pill,
               flexDirection: 'row', alignItems: 'center', gap: 8,
-              shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 4 },
+              ...shadow.ember,
             })}
           >
-            <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>
+            <Icon name="alert" size={14} color={colors.white} />
+            <Text variant="label" color={colors.white}>
               {t('captainAlert.pausedBadge', { mins: pauseMinsLeft })}
             </Text>
           </Pressable>
@@ -429,77 +434,98 @@ export function CaptainRideWatcher() {
         transparent={false}
         onRequestClose={refuseAlert}
       >
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#0f172a' }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }} edges={['top', 'left', 'right']}>
         {alertRide ? (
           <View style={{ flex: 1 }}>
             <ScrollView
-              contentContainerStyle={{ padding: 20, paddingBottom: 24 }}
+              style={{ flex: 1 }}
+              contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xxl }}
               showsVerticalScrollIndicator={false}
+              bounces
             >
-              {/* Header pill row + hero amount */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <Text style={{ color: '#bfdbfe', fontSize: 13, fontWeight: '700', letterSpacing: 1 }}>
-                  {alertRide.rideType === 'colis' ? t('captainAlert.newColisCaps') : t('captainAlert.newRideCaps')}
-                </Text>
-                {alertRide.source === 'operator' ? (
+              {/* ─── Hero: gradient card with type pill, fare, distance ─── */}
+              <LinearGradient
+                colors={alertRide.rideType === 'colis' ? gradients.espresso : gradients.sunrise}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{
+                  borderRadius: radius.xxl,
+                  padding: spacing.lg,
+                  ...shadow.ember,
+                }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   <View style={{
-                    backgroundColor: '#7c3aed', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
+                    backgroundColor: 'rgba(255,255,255,0.22)',
+                    paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill,
+                    flexDirection: 'row', alignItems: 'center', gap: 6,
                   }}>
-                    <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700', letterSpacing: 0.5 }}>
-                      {t('captainAlert.callCenterBadge')}
+                    <Icon name={alertRide.rideType === 'colis' ? 'parcel' : 'ride'} size={13} color={colors.white} />
+                    <Text variant="overline" color={colors.white}>
+                      {alertRide.rideType === 'colis' ? t('captainAlert.newColisCaps') : t('captainAlert.newRideCaps')}
                     </Text>
                   </View>
-                ) : null}
-              </View>
+                  {alertRide.source === 'operator' ? (
+                    <View style={{
+                      backgroundColor: 'rgba(255,255,255,0.22)',
+                      paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill,
+                      flexDirection: 'row', alignItems: 'center', gap: 6,
+                    }}>
+                      <Icon name="phone" size={12} color={colors.white} />
+                      <Text variant="overline" color={colors.white}>
+                        {t('captainAlert.callCenterBadge')}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
 
-              <View style={{
-                marginTop: 10,
-                flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between',
-              }}>
-                <View>
-                  <Text style={{ color: '#fff', fontSize: 42, fontWeight: '800' }}>
-                    {alertRide.fareEstimateMru ? formatMru(alertRide.fareEstimateMru) : '—'}
-                  </Text>
-                  <Text style={{ color: '#cbd5e1', fontSize: 13, marginTop: 2 }}>
-                    {(alertRide.distanceToPickupM / 1000).toFixed(1)} {t('common.kmShort')} · {t('captainAlert.fromYourPosition')}
-                  </Text>
-                </View>
                 <View style={{
-                  backgroundColor: '#1e293b', paddingHorizontal: 12, paddingVertical: 8,
-                  borderRadius: 12, alignItems: 'flex-end',
+                  marginTop: spacing.lg,
+                  flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between',
                 }}>
-                  <Text style={{ color: '#94a3b8', fontSize: 10, letterSpacing: 0.5 }}>
-                    {t('captainAlert.tripLabel').toUpperCase()}
-                  </Text>
-                  <Text style={{ color: '#fff', fontSize: 18, fontWeight: '700', marginTop: 2 }}>
-                    {alertRide.distanceM ? `${(alertRide.distanceM / 1000).toFixed(1)} ${t('common.kmShort')}` : '—'}
-                  </Text>
+                  <View style={{ flex: 1 }}>
+                    <Text variant="hero" color={colors.white} style={{ fontSize: 44 }}>
+                      {alertRide.fareEstimateMru ? formatMru(alertRide.fareEstimateMru) : '—'}
+                    </Text>
+                    <Text variant="caption" color="rgba(255,255,255,0.92)" style={{ marginTop: 4 }}>
+                      {(alertRide.distanceToPickupM / 1000).toFixed(1)} {t('common.kmShort')} · {t('captainAlert.fromYourPosition')}
+                    </Text>
+                  </View>
+                  <View style={{
+                    backgroundColor: 'rgba(0,0,0,0.18)',
+                    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
+                    borderRadius: radius.md, alignItems: 'flex-end', minWidth: 80,
+                  }}>
+                    <Text variant="overline" color="rgba(255,255,255,0.85)">
+                      {t('captainAlert.tripLabel').toUpperCase()}
+                    </Text>
+                    <Text variant="h2" color={colors.white} style={{ marginTop: 2 }}>
+                      {alertRide.distanceM ? `${(alertRide.distanceM / 1000).toFixed(1)} ${t('common.kmShort')}` : '—'}
+                    </Text>
+                  </View>
                 </View>
-              </View>
+              </LinearGradient>
 
               {/* Route card */}
-              <View style={{
-                marginTop: 16, backgroundColor: '#1e293b',
-                borderRadius: 16, padding: 16, gap: 14,
-              }}>
+              <Card style={{ marginTop: spacing.base }} padding={spacing.base}>
                 <RoutePoint
-                  color="#10a35e"
+                  color={colors.success}
                   label={t('common.from')}
                   rawLabel={alertRide.pickup.label}
                   fallback={t('captain.rides.pickupFallback')}
                   enrichment={insights?.pickup ?? null}
                   t={t}
                 />
-                <View style={{ height: 1, backgroundColor: '#334155' }} />
+                <View style={{ height: 1, backgroundColor: colors.line, marginVertical: spacing.md }} />
                 <RoutePoint
-                  color="#f59e0b"
+                  color={colors.ember}
                   label={t('common.to')}
                   rawLabel={alertRide.dropoff.label}
                   fallback={t('captain.rides.dropoffFallback')}
                   enrichment={insights?.dropoff ?? null}
                   t={t}
                 />
-              </View>
+              </Card>
 
               {/* Destination demand card */}
               <DestinationCard insights={insights} loading={insightsLoading} error={insightsError} t={t} />
@@ -510,41 +536,33 @@ export function CaptainRideWatcher() {
 
             {/* Sticky action bar */}
             <View style={{
-              padding: 16, paddingTop: 12, gap: 10,
-              borderTopWidth: 1, borderTopColor: '#1e293b',
-              backgroundColor: '#0f172a',
+              paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.base,
+              gap: spacing.sm,
+              borderTopWidth: 1, borderTopColor: colors.line,
+              backgroundColor: colors.surface,
             }}>
-              <Pressable
-                disabled={accepting}
+              <Button
+                title={t('captainAlert.accept')}
+                icon="checkSmall"
+                busy={accepting}
                 onPress={acceptAlert}
-                style={({ pressed }) => ({
-                  backgroundColor: pressed ? '#059669' : '#10a35e',
-                  opacity: accepting ? 0.6 : 1,
-                  paddingVertical: 18, borderRadius: 14,
-                  flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
-                })}
-              >
-                {accepting && <ActivityIndicator color="#fff" />}
-                <Text style={{ color: '#fff', fontSize: 18, fontWeight: '700' }}>
-                  {t('captainAlert.accept')}
-                </Text>
-              </Pressable>
-              <View style={{ flexDirection: 'row', gap: 10 }}>
+              />
+              <View style={{ flexDirection: 'row', gap: spacing.sm }}>
                 <Pressable
                   disabled={accepting}
                   onPress={refuseAlert}
                   style={({ pressed }) => ({
-                    flex: 1,
-                    backgroundColor: pressed ? '#334155' : 'transparent',
-                    paddingVertical: 14, borderRadius: 14,
-                    borderWidth: 1, borderColor: '#475569',
+                    flex: 1, opacity: accepting ? 0.5 : 1,
+                    backgroundColor: pressed ? colors.surfaceAlt : colors.surface,
+                    paddingVertical: spacing.md, borderRadius: radius.lg,
+                    borderWidth: 1.5, borderColor: colors.lineStrong,
                     alignItems: 'center',
                   })}
                 >
-                  <Text style={{ color: '#cbd5e1', fontSize: 14, fontWeight: '600' }}>
+                  <Text variant="bodyStrong" color={colors.ink}>
                     {t('captainAlert.refuse')}
                   </Text>
-                  <Text style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>
+                  <Text variant="caption" color={colors.muted}>
                     {t('captainAlert.refuseSub')}
                   </Text>
                 </Pressable>
@@ -552,17 +570,17 @@ export function CaptainRideWatcher() {
                   disabled={accepting}
                   onPress={pauseFiveMin}
                   style={({ pressed }) => ({
-                    flex: 1,
-                    backgroundColor: pressed ? '#334155' : 'transparent',
-                    paddingVertical: 14, borderRadius: 14,
-                    borderWidth: 1, borderColor: '#475569',
+                    flex: 1, opacity: accepting ? 0.5 : 1,
+                    backgroundColor: pressed ? colors.surfaceAlt : colors.surface,
+                    paddingVertical: spacing.md, borderRadius: radius.lg,
+                    borderWidth: 1.5, borderColor: colors.lineStrong,
                     alignItems: 'center',
                   })}
                 >
-                  <Text style={{ color: '#cbd5e1', fontSize: 14, fontWeight: '600' }}>
+                  <Text variant="bodyStrong" color={colors.ink}>
                     {t('captainAlert.pause5')}
                   </Text>
-                  <Text style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>
+                  <Text variant="caption" color={colors.muted}>
                     {t('captainAlert.pauseSub')}
                   </Text>
                 </Pressable>
@@ -605,13 +623,6 @@ function RoutePoint({
   enrichment: EndpointEnrichment | null;
   t: ReturnType<typeof useTranslation>['t'];
 }) {
-  // Display logic:
-  //   - real label   → use as-is.
-  //   - generic/null + nearest POI → "Près de X"
-  //   - generic/null + no POI      → fallback ("Point de prise en charge")
-  // The neighborhood (OSM `place`) is always appended as a sub-line when
-  // available, so the captain knows the moughataa/quartier even when the
-  // primary label is accurate.
   const generic = isGenericLabel(rawLabel);
   const near = enrichment?.nearestPoi;
   const neighborhood = enrichment?.neighborhood;
@@ -625,8 +636,6 @@ function RoutePoint({
     main = fallback;
   }
 
-  // Sub-line: neighborhood and/or the POI distance, depending on what
-  // information we surfaced in `main`.
   const subParts: string[] = [];
   if (neighborhood) subParts.push(neighborhood.name);
   if (!generic && near && near.name !== rawLabel) {
@@ -635,19 +644,20 @@ function RoutePoint({
   const sub = subParts.join(' · ');
 
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+    <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md }}>
       <View style={{
-        width: 10, height: 10, borderRadius: 5, backgroundColor: color, marginTop: 6,
+        width: 11, height: 11, borderRadius: 6, backgroundColor: color, marginTop: 6,
+        borderWidth: 2, borderColor: colors.surface, ...shadow.card,
       }} />
       <View style={{ flex: 1 }}>
-        <Text style={{ color: '#94a3b8', fontSize: 11, letterSpacing: 0.5, textTransform: 'uppercase' }}>
+        <Text variant="overline" color={colors.muted}>
           {label}
         </Text>
-        <Text style={{ color: '#fff', fontSize: 15, marginTop: 2, lineHeight: 20 }} numberOfLines={2}>
+        <Text variant="bodyStrong" color={colors.ink} style={{ marginTop: 2 }} numberOfLines={2}>
           {main}
         </Text>
         {sub ? (
-          <Text style={{ color: '#94a3b8', fontSize: 12, marginTop: 2, lineHeight: 16 }} numberOfLines={1}>
+          <Text variant="caption" color={colors.ink2} style={{ marginTop: 2 }} numberOfLines={1}>
             {sub}
           </Text>
         ) : null}
@@ -656,38 +666,46 @@ function RoutePoint({
   );
 }
 
-function SectionTitle({ icon, title, hint }: { icon: string; title: string; hint?: string }) {
+function SectionTitle({ iconName, title, hint, tint }: {
+  iconName: 'pin' | 'person';
+  title: string;
+  hint?: string;
+  tint: string;
+}) {
   return (
-    <View style={{ marginTop: 18, marginBottom: 8, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-      <Text style={{ fontSize: 16 }}>{icon}</Text>
-      <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700', letterSpacing: 0.3 }}>{title}</Text>
+    <View style={{ marginTop: spacing.lg, marginBottom: spacing.sm, flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+      <View style={{
+        width: 28, height: 28, borderRadius: 14,
+        backgroundColor: tint, alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Icon name={iconName} size={15} color={colors.white} />
+      </View>
+      <Text variant="title" color={colors.ink}>{title}</Text>
       {hint ? (
-        <Text style={{ color: '#64748b', fontSize: 11, marginLeft: 'auto' }}>{hint}</Text>
+        <Text variant="caption" color={colors.muted} style={{ marginLeft: 'auto' }}>{hint}</Text>
       ) : null}
     </View>
   );
 }
 
 function SkeletonBar({ width = '100%', height = 14 }: { width?: number | string; height?: number }) {
-  // Lighter than the card background (#1e293b) so it stays visible.
   return (
     <View style={{
       width: width as any, height,
-      backgroundColor: '#334155', borderRadius: 4,
-      opacity: 0.6,
+      backgroundColor: colors.sunken, borderRadius: 4,
     }} />
   );
 }
 
 function EmptyHint({ icon, text, sub }: { icon: string; text: string; sub?: string }) {
   return (
-    <View style={{ alignItems: 'center', paddingVertical: 6, gap: 6 }}>
+    <View style={{ alignItems: 'center', paddingVertical: spacing.sm, gap: spacing.xs }}>
       <Text style={{ fontSize: 28 }}>{icon}</Text>
-      <Text style={{ color: '#cbd5e1', fontSize: 13, fontWeight: '600', textAlign: 'center' }}>
+      <Text variant="bodyStrong" color={colors.ink2} align="center">
         {text}
       </Text>
       {sub ? (
-        <Text style={{ color: '#94a3b8', fontSize: 12, textAlign: 'center', lineHeight: 16 }}>
+        <Text variant="caption" color={colors.muted} align="center">
           {sub}
         </Text>
       ) : null}
@@ -703,39 +721,43 @@ function DestinationCard({
   error: boolean;
   t: ReturnType<typeof useTranslation>['t'];
 }) {
-  // Special case: brand-new database / no rides anywhere near the destination
-  // window. Don't try to compute a "trend" — just say so clearly.
+  const [showAll, setShowAll] = useState(false);
+
   const isEmpty = insights !== null
     && insights.destination.ridesLast2h === 0
     && insights.destination.ridesYesterdaySameHour === 0;
 
   const trend = insights?.destination.trend ?? 'similar';
-  const accent = isEmpty
-    ? '#64748b'
-    : trend === 'hotter' ? '#10a35e'
-    : trend === 'cooler' ? '#f59e0b'
-    : '#60a5fa';
+  const accentColor =
+    trend === 'hotter' ? colors.success
+    : trend === 'cooler' ? colors.warning
+    : colors.sun;
+  const accentTint =
+    trend === 'hotter' ? colors.successSoft
+    : trend === 'cooler' ? colors.saffronSoft
+    : colors.emberSoft;
+  const sectionTint = isEmpty ? colors.muted : accentColor;
+
   const headline = isEmpty
     ? t('captainAlert.zone.empty')
     : trend === 'hotter' ? t('captainAlert.zone.hotter')
     : trend === 'cooler' ? t('captainAlert.zone.cooler')
     : t('captainAlert.zone.similar');
 
+  const nearbyPois = insights?.destination.nearbyPois ?? [];
+  const visiblePois = showAll ? nearbyPois : nearbyPois.slice(0, 3);
+
   return (
     <>
       <SectionTitle
-        icon="📍"
+        iconName="pin"
         title={t('captainAlert.zone.title')}
         hint={insights ? t('captainAlert.zone.hint', { km: insights.destination.radiusKm }) : ''}
+        tint={sectionTint}
       />
-      <View style={{
-        backgroundColor: '#1e293b', borderRadius: 16, padding: 16,
-        // borderStartWidth flips automatically in RTL layouts; borderLeftWidth would
-        // stay on the visual left even in Arabic.
-        borderStartWidth: 3, borderStartColor: accent,
-      }}>
+      <Card padding={spacing.base}>
         {loading || (!insights && !error) ? (
-          <View style={{ gap: 10 }}>
+          <View style={{ gap: spacing.sm }}>
             <SkeletonBar width={140} height={16} />
             <SkeletonBar width="85%" height={28} />
             <SkeletonBar width="60%" height={12} />
@@ -748,31 +770,43 @@ function DestinationCard({
           />
         ) : isEmpty ? (
           <>
-            <Text style={{ color: accent, fontSize: 13, fontWeight: '700', letterSpacing: 0.5 }}>
-              {headline.toUpperCase()}
-            </Text>
-            <Text style={{ color: '#cbd5e1', fontSize: 13, marginTop: 8, lineHeight: 18 }}>
+            <View style={{
+              alignSelf: 'flex-start',
+              backgroundColor: accentTint,
+              paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.pill,
+            }}>
+              <Text variant="overline" color={accentColor}>
+                {headline.toUpperCase()}
+              </Text>
+            </View>
+            <Text variant="body" color={colors.ink2} style={{ marginTop: spacing.sm }}>
               {t('captainAlert.zone.encourageEmpty')}
             </Text>
           </>
         ) : (
           <>
-            <Text style={{ color: accent, fontSize: 13, fontWeight: '700', letterSpacing: 0.5 }}>
-              {headline.toUpperCase()}
-            </Text>
-            <View style={{ flexDirection: 'row', marginTop: 12, gap: 12 }}>
+            <View style={{
+              alignSelf: 'flex-start',
+              backgroundColor: accentTint,
+              paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.pill,
+            }}>
+              <Text variant="overline" color={accentColor}>
+                {headline.toUpperCase()}
+              </Text>
+            </View>
+            <View style={{ flexDirection: 'row', marginTop: spacing.md, gap: spacing.md }}>
               <ZoneStat
                 value={insights!.destination.ridesLast2h}
                 label={t('captainAlert.zone.last2h')}
                 highlight
               />
-              <View style={{ width: 1, backgroundColor: '#334155' }} />
+              <View style={{ width: 1, backgroundColor: colors.line }} />
               <ZoneStat
                 value={insights!.destination.ridesYesterdaySameHour}
                 label={t('captainAlert.zone.yesterday')}
               />
             </View>
-            <Text style={{ color: '#94a3b8', fontSize: 12, marginTop: 12, lineHeight: 16 }}>
+            <Text variant="caption" color={colors.ink2} style={{ marginTop: spacing.md, lineHeight: 17 }}>
               {trend === 'hotter'
                 ? t('captainAlert.zone.encourageHotter')
                 : trend === 'cooler'
@@ -781,7 +815,40 @@ function DestinationCard({
             </Text>
           </>
         )}
-      </View>
+
+        {/* Expandable list of nearby POIs (commerces, mosquées, marchés…) */}
+        {nearbyPois.length > 0 ? (
+          <View style={{ marginTop: spacing.md, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.line }}>
+            <Text variant="overline" color={colors.muted} style={{ marginBottom: spacing.sm }}>
+              {t('captainAlert.zone.nearbyTitle')}
+            </Text>
+            <View style={{ gap: spacing.sm }}>
+              {visiblePois.map((p, i) => (
+                <PoiRow key={`${p.name}-${i}`} poi={p} />
+              ))}
+            </View>
+            {nearbyPois.length > 3 ? (
+              <Pressable
+                onPress={() => setShowAll((s) => !s)}
+                style={({ pressed }) => ({
+                  marginTop: spacing.md,
+                  paddingVertical: spacing.sm,
+                  borderRadius: radius.md,
+                  backgroundColor: pressed ? colors.surfaceAlt : 'transparent',
+                  flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+                })}
+              >
+                <Text variant="label" color={colors.ember}>
+                  {showAll
+                    ? t('captainAlert.zone.seeLess')
+                    : t('captainAlert.zone.seeMore', { count: nearbyPois.length - 3 })}
+                </Text>
+                <Icon name={showAll ? 'chevronDown' : 'chevron'} size={14} color={colors.ember} />
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
+      </Card>
     </>
   );
 }
@@ -789,15 +856,38 @@ function DestinationCard({
 function ZoneStat({ value, label, highlight }: { value: number; label: string; highlight?: boolean }) {
   return (
     <View style={{ flex: 1 }}>
-      <Text style={{
-        color: highlight ? '#fff' : '#cbd5e1',
-        fontSize: 28, fontWeight: '800', letterSpacing: -0.5,
-      }}>
+      <Text variant="display" color={highlight ? colors.ember : colors.ink} style={{ fontSize: 30, lineHeight: 34 }}>
         {value}
       </Text>
-      <Text style={{ color: '#94a3b8', fontSize: 11, marginTop: 2, lineHeight: 14 }}>
+      <Text variant="caption" color={colors.ink2} style={{ marginTop: 2 }}>
         {label}
       </Text>
+    </View>
+  );
+}
+
+function PoiRow({ poi }: { poi: PoiLite }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+      <View style={{
+        width: 32, height: 32, borderRadius: 16,
+        backgroundColor: colors.emberSoft,
+        alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Icon name="pin" size={14} color={colors.ember} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text variant="bodyStrong" color={colors.ink} numberOfLines={1}>{poi.name}</Text>
+        {poi.category ? (
+          <Text variant="caption" color={colors.muted} numberOfLines={1}>
+            {poi.category} · {poi.distanceM < 1000 ? `${poi.distanceM} m` : `${(poi.distanceM / 1000).toFixed(1)} km`}
+          </Text>
+        ) : (
+          <Text variant="caption" color={colors.muted}>
+            {poi.distanceM < 1000 ? `${poi.distanceM} m` : `${(poi.distanceM / 1000).toFixed(1)} km`}
+          </Text>
+        )}
+      </View>
     </View>
   );
 }
@@ -828,18 +918,18 @@ function RiderCard({
 
   return (
     <>
-      <SectionTitle icon="👤" title={t('captainAlert.rider.title')} />
-      <View style={{ backgroundColor: '#1e293b', borderRadius: 16, padding: 16 }}>
+      <SectionTitle iconName="person" title={t('captainAlert.rider.title')} tint={colors.espresso} />
+      <Card padding={spacing.base}>
         {loading || (!insights && !error) ? (
-          <View style={{ gap: 12 }}>
-            <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
-              <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#334155', opacity: 0.6 }} />
+          <View style={{ gap: spacing.md }}>
+            <View style={{ flexDirection: 'row', gap: spacing.md, alignItems: 'center' }}>
+              <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: colors.sunken }} />
               <View style={{ flex: 1, gap: 6 }}>
                 <SkeletonBar width="55%" height={14} />
                 <SkeletonBar width="35%" height={10} />
               </View>
             </View>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
+            <View style={{ flexDirection: 'row', gap: spacing.sm }}>
               <SkeletonBar width={88} height={36} />
               <SkeletonBar width={88} height={36} />
             </View>
@@ -852,21 +942,22 @@ function RiderCard({
           />
         ) : (
           <>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
               <View style={{
-                width: 44, height: 44, borderRadius: 22,
-                backgroundColor: isGuest ? '#334155' : '#3730a3',
+                width: 48, height: 48, borderRadius: 24,
+                backgroundColor: isGuest ? colors.surfaceAlt : colors.ember,
                 alignItems: 'center', justifyContent: 'center',
+                ...shadow.ember,
               }}>
-                <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>
+                <Text variant="title" color={isGuest ? colors.muted : colors.white}>
                   {isGuest ? '?' : initials}
                 </Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }} numberOfLines={1}>
+                <Text variant="bodyStrong" color={colors.ink} numberOfLines={1}>
                   {rider.fullName ?? t('captainAlert.rider.unknown')}
                 </Text>
-                <Text style={{ color: '#94a3b8', fontSize: 12, marginTop: 2 }}>
+                <Text variant="caption" color={colors.ink2} style={{ marginTop: 2 }}>
                   {isGuest
                     ? t('captainAlert.rider.guest')
                     : memberSinceMonths
@@ -875,8 +966,11 @@ function RiderCard({
                 </Text>
               </View>
               {isFirstRide && !isGuest ? (
-                <View style={{ backgroundColor: '#312e81', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
-                  <Text style={{ color: '#a5b4fc', fontSize: 10, fontWeight: '700', letterSpacing: 0.5 }}>
+                <View style={{
+                  backgroundColor: colors.saffronSoft,
+                  paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill,
+                }}>
+                  <Text variant="overline" color={colors.warning}>
                     {t('captainAlert.rider.newBadge')}
                   </Text>
                 </View>
@@ -884,22 +978,34 @@ function RiderCard({
             </View>
 
             {isGuest ? (
-              <Text style={{ color: '#94a3b8', fontSize: 12, marginTop: 12, lineHeight: 16 }}>
-                {t('captainAlert.rider.guestExplain')}
-              </Text>
+              <View style={{
+                marginTop: spacing.md, padding: spacing.md,
+                backgroundColor: colors.surfaceAlt, borderRadius: radius.md,
+              }}>
+                <Text variant="caption" color={colors.ink2}>
+                  {t('captainAlert.rider.guestExplain')}
+                </Text>
+              </View>
             ) : isFirstRide ? (
-              <Text style={{ color: '#94a3b8', fontSize: 12, marginTop: 12, lineHeight: 16 }}>
-                {t('captainAlert.rider.firstRideExplain')}
-              </Text>
+              <View style={{
+                marginTop: spacing.md, padding: spacing.md,
+                backgroundColor: colors.saffronSoft, borderRadius: radius.md,
+                flexDirection: 'row', gap: spacing.sm,
+              }}>
+                <Text style={{ fontSize: 18 }}>✨</Text>
+                <Text variant="caption" color={colors.ink2} style={{ flex: 1, lineHeight: 17 }}>
+                  {t('captainAlert.rider.firstRideExplain')}
+                </Text>
+              </View>
             ) : (
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
-                <RiderChip icon="🛣️" value={String(rider.totalRides)} label={t('captainAlert.rider.rides')} />
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md }}>
+                <RiderChip icon="🛣️" value={String(rider.totalRides)} label={t('captainAlert.rider.rides')} variant="neutral" />
                 {rider.avgRating !== null ? (
                   <RiderChip
                     icon="⭐"
                     value={rider.avgRating.toFixed(1)}
                     label={t('captainAlert.rider.rating', { count: rider.ratingsCount })}
-                    highlight
+                    variant="gold"
                   />
                 ) : null}
                 {rider.totalRides > 0 ? (
@@ -907,7 +1013,7 @@ function RiderCard({
                     icon={completionPct >= 80 ? '✅' : '⚠️'}
                     value={`${completionPct}%`}
                     label={t('captainAlert.rider.completion')}
-                    highlight={completionPct >= 80}
+                    variant={completionPct >= 80 ? 'success' : 'warning'}
                   />
                 ) : null}
                 {rider.noShowRides > 0 ? (
@@ -915,34 +1021,43 @@ function RiderCard({
                     icon="🚫"
                     value={String(rider.noShowRides)}
                     label={t('captainAlert.rider.noShow')}
-                    warning
+                    variant="danger"
                   />
                 ) : null}
               </View>
             )}
           </>
         )}
-      </View>
+      </Card>
     </>
   );
 }
 
 function RiderChip({
-  icon, value, label, highlight, warning,
+  icon, value, label, variant = 'neutral',
 }: {
-  icon: string; value: string; label: string; highlight?: boolean; warning?: boolean;
+  icon: string;
+  value: string;
+  label: string;
+  variant?: 'neutral' | 'gold' | 'success' | 'warning' | 'danger';
 }) {
-  const bg = warning ? '#7f1d1d' : highlight ? '#064e3b' : '#334155';
-  const valueColor = warning ? '#fecaca' : highlight ? '#6ee7b7' : '#fff';
+  const palette = {
+    neutral: { bg: colors.surfaceAlt, value: colors.ink, label: colors.ink2 },
+    gold:    { bg: colors.saffronSoft, value: colors.warning, label: colors.ink2 },
+    success: { bg: colors.successSoft, value: colors.success, label: colors.ink2 },
+    warning: { bg: colors.saffronSoft, value: colors.warning, label: colors.ink2 },
+    danger:  { bg: colors.dangerSoft, value: colors.danger, label: colors.ink2 },
+  }[variant];
   return (
     <View style={{
-      backgroundColor: bg, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 10,
-      flexDirection: 'row', alignItems: 'center', gap: 6, minWidth: 88,
+      backgroundColor: palette.bg,
+      paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.md,
+      flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minWidth: 96,
     }}>
-      <Text style={{ fontSize: 13 }}>{icon}</Text>
+      <Text style={{ fontSize: 14 }}>{icon}</Text>
       <View>
-        <Text style={{ color: valueColor, fontSize: 14, fontWeight: '700' }}>{value}</Text>
-        <Text style={{ color: '#94a3b8', fontSize: 10, marginTop: -1 }}>{label}</Text>
+        <Text variant="bodyStrong" color={palette.value}>{value}</Text>
+        <Text variant="caption" color={palette.label} style={{ marginTop: -2 }}>{label}</Text>
       </View>
     </View>
   );

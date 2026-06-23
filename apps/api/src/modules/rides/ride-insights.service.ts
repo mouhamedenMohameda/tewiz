@@ -34,6 +34,9 @@ const NEIGHBORHOOD_RADIUS_M = 5_000;
 export interface PoiLite {
   name: string;
   distanceM: number;
+  // Human-friendly category derived from OSM tags (Marché, Restaurant, Mosquée…).
+  // Null when the tag combination doesn't map to a known label.
+  category: string | null;
 }
 
 export interface EndpointEnrichment {
@@ -52,6 +55,10 @@ export interface RideInsights {
     ridesYesterdaySameHour: number;
     // Convenience trend label so the client doesn't re-derive it.
     trend: 'hotter' | 'cooler' | 'similar';
+    // Up to 8 popular POIs within 1.5 km of the dropoff, sorted by a blended
+    // popularity × proximity score. Powers the "Voir plus" expandable list so
+    // the captain knows what awaits at the destination.
+    nearbyPois: PoiLite[];
   };
   rider: {
     // Null for guest bookers (no account history to show).
@@ -88,6 +95,54 @@ interface RiderRow {
 }
 
 /**
+ * Map an OSM (kind, value) pair to a friendly French category label. We keep
+ * this list narrow on purpose: anything not mapped → category = null and the
+ * client just shows the POI name. Adding more entries here is cheap.
+ */
+function osmToCategory(osmKind: string, osmValue: string | null): string | null {
+  const key = `${osmKind}:${osmValue ?? ''}`;
+  const map: Record<string, string> = {
+    'amenity:marketplace':   'Marché',
+    'amenity:place_of_worship': 'Mosquée',
+    'amenity:hospital':      'Hôpital',
+    'amenity:clinic':        'Clinique',
+    'amenity:pharmacy':      'Pharmacie',
+    'amenity:school':        'École',
+    'amenity:university':    'Université',
+    'amenity:fuel':          'Station-service',
+    'amenity:restaurant':    'Restaurant',
+    'amenity:cafe':          'Café',
+    'amenity:bank':          'Banque',
+    'amenity:police':        'Police',
+    'amenity:taxi':          'Station taxi',
+    'shop:supermarket':      'Supermarché',
+    'shop:bakery':           'Boulangerie',
+    'shop:mall':             'Centre commercial',
+    'tourism:hotel':         'Hôtel',
+    'leisure:park':          'Parc',
+    'leisure:stadium':       'Stade',
+    'office:government':     'Administration',
+  };
+  if (map[key]) return map[key];
+  // Fallback by top-level kind.
+  const byKind: Record<string, string> = {
+    amenity: 'Service',
+    shop: 'Commerce',
+    tourism: 'Tourisme',
+    leisure: 'Loisirs',
+    office: 'Bureau',
+  };
+  return byKind[osmKind] ?? null;
+}
+
+interface PoiRow {
+  name: string;
+  dist_m: string;
+  osm_kind: string;
+  osm_value: string | null;
+}
+
+/**
  * Find the nearest named POI to (lat, lng) within `radiusM`. When
  * `placesOnly` is true, restrict to `osm_kind = 'place'` (= cities, towns,
  * suburbs, neighbourhoods, quarters, villages) — used for the coarse
@@ -104,12 +159,13 @@ async function nearestPoi(
 ): Promise<PoiLite | null> {
   try {
     const placeFilter = placesOnly ? `AND p.osm_kind = 'place'` : '';
-    const { rows } = await pool.query<{ name: string; dist_m: string }>(
+    const { rows } = await pool.query<PoiRow>(
       `SELECT COALESCE(p.name_fr, p.name_default) AS name,
               ST_Distance(
                 ST_SetSRID(ST_MakePoint(p.lng, p.lat), 4326)::geography,
                 ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography
-              )::int AS dist_m
+              )::int AS dist_m,
+              p.osm_kind, p.osm_value
          FROM voiceloc_pois p
         WHERE p.lat BETWEEN $2 - 0.06 AND $2 + 0.06
           AND p.lng BETWEEN $1 - 0.06 AND $1 + 0.06
@@ -127,9 +183,63 @@ async function nearestPoi(
       [lng, lat, radiusM],
     );
     if (!rows[0]) return null;
-    return { name: rows[0].name, distanceM: Number(rows[0].dist_m) };
+    return {
+      name: rows[0].name,
+      distanceM: Number(rows[0].dist_m),
+      category: osmToCategory(rows[0].osm_kind, rows[0].osm_value),
+    };
   } catch {
     return null;
+  }
+}
+
+/**
+ * Top-N popular POIs around a point. Ranked by `popularity DESC` first, then
+ * `distance ASC` — so a big landmark a few hundred meters away beats a tiny
+ * corner shop right next door. Used to populate the "Voir plus" panel on the
+ * captain alert modal.
+ *
+ * Excludes `osm_kind = 'place'` because those are administrative tags, not
+ * destinations a captain or rider would think of.
+ */
+async function nearbyPois(
+  lat: number,
+  lng: number,
+  radiusM: number,
+  limit: number,
+): Promise<PoiLite[]> {
+  try {
+    const { rows } = await pool.query<PoiRow>(
+      `SELECT COALESCE(p.name_fr, p.name_default) AS name,
+              ST_Distance(
+                ST_SetSRID(ST_MakePoint(p.lng, p.lat), 4326)::geography,
+                ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography
+              )::int AS dist_m,
+              p.osm_kind, p.osm_value
+         FROM voiceloc_pois p
+        WHERE p.lat BETWEEN $2 - 0.06 AND $2 + 0.06
+          AND p.lng BETWEEN $1 - 0.06 AND $1 + 0.06
+          AND p.osm_kind <> 'place'
+          AND ST_DWithin(
+            ST_SetSRID(ST_MakePoint(p.lng, p.lat), 4326)::geography,
+            ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography,
+            $3
+          )
+        ORDER BY p.popularity DESC,
+                 ST_Distance(
+                   ST_SetSRID(ST_MakePoint(p.lng, p.lat), 4326)::geography,
+                   ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography
+                 ) ASC
+        LIMIT $4`,
+      [lng, lat, radiusM, limit],
+    );
+    return rows.map((r) => ({
+      name: r.name,
+      distanceM: Number(r.dist_m),
+      category: osmToCategory(r.osm_kind, r.osm_value),
+    }));
+  } catch {
+    return [];
   }
 }
 
@@ -213,11 +323,14 @@ export async function getRideInsights(rideId: string): Promise<RideInsights> {
     [bookerId],
   );
 
-  const [destRes, riderRes, pickupEnr, dropoffEnr] = await Promise.all([
+  const [destRes, riderRes, pickupEnr, dropoffEnr, destNearbyPois] = await Promise.all([
     destPromise,
     riderPromise,
     enrichEndpoint(puLat, puLng),
     enrichEndpoint(lat, lng),
+    // Top 8 popular landmarks around the dropoff — shown in the modal under
+    // a "Voir plus" expander.
+    nearbyPois(lat, lng, 1_500, 8),
   ]);
   const dest = destRes.rows[0]!;
   // The rider query is built so it always returns exactly one row, even for
@@ -248,6 +361,7 @@ export async function getRideInsights(rideId: string): Promise<RideInsights> {
       ridesLast2h,
       ridesYesterdaySameHour,
       trend,
+      nearbyPois: destNearbyPois,
     },
     rider: {
       userId: rider.user_id ?? null,
