@@ -195,26 +195,21 @@ export async function getRideInsights(rideId: string): Promise<RideInsights> {
   );
 
   // ─── Rider stats ─────────────────────────────────────────────────────────
-  // LEFT JOIN against users so a guest booker (no user row at all in some
-  // edge cases) doesn't break the query.
+  // Subquery-per-metric so we always return exactly one row, even when the
+  // booker is a guest (no users entry). The previous WITH+FULL OUTER JOIN
+  // version was both fragile (could yield 0 rows depending on data shape)
+  // and inefficient (cross-joined the entire users table).
   const riderPromise = pool.query<RiderRow>(
-    `WITH r AS (
-       SELECT * FROM rides WHERE booker_id = $1
-     )
-     SELECT u.id                                                            AS user_id,
-            u.full_name,
-            u.created_at,
-            COUNT(*)                                                        AS total,
-            COUNT(*) FILTER (WHERE r.status = 'completed')                  AS completed,
-            COUNT(*) FILTER (WHERE r.status = 'cancelled_by_rider')         AS cancelled_by_rider,
-            COUNT(*) FILTER (WHERE r.status = 'no_show')                    AS no_show,
-            (SELECT AVG(stars)::numeric(3,2) FROM ratings
-              WHERE ratee_id = $1)                                          AS avg_rating,
-            (SELECT COUNT(*) FROM ratings WHERE ratee_id = $1)              AS ratings_count
-       FROM users u
-       FULL OUTER JOIN r ON true
-      WHERE u.id = $1 OR u.id IS NULL
-      GROUP BY u.id, u.full_name, u.created_at`,
+    `SELECT
+        (SELECT id         FROM users WHERE id = $1)                                                AS user_id,
+        (SELECT full_name  FROM users WHERE id = $1)                                                AS full_name,
+        (SELECT created_at FROM users WHERE id = $1)                                                AS created_at,
+        (SELECT COUNT(*)                       FROM rides   WHERE booker_id = $1)                   AS total,
+        (SELECT COUNT(*) FILTER (WHERE status = 'completed')           FROM rides WHERE booker_id = $1) AS completed,
+        (SELECT COUNT(*) FILTER (WHERE status = 'cancelled_by_rider')  FROM rides WHERE booker_id = $1) AS cancelled_by_rider,
+        (SELECT COUNT(*) FILTER (WHERE status = 'no_show')             FROM rides WHERE booker_id = $1) AS no_show,
+        (SELECT AVG(stars)::numeric(3,2)       FROM ratings WHERE ratee_id = $1)                    AS avg_rating,
+        (SELECT COUNT(*)                       FROM ratings WHERE ratee_id = $1)                    AS ratings_count`,
     [bookerId],
   );
 
@@ -225,7 +220,9 @@ export async function getRideInsights(rideId: string): Promise<RideInsights> {
     enrichEndpoint(lat, lng),
   ]);
   const dest = destRes.rows[0]!;
-  const rider = riderRes.rows[0] ?? null;
+  // The rider query is built so it always returns exactly one row, even for
+  // a guest booker (user_id will be null in that case).
+  const rider = riderRes.rows[0]!;
 
   const ridesLast2h = Number(dest.rides_last_2h);
   const ridesYesterdaySameHour = Number(dest.rides_yesterday);
@@ -235,10 +232,10 @@ export async function getRideInsights(rideId: string): Promise<RideInsights> {
   if (ridesLast2h > ridesYesterdaySameHour * 1.2) trend = 'hotter';
   else if (ridesLast2h < ridesYesterdaySameHour * 0.8) trend = 'cooler';
 
-  const total = rider ? Number(rider.total) : 0;
-  const completed = rider ? Number(rider.completed) : 0;
-  const cancelledByRider = rider ? Number(rider.cancelled_by_rider) : 0;
-  const noShow = rider ? Number(rider.no_show) : 0;
+  const total = Number(rider.total);
+  const completed = Number(rider.completed);
+  const cancelledByRider = Number(rider.cancelled_by_rider);
+  const noShow = Number(rider.no_show);
   // Denominator excludes the current ride and any other still-searching/active
   // rides because they aren't a verdict yet. We approximate "resolved rides"
   // as completed + cancelled_by_rider + no_show.
@@ -253,18 +250,16 @@ export async function getRideInsights(rideId: string): Promise<RideInsights> {
       trend,
     },
     rider: {
-      userId: rider?.user_id ?? null,
-      fullName: rider?.full_name ?? null,
-      memberSince: rider?.created_at ? rider.created_at.toISOString() : null,
+      userId: rider.user_id ?? null,
+      fullName: rider.full_name ?? null,
+      memberSince: rider.created_at ? rider.created_at.toISOString() : null,
       totalRides: total,
       completedRides: completed,
       cancelledByRiderRides: cancelledByRider,
       noShowRides: noShow,
       completionRate,
-      avgRating: rider?.avg_rating === null || rider?.avg_rating === undefined
-        ? null
-        : Number(rider.avg_rating),
-      ratingsCount: rider ? Number(rider.ratings_count) : 0,
+      avgRating: rider.avg_rating === null ? null : Number(rider.avg_rating),
+      ratingsCount: Number(rider.ratings_count),
     },
     pickup: pickupEnr,
     dropoff: dropoffEnr,

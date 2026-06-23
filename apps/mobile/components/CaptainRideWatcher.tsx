@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert, Modal, Pressable, ScrollView, Text, View,
+  ActivityIndicator, Alert, Modal, Pressable, ScrollView, View,
 } from 'react-native';
+// Use the app's typographic component so Arabic and Latin scripts both use
+// the same font stack as the rest of the app instead of the system default.
+import { AppText as Text } from '@/components/ui';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
