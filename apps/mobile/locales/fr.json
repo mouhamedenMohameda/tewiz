@@ -748,7 +748,10 @@
       "encourageSimilar": "Activité comparable à hier — vous devriez retrouver une course à ce rythme.",
       "encourageEmpty": "L'app est encore récente, les données s'accumulent. Cela ne veut pas dire qu'il n'y a pas de courses là-bas — tentez le coup.",
       "errorTitle": "Statistiques de zone indisponibles",
-      "errorBody": "Impossible de charger les données pour le moment."
+      "errorBody": "Impossible de charger les données pour le moment.",
+      "nearbyTitle": "Commerces et lieux à proximité",
+      "seeMore": "Voir {{count}} de plus",
+      "seeLess": "Voir moins"
     },
     "rider": {
       "title": "Profil du passager",
