@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { type AuthedRequest } from '../../middleware/auth.js';
 import { audit } from '../admin/audit.js';
 import * as rides from './rides.service.js';
+import { estimateFareMru } from './pricing.js';
+import { distanceMeters } from './dispatch.service.js';
 
 // Parent (adminRouter) already enforces requireAuth + requireRole('admin').
 export const adminRidesRouter = Router();
@@ -70,6 +72,29 @@ adminRidesRouter.get('/', async (req, res) => {
 adminRidesRouter.get('/:id', async (req, res) => {
   const adminId = req.user!.id;
   res.json(await rides.getRideForUser(req.params.id!, adminId, 'admin'));
+});
+
+/**
+ * POST /admin/rides/estimate
+ * Returns a fare + distance estimate without creating a ride. Mirrors the
+ * rider /rider/rides/estimate endpoint so the admin "Nouvelle course" form
+ * shows the same price the backend will actually charge — including the
+ * lower colis tariff.
+ */
+const estimateBody = z.object({
+  pickup: locationSchema,
+  dropoff: locationSchema,
+  rideType: z.enum(['passenger', 'colis']).default('passenger'),
+});
+
+adminRidesRouter.post('/estimate', async (req, res) => {
+  const body = estimateBody.parse(req.body);
+  const crow = await distanceMeters(
+    body.pickup.lat, body.pickup.lng,
+    body.dropoff.lat, body.dropoff.lng,
+  );
+  const { fareMru, distanceEstimateM } = await estimateFareMru(crow, body.rideType);
+  res.json({ fareMru, distanceM: distanceEstimateM });
 });
 
 /**

@@ -192,14 +192,43 @@ export default function NewRidePage() {
     setResults([]);
   }
 
-  // 3. Fare estimate.
-  let estimateMru: number | null = null;
-  let estimateKm: number | null = null;
-  if (pickup && dropoff) {
-    const km = (haversineMeters(pickup, dropoff) * 1.3) / 1000;
-    estimateKm = km;
-    estimateMru = Math.max(40, Math.round(20 + km * 30));
-  }
+  // 3. Fare estimate — fetched from the backend so the colis tariff is honored.
+  const [estimateMru, setEstimateMru] = useState<number | null>(null);
+  const [estimateKm, setEstimateKm] = useState<number | null>(null);
+  const [estimating, setEstimating] = useState(false);
+  useEffect(() => {
+    if (!pickup || !dropoff) {
+      setEstimateMru(null);
+      setEstimateKm(null);
+      return;
+    }
+    let cancelled = false;
+    const handle = setTimeout(async () => {
+      setEstimating(true);
+      try {
+        const r = await api.post('/admin/rides/estimate', {
+          pickup: { lat: pickup.lat, lng: pickup.lng, label: pickup.label },
+          dropoff: { lat: dropoff.lat, lng: dropoff.lng, label: dropoff.label },
+          rideType,
+        });
+        if (cancelled) return;
+        setEstimateMru(r.data?.fareMru ?? null);
+        setEstimateKm(
+          typeof r.data?.distanceM === 'number' ? r.data.distanceM / 1000 : null,
+        );
+      } catch {
+        if (cancelled) return;
+        setEstimateMru(null);
+        setEstimateKm(null);
+      } finally {
+        if (!cancelled) setEstimating(false);
+      }
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+  }, [pickup?.lat, pickup?.lng, dropoff?.lat, dropoff?.lng, rideType]);
 
   async function submit() {
     if (!pickup || !dropoff) {
@@ -406,10 +435,11 @@ export default function NewRidePage() {
             {pickup && dropoff && (
               <div className="bg-slate-100 rounded-lg p-3">
                 <div className="text-xs text-slate-500">
-                  Tarif estimé · {estimateKm?.toFixed(1)} km
+                  Tarif estimé{estimateKm != null ? ` · ${estimateKm.toFixed(1)} km` : ''}
+                  {' '}({rideType === 'colis' ? 'colis' : 'passager'})
                 </div>
                 <div className="text-2xl font-bold text-slate-900">
-                  {estimateMru} MRU
+                  {estimating || estimateMru == null ? '…' : `${estimateMru} MRU`}
                 </div>
               </div>
             )}
@@ -494,11 +524,3 @@ function AddressField(props: {
   );
 }
 
-function haversineMeters(a: Place, b: Place): number {
-  const R = 6371000;
-  const toRad = (d: number) => d * Math.PI / 180;
-  const dLat = toRad(b.lat - a.lat);
-  const dLng = toRad(b.lng - a.lng);
-  const A = Math.sin(dLat/2)**2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng/2)**2;
-  return 2 * R * Math.asin(Math.sqrt(A));
-}
