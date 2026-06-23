@@ -23,7 +23,14 @@ const createBody = z.object({
   // code is sent and the passenger confirms via /public/rides/:id/confirm.
   passengerName: z.string().min(2).max(100),
   passengerPhone: z.string().min(8).max(20),
-});
+  // For colis: the package recipient (distinct from the caller/sender).
+  recipientName: z.string().min(2).max(100).optional(),
+  recipientPhone: z.string().min(8).max(20).optional(),
+  packageDescription: z.string().max(500).optional(),
+}).refine(
+  (v) => v.rideType !== 'colis' || (v.recipientName && v.recipientPhone),
+  { message: 'Colis rides require recipientName and recipientPhone', path: ['recipientName'] },
+);
 
 /**
  * GET /admin/rides
@@ -82,6 +89,9 @@ adminRidesRouter.post('/', async (req, res) => {
     paymentMethod: body.paymentMethod,
     passengerName: body.passengerName,
     passengerPhone: body.passengerPhone,
+    recipientName: body.recipientName,
+    recipientPhone: body.recipientPhone,
+    packageDescription: body.packageDescription,
     // The admin operator is booking on behalf of a passenger who called by
     // phone — they have already consented, so we go straight to "searching"
     // (visible by captains) without the return SMS confirmation step.

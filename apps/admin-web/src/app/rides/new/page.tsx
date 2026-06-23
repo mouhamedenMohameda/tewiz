@@ -47,6 +47,9 @@ export default function NewRidePage() {
   const [passengerName, setPassengerName] = useState('');
   const [passengerPhone, setPassengerPhone] = useState('');
   const [rideType, setRideType] = useState<'passenger' | 'colis'>('passenger');
+  const [recipientName, setRecipientName] = useState('');
+  const [recipientPhone, setRecipientPhone] = useState('');
+  const [packageDescription, setPackageDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -207,6 +210,12 @@ export default function NewRidePage() {
       setErrorMsg('Nom et téléphone du passager requis.');
       return;
     }
+    if (rideType === 'colis') {
+      if (!recipientName.trim() || !recipientPhone.trim()) {
+        setErrorMsg('Nom et téléphone du destinataire requis pour un colis.');
+        return;
+      }
+    }
     setSubmitting(true);
     setErrorMsg(null);
     try {
@@ -216,6 +225,11 @@ export default function NewRidePage() {
         rideType,
         passengerName: passengerName.trim(),
         passengerPhone: passengerPhone.trim(),
+        ...(rideType === 'colis' && {
+          recipientName: recipientName.trim(),
+          recipientPhone: recipientPhone.trim(),
+          packageDescription: packageDescription.trim() || undefined,
+        }),
       });
       router.push(`/rides/${r.data.id}`);
     } catch (e: any) {
@@ -301,7 +315,7 @@ export default function NewRidePage() {
 
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">
-                Nom du passager
+                {rideType === 'colis' ? "Nom de l'expéditeur" : 'Nom du passager'}
               </label>
               <input
                 className="input"
@@ -313,7 +327,7 @@ export default function NewRidePage() {
 
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">
-                Téléphone du passager
+                {rideType === 'colis' ? "Téléphone de l'expéditeur" : 'Téléphone du passager'}
               </label>
               <input
                 className="input"
@@ -322,7 +336,9 @@ export default function NewRidePage() {
                 placeholder="+222 4X XX XX XX"
               />
               <p className="text-xs text-slate-500 mt-1">
-                Servira au chauffeur s'il a besoin d'appeler le passager.
+                {rideType === 'colis'
+                  ? "Personne qui remet le colis au chauffeur au point de départ."
+                  : "Servira au chauffeur s'il a besoin d'appeler le passager."}
               </p>
             </div>
 
@@ -346,6 +362,47 @@ export default function NewRidePage() {
               </div>
             </div>
 
+            {rideType === 'colis' && (
+              <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <div className="text-xs font-medium text-slate-600">
+                  Destinataire du colis
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                    Nom du destinataire
+                  </label>
+                  <input
+                    className="input"
+                    value={recipientName}
+                    onChange={(e) => setRecipientName(e.target.value)}
+                    placeholder="Ex: Mohamed Ould A."
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                    Téléphone du destinataire
+                  </label>
+                  <input
+                    className="input"
+                    value={recipientPhone}
+                    onChange={(e) => setRecipientPhone(e.target.value)}
+                    placeholder="+222 4X XX XX XX"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                    Description du colis (optionnel)
+                  </label>
+                  <input
+                    className="input"
+                    value={packageDescription}
+                    onChange={(e) => setPackageDescription(e.target.value)}
+                    placeholder="Ex: sachet de documents"
+                  />
+                </div>
+              </div>
+            )}
+
             {pickup && dropoff && (
               <div className="bg-slate-100 rounded-lg p-3">
                 <div className="text-xs text-slate-500">
@@ -361,7 +418,14 @@ export default function NewRidePage() {
 
             <button
               onClick={submit}
-              disabled={submitting || !pickup || !dropoff || !passengerName || !passengerPhone}
+              disabled={
+                submitting ||
+                !pickup ||
+                !dropoff ||
+                !passengerName ||
+                !passengerPhone ||
+                (rideType === 'colis' && (!recipientName || !recipientPhone))
+              }
               className="btn-primary w-full"
             >
               {submitting ? 'Création…' : 'Créer la course'}
