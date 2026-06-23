@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert, Modal, Pressable, Text, View,
+  ActivityIndicator, Alert, Modal, Pressable, ScrollView, Text, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -30,6 +30,39 @@ interface InboxItem {
   isFavorite: boolean;
   homewardProgressM: number | null;
   requestedAt: string;
+}
+
+interface PoiLite {
+  name: string;
+  distanceM: number;
+}
+
+interface EndpointEnrichment {
+  nearestPoi: PoiLite | null;
+  neighborhood: PoiLite | null;
+}
+
+interface RideInsights {
+  destination: {
+    radiusKm: number;
+    ridesLast2h: number;
+    ridesYesterdaySameHour: number;
+    trend: 'hotter' | 'cooler' | 'similar';
+  };
+  rider: {
+    userId: string | null;
+    fullName: string | null;
+    memberSince: string | null;
+    totalRides: number;
+    completedRides: number;
+    cancelledByRiderRides: number;
+    noShowRides: number;
+    completionRate: number;
+    avgRating: number | null;
+    ratingsCount: number;
+  };
+  pickup: EndpointEnrichment;
+  dropoff: EndpointEnrichment;
 }
 
 // Module-level so a ride the captain already saw doesn't re-alert when the
@@ -143,6 +176,11 @@ export function CaptainRideWatcher() {
 
   const [alertRide, setAlertRide] = useState<InboxItem | null>(null);
   const [accepting, setAccepting] = useState(false);
+  const [insights, setInsights] = useState<RideInsights | null>(null);
+  const [insightsLoading, setInsightsLoading] = useState(false);
+  // Tracks an explicit failure so we don't render skeletons forever when the
+  // /insights endpoint is unreachable (e.g. backend not deployed yet).
+  const [insightsError, setInsightsError] = useState(false);
 
   const ringIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
@@ -281,6 +319,28 @@ export function CaptainRideWatcher() {
     return () => { void stopRinging(); };
   }, [stopRinging]);
 
+  // Fetch rich insights every time a new alert opens. The modal renders a
+  // skeleton until this resolves; if the call fails we mark insightsError so
+  // the cards switch to an explicit "data unavailable" state instead of
+  // looping the skeleton forever.
+  useEffect(() => {
+    if (!alertRide) {
+      setInsights(null);
+      setInsightsLoading(false);
+      setInsightsError(false);
+      return;
+    }
+    let cancelled = false;
+    setInsightsLoading(true);
+    setInsights(null);
+    setInsightsError(false);
+    api.get<RideInsights>(`/captain/rides/${alertRide.id}/insights`)
+      .then((r) => { if (!cancelled) setInsights(r.data); })
+      .catch(() => { if (!cancelled) setInsightsError(true); })
+      .finally(() => { if (!cancelled) setInsightsLoading(false); });
+    return () => { cancelled = true; };
+  }, [alertRide]);
+
   const acceptAlert = useCallback(async () => {
     if (!alertRide) return;
     setAccepting(true);
@@ -368,16 +428,19 @@ export function CaptainRideWatcher() {
       >
       <SafeAreaView style={{ flex: 1, backgroundColor: '#0f172a' }}>
         {alertRide ? (
-          <View style={{ flex: 1, padding: 24, justifyContent: 'space-between' }}>
-            <View>
+          <View style={{ flex: 1 }}>
+            <ScrollView
+              contentContainerStyle={{ padding: 20, paddingBottom: 24 }}
+              showsVerticalScrollIndicator={false}
+            >
+              {/* Header pill row + hero amount */}
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <Text style={{ color: '#bfdbfe', fontSize: 13, fontWeight: '700', letterSpacing: 1 }}>
                   {alertRide.rideType === 'colis' ? t('captainAlert.newColisCaps') : t('captainAlert.newRideCaps')}
                 </Text>
                 {alertRide.source === 'operator' ? (
                   <View style={{
-                    backgroundColor: '#7c3aed', paddingHorizontal: 8, paddingVertical: 3,
-                    borderRadius: 6,
+                    backgroundColor: '#7c3aed', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
                   }}>
                     <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700', letterSpacing: 0.5 }}>
                       {t('captainAlert.callCenterBadge')}
@@ -385,54 +448,76 @@ export function CaptainRideWatcher() {
                   </View>
                 ) : null}
               </View>
-              <Text style={{ color: '#fff', fontSize: 48, fontWeight: '800', marginTop: 8 }}>
-                {(alertRide.distanceToPickupM / 1000).toFixed(1)} {t('common.kmShort')}
-              </Text>
-              <Text style={{ color: '#cbd5e1', fontSize: 14, marginTop: 2 }}>
-                {t('captainAlert.fromYourPosition')}
-              </Text>
 
               <View style={{
-                marginTop: 32, backgroundColor: '#1e293b',
-                borderRadius: 16, padding: 18, gap: 16,
+                marginTop: 10,
+                flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between',
               }}>
                 <View>
-                  <Text style={{ color: '#94a3b8', fontSize: 12 }}>{t('common.from')}</Text>
-                  <Text style={{ color: '#fff', fontSize: 16, marginTop: 2 }} numberOfLines={2}>
-                    {alertRide.pickup.label ?? t('captain.rides.pickupFallback')}
+                  <Text style={{ color: '#fff', fontSize: 42, fontWeight: '800' }}>
+                    {alertRide.fareEstimateMru ? formatMru(alertRide.fareEstimateMru) : '—'}
+                  </Text>
+                  <Text style={{ color: '#cbd5e1', fontSize: 13, marginTop: 2 }}>
+                    {(alertRide.distanceToPickupM / 1000).toFixed(1)} {t('common.kmShort')} · {t('captainAlert.fromYourPosition')}
                   </Text>
                 </View>
-                <View>
-                  <Text style={{ color: '#94a3b8', fontSize: 12 }}>{t('common.to')}</Text>
-                  <Text style={{ color: '#fff', fontSize: 16, marginTop: 2 }} numberOfLines={2}>
-                    {alertRide.dropoff.label ?? t('captain.rides.dropoffFallback')}
+                <View style={{
+                  backgroundColor: '#1e293b', paddingHorizontal: 12, paddingVertical: 8,
+                  borderRadius: 12, alignItems: 'flex-end',
+                }}>
+                  <Text style={{ color: '#94a3b8', fontSize: 10, letterSpacing: 0.5 }}>
+                    {t('captainAlert.tripLabel').toUpperCase()}
                   </Text>
-                </View>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <View>
-                    <Text style={{ color: '#94a3b8', fontSize: 12 }}>{t('captain.rides.estimatedFare')}</Text>
-                    <Text style={{ color: '#fff', fontSize: 22, fontWeight: '700', marginTop: 2 }}>
-                      {alertRide.fareEstimateMru ? formatMru(alertRide.fareEstimateMru) : '—'}
-                    </Text>
-                  </View>
-                  <View>
-                    <Text style={{ color: '#94a3b8', fontSize: 12 }}>{t('captainAlert.tripLabel')}</Text>
-                    <Text style={{ color: '#fff', fontSize: 22, fontWeight: '700', marginTop: 2 }}>
-                      {alertRide.distanceM ? `${(alertRide.distanceM / 1000).toFixed(1)} ${t('common.kmShort')}` : '—'}
-                    </Text>
-                  </View>
+                  <Text style={{ color: '#fff', fontSize: 18, fontWeight: '700', marginTop: 2 }}>
+                    {alertRide.distanceM ? `${(alertRide.distanceM / 1000).toFixed(1)} ${t('common.kmShort')}` : '—'}
+                  </Text>
                 </View>
               </View>
-            </View>
 
-            <View style={{ gap: 12 }}>
+              {/* Route card */}
+              <View style={{
+                marginTop: 16, backgroundColor: '#1e293b',
+                borderRadius: 16, padding: 16, gap: 14,
+              }}>
+                <RoutePoint
+                  color="#10a35e"
+                  label={t('common.from')}
+                  rawLabel={alertRide.pickup.label}
+                  fallback={t('captain.rides.pickupFallback')}
+                  enrichment={insights?.pickup ?? null}
+                  t={t}
+                />
+                <View style={{ height: 1, backgroundColor: '#334155' }} />
+                <RoutePoint
+                  color="#f59e0b"
+                  label={t('common.to')}
+                  rawLabel={alertRide.dropoff.label}
+                  fallback={t('captain.rides.dropoffFallback')}
+                  enrichment={insights?.dropoff ?? null}
+                  t={t}
+                />
+              </View>
+
+              {/* Destination demand card */}
+              <DestinationCard insights={insights} loading={insightsLoading} error={insightsError} t={t} />
+
+              {/* Rider profile card */}
+              <RiderCard insights={insights} loading={insightsLoading} error={insightsError} t={t} />
+            </ScrollView>
+
+            {/* Sticky action bar */}
+            <View style={{
+              padding: 16, paddingTop: 12, gap: 10,
+              borderTopWidth: 1, borderTopColor: '#1e293b',
+              backgroundColor: '#0f172a',
+            }}>
               <Pressable
                 disabled={accepting}
                 onPress={acceptAlert}
                 style={({ pressed }) => ({
                   backgroundColor: pressed ? '#059669' : '#10a35e',
                   opacity: accepting ? 0.6 : 1,
-                  paddingVertical: 20, borderRadius: 14,
+                  paddingVertical: 18, borderRadius: 14,
                   flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
                 })}
               >
@@ -441,14 +526,14 @@ export function CaptainRideWatcher() {
                   {t('captainAlert.accept')}
                 </Text>
               </Pressable>
-              <View style={{ flexDirection: 'row', gap: 12 }}>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
                 <Pressable
                   disabled={accepting}
                   onPress={refuseAlert}
                   style={({ pressed }) => ({
                     flex: 1,
                     backgroundColor: pressed ? '#334155' : 'transparent',
-                    paddingVertical: 16, borderRadius: 14,
+                    paddingVertical: 14, borderRadius: 14,
                     borderWidth: 1, borderColor: '#475569',
                     alignItems: 'center',
                   })}
@@ -466,7 +551,7 @@ export function CaptainRideWatcher() {
                   style={({ pressed }) => ({
                     flex: 1,
                     backgroundColor: pressed ? '#334155' : 'transparent',
-                    paddingVertical: 16, borderRadius: 14,
+                    paddingVertical: 14, borderRadius: 14,
                     borderWidth: 1, borderColor: '#475569',
                     alignItems: 'center',
                   })}
@@ -485,5 +570,377 @@ export function CaptainRideWatcher() {
       </SafeAreaView>
     </Modal>
     </>
+  );
+}
+
+// ─── Helper components for the alert modal ─────────────────────────────────
+
+// Labels stored by the rider app when no real place was picked. We detect
+// these and replace them with "Près de <POI>" using the enrichment payload
+// returned by the insights endpoint.
+const GENERIC_LABELS = new Set<string>([
+  'Point sur la carte',
+  'Ma position',
+  'Pin on map',
+  'My location',
+  'نقطة على الخريطة',
+  'موقعي',
+]);
+
+function isGenericLabel(label: string | null | undefined): boolean {
+  if (!label) return true;
+  return GENERIC_LABELS.has(label.trim());
+}
+
+function RoutePoint({
+  color, label, rawLabel, fallback, enrichment, t,
+}: {
+  color: string;
+  label: string;
+  rawLabel: string | null;
+  fallback: string;
+  enrichment: EndpointEnrichment | null;
+  t: ReturnType<typeof useTranslation>['t'];
+}) {
+  // Display logic:
+  //   - real label   → use as-is.
+  //   - generic/null + nearest POI → "Près de X"
+  //   - generic/null + no POI      → fallback ("Point de prise en charge")
+  // The neighborhood (OSM `place`) is always appended as a sub-line when
+  // available, so the captain knows the moughataa/quartier even when the
+  // primary label is accurate.
+  const generic = isGenericLabel(rawLabel);
+  const near = enrichment?.nearestPoi;
+  const neighborhood = enrichment?.neighborhood;
+
+  let main: string;
+  if (!generic && rawLabel) {
+    main = rawLabel;
+  } else if (near) {
+    main = t('captainAlert.nearLabel', { name: near.name });
+  } else {
+    main = fallback;
+  }
+
+  // Sub-line: neighborhood and/or the POI distance, depending on what
+  // information we surfaced in `main`.
+  const subParts: string[] = [];
+  if (neighborhood) subParts.push(neighborhood.name);
+  if (!generic && near && near.name !== rawLabel) {
+    subParts.push(t('captainAlert.nearLabel', { name: near.name }));
+  }
+  const sub = subParts.join(' · ');
+
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+      <View style={{
+        width: 10, height: 10, borderRadius: 5, backgroundColor: color, marginTop: 6,
+      }} />
+      <View style={{ flex: 1 }}>
+        <Text style={{ color: '#94a3b8', fontSize: 11, letterSpacing: 0.5, textTransform: 'uppercase' }}>
+          {label}
+        </Text>
+        <Text style={{ color: '#fff', fontSize: 15, marginTop: 2, lineHeight: 20 }} numberOfLines={2}>
+          {main}
+        </Text>
+        {sub ? (
+          <Text style={{ color: '#94a3b8', fontSize: 12, marginTop: 2, lineHeight: 16 }} numberOfLines={1}>
+            {sub}
+          </Text>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
+function SectionTitle({ icon, title, hint }: { icon: string; title: string; hint?: string }) {
+  return (
+    <View style={{ marginTop: 18, marginBottom: 8, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      <Text style={{ fontSize: 16 }}>{icon}</Text>
+      <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700', letterSpacing: 0.3 }}>{title}</Text>
+      {hint ? (
+        <Text style={{ color: '#64748b', fontSize: 11, marginLeft: 'auto' }}>{hint}</Text>
+      ) : null}
+    </View>
+  );
+}
+
+function SkeletonBar({ width = '100%', height = 14 }: { width?: number | string; height?: number }) {
+  // Lighter than the card background (#1e293b) so it stays visible.
+  return (
+    <View style={{
+      width: width as any, height,
+      backgroundColor: '#334155', borderRadius: 4,
+      opacity: 0.6,
+    }} />
+  );
+}
+
+function EmptyHint({ icon, text, sub }: { icon: string; text: string; sub?: string }) {
+  return (
+    <View style={{ alignItems: 'center', paddingVertical: 6, gap: 6 }}>
+      <Text style={{ fontSize: 28 }}>{icon}</Text>
+      <Text style={{ color: '#cbd5e1', fontSize: 13, fontWeight: '600', textAlign: 'center' }}>
+        {text}
+      </Text>
+      {sub ? (
+        <Text style={{ color: '#94a3b8', fontSize: 12, textAlign: 'center', lineHeight: 16 }}>
+          {sub}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
+function DestinationCard({
+  insights, loading, error, t,
+}: {
+  insights: RideInsights | null;
+  loading: boolean;
+  error: boolean;
+  t: ReturnType<typeof useTranslation>['t'];
+}) {
+  // Special case: brand-new database / no rides anywhere near the destination
+  // window. Don't try to compute a "trend" — just say so clearly.
+  const isEmpty = insights !== null
+    && insights.destination.ridesLast2h === 0
+    && insights.destination.ridesYesterdaySameHour === 0;
+
+  const trend = insights?.destination.trend ?? 'similar';
+  const accent = isEmpty
+    ? '#64748b'
+    : trend === 'hotter' ? '#10a35e'
+    : trend === 'cooler' ? '#f59e0b'
+    : '#60a5fa';
+  const headline = isEmpty
+    ? t('captainAlert.zone.empty')
+    : trend === 'hotter' ? t('captainAlert.zone.hotter')
+    : trend === 'cooler' ? t('captainAlert.zone.cooler')
+    : t('captainAlert.zone.similar');
+
+  return (
+    <>
+      <SectionTitle
+        icon="📍"
+        title={t('captainAlert.zone.title')}
+        hint={insights ? t('captainAlert.zone.hint', { km: insights.destination.radiusKm }) : ''}
+      />
+      <View style={{
+        backgroundColor: '#1e293b', borderRadius: 16, padding: 16,
+        // borderStartWidth flips automatically in RTL layouts; borderLeftWidth would
+        // stay on the visual left even in Arabic.
+        borderStartWidth: 3, borderStartColor: accent,
+      }}>
+        {loading || (!insights && !error) ? (
+          <View style={{ gap: 10 }}>
+            <SkeletonBar width={140} height={16} />
+            <SkeletonBar width="85%" height={28} />
+            <SkeletonBar width="60%" height={12} />
+          </View>
+        ) : error || !insights ? (
+          <EmptyHint
+            icon="📡"
+            text={t('captainAlert.zone.errorTitle')}
+            sub={t('captainAlert.zone.errorBody')}
+          />
+        ) : isEmpty ? (
+          <>
+            <Text style={{ color: accent, fontSize: 13, fontWeight: '700', letterSpacing: 0.5 }}>
+              {headline.toUpperCase()}
+            </Text>
+            <Text style={{ color: '#cbd5e1', fontSize: 13, marginTop: 8, lineHeight: 18 }}>
+              {t('captainAlert.zone.encourageEmpty')}
+            </Text>
+          </>
+        ) : (
+          <>
+            <Text style={{ color: accent, fontSize: 13, fontWeight: '700', letterSpacing: 0.5 }}>
+              {headline.toUpperCase()}
+            </Text>
+            <View style={{ flexDirection: 'row', marginTop: 12, gap: 12 }}>
+              <ZoneStat
+                value={insights!.destination.ridesLast2h}
+                label={t('captainAlert.zone.last2h')}
+                highlight
+              />
+              <View style={{ width: 1, backgroundColor: '#334155' }} />
+              <ZoneStat
+                value={insights!.destination.ridesYesterdaySameHour}
+                label={t('captainAlert.zone.yesterday')}
+              />
+            </View>
+            <Text style={{ color: '#94a3b8', fontSize: 12, marginTop: 12, lineHeight: 16 }}>
+              {trend === 'hotter'
+                ? t('captainAlert.zone.encourageHotter')
+                : trend === 'cooler'
+                  ? t('captainAlert.zone.encourageCooler')
+                  : t('captainAlert.zone.encourageSimilar')}
+            </Text>
+          </>
+        )}
+      </View>
+    </>
+  );
+}
+
+function ZoneStat({ value, label, highlight }: { value: number; label: string; highlight?: boolean }) {
+  return (
+    <View style={{ flex: 1 }}>
+      <Text style={{
+        color: highlight ? '#fff' : '#cbd5e1',
+        fontSize: 28, fontWeight: '800', letterSpacing: -0.5,
+      }}>
+        {value}
+      </Text>
+      <Text style={{ color: '#94a3b8', fontSize: 11, marginTop: 2, lineHeight: 14 }}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+function RiderCard({
+  insights, loading, error, t,
+}: {
+  insights: RideInsights | null;
+  loading: boolean;
+  error: boolean;
+  t: ReturnType<typeof useTranslation>['t'];
+}) {
+  const rider = insights?.rider;
+  const initials = (rider?.fullName ?? '')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((s) => s[0]!.toUpperCase())
+    .join('') || '?';
+
+  const memberSinceMonths = rider?.memberSince
+    ? Math.max(1, Math.round((Date.now() - new Date(rider.memberSince).getTime()) / (1000 * 60 * 60 * 24 * 30)))
+    : null;
+
+  const completionPct = rider ? Math.round(rider.completionRate * 100) : 0;
+  const isGuest = !!rider && rider.userId === null;
+  const isFirstRide = !!rider && !isGuest && rider.totalRides <= 1;
+
+  return (
+    <>
+      <SectionTitle icon="👤" title={t('captainAlert.rider.title')} />
+      <View style={{ backgroundColor: '#1e293b', borderRadius: 16, padding: 16 }}>
+        {loading || (!insights && !error) ? (
+          <View style={{ gap: 12 }}>
+            <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+              <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#334155', opacity: 0.6 }} />
+              <View style={{ flex: 1, gap: 6 }}>
+                <SkeletonBar width="55%" height={14} />
+                <SkeletonBar width="35%" height={10} />
+              </View>
+            </View>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <SkeletonBar width={88} height={36} />
+              <SkeletonBar width={88} height={36} />
+            </View>
+          </View>
+        ) : error || !rider ? (
+          <EmptyHint
+            icon="🔌"
+            text={t('captainAlert.rider.errorTitle')}
+            sub={t('captainAlert.rider.errorBody')}
+          />
+        ) : (
+          <>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <View style={{
+                width: 44, height: 44, borderRadius: 22,
+                backgroundColor: isGuest ? '#334155' : '#3730a3',
+                alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>
+                  {isGuest ? '?' : initials}
+                </Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }} numberOfLines={1}>
+                  {rider.fullName ?? t('captainAlert.rider.unknown')}
+                </Text>
+                <Text style={{ color: '#94a3b8', fontSize: 12, marginTop: 2 }}>
+                  {isGuest
+                    ? t('captainAlert.rider.guest')
+                    : memberSinceMonths
+                      ? t('captainAlert.rider.memberSince', { months: memberSinceMonths })
+                      : t('captainAlert.rider.memberJustJoined')}
+                </Text>
+              </View>
+              {isFirstRide && !isGuest ? (
+                <View style={{ backgroundColor: '#312e81', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
+                  <Text style={{ color: '#a5b4fc', fontSize: 10, fontWeight: '700', letterSpacing: 0.5 }}>
+                    {t('captainAlert.rider.newBadge')}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+
+            {isGuest ? (
+              <Text style={{ color: '#94a3b8', fontSize: 12, marginTop: 12, lineHeight: 16 }}>
+                {t('captainAlert.rider.guestExplain')}
+              </Text>
+            ) : isFirstRide ? (
+              <Text style={{ color: '#94a3b8', fontSize: 12, marginTop: 12, lineHeight: 16 }}>
+                {t('captainAlert.rider.firstRideExplain')}
+              </Text>
+            ) : (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
+                <RiderChip icon="🛣️" value={String(rider.totalRides)} label={t('captainAlert.rider.rides')} />
+                {rider.avgRating !== null ? (
+                  <RiderChip
+                    icon="⭐"
+                    value={rider.avgRating.toFixed(1)}
+                    label={t('captainAlert.rider.rating', { count: rider.ratingsCount })}
+                    highlight
+                  />
+                ) : null}
+                {rider.totalRides > 0 ? (
+                  <RiderChip
+                    icon={completionPct >= 80 ? '✅' : '⚠️'}
+                    value={`${completionPct}%`}
+                    label={t('captainAlert.rider.completion')}
+                    highlight={completionPct >= 80}
+                  />
+                ) : null}
+                {rider.noShowRides > 0 ? (
+                  <RiderChip
+                    icon="🚫"
+                    value={String(rider.noShowRides)}
+                    label={t('captainAlert.rider.noShow')}
+                    warning
+                  />
+                ) : null}
+              </View>
+            )}
+          </>
+        )}
+      </View>
+    </>
+  );
+}
+
+function RiderChip({
+  icon, value, label, highlight, warning,
+}: {
+  icon: string; value: string; label: string; highlight?: boolean; warning?: boolean;
+}) {
+  const bg = warning ? '#7f1d1d' : highlight ? '#064e3b' : '#334155';
+  const valueColor = warning ? '#fecaca' : highlight ? '#6ee7b7' : '#fff';
+  return (
+    <View style={{
+      backgroundColor: bg, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 10,
+      flexDirection: 'row', alignItems: 'center', gap: 6, minWidth: 88,
+    }}>
+      <Text style={{ fontSize: 13 }}>{icon}</Text>
+      <View>
+        <Text style={{ color: valueColor, fontSize: 14, fontWeight: '700' }}>{value}</Text>
+        <Text style={{ color: '#94a3b8', fontSize: 10, marginTop: -1 }}>{label}</Text>
+      </View>
+    </View>
   );
 }

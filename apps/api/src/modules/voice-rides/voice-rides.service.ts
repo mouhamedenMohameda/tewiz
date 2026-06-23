@@ -331,6 +331,9 @@ export async function confirmVoiceRideRequest(input: {
 
   // 2. Create the actual ride. Admin operator context: skip the booker
   //    active-ride check and the "for someone else" SMS loop.
+  //    A voice ride consumed call-center time (a dispatcher listened to the
+  //    audio and pinned both ends on the map), so it falls under the same
+  //    commission rate as a phone-in ride: source='operator'.
   let rideId: string;
   try {
     const ride = await createRide({
@@ -340,6 +343,7 @@ export async function confirmVoiceRideRequest(input: {
       paymentMethod: input.paymentMethod ?? 'cash',
       skipBookerActiveCheck: true,
       skipPassengerConfirm: true,
+      source: 'operator',
     });
     rideId = ride.id;
   } catch (err) {

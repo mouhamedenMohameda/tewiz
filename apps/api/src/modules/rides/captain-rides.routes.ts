@@ -5,6 +5,7 @@ import { type AuthedRequest } from '../../middleware/auth.js';
 import { HttpError } from '../../middleware/error.js';
 import * as rides from './rides.service.js';
 import * as dispatch from './dispatch.service.js';
+import { getRideInsights } from './ride-insights.service.js';
 
 // Parent (captainRouter) already enforces requireAuth + requireRole('captain').
 export const captainRidesRouter = Router();
@@ -67,6 +68,33 @@ captainRidesRouter.get('/history', async (req, res) => {
 captainRidesRouter.get('/:id', async (req, res) => {
   const userId = req.user!.id;
   res.json(await rides.getRideForUser(req.params.id!, userId, 'captain'));
+});
+
+/**
+ * GET /captain/rides/:id/insights
+ * Returns rich pre-acceptance context: destination zone demand (rides in the
+ * last 2 h vs same time yesterday) + rider lifetime stats (completion, no-show,
+ * average rating, member since). Used by the alert modal to encourage accept.
+ *
+ * Auth: the ride must currently be 'searching' (open to any nearby captain),
+ * OR it must be the captain's own accepted/ongoing ride. We don't expose a
+ * stranger's ride history to any captain on demand.
+ */
+captainRidesRouter.get('/:id/insights', async (req, res) => {
+  const userId = req.user!.id;
+  const rideId = req.params.id!;
+  const r = await pool.query<{ status: string; captain_id: string | null }>(
+    `SELECT status, captain_id FROM rides WHERE id = $1`,
+    [rideId],
+  );
+  if (!r.rows[0]) throw new HttpError(404, 'not_found', 'Ride not found');
+  const { status, captain_id } = r.rows[0];
+  const isSearchingOpen = status === 'searching';
+  const isMyRide = captain_id === userId;
+  if (!isSearchingOpen && !isMyRide) {
+    throw new HttpError(403, 'forbidden', 'Not authorized to view this ride');
+  }
+  res.json(await getRideInsights(rideId));
 });
 
 captainRidesRouter.post('/:id/accept', async (req, res) => {
