@@ -183,7 +183,11 @@ export async function createRide(input: CreateRideInput) {
   // Status starts at pending_passenger_confirm; we send an SMS to the passenger
   // and only after they reply YES (POST /public/rides/:id/confirm) do we move to searching.
   const isForOther = !!(input.passengerName && input.passengerPhone);
-  if (isForOther && rideType === 'colis') {
+  // Riders book colis from the app as themselves (sender = booker, recipient = third party),
+  // so "for someone else" is meaningless there. The operator flow is different: the caller
+  // is the sender, the admin is the booker, and the recipient is a separate person — all
+  // three roles legitimately exist.
+  if (isForOther && rideType === 'colis' && source !== 'operator') {
     throw new HttpError(400, 'colis_for_other',
       'Colis rides cannot be booked "for someone else" (the recipient field already serves that purpose)');
   }
