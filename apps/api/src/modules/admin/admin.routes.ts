@@ -12,6 +12,8 @@ import { adminJobsRouter } from '../jobs/admin-jobs.routes.js';
 import { adminRidesRouter } from '../rides/admin-rides.routes.js';
 import { adminUsersRouter } from './users.routes.js';
 import { adminSettingsRouter } from './settings.routes.js';
+import { adminDocumentRequirementsRouter } from './document-requirements.routes.js';
+import { getRequiredDocumentTypes } from './document-requirements.service.js';
 import { adminStatsRouter } from './stats.routes.js';
 import { adminVoiceRidesRouter } from '../voice-rides/admin-voice-rides.routes.js';
 import { adminRestaurantsRouter } from '../restaurants/admin-restaurants.routes.js';
@@ -33,6 +35,8 @@ adminRouter.use('/rides', adminRidesRouter);
 adminRouter.use('/users', adminUsersRouter);
 // Pricing + commission knobs editable from the admin panel
 adminRouter.use('/settings', adminSettingsRouter);
+// Per-document-type "required" flag editable from the admin panel
+adminRouter.use('/document-requirements', adminDocumentRequirementsRouter);
 // Aggregated stats for the operator dashboard (app vs operator split, accept rates…)
 adminRouter.use('/stats', adminStatsRouter);
 // Voice-ride dispatch queue (listen → pin pickup/dropoff → confirm)
@@ -240,15 +244,27 @@ adminRouter.post('/applications/:id/approve', async (req, res) => {
       throw new HttpError(500, 'no_user_id', 'Application has no linked user');
     }
 
-    const badDocs = await client.query(
-      `SELECT type FROM application_documents
-        WHERE application_id = $1 AND status <> 'approved'`,
+    // Only required document types gate the approval. Optional types can be
+    // missing or pending and the application still goes through. Required
+    // types must (a) be uploaded and (b) be in status 'approved'.
+    const requiredTypes = await getRequiredDocumentTypes();
+    const docsRes = await client.query<{ type: string; status: string }>(
+      `SELECT type, status FROM application_documents WHERE application_id = $1`,
       [req.params.id],
     );
-    if ((badDocs.rowCount ?? 0) > 0) {
-      throw new HttpError(400, 'docs_not_all_approved',
-        'All documents must be approved first', {
-          unapproved: badDocs.rows.map((r: { type: string }) => r.type),
+    const byType = new Map(docsRes.rows.map((r) => [r.type, r.status] as const));
+    const missing: string[] = [];
+    const unapproved: string[] = [];
+    for (const t of requiredTypes) {
+      const status = byType.get(t);
+      if (!status) missing.push(t);
+      else if (status !== 'approved') unapproved.push(t);
+    }
+    if (missing.length > 0 || unapproved.length > 0) {
+      throw new HttpError(400, 'required_docs_not_ready',
+        'All required documents must be uploaded and approved first', {
+          missing,
+          unapproved,
         });
     }
 

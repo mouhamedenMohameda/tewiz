@@ -24,6 +24,20 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
     refetchInterval: 0,
   });
 
+  // Which document types the admin has marked as required globally. Optional
+  // types are still rendered (and uploadable) but don't gate the approve
+  // button.
+  const { data: requirements } = useQuery({
+    queryKey: ['document-requirements'],
+    queryFn: async () => {
+      const r = await api.get<{ type: DocumentType; isRequired: boolean }[]>(
+        '/admin/document-requirements',
+      );
+      return r.data;
+    },
+    staleTime: 30_000,
+  });
+
   const claim = useMutation({
     mutationFn: () => api.post(`/admin/applications/${id}/claim`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['application', id] }),
@@ -84,10 +98,19 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
   if (error || !data) return <AppShell><div className="p-6 text-red-600">Erreur</div></AppShell>;
 
   const app = data.application;
-  const allApproved = data.documents.length > 0 && data.documents.every((d) => d.status === 'approved');
-  const allTypesPresent = DOCUMENT_TYPES.every((t) => data.documents.some((d) => d.type === t));
-
+  // Default to "all required" until the requirements query returns, so we
+  // never let admins approve before the gate config has loaded.
+  const requiredTypes = new Set<DocumentType>(
+    requirements
+      ? requirements.filter((r) => r.isRequired).map((r) => r.type)
+      : DOCUMENT_TYPES,
+  );
   const byType = new Map(data.documents.map((d) => [d.type, d] as const));
+  // Approve gate: every required type must be present AND approved. Optional
+  // types (and any extra docs the captain uploaded) don't block approval.
+  const requiredReady = [...requiredTypes].every((t) => byType.get(t)?.status === 'approved');
+  const missingRequired = [...requiredTypes].filter((t) => !byType.has(t));
+  const hasAnyRequired = requiredTypes.size > 0;
 
   return (
     <AppShell>
@@ -153,14 +176,17 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
             <h2 className="font-semibold text-slate-900">
               Documents ({data.documents.length}/{DOCUMENT_TYPES.length})
             </h2>
-            {!allTypesPresent && (
-              <span className="text-xs text-red-600">⚠ Documents manquants</span>
+            {missingRequired.length > 0 && (
+              <span className="text-xs text-red-600">
+                ⚠ {missingRequired.length} document{missingRequired.length > 1 ? 's' : ''} requis manquant{missingRequired.length > 1 ? 's' : ''}
+              </span>
             )}
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {DOCUMENT_TYPES.map((type) => {
               const doc = byType.get(type);
+              const required = requiredTypes.has(type);
               return (
                 <div key={type} className="border border-slate-200 rounded-lg overflow-hidden">
                   <div className="aspect-[4/3] bg-slate-50 relative">
@@ -176,14 +202,27 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
                         />
                       </button>
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">
-                        Manquant
+                      <div className={clsx(
+                        'w-full h-full flex items-center justify-center text-xs',
+                        required ? 'text-red-500' : 'text-slate-400',
+                      )}>
+                        {required ? 'Manquant' : 'Non requis'}
                       </div>
                     )}
                   </div>
                   <div className="p-3">
-                    <div className="text-xs font-medium text-slate-900 mb-1">
-                      {DOCUMENT_LABELS[type]}
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <div className="text-xs font-medium text-slate-900">
+                        {DOCUMENT_LABELS[type]}
+                      </div>
+                      <span className={clsx(
+                        'text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded',
+                        required
+                          ? 'bg-slate-100 text-slate-600'
+                          : 'bg-amber-50 text-amber-700',
+                      )}>
+                        {required ? 'requis' : 'facultatif'}
+                      </span>
                     </div>
                     {doc && (
                       <div className="flex flex-col gap-1">
@@ -236,9 +275,15 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
             >Demander corrections</button>
             <button
               onClick={() => approveApp.mutate()}
-              disabled={!allApproved || !allTypesPresent}
+              disabled={!hasAnyRequired || !requiredReady}
               className="btn-primary"
-              title={!allApproved ? 'Tous les documents doivent être approuvés' : 'Approuver'}
+              title={
+                !hasAnyRequired
+                  ? "Aucun document n'est marqué comme requis"
+                  : !requiredReady
+                  ? 'Tous les documents requis doivent être présents et approuvés'
+                  : 'Approuver'
+              }
             >Approuver le dossier</button>
           </div>
         )}
