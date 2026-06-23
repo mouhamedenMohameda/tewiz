@@ -479,6 +479,20 @@
       "approved": { "label": "Jaɓaama", "desc": "Mbiɗɗu e {{app}}." },
       "rejected": { "label": "Salaa", "desc": "Dossier maa salaama." }
     },
+    "credentials": {
+      "title": "Compte chauffeur huɓɓii",
+      "intro": "Dossier maa jaɓaama. Ɗiiɗoo ko identifiants connexion maa.",
+      "phoneLabel": "Limoore telefon",
+      "passwordLabel": "Mot de passe",
+      "copy": "Kopal",
+      "copied": "Kopaama",
+      "warning": "Reen no moƴƴi limoore telefon e mot de passe maa. A foti ɗum ngam connexion ɗimmun. Mot de passe oo ɓooyataa ɗo.",
+      "logout": "Yaltu",
+      "confirmTitle": "A reenii identifiants maa?",
+      "confirmBody": "A waawataa yi'ude mot de passe oo kadi.",
+      "confirmYes": "Eey, yaltu",
+      "confirmNo": "Tawaa hannde"
+    },
     "personal": {
       "title": "Bayeele jaati",
       "fullName": "Innde timmunde",

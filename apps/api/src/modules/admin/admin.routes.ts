@@ -401,9 +401,11 @@ adminRouter.post('/applications/:id/approve', async (req, res) => {
       `UPDATE captain_applications
           SET status = 'approved',
               reviewed_by = $1,
-              reviewed_at = now()
+              reviewed_at = now(),
+              delivered_password = COALESCE($3, delivered_password),
+              delivered_password_at = CASE WHEN $3 IS NULL THEN delivered_password_at ELSE now() END
         WHERE id = $2 RETURNING *`,
-      [adminId, app.id],
+      [adminId, app.id, password],
     );
     return { application: upd.rows[0], password };
   });

@@ -1,6 +1,7 @@
 import { Stack, useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
+import CaptainCredentialsGate from '@/components/CaptainCredentialsGate';
 
 export default function AppLayout() {
   const router = useRouter();
@@ -12,5 +13,10 @@ export default function AppLayout() {
     if (!user) router.replace('/(auth)');
   }, [hydrated, user, router]);
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <>
+      <Stack screenOptions={{ headerShown: false }} />
+      <CaptainCredentialsGate />
+    </>
+  );
 }

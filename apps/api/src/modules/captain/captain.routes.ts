@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { requireAuth, requireRole, type AuthedRequest } from '../../middleware/auth.js';
 import { upload } from '../../middleware/upload.js';
 import { HttpError } from '../../middleware/error.js';
+import { pool } from '../../db/pool.js';
 import * as svc from './application.service.js';
 import { captainWalletRouter } from './wallet.routes.js';
 import { captainStateRouter } from './state.routes.js';
@@ -122,4 +123,46 @@ captainRouter.delete('/applications/me/documents/:docId', requireRiderOrCaptain,
 captainRouter.post('/applications/me/submit', requireRiderOrCaptain, async (req, res) => {
   const userId = req.user!.id;
   res.json(await svc.submitApplication(userId));
+});
+
+/**
+ * GET /captain/applications/me/credentials
+ * Returns the one-shot login credentials generated at approval time (phone +
+ * plain password) so the freshly approved captain can copy them and re-login.
+ * Returns null once acknowledged or when none were generated.
+ */
+captainRouter.get('/applications/me/credentials', requireRiderOrCaptain, async (req, res) => {
+  const userId = req.user!.id;
+  const r = await pool.query<{ phone: string | null; delivered_password: string | null }>(
+    `SELECT u.phone, a.delivered_password
+       FROM captain_applications a
+       JOIN users u ON u.id = a.user_id
+      WHERE a.user_id = $1
+        AND a.status = 'approved'
+        AND a.delivered_password IS NOT NULL
+      ORDER BY a.reviewed_at DESC NULLS LAST
+      LIMIT 1`,
+    [userId],
+  );
+  const row = r.rows[0];
+  if (!row || !row.delivered_password || !row.phone) {
+    res.json(null);
+    return;
+  }
+  res.json({ phone: row.phone, password: row.delivered_password });
+});
+
+/**
+ * POST /captain/applications/me/credentials/ack
+ * Wipes the plain password once the captain has copied/memorized it. Idempotent.
+ */
+captainRouter.post('/applications/me/credentials/ack', requireRiderOrCaptain, async (req, res) => {
+  const userId = req.user!.id;
+  await pool.query(
+    `UPDATE captain_applications
+        SET delivered_password = NULL
+      WHERE user_id = $1 AND delivered_password IS NOT NULL`,
+    [userId],
+  );
+  res.json({ ok: true });
 });

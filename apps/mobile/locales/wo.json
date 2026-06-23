@@ -479,6 +479,20 @@
       "approved": { "label": "Nangu nañu ko", "desc": "Dalal jamm ci {{app}}." },
       "rejected": { "label": "Bañees", "desc": "Sa dossier bañees na." }
     },
+    "credentials": {
+      "title": "Compte chauffeur ubbi na",
+      "intro": "Sa dossier validé na. Lii moo di sa identifiants connexion.",
+      "phoneLabel": "Limu telefon",
+      "passwordLabel": "Mot de passe",
+      "copy": "Copier",
+      "copied": "Copié",
+      "warning": "Denc bu baax sa limu telefon ak sa mot de passe. Da nga koy soxla ngir doxi connexion bis bii. Mot de passe bii dootu wone.",
+      "logout": "Génn",
+      "confirmTitle": "Ndax denc nga sa identifiants?",
+      "confirmBody": "Doo mën a gisaat mot de passe bii.",
+      "confirmYes": "Waaw, génn",
+      "confirmNo": "Léegi du"
+    },
     "personal": {
       "title": "Bayel personnel",
       "fullName": "Tur bu mat",
