@@ -621,6 +621,9 @@
     "docs": {
       "title": "Documents",
       "intro": "Envoyez les 14 photos requises. Bien éclairées, sans reflet.",
+      "introV2": "Envoyez les photos demandées. Bien éclairées, sans reflet. Les documents marqués « Facultatif » ne sont pas obligatoires.",
+      "optionalBadge": "FACULTATIF",
+      "tapToAddOptional": "Facultatif · Touchez pour ajouter",
       "expiryTitle": "Date d'expiration",
       "expiryHint": "{{label}} — entrez la date au format AAAA-MM-JJ.",
       "expiryHintPicker": "{{label}} — choisissez la date d'expiration.",

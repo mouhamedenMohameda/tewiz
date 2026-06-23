@@ -526,6 +526,9 @@
     "docs": {
       "title": "Documents",
       "intro": "Yonnee 14 nataal yi ñu laaj. Leer lool, du am reflet.",
+      "introV2": "Yonnee nataal yi ñu laaj. Leer lool, du am reflet. Documents yi nuy wax « Facultatif » du fàww ngir yonnee leen.",
+      "optionalBadge": "FACULTATIF",
+      "tapToAddOptional": "Facultatif · Laal ngir yokk",
       "expiryTitle": "Bés expiration",
       "expiryHint": "{{label}} — bind bés bi ci format AAAA-MM-JJ.",
       "expiryPlaceholder": "2026-12-31",
