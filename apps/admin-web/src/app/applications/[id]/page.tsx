@@ -55,12 +55,26 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
 
   function extractError(e: unknown): string {
     // Axios error: pull the API-provided code/message when present so the admin
-    // sees WHY the approval failed instead of a silent no-op.
-    const err = e as { response?: { data?: { code?: string; message?: string; details?: unknown }; status?: number }; message?: string };
+    // sees WHY the approval failed instead of a silent no-op. The API wraps
+    // errors as `{ error: { code, message, details } }`, but older paths /
+    // proxies sometimes return `{ code, message }` flat — handle both.
+    const err = e as {
+      response?: {
+        data?: {
+          error?: { code?: string; message?: string; details?: unknown };
+          code?: string;
+          message?: string;
+          details?: unknown;
+        };
+        status?: number;
+      };
+      message?: string;
+    };
     const data = err?.response?.data;
-    if (data?.message) {
-      const details = data.details ? ` — ${JSON.stringify(data.details)}` : '';
-      return `${data.code ?? 'error'}: ${data.message}${details}`;
+    const payload = data?.error ?? data;
+    if (payload?.message) {
+      const details = payload.details ? ` — ${JSON.stringify(payload.details)}` : '';
+      return `${payload.code ?? 'error'}: ${payload.message}${details}`;
     }
     if (err?.response?.status) return `HTTP ${err.response.status}`;
     return err?.message ?? 'Erreur inconnue';
