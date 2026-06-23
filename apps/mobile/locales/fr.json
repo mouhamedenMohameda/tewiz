@@ -566,6 +566,20 @@
         "desc": "Votre dossier a été refusé."
       }
     },
+    "credentials": {
+      "title": "Compte chauffeur activé",
+      "intro": "Votre dossier a été validé. Voici vos identifiants de connexion.",
+      "phoneLabel": "Numéro de téléphone",
+      "passwordLabel": "Mot de passe",
+      "copy": "Copier",
+      "copied": "Copié",
+      "warning": "Mémorisez bien votre numéro et votre mot de passe. Vous en aurez besoin pour vous reconnecter à l'application. Ce mot de passe ne sera plus affiché.",
+      "logout": "Se déconnecter",
+      "confirmTitle": "Avez-vous bien noté vos identifiants ?",
+      "confirmBody": "Vous ne pourrez plus revoir ce mot de passe.",
+      "confirmYes": "Oui, se déconnecter",
+      "confirmNo": "Pas encore"
+    },
     "personal": {
       "title": "Informations personnelles",
       "fullName": "Nom complet",

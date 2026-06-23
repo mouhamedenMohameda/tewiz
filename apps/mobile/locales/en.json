@@ -548,6 +548,20 @@
       "approved": { "label": "Approved", "desc": "Welcome to {{app}}." },
       "rejected": { "label": "Rejected", "desc": "Your application was rejected." }
     },
+    "credentials": {
+      "title": "Driver account activated",
+      "intro": "Your application has been approved. Here are your login credentials.",
+      "phoneLabel": "Phone number",
+      "passwordLabel": "Password",
+      "copy": "Copy",
+      "copied": "Copied",
+      "warning": "Memorize your phone number and password. You will need them to sign back into the app. This password will not be shown again.",
+      "logout": "Log out",
+      "confirmTitle": "Have you saved your credentials?",
+      "confirmBody": "You will not be able to see this password again.",
+      "confirmYes": "Yes, log out",
+      "confirmNo": "Not yet"
+    },
     "personal": {
       "title": "Personal information",
       "fullName": "Full name",

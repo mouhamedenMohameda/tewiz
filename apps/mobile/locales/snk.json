@@ -479,6 +479,20 @@
       "approved": { "label": "Kanaado", "desc": "Selamatu {{app}} do." },
       "rejected": { "label": "Faatuna", "desc": "An dossier faatuna." }
     },
+    "credentials": {
+      "title": "Compte chauffeur tugunna",
+      "intro": "An dossier validé na. Naxa ñaa identifiants connexion na.",
+      "phoneLabel": "Telefon numero",
+      "passwordLabel": "Mot de passe",
+      "copy": "Copier",
+      "copied": "Copié",
+      "warning": "Saara an telefon numero do mot de passe. A doxe siro connexion siro. Mot de passe ke a kobu yi ya.",
+      "logout": "Yaltu",
+      "confirmTitle": "A saara an identifiants?",
+      "confirmBody": "A si mot de passe ke yi ya kobu.",
+      "confirmYes": "Aye, yaltu",
+      "confirmNo": "Hare wo"
+    },
     "personal": {
       "title": "Bayel personnel",
       "fullName": "Tooxo koota",
