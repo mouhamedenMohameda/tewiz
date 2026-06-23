@@ -51,6 +51,20 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
 
   const [captainPassword, setCaptainPassword] = useState<string | null>(null);
   const [regeneratedPassword, setRegeneratedPassword] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  function extractError(e: unknown): string {
+    // Axios error: pull the API-provided code/message when present so the admin
+    // sees WHY the approval failed instead of a silent no-op.
+    const err = e as { response?: { data?: { code?: string; message?: string; details?: unknown }; status?: number }; message?: string };
+    const data = err?.response?.data;
+    if (data?.message) {
+      const details = data.details ? ` — ${JSON.stringify(data.details)}` : '';
+      return `${data.code ?? 'error'}: ${data.message}${details}`;
+    }
+    if (err?.response?.status) return `HTTP ${err.response.status}`;
+    return err?.message ?? 'Erreur inconnue';
+  }
 
   const approveApp = useMutation({
     mutationFn: async () => {
@@ -58,11 +72,13 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
       return r.data;
     },
     onSuccess: (res) => {
+      setActionError(null);
       // A guest-originated captain gets fresh login credentials — show them once
       // so the admin can forward them. Otherwise go straight back to the list.
       if (res.captainPassword) setCaptainPassword(res.captainPassword);
       else router.replace('/applications');
     },
+    onError: (e) => setActionError(extractError(e)),
   });
 
   const regeneratePassword = useMutation({
@@ -78,11 +94,13 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
   const reqCorr = useMutation({
     mutationFn: (notes: string) => api.post(`/admin/applications/${id}/request-corrections`, { notes }),
     onSuccess: () => router.replace('/applications'),
+    onError: (e) => setActionError(extractError(e)),
   });
 
   const rejectApp = useMutation({
     mutationFn: (reason: string) => api.post(`/admin/applications/${id}/reject`, { reason }),
     onSuccess: () => router.replace('/applications'),
+    onError: (e) => setActionError(extractError(e)),
   });
 
   const [activeDoc, setActiveDoc] = useState<DocumentType | null>(null);
@@ -264,27 +282,34 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
 
         {/* Action bar */}
         {(app.status === 'submitted' || app.status === 'under_review') && (
-          <div className="card p-5 flex flex-wrap gap-3 items-center justify-end">
-            <button
-              onClick={() => setShowRejectModal(true)}
-              className="btn-danger"
-            >Refuser définitivement</button>
-            <button
-              onClick={() => setShowCorrModal(true)}
-              className="btn-secondary"
-            >Demander corrections</button>
-            <button
-              onClick={() => approveApp.mutate()}
-              disabled={!hasAnyRequired || !requiredReady}
-              className="btn-primary"
-              title={
-                !hasAnyRequired
-                  ? "Aucun document n'est marqué comme requis"
-                  : !requiredReady
-                  ? 'Tous les documents requis doivent être présents et approuvés'
-                  : 'Approuver'
-              }
-            >Approuver le dossier</button>
+          <div className="card p-5">
+            {actionError && (
+              <div className="mb-3 px-3 py-2 rounded bg-red-50 border border-red-200 text-sm text-red-700 break-words">
+                {actionError}
+              </div>
+            )}
+            <div className="flex flex-wrap gap-3 items-center justify-end">
+              <button
+                onClick={() => setShowRejectModal(true)}
+                className="btn-danger"
+              >Refuser définitivement</button>
+              <button
+                onClick={() => setShowCorrModal(true)}
+                className="btn-secondary"
+              >Demander corrections</button>
+              <button
+                onClick={() => { setActionError(null); approveApp.mutate(); }}
+                disabled={!hasAnyRequired || !requiredReady || approveApp.isPending}
+                className="btn-primary"
+                title={
+                  !hasAnyRequired
+                    ? "Aucun document n'est marqué comme requis"
+                    : !requiredReady
+                    ? 'Tous les documents requis doivent être présents et approuvés'
+                    : 'Approuver'
+                }
+              >{approveApp.isPending ? 'Approbation…' : 'Approuver le dossier'}</button>
+            </div>
           </div>
         )}
 

@@ -330,25 +330,60 @@ adminRouter.post('/applications/:id/approve', async (req, res) => {
       [app.user_id, app.id, app.accepts_colis, app.accepts_long_distance],
     );
 
-    // Vehicle (unique active)
+    // Vehicle (one active per captain). `plate` is globally UNIQUE, so a naive
+    // INSERT explodes on re-approval (when the previous approval left a row)
+    // or when the same plate was already attached to this captain (or worse,
+    // someone else's). Reconcile:
+    //   - If a row exists with this plate AND belongs to the same captain,
+    //     reactivate it and refresh the other fields.
+    //   - If it belongs to a DIFFERENT captain, refuse with a clear 409 so
+    //     the operator knows there's a real plate collision.
+    //   - Otherwise, deactivate all the captain's vehicles and insert a fresh
+    //     row.
+    const existingPlate = await client.query<{ captain_id: string }>(
+      `SELECT captain_id FROM vehicles WHERE plate = $1 FOR UPDATE`,
+      [app.vehicle_plate],
+    );
+    if (existingPlate.rows[0] && existingPlate.rows[0].captain_id !== app.user_id) {
+      throw new HttpError(409, 'plate_taken',
+        `La plaque ${app.vehicle_plate} est déjà associée à un autre chauffeur.`);
+    }
     await client.query(
       `UPDATE vehicles SET is_active = false WHERE captain_id = $1`,
       [app.user_id],
     );
-    await client.query(
-      `INSERT INTO vehicles
-         (captain_id, plate, brand, model, year, color, seats)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [
-        app.user_id,
-        app.vehicle_plate,
-        app.vehicle_brand,
-        app.vehicle_model,
-        app.vehicle_year,
-        app.vehicle_color,
-        app.vehicle_seats,
-      ],
-    );
+    if (existingPlate.rows[0]) {
+      await client.query(
+        `UPDATE vehicles
+            SET brand = $2, model = $3, year = $4, color = $5, seats = $6,
+                is_active = true
+          WHERE plate = $1 AND captain_id = $7`,
+        [
+          app.vehicle_plate,
+          app.vehicle_brand,
+          app.vehicle_model,
+          app.vehicle_year,
+          app.vehicle_color,
+          app.vehicle_seats,
+          app.user_id,
+        ],
+      );
+    } else {
+      await client.query(
+        `INSERT INTO vehicles
+           (captain_id, plate, brand, model, year, color, seats)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [
+          app.user_id,
+          app.vehicle_plate,
+          app.vehicle_brand,
+          app.vehicle_model,
+          app.vehicle_year,
+          app.vehicle_color,
+          app.vehicle_seats,
+        ],
+      );
+    }
 
     // Wallet at 0 + offline state
     await client.query(
