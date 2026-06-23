@@ -71,6 +71,7 @@ export interface ApplicationDto {
   acceptsColis: boolean;
   acceptsLongDistance: boolean;
   rejectReason?: string | null;
+  correctionNotes?: string | null;
   documents: AppDoc[];
   documentRequirements?: { type: DocumentType; isRequired: boolean }[];
 }

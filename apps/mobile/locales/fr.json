@@ -501,6 +501,7 @@
     "submit": "Soumettre mon dossier",
     "completeFirst": "Complétez toutes les étapes",
     "rejectReason": "Raison du rejet",
+    "correctionNotesTitle": "Corrections demandées par l'admin",
     "stepPersonalTitle": "Informations personnelles",
     "stepPersonalSub": "Nom, NNI, date de naissance, adresse, contact d'urgence",
     "stepVehicleTitle": "Véhicule",
