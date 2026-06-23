@@ -15,6 +15,7 @@ export default function RestaurantDetailScreen() {
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [imgFailed, setImgFailed] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -76,9 +77,6 @@ export default function RestaurantDetailScreen() {
   }
 
   const photo = resolveRestaurantPhoto(restaurant);
-  // Same defensive fallback as the list — if Unsplash 404s the URL, fall
-  // back to the branded gradient hero so we never show a broken image.
-  const [imgFailed, setImgFailed] = useState(false);
   const eta = restaurant.etaMin != null && restaurant.etaMax != null
     ? `${restaurant.etaMin}-${restaurant.etaMax} min`
     : null;

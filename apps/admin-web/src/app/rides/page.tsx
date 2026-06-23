@@ -17,6 +17,7 @@ type RideStatus =
 interface RideRow {
   id: string;
   rideType: 'passenger' | 'colis';
+  source?: 'app' | 'operator';
   status: RideStatus;
   passengerName: string | null;
   passengerPhone: string | null;
@@ -165,7 +166,17 @@ export default function RidesPage() {
                         </Link>
                       </td>
                       <td className="px-4 py-3">
-                        {r.rideType === 'colis' ? '📦' : '🚖'}
+                        <div className="flex items-center gap-1.5">
+                          <span>{r.rideType === 'colis' ? '📦' : '🚖'}</span>
+                          {r.source === 'operator' && (
+                            <span
+                              title="Course créée par le call-center"
+                              className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-violet-100 text-violet-800"
+                            >
+                              📞 CC
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-slate-700">
                         <div className="font-medium">{r.passengerName ?? '—'}</div>

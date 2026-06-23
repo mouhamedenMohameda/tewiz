@@ -32,9 +32,36 @@ interface InboxItem {
 // Module-level so a ride the captain already saw doesn't re-alert when the
 // captain switches screens or toggles modes. Also persisted to AsyncStorage
 // so Expo Go fast-refresh / app restarts don't replay the same alerts.
-const seenRideIds = new Set<string>();
+//
+// We store {rideId → millisecond timestamp} and expire entries after
+// SEEN_TTL_MS. The previous design used a plain Set capped at 200 — if the
+// cap was reached, the oldest entry was evicted and a course refused 30 min
+// earlier could re-alert. The TTL makes the eviction deterministic.
+const SEEN_TTL_MS = 60 * 60_000; // 1 hour
+const seenRides = new Map<string, number>();
 const SEEN_STORAGE_KEY = '@tewiz/captain-seen-rides';
 const PAUSE_STORAGE_KEY = '@tewiz/captain-pause-until';
+
+function isSeen(rideId: string): boolean {
+  const ts = seenRides.get(rideId);
+  if (!ts) return false;
+  if (Date.now() - ts > SEEN_TTL_MS) {
+    seenRides.delete(rideId);
+    return false;
+  }
+  return true;
+}
+
+function markSeen(rideId: string) {
+  seenRides.set(rideId, Date.now());
+}
+
+function pruneExpired() {
+  const now = Date.now();
+  for (const [id, ts] of seenRides) {
+    if (now - ts > SEEN_TTL_MS) seenRides.delete(id);
+  }
+}
 
 let seenLoaded = false;
 async function loadSeenFromStorage() {
@@ -42,16 +69,30 @@ async function loadSeenFromStorage() {
   try {
     const raw = await AsyncStorage.getItem(SEEN_STORAGE_KEY);
     if (raw) {
-      const arr = JSON.parse(raw) as string[];
-      arr.forEach((id) => seenRideIds.add(id));
+      const parsed = JSON.parse(raw);
+      // Accept both legacy (string[]) and current ([id, ts][]) shapes so
+      // upgrading the app doesn't replay every previously-seen ride.
+      if (Array.isArray(parsed)) {
+        const now = Date.now();
+        for (const entry of parsed) {
+          if (typeof entry === 'string') {
+            // Legacy: no timestamp → assume "just now" so the TTL applies.
+            seenRides.set(entry, now);
+          } else if (Array.isArray(entry) && typeof entry[0] === 'string' && typeof entry[1] === 'number') {
+            if (now - entry[1] < SEEN_TTL_MS) seenRides.set(entry[0], entry[1]);
+          }
+        }
+      }
     }
   } catch {}
   seenLoaded = true;
 }
+
 async function persistSeen() {
   try {
-    // Cap the persisted set at ~200 entries to avoid unbounded growth.
-    const arr = Array.from(seenRideIds).slice(-200);
+    pruneExpired();
+    // Cap at ~500 entries to avoid unbounded growth on very active captains.
+    const arr = Array.from(seenRides.entries()).slice(-500);
     await AsyncStorage.setItem(SEEN_STORAGE_KEY, JSON.stringify(arr));
   } catch {}
 }
@@ -77,7 +118,7 @@ async function setPauseFor(minutes: number) {
  * Called from the captain home button when notifications appear stuck.
  */
 export async function resetRideAlerts() {
-  seenRideIds.clear();
+  seenRides.clear();
   pausedUntil = 0;
   try {
     await AsyncStorage.removeItem(SEEN_STORAGE_KEY);
@@ -196,12 +237,25 @@ export function CaptainRideWatcher() {
           return;
         }
 
-        // Only alert if no modal is currently showing.
+        // If a modal is currently showing for a ride that's no longer in the
+        // inbox (i.e. another captain accepted it, or it was cancelled), close
+        // the modal and let the user know.
         setAlertRide((prev) => {
-          if (prev) return prev;
-          const first = inb.data.find((it) => !seenRideIds.has(it.id));
+          if (prev) {
+            const stillThere = inb.data.some((it) => it.id === prev.id);
+            if (!stillThere) {
+              void stopRinging();
+              Alert.alert(
+                i18n.t('captainAlert.alreadyTakenTitle') as string,
+                i18n.t('captainAlert.alreadyTaken') as string,
+              );
+              return null;
+            }
+            return prev;
+          }
+          const first = inb.data.find((it) => !isSeen(it.id));
           if (!first) return null;
-          seenRideIds.add(first.id);
+          markSeen(first.id);
           void persistSeen();
           void startRinging(first);
           return first;
@@ -235,7 +289,12 @@ export function CaptainRideWatcher() {
       // (call button, step actions) is right there.
       router.push('/(app)/captain/rides');
     } catch (e: any) {
-      Alert.alert(t('common.impossible'), e.response?.data?.error?.message ?? t('captainAlert.unavailable'));
+      const code = e.response?.data?.error?.code;
+      if (code === 'not_searching') {
+        Alert.alert(t('captainAlert.alreadyTakenTitle'), t('captainAlert.alreadyTaken'));
+      } else {
+        Alert.alert(t('common.impossible'), e.response?.data?.error?.message ?? t('captainAlert.unavailable'));
+      }
       await stopRinging();
       setAlertRide(null);
     } finally {

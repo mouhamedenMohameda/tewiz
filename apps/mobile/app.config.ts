@@ -52,6 +52,17 @@ const config: ExpoConfig = {
       'android.permission.READ_EXTERNAL_STORAGE',
       'android.permission.RECORD_AUDIO',
     ],
+    // Required for react-native-maps with PROVIDER_DEFAULT/PROVIDER_GOOGLE on
+    // Android. Without this the MapView activity crashes natively ("App
+    // stopped") the first time it tries to render. The key is injected at
+    // build time from the EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_KEY env var (set
+    // in eas.json per profile) — restrict the key to the app's package name
+    // + SHA-1 in Google Cloud Console.
+    config: {
+      googleMaps: {
+        apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_KEY,
+      },
+    },
   },
   web: {
     bundler: 'metro',

@@ -56,6 +56,7 @@ const REGISTRY = {
   document: { set: 'ion', glyph: 'document-text-outline' },
   car: { set: 'mci', glyph: 'car-estate' },
   parcel: { set: 'mci', glyph: 'package-variant-closed' },
+  tune: { set: 'mci', glyph: 'tune-variant' },
   restaurant: { set: 'ion', glyph: 'restaurant' },
   menu: { set: 'mci', glyph: 'silverware-fork-knife' },
 } as const satisfies Record<string, IconEntry>;

@@ -23,6 +23,14 @@ export interface PricingSettings {
   colisMinFareMru: number;
   defaultCommissionBps: number;
   colisCommissionBps: number;
+  // Migration 0022. Threshold above which a ride is considered long-distance
+  // and only dispatched to captains who opted in (captains.accepts_long_distance).
+  longDistanceThresholdM: number;
+  // Migration 0022. Dedicated commission for rides created by an admin
+  // operator (passenger called by phone). Defaults to the same rate as the
+  // standard commission until the admin sets a different value.
+  operatorPassengerCommissionBps: number;
+  operatorColisCommissionBps: number;
   updatedAt: string;
   updatedBy: string | null;
 }
@@ -39,6 +47,9 @@ interface Row {
   colis_min_fare_mru: number;
   default_commission_bps: number;
   colis_commission_bps: number;
+  long_distance_threshold_m: number;
+  operator_passenger_commission_bps: number;
+  operator_colis_commission_bps: number;
   updated_at: Date;
   updated_by: string | null;
 }
@@ -53,6 +64,9 @@ function toSettings(r: Row): PricingSettings {
     colisMinFareMru: r.colis_min_fare_mru,
     defaultCommissionBps: r.default_commission_bps,
     colisCommissionBps: r.colis_commission_bps,
+    longDistanceThresholdM: r.long_distance_threshold_m,
+    operatorPassengerCommissionBps: r.operator_passenger_commission_bps,
+    operatorColisCommissionBps: r.operator_colis_commission_bps,
     updatedAt: r.updated_at.toISOString(),
     updatedBy: r.updated_by,
   };
@@ -66,6 +80,8 @@ export async function getPricingSettings(): Promise<PricingSettings> {
     `SELECT base_fare_mru, per_km_mru, min_fare_mru,
             colis_base_fare_mru, colis_per_km_mru, colis_min_fare_mru,
             default_commission_bps, colis_commission_bps,
+            long_distance_threshold_m,
+            operator_passenger_commission_bps, operator_colis_commission_bps,
             updated_at, updated_by
        FROM app_settings WHERE id = 1`,
   );
@@ -88,6 +104,9 @@ export interface PricingSettingsPatch {
   colisMinFareMru?: number;
   defaultCommissionBps?: number;
   colisCommissionBps?: number;
+  longDistanceThresholdM?: number;
+  operatorPassengerCommissionBps?: number;
+  operatorColisCommissionBps?: number;
 }
 
 export async function updatePricingSettings(
@@ -96,20 +115,25 @@ export async function updatePricingSettings(
 ): Promise<PricingSettings> {
   const { rows } = await pool.query<Row>(
     `UPDATE app_settings
-        SET base_fare_mru           = COALESCE($1, base_fare_mru),
-            per_km_mru              = COALESCE($2, per_km_mru),
-            min_fare_mru            = COALESCE($3, min_fare_mru),
-            colis_base_fare_mru     = COALESCE($4, colis_base_fare_mru),
-            colis_per_km_mru        = COALESCE($5, colis_per_km_mru),
-            colis_min_fare_mru      = COALESCE($6, colis_min_fare_mru),
-            default_commission_bps  = COALESCE($7, default_commission_bps),
-            colis_commission_bps    = COALESCE($8, colis_commission_bps),
-            updated_at              = now(),
-            updated_by              = $9
+        SET base_fare_mru                     = COALESCE($1, base_fare_mru),
+            per_km_mru                        = COALESCE($2, per_km_mru),
+            min_fare_mru                      = COALESCE($3, min_fare_mru),
+            colis_base_fare_mru               = COALESCE($4, colis_base_fare_mru),
+            colis_per_km_mru                  = COALESCE($5, colis_per_km_mru),
+            colis_min_fare_mru                = COALESCE($6, colis_min_fare_mru),
+            default_commission_bps            = COALESCE($7, default_commission_bps),
+            colis_commission_bps              = COALESCE($8, colis_commission_bps),
+            long_distance_threshold_m         = COALESCE($9, long_distance_threshold_m),
+            operator_passenger_commission_bps = COALESCE($10, operator_passenger_commission_bps),
+            operator_colis_commission_bps     = COALESCE($11, operator_colis_commission_bps),
+            updated_at                        = now(),
+            updated_by                        = $12
       WHERE id = 1
       RETURNING base_fare_mru, per_km_mru, min_fare_mru,
                 colis_base_fare_mru, colis_per_km_mru, colis_min_fare_mru,
                 default_commission_bps, colis_commission_bps,
+                long_distance_threshold_m,
+                operator_passenger_commission_bps, operator_colis_commission_bps,
                 updated_at, updated_by`,
     [
       patch.baseFareMru ?? null,
@@ -120,6 +144,9 @@ export async function updatePricingSettings(
       patch.colisMinFareMru ?? null,
       patch.defaultCommissionBps ?? null,
       patch.colisCommissionBps ?? null,
+      patch.longDistanceThresholdM ?? null,
+      patch.operatorPassengerCommissionBps ?? null,
+      patch.operatorColisCommissionBps ?? null,
       adminId,
     ],
   );

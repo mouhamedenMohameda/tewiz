@@ -10,6 +10,7 @@ import { captainRidesRouter } from '../rides/captain-rides.routes.js';
 import { captainHomeRouter } from '../home/home.routes.js';
 import { captainRecurringRouter } from '../recurring/captain.routes.js';
 import { captainHeatmapRouter } from '../heatmap/heatmap.routes.js';
+import { captainPreferencesRouter } from './preferences.routes.js';
 
 export const captainRouter = Router();
 captainRouter.use(requireAuth);
@@ -21,6 +22,7 @@ captainRouter.use('/rides', requireRole('captain'), captainRidesRouter);
 captainRouter.use('/home', requireRole('captain'), captainHomeRouter);
 captainRouter.use('/recurring-rides', requireRole('captain'), captainRecurringRouter);
 captainRouter.use('/heatmap', requireRole('captain'), captainHeatmapRouter);
+captainRouter.use('/preferences', requireRole('captain'), captainPreferencesRouter);
 
 // /applications/* is accessible to rider OR captain — any signed-in user can apply.
 const requireRiderOrCaptain = requireRole('rider', 'captain');

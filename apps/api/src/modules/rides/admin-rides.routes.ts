@@ -87,6 +87,9 @@ adminRidesRouter.post('/', async (req, res) => {
     // (visible by captains) without the return SMS confirmation step.
     skipBookerActiveCheck: true,
     skipPassengerConfirm: true,
+    // Mark the ride as originating from the call-center so the dedicated
+    // operator commission rate is used at payout time.
+    source: 'operator',
   });
   await audit({
     adminId,

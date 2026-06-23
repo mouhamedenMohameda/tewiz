@@ -334,7 +334,19 @@
       "heatmapTitle": "Hot zones",
       "heatmapSubtitle": "Where demand is right now",
       "recurringTitle": "Recurring rides",
-      "recurringSubtitle": "Weekly commitments"
+      "recurringSubtitle": "Weekly commitments",
+      "preferencesTitle": "Preferences",
+      "preferencesSubtitle": "Parcels, long-distance rides"
+    },
+    "preferences": {
+      "title": "Driver preferences",
+      "intro": "You can change these at any time. They apply immediately to newly dispatched rides.",
+      "colis": "Accept parcels",
+      "colisHint": "You'll receive parcel delivery rides (no passenger).",
+      "longDistance": "Accept inter-city rides",
+      "longDistanceHint": "You'll receive long-distance rides (Nouakchott — Nouadhibou, etc.).",
+      "saved": "Preference saved",
+      "saveError": "Could not update preference."
     },
     "rides": {
       "title": "Rides",
@@ -382,7 +394,7 @@
     "wallet": {
       "title": "Wallet",
       "balance": "Wallet balance",
-      "commissionNote": "The 7% commission (10% for parcels) is debited at the end of each ride.",
+      "commissionNote": "The commission is debited automatically at the end of each ride.",
       "uploadReceipt": "Send a top-up screenshot",
       "topups": "Top-ups",
       "noTopups": "No top-up sent.",
@@ -700,6 +712,8 @@
     "pause5": "Pause 5 min",
     "pauseSub": "no alerts",
     "unavailable": "Ride unavailable.",
+    "alreadyTakenTitle": "Ride taken",
+    "alreadyTaken": "This ride was just accepted by another captain.",
     "pausedBadge": "🔕 Notifications paused · {{mins}} min · Resume"
   },
   "voiceCandidate": {

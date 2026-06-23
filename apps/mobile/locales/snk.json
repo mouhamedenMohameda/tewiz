@@ -289,7 +289,19 @@
       "heatmapTitle": "Yere a buni",
       "heatmapSubtitle": "Maxa demande na sahaa",
       "recurringTitle": "Course a gabani",
-      "recurringSubtitle": "Engagements semaine"
+      "recurringSubtitle": "Engagements semaine",
+      "preferencesTitle": "Préférences",
+      "preferencesSubtitle": "Colis, course raga ya"
+    },
+    "preferences": {
+      "title": "Préférences chauffeur",
+      "intro": "An na suge ke yaagunte yi kasa. Ke gollo do course foroyni do.",
+      "colis": "Ya saari colis",
+      "colisHint": "Ke saari course livraison colis (passager nta).",
+      "longDistance": "Ya saari course raga ya",
+      "longDistanceHint": "Ke saari course raga (Nouakchott — Nouadhibou, etc.).",
+      "saved": "Préférence saranta",
+      "saveError": "Ya nta sugu préférence."
     },
     "rides": {
       "title": "Course",
@@ -337,7 +349,7 @@
     "wallet": {
       "title": "Portefeuille",
       "balance": "Solde wallet",
-      "commissionNote": "Commission 7% (10% colis) course gasaba do.",
+      "commissionNote": "Commission course gasaba do.",
       "uploadReceipt": "Capture recharge faabu",
       "topups": "Recharge",
       "noTopups": "Recharge nta.",
@@ -617,6 +629,8 @@
     "pause5": "Pause 5 min",
     "pauseSub": "alerte nta",
     "unavailable": "Course nta.",
+    "alreadyTakenTitle": "Course gaaba",
+    "alreadyTaken": "Course gaaba do chauffeur tana ya.",
     "pausedBadge": "🔕 Notifications pause do · {{mins}} min · Don koota"
   },
   "voiceCandidate": {

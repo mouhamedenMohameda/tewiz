@@ -284,6 +284,9 @@ export default function CaptainHome() {
           <NavRow icon="recurring" tint="#E9EFE6" fg={colors.success}
             title={t('captain.nav.recurringTitle')} subtitle={t('captain.nav.recurringSubtitle')}
             onPress={() => router.push('/(app)/captain/recurring')} />
+          <NavRow icon="tune" tint={colors.surfaceAlt} fg={colors.ink}
+            title={t('captain.nav.preferencesTitle')} subtitle={t('captain.nav.preferencesSubtitle')}
+            onPress={() => router.push('/(app)/captain/preferences')} />
         </View>
       </FadeInView>
 

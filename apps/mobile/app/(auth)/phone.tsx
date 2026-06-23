@@ -46,10 +46,19 @@ export default function LoginScreen() {
 
     setBusy(true);
     try {
-      const deviceId =
-        (await Application.getIosIdForVendorAsync()) ??
-        Application.getAndroidId() ??
-        DEVICE_ID_FALLBACK;
+      // `getIosIdForVendorAsync()` THROWS on Android (not returns null), so
+      // we must branch on Platform.OS — otherwise login rejects before the
+      // network call ever happens.
+      let deviceId = DEVICE_ID_FALLBACK;
+      try {
+        if (Platform.OS === 'ios') {
+          deviceId = (await Application.getIosIdForVendorAsync()) ?? DEVICE_ID_FALLBACK;
+        } else if (Platform.OS === 'android') {
+          deviceId = Application.getAndroidId() ?? DEVICE_ID_FALLBACK;
+        }
+      } catch {
+        // fall back to the static default
+      }
 
       const r = await api.post<{
         user: { id: string; phone: string; role: 'rider' | 'captain' | 'admin'; fullName: string | null; mustResetPassword?: boolean };

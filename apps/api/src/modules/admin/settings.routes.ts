@@ -26,14 +26,19 @@ adminSettingsRouter.get('/', async (_req, res) => {
 
 const patchBody = z.object({
   // Sanity bounds — keep someone from typing 999999 by mistake.
-  baseFareMru:           z.number().int().min(0).max(10_000).optional(),
-  perKmMru:              z.number().int().min(0).max(10_000).optional(),
-  minFareMru:            z.number().int().min(0).max(10_000).optional(),
-  colisBaseFareMru:      z.number().int().min(0).max(10_000).optional(),
-  colisPerKmMru:         z.number().int().min(0).max(10_000).optional(),
-  colisMinFareMru:       z.number().int().min(0).max(10_000).optional(),
-  defaultCommissionBps:  z.number().int().min(0).max(5_000).optional(),
-  colisCommissionBps:    z.number().int().min(0).max(5_000).optional(),
+  baseFareMru:                      z.number().int().min(0).max(10_000).optional(),
+  perKmMru:                         z.number().int().min(0).max(10_000).optional(),
+  minFareMru:                       z.number().int().min(0).max(10_000).optional(),
+  colisBaseFareMru:                 z.number().int().min(0).max(10_000).optional(),
+  colisPerKmMru:                    z.number().int().min(0).max(10_000).optional(),
+  colisMinFareMru:                  z.number().int().min(0).max(10_000).optional(),
+  defaultCommissionBps:             z.number().int().min(0).max(5_000).optional(),
+  colisCommissionBps:               z.number().int().min(0).max(5_000).optional(),
+  // 1_000 m .. 1_000_000 m (1 km .. 1000 km). Stored as meters, edited as km
+  // in the admin UI.
+  longDistanceThresholdM:           z.number().int().min(1_000).max(1_000_000).optional(),
+  operatorPassengerCommissionBps:   z.number().int().min(0).max(5_000).optional(),
+  operatorColisCommissionBps:       z.number().int().min(0).max(5_000).optional(),
 }).refine(
   (b) => Object.values(b).some((v) => v !== undefined),
   { message: 'At least one field is required' },

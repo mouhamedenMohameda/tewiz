@@ -131,6 +131,7 @@ export default function AuthWelcome() {
                 {t('auth.welcome.note')}
               </AppText>
             </View>
+
           </FadeInView>
         </View>
       </SafeAreaView>

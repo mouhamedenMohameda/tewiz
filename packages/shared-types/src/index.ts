@@ -84,6 +84,8 @@ export type CaptainStatus = 'active' | 'suspended' | 'banned';
 // --- Rides ---
 export type RideType = 'passenger' | 'colis';
 
+export type RideSource = 'app' | 'operator';
+
 export type RideStatus =
   | 'pending_passenger_confirm'
   | 'searching'
