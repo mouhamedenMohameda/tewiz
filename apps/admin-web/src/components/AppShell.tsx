@@ -18,6 +18,7 @@ const NAV = [
   { href: '/restaurants',    label: 'Restaurants', icon: '🍽️' },
   { href: '/stats',          label: 'Statistiques', icon: '📊' },
   { href: '/settings',       label: 'Paramètres',  icon: '⚙️' },
+  { href: '/settings/documents', label: 'Documents requis', icon: '📑' },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -71,7 +72,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <nav className="flex-1 p-3 space-y-1">
           {NAV.map((item) => {
-            const active = path.startsWith(item.href);
+            const active =
+              path === item.href ||
+              path.startsWith(item.href + '/');
             return (
               <Link
                 key={item.href}
