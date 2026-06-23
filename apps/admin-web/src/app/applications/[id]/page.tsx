@@ -51,34 +51,7 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
 
   const [captainPassword, setCaptainPassword] = useState<string | null>(null);
   const [regeneratedPassword, setRegeneratedPassword] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
-
-  function extractError(e: unknown): string {
-    // Axios error: pull the API-provided code/message when present so the admin
-    // sees WHY the approval failed instead of a silent no-op. The API wraps
-    // errors as `{ error: { code, message, details } }`, but older paths /
-    // proxies sometimes return `{ code, message }` flat — handle both.
-    const err = e as {
-      response?: {
-        data?: {
-          error?: { code?: string; message?: string; details?: unknown };
-          code?: string;
-          message?: string;
-          details?: unknown;
-        };
-        status?: number;
-      };
-      message?: string;
-    };
-    const data = err?.response?.data;
-    const payload = data?.error ?? data;
-    if (payload?.message) {
-      const details = payload.details ? ` — ${JSON.stringify(payload.details)}` : '';
-      return `${payload.code ?? 'error'}: ${payload.message}${details}`;
-    }
-    if (err?.response?.status) return `HTTP ${err.response.status}`;
-    return err?.message ?? 'Erreur inconnue';
-  }
+  const [actionError, setActionError] = useState<ParsedApiError | null>(null);
 
   const approveApp = useMutation({
     mutationFn: async () => {
@@ -92,7 +65,7 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
       if (res.captainPassword) setCaptainPassword(res.captainPassword);
       else router.replace('/applications');
     },
-    onError: (e) => setActionError(extractError(e)),
+    onError: (e) => setActionError(parseApiError(e)),
   });
 
   const regeneratePassword = useMutation({
@@ -108,13 +81,13 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
   const reqCorr = useMutation({
     mutationFn: (notes: string) => api.post(`/admin/applications/${id}/request-corrections`, { notes }),
     onSuccess: () => router.replace('/applications'),
-    onError: (e) => setActionError(extractError(e)),
+    onError: (e) => setActionError(parseApiError(e)),
   });
 
   const rejectApp = useMutation({
     mutationFn: (reason: string) => api.post(`/admin/applications/${id}/reject`, { reason }),
     onSuccess: () => router.replace('/applications'),
-    onError: (e) => setActionError(extractError(e)),
+    onError: (e) => setActionError(parseApiError(e)),
   });
 
   const [activeDoc, setActiveDoc] = useState<DocumentType | null>(null);
@@ -298,9 +271,7 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
         {(app.status === 'submitted' || app.status === 'under_review') && (
           <div className="card p-5">
             {actionError && (
-              <div className="mb-3 px-3 py-2 rounded bg-red-50 border border-red-200 text-sm text-red-700 break-words">
-                {actionError}
-              </div>
+              <ErrorAlert error={actionError} onDismiss={() => setActionError(null)} />
             )}
             <div className="flex flex-wrap gap-3 items-center justify-end">
               <button
@@ -510,6 +481,112 @@ function Modal({
         </div>
         <div className="p-5">{children}</div>
       </div>
+    </div>
+  );
+}
+
+// ─── Error helpers ───────────────────────────────────────────────────────────
+
+interface ParsedApiError {
+  code: string;
+  message: string;
+  status?: number;
+}
+
+function parseApiError(e: unknown): ParsedApiError {
+  // The API wraps errors as `{ error: { code, message, details } }`. Some
+  // proxies/older paths return `{ code, message }` flat; handle both shapes.
+  const err = e as {
+    response?: {
+      data?: {
+        error?: { code?: string; message?: string };
+        code?: string;
+        message?: string;
+      };
+      status?: number;
+    };
+    message?: string;
+  };
+  const data = err?.response?.data;
+  const payload = data?.error ?? data;
+  return {
+    code: payload?.code ?? 'unknown_error',
+    message: payload?.message ?? err?.message ?? 'Une erreur inattendue est survenue.',
+    status: err?.response?.status,
+  };
+}
+
+// Friendly French translation of known API error codes. When a code isn't in
+// the map we still show the raw API message, but with a generic "Erreur" title
+// so the operator at least sees something readable.
+const ERROR_PRESETS: Record<string, { title: string; hint?: string }> = {
+  plate_taken: {
+    title: 'Plaque déjà utilisée',
+    hint: 'Vérifie dans la liste Chauffeurs qui possède déjà cette plaque, ou demande au chauffeur de corriger sa plaque.',
+  },
+  phone_taken: {
+    title: 'Numéro de téléphone déjà utilisé',
+    hint: 'Un autre compte utilise déjà ce numéro. Vérifie la liste Utilisateurs.',
+  },
+  captain_needs_phone: {
+    title: 'Numéro de téléphone manquant',
+    hint: "Le chauffeur doit avoir un numéro de téléphone avant validation.",
+  },
+  no_user_id: {
+    title: 'Aucun compte lié au dossier',
+    hint: "Ce dossier n'est lié à aucun utilisateur. Demande au chauffeur de se reconnecter à l'app puis ressoumettre.",
+  },
+  wrong_status: {
+    title: 'Statut du dossier incompatible',
+    hint: "L'action n'est pas autorisée dans l'état actuel du dossier.",
+  },
+  required_docs_not_ready: {
+    title: 'Documents requis incomplets',
+    hint: 'Tous les documents marqués comme requis doivent être présents et approuvés.',
+  },
+  docs_not_all_approved: {
+    title: 'Documents non approuvés',
+    hint: 'Certains documents sont encore en attente ou rejetés.',
+  },
+  validation_error: {
+    title: 'Données invalides',
+  },
+  not_found: {
+    title: 'Introuvable',
+  },
+  cannot_claim: {
+    title: 'Prise en charge impossible',
+  },
+};
+
+function ErrorAlert({ error, onDismiss }: { error: ParsedApiError; onDismiss: () => void }) {
+  const preset = ERROR_PRESETS[error.code];
+  const title = preset?.title ?? 'Erreur';
+  return (
+    <div
+      role="alert"
+      className="mb-4 flex gap-3 items-start rounded-lg border border-red-200 bg-red-50 p-4"
+    >
+      <div className="shrink-0 mt-0.5 h-7 w-7 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-bold">
+        !
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-semibold text-red-900">{title}</div>
+        <div className="text-sm text-red-800 mt-0.5 break-words">{error.message}</div>
+        {preset?.hint && (
+          <div className="text-xs text-red-700/80 mt-2">{preset.hint}</div>
+        )}
+        <div className="text-[10px] uppercase tracking-wide text-red-500/70 mt-2 font-mono">
+          {error.code}{error.status ? ` · HTTP ${error.status}` : ''}
+        </div>
+      </div>
+      <button
+        onClick={onDismiss}
+        aria-label="Fermer"
+        className="shrink-0 text-red-400 hover:text-red-700 text-lg leading-none"
+      >
+        ✕
+      </button>
     </div>
   );
 }
