@@ -26,16 +26,38 @@ export default function LoginScreen() {
   const { t } = useTranslation();
   const setSession = useAuth((s) => s.setSession);
 
-  const [phone, setPhone] = useState('+222');
+  // Start empty (not pre-filled with "+222"). Pre-filling broke the
+  // App Store reviewer who typed their number on top of "+222" and got
+  // "+222+22244000001" — invalid. Empty + a clear placeholder forces
+  // the user to type the full number once, which normalizePhone() then
+  // turns into a canonical "+222XXXXXXXX" before submission.
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
+
+  /**
+   * Normalize what the user typed into a canonical "+222XXXXXXXX".
+   * Accepts:
+   *   - "+22244000001"  → "+22244000001"  (already canonical)
+   *   - "22244000001"   → "+22244000001"  (missing the +)
+   *   - "44000001"      → "+22244000001"  (just the 8 local digits)
+   *   - "44 00 00 01"   → "+22244000001"  (spaces, dashes, dots stripped)
+   *   - "+222 44 000001"→ "+22244000001"
+   */
+  function normalizePhone(raw: string): string {
+    const digits = raw.replace(/\D/g, '');
+    if (digits.length === 8 && /^[234]/.test(digits)) return `+222${digits}`;
+    if (digits.length === 11 && digits.startsWith('222')) return `+${digits}`;
+    return raw.trim();
+  }
 
   // Default to rider role from this app's perspective; the backend will
   // promote us to captain if the DB role is captain.
   const role = 'rider';
 
   async function submit() {
-    if (phone.replace(/\D/g, '').length < 11) {
+    const normalizedPhone = normalizePhone(phone);
+    if (normalizedPhone.replace(/\D/g, '').length < 11) {
       Alert.alert(t('auth.login.invalidPhoneTitle'), t('auth.login.invalidPhoneBody'));
       return;
     }
@@ -64,7 +86,7 @@ export default function LoginScreen() {
         user: { id: string; phone: string; role: 'rider' | 'captain' | 'admin'; fullName: string | null; mustResetPassword?: boolean };
         tokens: { accessToken: string; refreshToken: string };
       }>('/auth/login', {
-        phone,
+        phone: normalizedPhone,
         password,
         role,
         deviceId,
