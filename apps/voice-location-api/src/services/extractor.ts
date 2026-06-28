@@ -38,7 +38,14 @@ export interface ExtractedPlace {
 export interface ExtractedTrip {
   pickup: ExtractedPlace | null;
   destination: ExtractedPlace | null;
-  intent: 'pickup_only' | 'destination_only' | 'both' | 'neither';
+  intent: 'pickup_only' | 'destination_only' | 'both' | 'neither' | 'open_ride';
+  /**
+   * True when the rider explicitly asked for a taxi without a fixed
+   * destination ("course ouverte" / "taxi pour faire mes courses" / "taxi
+   * pour 2 heures"). The downstream booker uses this to flip isOpen=true
+   * and skip dropoff resolution.
+   */
+  is_open: boolean;
 }
 
 /** Kept for backward compatibility with previous single-address shape. */
@@ -175,6 +182,29 @@ You will receive a "Local POI candidates" list at the end of the prompt — real
 - If NONE fit, ignore the list and use what the speaker said verbatim.
 
 ────────────────────────────────────────────────────────
+OPEN RIDE (course ouverte)
+────────────────────────────────────────────────────────
+
+When the rider explicitly asks for a taxi without a fixed destination
+(running errands, "à ma disposition", "pour quelques heures", "pour faire
+mes courses", "للقيام بقضايا", "taxi for a while"), set:
+  - "is_open": true
+  - "intent":  "open_ride"
+  - destination: null (no place to extract — there isn't one)
+  - pickup: extract it if mentioned, otherwise null
+
+Trigger phrases (non-exhaustive — match the spirit, not the exact wording):
+  - FR: "à ma disposition", "pour faire des courses", "pour faire mes courses",
+        "pour 1h / 2 heures", "compteur", "taxi pour quelques heures",
+        "taxi sans destination", "je veux un taxi avec moi", "course ouverte"
+  - HSY/AR: "تاكسي معي شوية", "تاكسي ساعة / ساعتين", "نقضي قضايا",
+            "بدون مقصد", "تاكسي للقضايا"
+  - EN: "taxi for a while", "taxi for X hours", "open ride", "metered taxi"
+
+If is_open is true the destination MUST be null. Never invent a destination
+just to "fill" the schema.
+
+────────────────────────────────────────────────────────
 INTENT FIELD
 ────────────────────────────────────────────────────────
 
@@ -182,6 +212,7 @@ Set "intent" to:
 - "pickup_only"     → only a pickup was extracted
 - "destination_only"→ only a destination was extracted
 - "both"            → both
+- "open_ride"       → open ride (see section above) — overrides the others
 - "neither"         → nothing usable
 
 Output ONLY valid JSON. No prose, no markdown fences.`;
@@ -203,7 +234,8 @@ const SCHEMA_HINT = `{
     "confidence": "high | medium | low",
     "ambiguity_note": "string | null"
   } | null,
-  "intent": "pickup_only | destination_only | both | neither"
+  "intent": "pickup_only | destination_only | both | open_ride | neither",
+  "is_open": "boolean"
 }`;
 
 function normalizePlace(p: unknown): ExtractedPlace | null {
@@ -297,17 +329,30 @@ export async function extractTrip(
   }
 
   const pickup = normalizePlace(raw.pickup);
-  const destination = normalizePlace(raw.destination);
+  let destination = normalizePlace(raw.destination);
+  const isOpen = raw.is_open === true || raw.intent === 'open_ride';
+  // Hard guarantee: open ride => destination is null, even if the model
+  // hallucinated one. Downstream code branches on is_open, so this keeps the
+  // two fields consistent.
+  if (isOpen) destination = null;
 
   let intent: ExtractedTrip['intent'];
   const rawIntent = raw.intent;
-  if (rawIntent === 'pickup_only' || rawIntent === 'destination_only' || rawIntent === 'both' || rawIntent === 'neither') {
+  if (
+    rawIntent === 'pickup_only'
+    || rawIntent === 'destination_only'
+    || rawIntent === 'both'
+    || rawIntent === 'neither'
+    || rawIntent === 'open_ride'
+  ) {
     intent = rawIntent;
+  } else if (isOpen) {
+    intent = 'open_ride';
   } else {
     intent = pickup && destination ? 'both' : pickup ? 'pickup_only' : destination ? 'destination_only' : 'neither';
   }
 
-  return { pickup, destination, intent };
+  return { pickup, destination, intent, is_open: isOpen };
 }
 
 /**

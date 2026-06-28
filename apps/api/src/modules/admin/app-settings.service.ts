@@ -40,6 +40,14 @@ export interface PricingSettings {
   commissionBonusThresholdMru: number;
   commissionBonusWindowDays: number;
   commissionBonusRewardDays: number;
+  // Migration 0030. Open rides ("course ouverte") — no upfront destination,
+  // metered fare = open_base + km × open_per_km + min × open_per_minute,
+  // floored at open_min_fare.
+  allowOpenRides: boolean;
+  openBaseFareMru: number;
+  openPerKmMru: number;
+  openPerMinuteMru: number;
+  openMinFareMru: number;
   updatedAt: string;
   updatedBy: string | null;
 }
@@ -64,6 +72,11 @@ interface Row {
   commission_bonus_threshold_mru: number;
   commission_bonus_window_days: number;
   commission_bonus_reward_days: number;
+  allow_open_rides: boolean;
+  open_base_fare_mru: number;
+  open_per_km_mru: number;
+  open_per_minute_mru: number;
+  open_min_fare_mru: number;
   updated_at: Date;
   updated_by: string | null;
 }
@@ -86,6 +99,11 @@ function toSettings(r: Row): PricingSettings {
     commissionBonusThresholdMru: r.commission_bonus_threshold_mru,
     commissionBonusWindowDays: r.commission_bonus_window_days,
     commissionBonusRewardDays: r.commission_bonus_reward_days,
+    allowOpenRides: r.allow_open_rides,
+    openBaseFareMru: r.open_base_fare_mru,
+    openPerKmMru: r.open_per_km_mru,
+    openPerMinuteMru: r.open_per_minute_mru,
+    openMinFareMru: r.open_min_fare_mru,
     updatedAt: r.updated_at.toISOString(),
     updatedBy: r.updated_by,
   };
@@ -104,6 +122,8 @@ export async function getPricingSettings(): Promise<PricingSettings> {
             searching_timeout_s,
             commission_bonus_enabled, commission_bonus_threshold_mru,
             commission_bonus_window_days, commission_bonus_reward_days,
+            allow_open_rides, open_base_fare_mru, open_per_km_mru,
+            open_per_minute_mru, open_min_fare_mru,
             updated_at, updated_by
        FROM app_settings WHERE id = 1`,
   );
@@ -134,6 +154,11 @@ export interface PricingSettingsPatch {
   commissionBonusThresholdMru?: number;
   commissionBonusWindowDays?: number;
   commissionBonusRewardDays?: number;
+  allowOpenRides?: boolean;
+  openBaseFareMru?: number;
+  openPerKmMru?: number;
+  openPerMinuteMru?: number;
+  openMinFareMru?: number;
 }
 
 export async function updatePricingSettings(
@@ -158,8 +183,13 @@ export async function updatePricingSettings(
             commission_bonus_threshold_mru    = COALESCE($14, commission_bonus_threshold_mru),
             commission_bonus_window_days      = COALESCE($15, commission_bonus_window_days),
             commission_bonus_reward_days      = COALESCE($16, commission_bonus_reward_days),
+            allow_open_rides                  = COALESCE($17, allow_open_rides),
+            open_base_fare_mru                = COALESCE($18, open_base_fare_mru),
+            open_per_km_mru                   = COALESCE($19, open_per_km_mru),
+            open_per_minute_mru               = COALESCE($20, open_per_minute_mru),
+            open_min_fare_mru                 = COALESCE($21, open_min_fare_mru),
             updated_at                        = now(),
-            updated_by                        = $17
+            updated_by                        = $22
       WHERE id = 1
       RETURNING base_fare_mru, per_km_mru, min_fare_mru,
                 colis_base_fare_mru, colis_per_km_mru, colis_min_fare_mru,
@@ -169,6 +199,8 @@ export async function updatePricingSettings(
                 searching_timeout_s,
                 commission_bonus_enabled, commission_bonus_threshold_mru,
                 commission_bonus_window_days, commission_bonus_reward_days,
+                allow_open_rides, open_base_fare_mru, open_per_km_mru,
+                open_per_minute_mru, open_min_fare_mru,
                 updated_at, updated_by`,
     [
       patch.baseFareMru ?? null,
@@ -187,6 +219,11 @@ export async function updatePricingSettings(
       patch.commissionBonusThresholdMru ?? null,
       patch.commissionBonusWindowDays ?? null,
       patch.commissionBonusRewardDays ?? null,
+      patch.allowOpenRides ?? null,
+      patch.openBaseFareMru ?? null,
+      patch.openPerKmMru ?? null,
+      patch.openPerMinuteMru ?? null,
+      patch.openMinFareMru ?? null,
       adminId,
     ],
   );

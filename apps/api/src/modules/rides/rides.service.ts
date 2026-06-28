@@ -3,9 +3,10 @@ import type pg from 'pg';
 import { pool, withTx } from '../../db/pool.js';
 import { HttpError } from '../../middleware/error.js';
 import { env } from '../../config/env.js';
-import { estimateFareMru, commissionMru } from './pricing.js';
+import { estimateFareMru, commissionMru, openFareMru, type OpenTariff } from './pricing.js';
 import { getPricingSettings } from '../admin/app-settings.service.js';
 import { distanceMeters, eligibleCaptainsForRide } from './dispatch.service.js';
+import { computeDistanceM, lastTrailPoint, readLiveMeter } from './meter.service.js';
 import { debitWallet } from '../wallet/wallet.service.js';
 import { sms } from '../auth/sms.js';
 import { notifyCaptainsNewRide } from '../push/expo-push.js';
@@ -29,7 +30,10 @@ export type RideSource = 'app' | 'operator';
 export interface CreateRideInput {
   bookerId: string;
   pickup: { lat: number; lng: number; label?: string };
-  dropoff: { lat: number; lng: number; label?: string };
+  /** Required for fixed-fare rides; must be undefined when isOpen=true. */
+  dropoff?: { lat: number; lng: number; label?: string };
+  /** Course ouverte — no destination, metered fare from GPS trail. */
+  isOpen?: boolean;
   rideType?: RideType;
   paymentMethod?: PaymentMethod;
   // For "course pour quelqu'un d'autre"
@@ -67,8 +71,9 @@ interface RideRow {
   pickup_lat: number;
   pickup_lng: number;
   pickup_label: string | null;
-  dropoff_lat: number;
-  dropoff_lng: number;
+  // Nullable for open rides (no upfront destination, filled in at completion).
+  dropoff_lat: number | null;
+  dropoff_lng: number | null;
   dropoff_label: string | null;
   fare_estimate_mru: string | null;
   fare_final_mru: string | null;
@@ -85,6 +90,11 @@ interface RideRow {
   completed_at: Date | null;
   cancelled_at: Date | null;
   cancel_reason: string | null;
+  is_open: boolean;
+  open_base_fare_mru: number | null;
+  open_per_km_mru: number | null;
+  open_per_minute_mru: number | null;
+  open_min_fare_mru: number | null;
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -103,7 +113,9 @@ const RIDE_COLUMNS = `
   commission_rate_bps, commission_mru,
   payment_method, distance_m, duration_s, verification_code,
   requested_at, accepted_at, arrived_at, started_at, completed_at,
-  cancelled_at, cancel_reason
+  cancelled_at, cancel_reason,
+  is_open, open_base_fare_mru, open_per_km_mru,
+  open_per_minute_mru, open_min_fare_mru
 `;
 
 function generateVerificationCode(): string {
@@ -125,7 +137,11 @@ function shape(r: RideRow, opts: { revealCode: boolean } = { revealCode: false }
     source: r.source,
     status: r.status,
     pickup: { lat: r.pickup_lat, lng: r.pickup_lng, label: r.pickup_label },
-    dropoff: { lat: r.dropoff_lat, lng: r.dropoff_lng, label: r.dropoff_label },
+    // Open rides start with dropoff=null; once completed the captain's last
+    // GPS point is written back so the shape stays consistent.
+    dropoff: r.dropoff_lat == null || r.dropoff_lng == null
+      ? null
+      : { lat: r.dropoff_lat, lng: r.dropoff_lng, label: r.dropoff_label },
     fareEstimateMru: r.fare_estimate_mru === null ? null : Number(r.fare_estimate_mru),
     fareFinalMru: r.fare_final_mru === null ? null : Number(r.fare_final_mru),
     commissionRateBps: r.commission_rate_bps,
@@ -141,30 +157,89 @@ function shape(r: RideRow, opts: { revealCode: boolean } = { revealCode: false }
     completedAt: r.completed_at,
     cancelledAt: r.cancelled_at,
     cancelReason: r.cancel_reason,
+    isOpen: r.is_open,
+    openTariff: r.is_open && r.open_base_fare_mru != null
+      ? {
+          baseFareMru: r.open_base_fare_mru,
+          perKmMru: r.open_per_km_mru!,
+          perMinuteMru: r.open_per_minute_mru!,
+          minFareMru: r.open_min_fare_mru!,
+        }
+      : null,
   };
+}
+
+/**
+ * Tack the live meter (distance/duration/fare so far) onto an in_progress
+ * open ride. No-op for closed rides or rides that haven't started.
+ */
+async function enrichWithLiveMeter<T extends {
+  id: string;
+  isOpen: boolean;
+  status: RideStatus;
+  startedAt: Date | null;
+  openTariff: OpenTariff | null;
+}>(ride: T): Promise<T & {
+  liveMeter: { distanceM: number; durationS: number; fareMru: number } | null;
+}> {
+  if (!ride.isOpen || !ride.startedAt || !ride.openTariff || ride.status !== 'in_progress') {
+    return { ...ride, liveMeter: null };
+  }
+  const liveMeter = await readLiveMeter({
+    rideId: ride.id,
+    startedAt: ride.startedAt,
+    tariff: ride.openTariff,
+  });
+  return { ...ride, liveMeter };
 }
 
 // ────────────────────────────────────────────────────────────────────────────
 // Create
 
 export async function createRide(input: CreateRideInput) {
-  // A passenger (including a captain who books as a rider) may have multiple
-  // active rides at once — no booker-side limit.
-
-  // 2. Pricing
-  const dStraight = await distanceMeters(
-    input.pickup.lat, input.pickup.lng,
-    input.dropoff.lat, input.dropoff.lng,
-  );
-  if (dStraight < 50) {
-    throw new HttpError(400, 'distance_too_short',
-      'Pickup and dropoff are too close (<50 m)');
-  }
   const rideType = input.rideType ?? 'passenger';
-  const { fareMru, distanceEstimateM } = await estimateFareMru(dStraight, rideType);
-
+  const isOpen = !!input.isOpen;
   const settings = await getPricingSettings();
   const source: RideSource = input.source ?? 'app';
+
+  if (isOpen) {
+    if (!settings.allowOpenRides) {
+      throw new HttpError(403, 'open_rides_disabled',
+        'Les courses ouvertes sont désactivées');
+    }
+    if (rideType !== 'passenger') {
+      throw new HttpError(400, 'open_only_passenger',
+        'Open rides are only supported for passenger rides');
+    }
+    if (input.dropoff) {
+      throw new HttpError(400, 'open_has_dropoff',
+        'Open rides must not carry a dropoff (the captain decides when to stop)');
+    }
+  } else if (!input.dropoff) {
+    throw new HttpError(400, 'missing_dropoff',
+      'A dropoff is required for fixed-fare rides');
+  }
+
+  // Pricing — different paths for fixed vs metered.
+  let fareEstimateMru: number | null;
+  let distanceEstimateM: number | null;
+  if (isOpen) {
+    fareEstimateMru = null;
+    distanceEstimateM = null;
+  } else {
+    const dStraight = await distanceMeters(
+      input.pickup.lat, input.pickup.lng,
+      input.dropoff!.lat, input.dropoff!.lng,
+    );
+    if (dStraight < 50) {
+      throw new HttpError(400, 'distance_too_short',
+        'Pickup and dropoff are too close (<50 m)');
+    }
+    const est = await estimateFareMru(dStraight, rideType);
+    fareEstimateMru = est.fareMru;
+    distanceEstimateM = est.distanceEstimateM;
+  }
+
   const commissionBps = source === 'operator'
     ? (rideType === 'colis'
         ? settings.operatorColisCommissionBps
@@ -215,6 +290,22 @@ export async function createRide(input: CreateRideInput) {
   return withTx(async (client) => {
     // For "for other" rides, passenger_user_id stays NULL (passenger has no account).
     const passengerUserId = isForOther ? null : input.bookerId;
+    // Open rides leave dropoff_location NULL until completion. For closed
+    // rides we build the geography from the rider's pinned dropoff. PostGIS
+    // can't accept NULL coords in ST_MakePoint, so we branch on isOpen and
+    // pass either NULL or the literal geography into the column.
+    const dropoffGeo = isOpen
+      ? null
+      : { lng: input.dropoff!.lng, lat: input.dropoff!.lat };
+    const dropoffLabel = isOpen ? null : input.dropoff?.label ?? null;
+    const openTariff = isOpen
+      ? {
+          base: settings.openBaseFareMru,
+          perKm: settings.openPerKmMru,
+          perMin: settings.openPerMinuteMru,
+          min: settings.openMinFareMru,
+        }
+      : null;
     const r = await client.query<RideRow>(
       `INSERT INTO rides (
          booker_id, passenger_user_id, passenger_name, passenger_phone,
@@ -222,20 +313,29 @@ export async function createRide(input: CreateRideInput) {
          pickup_location, pickup_label,
          dropoff_location, dropoff_label,
          fare_estimate_mru, commission_rate_bps,
-         distance_m, payment_method, verification_code, source
+         distance_m, payment_method, verification_code, source,
+         is_open,
+         open_base_fare_mru, open_per_km_mru,
+         open_per_minute_mru, open_min_fare_mru
        )
        VALUES (
          $1::uuid, $14::uuid, $15, $16, $13, $2, $17,
          ST_SetSRID(ST_MakePoint($3, $4), 4326)::geography, $5,
-         ST_SetSRID(ST_MakePoint($6, $7), 4326)::geography, $8,
-         $9, $10, $11, $12, $18, $19
+         CASE WHEN $6::float8 IS NULL OR $7::float8 IS NULL
+              THEN NULL
+              ELSE ST_SetSRID(ST_MakePoint($6, $7), 4326)::geography
+         END,
+         $8,
+         $9, $10, $11, $12, $18, $19,
+         $20,
+         $21, $22, $23, $24
        )
        RETURNING ${RIDE_COLUMNS}`,
       [
         input.bookerId, rideType,
         input.pickup.lng, input.pickup.lat, input.pickup.label ?? null,
-        input.dropoff.lng, input.dropoff.lat, input.dropoff.label ?? null,
-        fareMru, commissionBps, distanceEstimateM,
+        dropoffGeo?.lng ?? null, dropoffGeo?.lat ?? null, dropoffLabel,
+        fareEstimateMru, commissionBps, distanceEstimateM,
         input.paymentMethod ?? 'cash',
         isForOther,
         passengerUserId,
@@ -244,6 +344,11 @@ export async function createRide(input: CreateRideInput) {
         initialStatus,
         verificationCode,
         source,
+        isOpen,
+        openTariff?.base ?? null,
+        openTariff?.perKm ?? null,
+        openTariff?.perMin ?? null,
+        openTariff?.min ?? null,
       ],
     );
     const ride = r.rows[0]!;
@@ -408,12 +513,14 @@ export async function getRideForUser(
   // call at pickup. The rider gets the captain's details. Admin gets neither
   // here (the admin console joins separately).
   if (role === 'captain' && ride.captain_id === userId) {
-    return enrichWithBooker(shaped);
+    const withBooker = await enrichWithBooker(shaped);
+    return enrichWithLiveMeter(withBooker);
   }
   if (role === 'rider' && ride.booker_id === userId) {
-    return enrichWithCaptain(shaped);
+    const withCaptain = await enrichWithCaptain(shaped);
+    return enrichWithLiveMeter(withCaptain);
   }
-  return shaped;
+  return enrichWithLiveMeter(shaped);
 }
 
 export async function getCurrentRideForRider(userId: string) {
@@ -437,7 +544,8 @@ export async function getCurrentRideForRider(userId: string) {
   );
   if (!r.rows[0]) return null;
   const ride = shape(r.rows[0], { revealCode: true });
-  return enrichWithCaptain(ride);
+  const withCaptain = await enrichWithCaptain(ride);
+  return enrichWithLiveMeter(withCaptain);
 }
 
 /**
@@ -546,7 +654,9 @@ export async function getCurrentRideForCaptain(captainId: string) {
       ORDER BY accepted_at DESC LIMIT 1`,
     [captainId],
   );
-  return r.rows[0] ? enrichWithBooker(shape(r.rows[0], { revealCode: true })) : null;
+  if (!r.rows[0]) return null;
+  const withBooker = await enrichWithBooker(shape(r.rows[0], { revealCode: true }));
+  return enrichWithLiveMeter(withBooker);
 }
 
 /**
@@ -876,20 +986,46 @@ export async function completeRide(input: CompleteInput) {
       );
     }
 
-    // Compute final fare. If captain reports actual distance, use it.
-    // For Phase 4 we trust captain — Phase 7 will compute from GPS trace.
-    const finalDistanceM = input.actualDistanceM ?? ride.distance_m ?? 0;
-    const finalDurationS = input.actualDurationS ?? null;
+    let finalDistanceM: number;
+    let finalDurationS: number | null;
+    let fareFinalMru: number;
+    let finalDropoff: { lat: number; lng: number } | null = null;
 
-    // Recompute fare from final distance (if actual provided), else use estimate.
-    let fareFinalMru = Number(ride.fare_estimate_mru ?? 0);
-    if (input.actualDistanceM && input.actualDistanceM !== ride.distance_m) {
-      const { estimateFareMru: estimate } = await import('./pricing.js');
-      const { fareMru } = await estimate(
-        input.actualDistanceM / env.ROUTE_MULTIPLIER,
-        ride.ride_type,
-      );
-      fareFinalMru = fareMru;
+    if (ride.is_open) {
+      // Open ride: distance is summed from accepted GPS pings; duration is
+      // wall-clock from started_at → now (the captain just pressed "End").
+      // The captain's reported distance is ignored on purpose — the whole
+      // point of the metered ride is that the rider trusts the server, not
+      // the captain's app.
+      if (!ride.started_at) {
+        throw new HttpError(409, 'not_started',
+          'Cannot complete an open ride that never started');
+      }
+      finalDistanceM = await computeDistanceM(client, ride.id);
+      finalDurationS = Math.max(0, Math.round((Date.now() - ride.started_at.getTime()) / 1000));
+      const tariff: OpenTariff = {
+        baseFareMru: ride.open_base_fare_mru!,
+        perKmMru: ride.open_per_km_mru!,
+        perMinuteMru: ride.open_per_minute_mru!,
+        minFareMru: ride.open_min_fare_mru!,
+      };
+      fareFinalMru = openFareMru(tariff, finalDistanceM, finalDurationS);
+      finalDropoff = await lastTrailPoint(client, ride.id);
+    } else {
+      // Fixed-fare ride: keep the legacy behaviour. If the captain reports
+      // an actual distance, recompute the fare; otherwise charge the upfront
+      // estimate (what the rider was quoted at booking).
+      finalDistanceM = input.actualDistanceM ?? ride.distance_m ?? 0;
+      finalDurationS = input.actualDurationS ?? null;
+      fareFinalMru = Number(ride.fare_estimate_mru ?? 0);
+      if (input.actualDistanceM && input.actualDistanceM !== ride.distance_m) {
+        const { estimateFareMru: estimate } = await import('./pricing.js');
+        const { fareMru } = await estimate(
+          input.actualDistanceM / env.ROUTE_MULTIPLIER,
+          ride.ride_type,
+        );
+        fareFinalMru = fareMru;
+      }
     }
 
     const baseCommission = commissionMru(fareFinalMru, ride.commission_rate_bps);
@@ -929,10 +1065,29 @@ export async function completeRide(input: CompleteInput) {
               commission_mru = $2,
               distance_m = $3,
               duration_s = $4,
-              commission_bonus_applied = $5
+              commission_bonus_applied = $5,
+              -- For open rides we write the last GPS point as the dropoff so
+              -- the post-trip map / history still has a clean from→to to
+              -- render. CASE-guarded so closed rides are untouched.
+              dropoff_location = CASE
+                WHEN $7::float8 IS NOT NULL AND $8::float8 IS NOT NULL
+                THEN ST_SetSRID(ST_MakePoint($7, $8), 4326)::geography
+                ELSE dropoff_location
+              END,
+              dropoff_label = CASE
+                WHEN $7::float8 IS NOT NULL AND $8::float8 IS NOT NULL
+                THEN COALESCE(dropoff_label, $9)
+                ELSE dropoff_label
+              END
         WHERE id = $6
       RETURNING ${RIDE_COLUMNS}`,
-      [fareFinalMru, commission, finalDistanceM, finalDurationS, bonus.bonusApplied, ride.id],
+      [
+        fareFinalMru, commission, finalDistanceM, finalDurationS,
+        bonus.bonusApplied, ride.id,
+        finalDropoff?.lng ?? null,
+        finalDropoff?.lat ?? null,
+        finalDropoff ? 'Fin de course' : null,
+      ],
     );
 
     // Captain goes back to "online".
@@ -974,6 +1129,18 @@ export async function cancelRide(input: CancelInput) {
     }
     if (input.role === 'captain' && ride.captain_id !== input.userId) {
       throw new HttpError(403, 'forbidden', 'Not your ride');
+    }
+
+    // For an open ride the rider is in the car and the meter is running, so
+    // only the captain can end it (whether via /complete or /cancel). The
+    // rider can still cancel BEFORE a captain accepts (status='searching').
+    if (
+      input.role === 'rider'
+      && ride.is_open
+      && ride.status !== 'searching'
+    ) {
+      throw new HttpError(403, 'rider_cancel_open_forbidden',
+        'Une course ouverte ne peut être annulée que par le chauffeur');
     }
 
     if (!['searching', 'accepted', 'arrived'].includes(ride.status)) {

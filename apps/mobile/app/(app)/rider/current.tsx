@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert, Linking, Modal, Pressable, RefreshControl,
+  ActivityIndicator, Alert, Animated, Linking, Modal, Pressable, RefreshControl,
   ScrollView, Text, TextInput, View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -31,12 +31,26 @@ interface Ride {
   status: RideStatus;
   rideType: 'passenger' | 'colis';
   pickup: { lat: number; lng: number; label: string | null };
-  dropoff: { lat: number; lng: number; label: string | null };
+  dropoff: { lat: number; lng: number; label: string | null } | null;
   fareEstimateMru: number | null;
   fareFinalMru: number | null;
   paymentMethod: 'cash' | 'wallet';
   verificationCode?: string;
   captain: Captain | null;
+  // Open ride / metered fare.
+  isOpen: boolean;
+  openTariff: {
+    baseFareMru: number;
+    perKmMru: number;
+    perMinuteMru: number;
+    minFareMru: number;
+  } | null;
+  /** Server-computed meter while status='in_progress'. */
+  liveMeter: {
+    distanceM: number;
+    durationS: number;
+    fareMru: number;
+  } | null;
 }
 
 const STATUS_PALETTE: Record<RideStatus, { bg: string; fg: string }> = {
@@ -71,10 +85,17 @@ export default function CurrentRideScreen() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
-  usePolling(load, 5_000);
+  // Open rides display a live meter; poll fast enough that the number feels
+  // alive (3 s) while in_progress, otherwise fall back to the standard 5 s.
+  const liveMeterActive = ride?.isOpen && ride?.status === 'in_progress';
+  usePolling(load, liveMeterActive ? 3_000 : 5_000);
 
   async function cancel() {
     if (!ride) return;
+    // Open ride after captain accepted: the captain is the only one who can
+    // end the trip (rider is in the car, meter is running). Showing the
+    // cancel button at all would mislead the user, so we silently skip.
+    if (ride.isOpen && ride.status !== 'searching') return;
     Alert.alert(
       t('rider.current.cancelTitle'),
       t('rider.current.cancelBody'),
@@ -139,6 +160,9 @@ export default function CurrentRideScreen() {
     || ride.status === 'accepted'
     || ride.status === 'arrived'
     || ride.status === 'in_progress';
+  // Open ride past 'searching' → only the captain can end. Hide the rider
+  // cancel button entirely to avoid a "cancel" that returns 403.
+  const canRiderCancel = isActive && !(ride.isOpen && ride.status !== 'searching');
 
   const needsRating = ride.status === 'completed' && !!ride.captain;
 
@@ -158,9 +182,13 @@ export default function CurrentRideScreen() {
           <CaptainCard captain={ride.captain} verificationCode={ride.verificationCode} />
         ) : null}
 
+        {ride.isOpen && ride.status === 'in_progress' ? (
+          <LiveMeterCard ride={ride} />
+        ) : null}
+
         <TripCard ride={ride} />
 
-        {isActive ? (
+        {canRiderCancel ? (
           <Pressable
             disabled={cancelling}
             onPress={cancel}
@@ -448,6 +476,11 @@ function CaptainCard({ captain, verificationCode }: { captain: Captain; verifica
 
 function TripCard({ ride }: { ride: Ride }) {
   const { t } = useTranslation();
+  // For an open ride still in progress we already show the live meter card
+  // above, so the fare row here would duplicate. Display the running total
+  // post-completion instead.
+  const fare = ride.fareFinalMru
+    ?? (ride.isOpen ? ride.liveMeter?.fareMru ?? null : ride.fareEstimateMru);
   return (
     <View style={{ marginTop: 16, backgroundColor: '#fff', borderRadius: 14, padding: 16, gap: 12 }}>
       <View>
@@ -457,9 +490,13 @@ function TripCard({ ride }: { ride: Ride }) {
         </Text>
       </View>
       <View>
-        <Text style={{ fontSize: 12, color: '#64748b' }}>{t('common.to')}</Text>
+        <Text style={{ fontSize: 12, color: '#64748b' }}>
+          {ride.isOpen ? t('rider.current.openDestination') : t('common.to')}
+        </Text>
         <Text style={{ fontSize: 15, color: '#0f172a', marginTop: 2 }}>
-          {ride.dropoff.label ?? t('rider.history.dropoffFallback')}
+          {ride.isOpen && !ride.dropoff?.label
+            ? t('rider.current.openDestinationValue')
+            : (ride.dropoff?.label ?? t('rider.history.dropoffFallback'))}
         </Text>
       </View>
       <View style={{
@@ -469,7 +506,7 @@ function TripCard({ ride }: { ride: Ride }) {
         <View>
           <Text style={{ fontSize: 12, color: '#64748b' }}>{t('rider.current.fare')}</Text>
           <Text style={{ fontSize: 16, fontWeight: '700', color: '#0f172a' }}>
-            {formatMru(ride.fareFinalMru ?? ride.fareEstimateMru ?? 0)}
+            {fare == null ? '—' : formatMru(fare)}
           </Text>
         </View>
         <View>
@@ -479,6 +516,86 @@ function TripCard({ ride }: { ride: Ride }) {
           </Text>
         </View>
       </View>
+    </View>
+  );
+}
+
+/**
+ * Hero card displayed during an in-progress open ride. Big running fare,
+ * km + minutes side by side. The fare polls every 3 s through the parent's
+ * usePolling, so it feels live without us running a local timer.
+ */
+function LiveMeterCard({ ride }: { ride: Ride }) {
+  const { t } = useTranslation();
+  const m = ride.liveMeter;
+  // Soft pulse on the fare to make "this number is alive" obvious.
+  const pulse = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(pulse, { toValue: 1.04, duration: 900, useNativeDriver: true }),
+      Animated.timing(pulse, { toValue: 1.00, duration: 900, useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [pulse]);
+
+  const minutes = m ? Math.floor(m.durationS / 60) : 0;
+  const seconds = m ? m.durationS % 60 : 0;
+  const km = m ? (m.distanceM / 1000).toFixed(2) : '0.00';
+
+  return (
+    <View style={{
+      marginTop: 16, backgroundColor: '#0f172a', borderRadius: 16,
+      padding: 18, gap: 14,
+    }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#10a35e' }} />
+        <Text style={{ fontSize: 11, fontWeight: '700', color: '#10a35e', letterSpacing: 0.6 }}>
+          {t('rider.current.openMeterLive').toUpperCase()}
+        </Text>
+      </View>
+
+      <Animated.Text style={{
+        fontSize: 44, fontWeight: '800', color: '#fff', letterSpacing: -1,
+        transform: [{ scale: pulse }],
+      }}>
+        {formatMru(m?.fareMru ?? 0)}
+      </Animated.Text>
+
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <View style={{
+          flex: 1, backgroundColor: '#1e293b', borderRadius: 10,
+          paddingVertical: 12, paddingHorizontal: 14,
+        }}>
+          <Text style={{ fontSize: 10, color: '#94a3b8', letterSpacing: 0.4 }}>
+            {t('rider.current.openMeterDistance').toUpperCase()}
+          </Text>
+          <Text style={{ fontSize: 20, fontWeight: '700', color: '#fff', marginTop: 4 }}>
+            {km} <Text style={{ fontSize: 12, color: '#94a3b8' }}>km</Text>
+          </Text>
+        </View>
+        <View style={{
+          flex: 1, backgroundColor: '#1e293b', borderRadius: 10,
+          paddingVertical: 12, paddingHorizontal: 14,
+        }}>
+          <Text style={{ fontSize: 10, color: '#94a3b8', letterSpacing: 0.4 }}>
+            {t('rider.current.openMeterDuration').toUpperCase()}
+          </Text>
+          <Text style={{ fontSize: 20, fontWeight: '700', color: '#fff', marginTop: 4 }}>
+            {minutes}:{String(seconds).padStart(2, '0')}
+          </Text>
+        </View>
+      </View>
+
+      {ride.openTariff ? (
+        <Text style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+          {t('rider.current.openMeterTariffSummary', {
+            base: ride.openTariff.baseFareMru,
+            perKm: ride.openTariff.perKmMru,
+            perMin: ride.openTariff.perMinuteMru,
+          })}
+        </Text>
+      ) : null}
     </View>
   );
 }

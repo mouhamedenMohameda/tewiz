@@ -74,7 +74,8 @@ export interface RideInsights {
     ratingsCount: number;
   };
   pickup: EndpointEnrichment;
-  dropoff: EndpointEnrichment;
+  // null for open rides (no upfront dropoff).
+  dropoff: EndpointEnrichment | null;
 }
 
 interface DestRow {
@@ -261,8 +262,8 @@ export async function getRideInsights(rideId: string): Promise<RideInsights> {
     booker_id: string;
     pickup_lat: number;
     pickup_lng: number;
-    dropoff_lat: number;
-    dropoff_lng: number;
+    dropoff_lat: number | null;
+    dropoff_lng: number | null;
   }>(
     `SELECT booker_id,
             ST_Y(pickup_location::geometry)  AS pickup_lat,
@@ -280,6 +281,12 @@ export async function getRideInsights(rideId: string): Promise<RideInsights> {
     pickup_lat:  puLat,  pickup_lng:  puLng,
     dropoff_lat: lat,    dropoff_lng: lng,
   } = head.rows[0];
+  // Open rides have no destination → no "destination zone demand" to compute.
+  // Use the pickup as the zone of interest so the captain still gets some
+  // useful context (recent activity near the rider).
+  const hasDestination = lat != null && lng != null;
+  const destLat = hasDestination ? lat : puLat;
+  const destLng = hasDestination ? lng : puLng;
 
   // ─── Destination demand ──────────────────────────────────────────────────
   // Excludes the current ride itself from the counts; we only count rides
@@ -301,7 +308,7 @@ export async function getRideInsights(rideId: string): Promise<RideInsights> {
       WHERE r.id <> $6
         AND r.status <> 'pending_passenger_confirm'
         AND ST_DWithin(r.dropoff_location, dest.pt, $3)`,
-    [lng, lat, DEST_RADIUS_M, RECENT_WINDOW_S, YESTERDAY_HALF_WINDOW_S, rideId],
+    [destLng, destLat, DEST_RADIUS_M, RECENT_WINDOW_S, YESTERDAY_HALF_WINDOW_S, rideId],
   );
 
   // ─── Rider stats ─────────────────────────────────────────────────────────
@@ -327,10 +334,10 @@ export async function getRideInsights(rideId: string): Promise<RideInsights> {
     destPromise,
     riderPromise,
     enrichEndpoint(puLat, puLng),
-    enrichEndpoint(lat, lng),
+    hasDestination ? enrichEndpoint(lat!, lng!) : Promise.resolve(null),
     // Top 8 popular landmarks around the dropoff — shown in the modal under
-    // a "Voir plus" expander.
-    nearbyPois(lat, lng, 1_500, 8),
+    // a "Voir plus" expander. Skipped for open rides (no dropoff yet).
+    hasDestination ? nearbyPois(lat!, lng!, 1_500, 8) : Promise.resolve([]),
   ]);
   const dest = destRes.rows[0]!;
   // The rider query is built so it always returns exactly one row, even for

@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { pool } from '../../db/pool.js';
+import { pool, withTx } from '../../db/pool.js';
 import { type AuthedRequest } from '../../middleware/auth.js';
 import { HttpError } from '../../middleware/error.js';
 import * as rides from './rides.service.js';
 import * as dispatch from './dispatch.service.js';
 import { getRideInsights } from './ride-insights.service.js';
+import { ingestLocation } from './meter.service.js';
 
 // Parent (captainRouter) already enforces requireAuth + requireRole('captain').
 export const captainRidesRouter = Router();
@@ -149,6 +150,50 @@ captainRidesRouter.post('/:id/complete', async (req, res) => {
     actualDurationS: body.actualDurationS,
     dropOtp: body.dropOtp,
   }));
+});
+
+/**
+ * POST /captain/rides/:id/location
+ * GPS sample from the captain device while the ride is in_progress. Body:
+ *   { lat, lng, accuracyM?, speedMps?, recordedAt? (ms epoch) }
+ * The captain app should fire this every ~5 s. The server validates the
+ * sample (rejects teleports and bad-accuracy fixes) and returns the current
+ * meter state regardless — that way the app gets fresh distance + duration
+ * even when a sample is dropped.
+ */
+const locationBody = z.object({
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+  accuracyM: z.number().min(0).max(10_000).optional(),
+  speedMps: z.number().min(-1).max(200).optional(),
+  recordedAt: z.number().int().positive().optional(),
+});
+captainRidesRouter.post('/:id/location', async (req, res) => {
+  const userId = req.user!.id;
+  const rideId = req.params.id!;
+  const body = locationBody.parse(req.body);
+
+  // Auth: only the assigned captain of an in_progress ride may ping.
+  const r = await pool.query<{ captain_id: string | null; status: string; is_open: boolean }>(
+    `SELECT captain_id, status, is_open FROM rides WHERE id = $1`,
+    [rideId],
+  );
+  const row = r.rows[0];
+  if (!row) throw new HttpError(404, 'not_found', 'Ride not found');
+  if (row.captain_id !== userId) throw new HttpError(403, 'forbidden', 'Not your ride');
+  if (!row.is_open) throw new HttpError(400, 'not_open',
+    'Location pings are only used for open rides');
+  if (row.status !== 'in_progress') throw new HttpError(409, 'wrong_status',
+    `Ride is ${row.status}, meter only runs while in_progress`);
+
+  const result = await withTx((client) => ingestLocation(client, rideId, {
+    lat: body.lat,
+    lng: body.lng,
+    accuracyM: body.accuracyM ?? null,
+    speedMps: body.speedMps ?? null,
+    recordedAt: body.recordedAt ? new Date(body.recordedAt) : undefined,
+  }));
+  res.json(result);
 });
 
 const cancelBody = z.object({ reason: z.string().min(2).max(500) });

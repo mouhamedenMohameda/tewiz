@@ -50,6 +50,12 @@ const patchBody = z.object({
   commissionBonusThresholdMru:      z.number().int().min(1).max(1_000_000).optional(),
   commissionBonusWindowDays:        z.number().int().min(1).max(365).optional(),
   commissionBonusRewardDays:        z.number().int().min(1).max(365).optional(),
+  // Open rides ("course ouverte") — metered fare knobs (migration 0030).
+  allowOpenRides:                   z.boolean().optional(),
+  openBaseFareMru:                  z.number().int().min(0).max(10_000).optional(),
+  openPerKmMru:                     z.number().int().min(0).max(10_000).optional(),
+  openPerMinuteMru:                 z.number().int().min(0).max(1_000).optional(),
+  openMinFareMru:                   z.number().int().min(0).max(10_000).optional(),
 }).refine(
   (b) => Object.values(b).some((v) => v !== undefined),
   { message: 'At least one field is required' },
