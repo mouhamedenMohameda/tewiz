@@ -29,6 +29,11 @@ interface PricingSettings {
   commissionBonusThresholdMru: number;
   commissionBonusWindowDays: number;
   commissionBonusRewardDays: number;
+  allowOpenRides: boolean;
+  openBaseFareMru: number;
+  openPerKmMru: number;
+  openPerMinuteMru: number;
+  openMinFareMru: number;
   updatedAt: string;
   updatedBy: string | null;
 }
@@ -50,6 +55,11 @@ interface FormState {
   commissionBonusThresholdMru: string;
   commissionBonusWindowDays: string;
   commissionBonusRewardDays: string;
+  allowOpenRides: boolean;
+  openBaseFareMru: string;
+  openPerKmMru: string;
+  openPerMinuteMru: string;
+  openMinFareMru: string;
 }
 
 const EMPTY_FORM: FormState = {
@@ -69,6 +79,11 @@ const EMPTY_FORM: FormState = {
   commissionBonusThresholdMru: '',
   commissionBonusWindowDays: '',
   commissionBonusRewardDays: '',
+  allowOpenRides: true,
+  openBaseFareMru: '',
+  openPerKmMru: '',
+  openPerMinuteMru: '',
+  openMinFareMru: '',
 };
 
 function settingsToForm(s: PricingSettings): FormState {
@@ -89,6 +104,11 @@ function settingsToForm(s: PricingSettings): FormState {
     commissionBonusThresholdMru: String(s.commissionBonusThresholdMru),
     commissionBonusWindowDays: String(s.commissionBonusWindowDays),
     commissionBonusRewardDays: String(s.commissionBonusRewardDays),
+    allowOpenRides: s.allowOpenRides,
+    openBaseFareMru: String(s.openBaseFareMru),
+    openPerKmMru: String(s.openPerKmMru),
+    openPerMinuteMru: String(s.openPerMinuteMru),
+    openMinFareMru: String(s.openMinFareMru),
   };
 }
 
@@ -130,6 +150,11 @@ export default function SettingsPage() {
         commissionBonusThresholdMru: parseInt(form.commissionBonusThresholdMru, 10),
         commissionBonusWindowDays: parseInt(form.commissionBonusWindowDays, 10),
         commissionBonusRewardDays: parseInt(form.commissionBonusRewardDays, 10),
+        allowOpenRides: form.allowOpenRides,
+        openBaseFareMru: parseInt(form.openBaseFareMru, 10),
+        openPerKmMru: parseInt(form.openPerKmMru, 10),
+        openPerMinuteMru: parseInt(form.openPerMinuteMru, 10),
+        openMinFareMru: parseInt(form.openMinFareMru, 10),
       };
       const r = await api.put<PricingSettings>('/admin/settings', payload);
       return r.data;
@@ -310,6 +335,56 @@ export default function SettingsPage() {
 
             <section className="card p-5 mb-4">
               <div className="flex items-start justify-between mb-1">
+                <h2 className="font-semibold text-slate-900">Course ouverte (compteur)</h2>
+                <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.allowOpenRides}
+                    onChange={(e) => setForm({ ...form, allowOpenRides: e.target.checked })}
+                    className="w-4 h-4 accent-emerald-600"
+                  />
+                  <span className={form.allowOpenRides ? 'text-emerald-700 font-medium' : 'text-slate-500'}>
+                    {form.allowOpenRides ? 'Activée' : 'Désactivée'}
+                  </span>
+                </label>
+              </div>
+              <p className="text-xs text-slate-500 mb-4">
+                Course sans destination fixée à l&apos;avance. Le tarif est calculé au
+                compteur côté serveur (à partir du GPS du chauffeur) :{' '}
+                <code className="font-mono">fare = max(min, départ + km × prix/km + min × prix/min)</code>.
+                Seul le chauffeur peut terminer la course.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                <Field
+                  label="Frais de départ"
+                  suffix="MRU"
+                  value={form.openBaseFareMru}
+                  onChange={(v) => setForm({ ...form, openBaseFareMru: v })}
+                />
+                <Field
+                  label="Prix au kilomètre"
+                  suffix="MRU / km"
+                  value={form.openPerKmMru}
+                  onChange={(v) => setForm({ ...form, openPerKmMru: v })}
+                />
+                <Field
+                  label="Prix à la minute"
+                  suffix="MRU / min"
+                  value={form.openPerMinuteMru}
+                  onChange={(v) => setForm({ ...form, openPerMinuteMru: v })}
+                />
+                <Field
+                  label="Course minimum"
+                  suffix="MRU"
+                  value={form.openMinFareMru}
+                  onChange={(v) => setForm({ ...form, openMinFareMru: v })}
+                />
+              </div>
+            </section>
+
+            <section className="card p-5 mb-4">
+              <div className="flex items-start justify-between mb-1">
                 <h2 className="font-semibold text-slate-900">Bonus chauffeur</h2>
                 <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
                   <input
@@ -480,5 +555,15 @@ function isFormValid(f: FormState): boolean {
   if (bonusInts.some((n) => Number.isNaN(n) || n < 1)) return false;
   if (bonusInts[0]! > 1_000_000) return false;
   if (bonusInts[1]! > 365 || bonusInts[2]! > 365) return false;
+  // Open ride tariff: base / per-km / minimum capped like the classic
+  // passenger tariff; per-minute is small (0..1000) by design.
+  const openInts = [
+    parseInt(f.openBaseFareMru, 10),
+    parseInt(f.openPerKmMru, 10),
+    parseInt(f.openMinFareMru, 10),
+  ];
+  if (openInts.some((n) => Number.isNaN(n) || n < 0 || n > 10_000)) return false;
+  const openPerMin = parseInt(f.openPerMinuteMru, 10);
+  if (Number.isNaN(openPerMin) || openPerMin < 0 || openPerMin > 1_000) return false;
   return true;
 }

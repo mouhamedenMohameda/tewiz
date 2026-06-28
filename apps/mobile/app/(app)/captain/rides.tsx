@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert, Linking, Pressable, TextInput, View,
+  ActivityIndicator, Alert, Animated, Linking, Pressable, Text, TextInput, View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import * as Location from 'expo-location';
 import { api } from '@/lib/api';
 import { formatMru } from '@/lib/format';
 import { usePolling } from '@/lib/usePolling';
@@ -32,13 +33,14 @@ interface InboxItem {
   source?: RideSource;
   isForOther: boolean;
   pickup: { lat: number; lng: number; label: string | null };
-  dropoff: { lat: number; lng: number; label: string | null };
+  dropoff: { lat: number; lng: number; label: string | null } | null;
   fareEstimateMru: number | null;
   distanceM: number | null;
   distanceToPickupM: number;
   isFavorite: boolean;
   homewardProgressM: number | null;
   requestedAt: string;
+  isOpen?: boolean;
 }
 
 interface Ride {
@@ -50,11 +52,77 @@ interface Ride {
   rider?: { id: string; fullName: string | null; phone: string | null } | null;
   isForOther: boolean;
   pickup: { lat: number; lng: number; label: string | null };
-  dropoff: { lat: number; lng: number; label: string | null };
+  dropoff: { lat: number; lng: number; label: string | null } | null;
   fareEstimateMru: number | null;
   fareFinalMru: number | null;
   commissionMru: number | null;
   paymentMethod: 'cash' | 'wallet';
+  isOpen: boolean;
+  openTariff: {
+    baseFareMru: number;
+    perKmMru: number;
+    perMinuteMru: number;
+    minFareMru: number;
+  } | null;
+  liveMeter: { distanceM: number; durationS: number; fareMru: number } | null;
+}
+
+/**
+ * Captain-side GPS pinger for open rides. While the captain has an open
+ * ride in_progress, watch position and POST every accepted sample to
+ * `/captain/rides/:id/location`. The server rejects teleports / bad-accuracy
+ * fixes — those are kept silent because the next sample will succeed.
+ *
+ * Throttles to one push every ~5 s on top of the OS-level distanceInterval.
+ * This is what makes the rider's live meter "fiable": the captain device
+ * never computes the fare locally, it just streams coordinates.
+ */
+function useOpenRideMeterPinger(ride: Ride | null) {
+  const lastPushRef = useRef(0);
+  useEffect(() => {
+    if (!ride || !ride.isOpen || ride.status !== 'in_progress') return;
+
+    let cancelled = false;
+    let sub: Location.LocationSubscription | null = null;
+    const rideId = ride.id;
+
+    (async () => {
+      const perm = await Location.requestForegroundPermissionsAsync();
+      if (perm.status !== 'granted' || cancelled) return;
+      try {
+        sub = await Location.watchPositionAsync(
+          {
+            accuracy: Location.Accuracy.BestForNavigation,
+            distanceInterval: 10,        // OS callback when moved 10 m
+            timeInterval: 3_000,         // …or every 3 s, whichever first
+          },
+          async (pos) => {
+            const now = Date.now();
+            if (now - lastPushRef.current < 4_500) return; // throttle to ~5 s
+            lastPushRef.current = now;
+            try {
+              await api.post(`/captain/rides/${rideId}/location`, {
+                lat: pos.coords.latitude,
+                lng: pos.coords.longitude,
+                accuracyM: pos.coords.accuracy ?? undefined,
+                speedMps: pos.coords.speed ?? undefined,
+                recordedAt: pos.timestamp,
+              });
+            } catch {
+              // Swallow — next tick will retry, the server stays authoritative.
+            }
+          },
+        );
+      } catch {
+        // Permission revoked between request and subscribe; nothing to do.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      sub?.remove();
+    };
+  }, [ride?.id, ride?.isOpen, ride?.status]);
 }
 
 export default function RidesScreen() {
@@ -91,7 +159,15 @@ export default function RidesScreen() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
-  usePolling(load, current ? 8_000 : 5_000);
+  // While an open ride is in_progress we want the meter card to update
+  // every ~3 s; otherwise the standard cadence is fine.
+  const openMeterActive = current?.isOpen && current.status === 'in_progress';
+  usePolling(load, openMeterActive ? 3_000 : (current ? 8_000 : 5_000));
+
+  // Background-ish GPS pinger. Fires every 5 s while the active ride is an
+  // open ride in_progress; pushes the sample to the API which trusts it
+  // (after gating against teleports / bad accuracy) for the metered fare.
+  useOpenRideMeterPinger(current);
 
   return (
     <Screen scroll onRefresh={load} refreshing={loading}>
@@ -162,6 +238,7 @@ function InboxList({ items, onAccepted }: { items: InboxItem[]; onAccepted: () =
                       fg={isColis ? colors.saffron : colors.ember} />
                     {it.isFavorite ? <Chip icon="star" label={t('captain.rides.favorite')} bg={colors.saffronSoft} fg={colors.warning} /> : null}
                     {it.source === 'operator' ? <Chip icon="phone" label={t('captainAlert.callCenterBadge')} bg="#ede9fe" fg="#6d28d9" /> : null}
+                    {it.isOpen ? <Chip icon="clock" label={t('captain.rides.openBadge')} bg="#dcfce7" fg="#166534" /> : null}
                     {it.homewardProgressM && it.homewardProgressM > 0
                       ? <Chip icon="home" label={t('captain.rides.getsCloser')} bg={colors.successSoft} fg={colors.success} /> : null}
                   </View>
@@ -170,11 +247,17 @@ function InboxList({ items, onAccepted }: { items: InboxItem[]; onAccepted: () =
                   </AppText>
                 </View>
 
-                <Route pickup={it.pickup.label} dropoff={it.dropoff.label} style={{ marginTop: spacing.md }} />
+                <Route
+                  pickup={it.pickup.label}
+                  dropoff={it.isOpen ? t('captain.rides.openDestinationShort') : (it.dropoff?.label ?? null)}
+                  style={{ marginTop: spacing.md }}
+                />
 
                 <View style={{ marginTop: spacing.base, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <AppText variant="h2">
-                    {it.fareEstimateMru ? formatMru(it.fareEstimateMru) : '—'}
+                    {it.isOpen
+                      ? t('captain.rides.meterShort')
+                      : (it.fareEstimateMru ? formatMru(it.fareEstimateMru) : '—')}
                   </AppText>
                   <Button
                     title={t('captain.rides.accept')}
@@ -297,16 +380,22 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
 
         <Route
           pickup={ride.pickup.label}
-          dropoff={ride.dropoff.label}
+          dropoff={ride.isOpen ? t('captain.rides.openDestinationShort') : (ride.dropoff?.label ?? null)}
           onDark
           style={{ marginTop: spacing.lg }}
         />
 
         <View style={{ marginTop: spacing.lg, flexDirection: 'row', justifyContent: 'space-between' }}>
           <View>
-            <AppText variant="caption" color={colors.onEspressoMuted}>{t('captain.rides.estimatedFare')}</AppText>
+            <AppText variant="caption" color={colors.onEspressoMuted}>
+              {ride.isOpen ? t('captain.rides.meterTariffLabel') : t('captain.rides.estimatedFare')}
+            </AppText>
             <AppText variant="h2" color={colors.onEspresso} style={{ marginTop: 2 }}>
-              {ride.fareEstimateMru ? formatMru(ride.fareEstimateMru) : '—'}
+              {ride.isOpen
+                ? (ride.openTariff
+                    ? `${ride.openTariff.perKmMru} / km · ${ride.openTariff.perMinuteMru} / min`
+                    : '—')
+                : (ride.fareEstimateMru ? formatMru(ride.fareEstimateMru) : '—')}
             </AppText>
           </View>
           <View>
@@ -317,6 +406,10 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
           </View>
         </View>
       </Card>
+
+      {ride.isOpen && ride.status === 'in_progress' ? (
+        <CaptainMeterCard ride={ride} />
+      ) : null}
 
       {ride.status === 'accepted' ? (
         <Button title={t('captain.rides.actionImArrived')} icon="pin" onPress={arrive} busy={busy === 'arrive'}
@@ -338,8 +431,13 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
       ) : null}
 
       {ride.status === 'in_progress' && ride.rideType === 'passenger' ? (
-        <Button title={t('captain.rides.completeRide')} icon="check" onPress={complete} busy={busy === 'complete'}
-          style={{ marginTop: spacing.base }} />
+        <Button
+          title={ride.isOpen ? t('captain.rides.endOpenRide') : t('captain.rides.completeRide')}
+          icon="check"
+          onPress={complete}
+          busy={busy === 'complete'}
+          style={{ marginTop: spacing.base }}
+        />
       ) : null}
 
       {ride.status === 'in_progress' && ride.rideType === 'colis' ? (
@@ -428,6 +526,66 @@ function CodeBox({
         }}
       />
       <Button title={actionLabel} onPress={onAction} busy={busy} style={{ marginTop: spacing.md }} />
+    </Card>
+  );
+}
+
+/**
+ * Captain-side live meter. Mirrors what the rider sees, so the captain
+ * knows exactly what the rider is being charged in real time and can stop
+ * the trip when the rider asks. Numbers come from the API (the GPS pinger
+ * already streams to the server) and refresh on the same polling tick.
+ */
+function CaptainMeterCard({ ride }: { ride: Ride }) {
+  const { t } = useTranslation();
+  const m = ride.liveMeter;
+  const pulse = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(pulse, { toValue: 1.04, duration: 900, useNativeDriver: true }),
+      Animated.timing(pulse, { toValue: 1.00, duration: 900, useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [pulse]);
+
+  const minutes = m ? Math.floor(m.durationS / 60) : 0;
+  const seconds = m ? m.durationS % 60 : 0;
+  const km = m ? (m.distanceM / 1000).toFixed(2) : '0.00';
+
+  return (
+    <Card padding={spacing.lg} style={{ marginTop: spacing.base, backgroundColor: '#0f172a' }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#10a35e' }} />
+        <Text style={{ fontSize: 11, fontWeight: '700', color: '#10a35e', letterSpacing: 0.6 }}>
+          {t('captain.rides.openMeterLive').toUpperCase()}
+        </Text>
+      </View>
+      <Animated.Text style={{
+        fontSize: 40, fontWeight: '800', color: '#fff', letterSpacing: -1,
+        marginTop: 10,
+        transform: [{ scale: pulse }],
+      }}>
+        {formatMru(m?.fareMru ?? 0)}
+      </Animated.Text>
+      <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+        <View style={{ flex: 1, backgroundColor: '#1e293b', borderRadius: 10, padding: 12 }}>
+          <Text style={{ fontSize: 10, color: '#94a3b8', letterSpacing: 0.4 }}>
+            {t('captain.rides.openMeterDistance').toUpperCase()}
+          </Text>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: '#fff', marginTop: 4 }}>
+            {km} <Text style={{ fontSize: 11, color: '#94a3b8' }}>km</Text>
+          </Text>
+        </View>
+        <View style={{ flex: 1, backgroundColor: '#1e293b', borderRadius: 10, padding: 12 }}>
+          <Text style={{ fontSize: 10, color: '#94a3b8', letterSpacing: 0.4 }}>
+            {t('captain.rides.openMeterDuration').toUpperCase()}
+          </Text>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: '#fff', marginTop: 4 }}>
+            {minutes}:{String(seconds).padStart(2, '0')}
+          </Text>
+        </View>
+      </View>
     </Card>
   );
 }

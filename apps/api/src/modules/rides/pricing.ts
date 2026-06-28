@@ -41,3 +41,36 @@ export async function estimateFareMru(
 export function commissionMru(fareMru: number, rateBps: number): number {
   return Math.floor((fareMru * rateBps) / 10_000);
 }
+
+/**
+ * Tariff snapshot for an open (metered) ride. Stored on the ride row at
+ * creation so admin changes to app_settings mid-ride don't change the price
+ * the rider was quoted.
+ */
+export interface OpenTariff {
+  baseFareMru: number;
+  perKmMru: number;
+  perMinuteMru: number;
+  minFareMru: number;
+}
+
+/**
+ * Compute the metered fare for an open ride.
+ *
+ *   fare = max(min, base + km × perKm + min × perMinute)
+ *
+ * Always returns an integer (MRU). Used for the live in-progress display and
+ * for the final fare at completion. The "fiable" guarantee comes from
+ * upstream: distance is summed server-side from accepted GPS pings, duration
+ * from started_at → now/completed_at.
+ */
+export function openFareMru(
+  tariff: OpenTariff,
+  distanceM: number,
+  durationS: number,
+): number {
+  const km = Math.max(0, distanceM) / 1000;
+  const min = Math.max(0, durationS) / 60;
+  const raw = tariff.baseFareMru + km * tariff.perKmMru + min * tariff.perMinuteMru;
+  return Math.max(tariff.minFareMru, Math.round(raw));
+}

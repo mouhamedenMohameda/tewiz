@@ -6,6 +6,7 @@ import { HttpError } from '../../middleware/error.js';
 import * as rides from './rides.service.js';
 import { distanceMeters } from './dispatch.service.js';
 import { estimateFareMru } from './pricing.js';
+import { getPricingSettings } from '../admin/app-settings.service.js';
 
 // Parent (riderRouter) enforces requireAuth + requireRole('rider', 'captain').
 // A captain in rider mode books rides exactly like a regular rider.
@@ -19,7 +20,10 @@ const locationSchema = z.object({
 
 const createBody = z.object({
   pickup: locationSchema,
-  dropoff: locationSchema,
+  // Open rides (isOpen=true) have no upfront destination; the meter runs
+  // from GPS once the ride starts. Closed rides require dropoff.
+  dropoff: locationSchema.optional(),
+  isOpen: z.boolean().optional(),
   rideType: z.enum(['passenger', 'colis']).default('passenger'),
   paymentMethod: z.enum(['cash', 'wallet']).default('cash'),
   // For "course pour quelqu'un d'autre"
@@ -66,6 +70,7 @@ riderRidesRouter.post('/', requirePhone, async (req, res) => {
     bookerId: userId,
     pickup: body.pickup,
     dropoff: body.dropoff,
+    isOpen: body.isOpen,
     rideType: body.rideType,
     paymentMethod: body.paymentMethod,
     passengerName: body.passengerName,
@@ -75,6 +80,24 @@ riderRidesRouter.post('/', requirePhone, async (req, res) => {
     packageDescription: body.packageDescription,
   });
   res.json(ride);
+});
+
+/**
+ * GET /rider/rides/open-quote
+ * Returns the current open-ride tariff (base/per-km/per-min/min) plus a
+ * "feature on?" flag. The rider screen uses this to (a) decide whether to
+ * show the "course ouverte" toggle and (b) display the rate clearly before
+ * booking, so they don't get a surprise.
+ */
+riderRidesRouter.get('/open-quote', async (_req, res) => {
+  const s = await getPricingSettings();
+  res.json({
+    enabled: s.allowOpenRides,
+    baseFareMru: s.openBaseFareMru,
+    perKmMru: s.openPerKmMru,
+    perMinuteMru: s.openPerMinuteMru,
+    minFareMru: s.openMinFareMru,
+  });
 });
 
 riderRidesRouter.get('/current', async (req, res) => {

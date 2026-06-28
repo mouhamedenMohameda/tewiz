@@ -56,6 +56,7 @@ export async function captainInbox(input: {
       ST_X(r.dropoff_location::geometry) AS dropoff_lng,
       r.fare_estimate_mru,
       r.distance_m,
+      r.is_open,
       ST_Distance(r.pickup_location, me.pt)::int AS distance_to_pickup_m,
       r.requested_at,
       EXISTS (
@@ -87,9 +88,12 @@ export async function captainInbox(input: {
         SELECT 1 FROM ride_declines d
          WHERE d.ride_id = r.id AND d.captain_id = $5
       )
-      -- If in going-home mode: drop rides that move us AWAY from home
+      -- If in going-home mode: drop rides that move us AWAY from home.
+      -- Open rides have no dropoff to compare against — they pass through
+      -- this gate by default (captain decides en route whether to take it).
       AND (
         NOT EXISTS (SELECT 1 FROM gh)
+        OR r.dropoff_location IS NULL
         OR (SELECT ST_Distance(me.pt, g.home_snapshot) -
                    ST_Distance(r.dropoff_location, g.home_snapshot)
               FROM (SELECT home_snapshot FROM gh) g) >= 0
@@ -134,6 +138,7 @@ export async function captainInbox(input: {
     requestedAt: row.requested_at,
     isFavorite: row.is_favorite,
     homewardProgressM: row.homeward_progress_m === null ? null : Number(row.homeward_progress_m),
+    isOpen: !!row.is_open,
   }));
 }
 

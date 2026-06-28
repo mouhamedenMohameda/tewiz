@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert, FlatList, KeyboardAvoidingView, Modal,
+  ActivityIndicator, Alert, Animated, Easing, FlatList, KeyboardAvoidingView, Modal,
   Platform, Pressable, Text, TextInput, View,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -73,6 +73,18 @@ export default function NewRideScreen() {
   const [estimate, setEstimate] = useState<{ fareMru: number; distanceM: number } | null>(null);
   const [estimating, setEstimating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  // Course ouverte — taxi à la course, sans destination fixée. Toggle visible
+  // only for passenger rides (open metered fare is meaningless for colis).
+  // openQuote=null while loading; openQuote.enabled=false → admin disabled the
+  // feature, we hide the toggle altogether.
+  const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [openQuote, setOpenQuote] = useState<{
+    enabled: boolean;
+    baseFareMru: number;
+    perKmMru: number;
+    perMinuteMru: number;
+    minFareMru: number;
+  } | null>(null);
 
   // Course type + per-type fields. Default = self (most common), unless a
   // caller deep-linked us with an explicit kind.
@@ -116,8 +128,23 @@ export default function NewRideScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Recompute estimate whenever both ends are set.
+  // Load the open-ride tariff once. Cheap (single row) and lets us hide the
+  // toggle entirely when the admin disabled the feature.
   useEffect(() => {
+    let cancelled = false;
+    api.get<typeof openQuote>('/rider/rides/open-quote')
+      .then((r) => { if (!cancelled && r.data) setOpenQuote(r.data); })
+      .catch(() => { /* feature simply stays hidden */ });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Course ouverte is only meaningful for passenger rides (no destination →
+  // no parcel handover). Auto-disable when the user picks colis.
+  useEffect(() => { if (kind === 'colis' && isOpen) setIsOpen(false); }, [kind, isOpen]);
+
+  // Recompute estimate whenever both ends are set — closed rides only.
+  useEffect(() => {
+    if (isOpen) { setEstimate(null); return; }
     if (!pickup || !dropoff) { setEstimate(null); return; }
     let cancelled = false;
     setEstimating(true);
@@ -132,7 +159,7 @@ export default function NewRideScreen() {
       .catch(() => { if (!cancelled) setEstimate(null); })
       .finally(() => { if (!cancelled) setEstimating(false); });
     return () => { cancelled = true; };
-  }, [pickup, dropoff, kind]);
+  }, [pickup, dropoff, kind, isOpen]);
 
   const onMapPress = useCallback((e: { nativeEvent: { coordinate: { latitude: number; longitude: number } } }) => {
     const { latitude, longitude } = e.nativeEvent.coordinate;
@@ -153,7 +180,8 @@ export default function NewRideScreen() {
   }, [active]);
 
   function isReady(): { ok: true } | { ok: false; reason: string } {
-    if (!pickup || !dropoff) return { ok: false, reason: t('rider.newRide.missingPoints') };
+    if (!pickup) return { ok: false, reason: t('rider.newRide.missingPoints') };
+    if (!isOpen && !dropoff) return { ok: false, reason: t('rider.newRide.missingPoints') };
     if (kind === 'other') {
       if (passengerName.trim().length < 2) return { ok: false, reason: t('rider.newRide.thirdPartyName') };
       if (passengerPhone.replace(/\D/g, '').length < 11) return { ok: false, reason: t('phonePrompt.invalidBody') };
@@ -171,10 +199,15 @@ export default function NewRideScreen() {
     setSubmitting(true);
     try {
       const body: Record<string, unknown> = {
-        pickup, dropoff,
+        pickup,
         rideType: kind === 'colis' ? 'colis' : 'passenger',
         paymentMethod: 'cash',
       };
+      if (isOpen) {
+        body.isOpen = true;
+      } else {
+        body.dropoff = dropoff;
+      }
       if (kind === 'other') {
         body.passengerName = passengerName.trim();
         body.passengerPhone = passengerPhone.trim();
@@ -223,13 +256,25 @@ export default function NewRideScreen() {
           onPress={() => setActive('pickup')}
           onClear={() => setPickup(null)}
         />
-        <Field
-          color="#dc2626"
-          label={t('rider.newRide.dropoffLabel')}
-          value={dropoff?.label ?? null}
-          onPress={() => setActive('dropoff')}
-          onClear={() => setDropoff(null)}
-        />
+
+        {isOpen ? (
+          <OpenFareCard quote={openQuote} />
+        ) : (
+          <Field
+            color="#dc2626"
+            label={t('rider.newRide.dropoffLabel')}
+            value={dropoff?.label ?? null}
+            onPress={() => setActive('dropoff')}
+            onClear={() => setDropoff(null)}
+          />
+        )}
+
+        {kind !== 'colis' && openQuote?.enabled ? (
+          <OpenRideToggle
+            value={isOpen}
+            onChange={setIsOpen}
+          />
+        ) : null}
 
         <KindSelector value={kind} onChange={setKind} />
 
@@ -319,24 +364,28 @@ export default function NewRideScreen() {
 
       <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: '#e2e8f0' }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <Text style={{ fontSize: 13, color: '#64748b' }}>{t('captain.rides.estimatedFare')}</Text>
+          <Text style={{ fontSize: 13, color: '#64748b' }}>
+            {isOpen ? t('rider.newRide.openFareLabel') : t('captain.rides.estimatedFare')}
+          </Text>
           <Text style={{ fontSize: 20, fontWeight: '700', color: '#0f172a' }}>
-            {estimating ? '…' : estimate ? formatMru(estimate.fareMru) : '—'}
+            {isOpen
+              ? t('rider.newRide.openFareMeter')
+              : (estimating ? '…' : estimate ? formatMru(estimate.fareMru) : '—')}
           </Text>
         </View>
         <Pressable
-          disabled={!pickup || !dropoff || submitting}
+          disabled={!pickup || (!isOpen && !dropoff) || submitting}
           onPress={confirm}
           style={({ pressed }) => ({
             backgroundColor: pressed ? '#0a7a45' : '#10a35e',
-            opacity: !pickup || !dropoff || submitting ? 0.4 : 1,
+            opacity: !pickup || (!isOpen && !dropoff) || submitting ? 0.4 : 1,
             paddingVertical: 16, borderRadius: 12,
             flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
           })}
         >
           {submitting && <ActivityIndicator color="#fff" />}
           <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>
-            {t('rider.newRide.submit')}
+            {isOpen ? t('rider.newRide.submitOpen') : t('rider.newRide.submit')}
           </Text>
         </Pressable>
       </View>
@@ -533,6 +582,139 @@ function TwoCol({ left, right }: { left: React.ReactNode; right: React.ReactNode
     <View style={{ flexDirection: 'row', gap: 8 }}>
       <View style={{ flex: 1 }}>{left}</View>
       <View style={{ flex: 1 }}>{right}</View>
+    </View>
+  );
+}
+
+/**
+ * Animated pill toggle for "Course ouverte". Sits below the pickup/dropoff
+ * fields. Tapping it (a) hides the dropoff field, (b) swaps in the metered
+ * tariff card, (c) flips the bottom CTA copy. Designed to feel like one of
+ * those iOS-style switches but bigger so it doesn't get lost between the two
+ * map pins.
+ */
+function OpenRideToggle({
+  value, onChange,
+}: { value: boolean; onChange: (v: boolean) => void }) {
+  const { t } = useTranslation();
+  const anim = useRef(new Animated.Value(value ? 1 : 0)).current;
+  useEffect(() => {
+    Animated.timing(anim, {
+      toValue: value ? 1 : 0,
+      duration: 180,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: false,
+    }).start();
+  }, [value, anim]);
+
+  const bg = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['#f1f5f9', '#0f172a'],
+  });
+  const dot = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [3, 27],
+  });
+  const labelColor = value ? '#fff' : '#475569';
+
+  return (
+    <Pressable
+      onPress={() => onChange(!value)}
+      accessibilityRole="switch"
+      accessibilityState={{ checked: value }}
+      style={({ pressed }) => ({
+        marginTop: 4,
+        opacity: pressed ? 0.85 : 1,
+      })}
+    >
+      <Animated.View style={{
+        backgroundColor: bg as unknown as string,
+        borderRadius: 14,
+        paddingVertical: 12,
+        paddingHorizontal: 14,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+      }}>
+        <View style={{
+          width: 54, height: 30, borderRadius: 15,
+          backgroundColor: value ? '#10a35e' : '#cbd5e1',
+          justifyContent: 'center',
+        }}>
+          <Animated.View style={{
+            width: 24, height: 24, borderRadius: 12, backgroundColor: '#fff',
+            transform: [{ translateX: dot }],
+            shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 2, shadowOffset: { width: 0, height: 1 },
+            elevation: 2,
+          }} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 14, fontWeight: '700', color: labelColor }}>
+            {t('rider.newRide.openRideTitle')}
+          </Text>
+          <Text style={{ fontSize: 11, color: value ? '#cbd5e1' : '#64748b', marginTop: 2 }}>
+            {t('rider.newRide.openRideHint')}
+          </Text>
+        </View>
+      </Animated.View>
+    </Pressable>
+  );
+}
+
+/**
+ * Replaces the dropoff field when "Course ouverte" is on. Shows the metered
+ * tariff inline (base + per km + per minute, plus the minimum) so the rider
+ * knows exactly what they'll be charged before booking.
+ */
+function OpenFareCard({
+  quote,
+}: { quote: { baseFareMru: number; perKmMru: number; perMinuteMru: number; minFareMru: number } | null }) {
+  const { t } = useTranslation();
+  if (!quote) {
+    return (
+      <View style={{
+        backgroundColor: '#fef3c7', borderRadius: 10,
+        paddingHorizontal: 12, paddingVertical: 14,
+        flexDirection: 'row', alignItems: 'center', gap: 10,
+      }}>
+        <ActivityIndicator color="#854d0e" />
+        <Text style={{ fontSize: 13, color: '#854d0e' }}>{t('common.loading')}</Text>
+      </View>
+    );
+  }
+  return (
+    <View style={{
+      backgroundColor: '#0f172a', borderRadius: 12,
+      paddingHorizontal: 14, paddingVertical: 14, gap: 10,
+    }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <Text style={{ fontSize: 16 }}>🧮</Text>
+        <Text style={{ fontSize: 13, fontWeight: '700', color: '#fff', letterSpacing: 0.5 }}>
+          {t('rider.newRide.openMeterLabel')}
+        </Text>
+      </View>
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <MeterCell value={formatMru(quote.baseFareMru)} label={t('rider.newRide.meterBase')} />
+        <MeterCell value={`${quote.perKmMru} MRU`} label={t('rider.newRide.meterPerKm')} />
+        <MeterCell value={`${quote.perMinuteMru} MRU`} label={t('rider.newRide.meterPerMin')} />
+      </View>
+      <Text style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
+        {t('rider.newRide.meterMin', { min: formatMru(quote.minFareMru) })}
+      </Text>
+    </View>
+  );
+}
+
+function MeterCell({ value, label }: { value: string; label: string }) {
+  return (
+    <View style={{
+      flex: 1, backgroundColor: '#1e293b', borderRadius: 8,
+      paddingHorizontal: 8, paddingVertical: 8, alignItems: 'center',
+    }}>
+      <Text style={{ fontSize: 14, fontWeight: '800', color: '#fde68a' }}>{value}</Text>
+      <Text style={{ fontSize: 9, color: '#94a3b8', marginTop: 2, letterSpacing: 0.4 }}>
+        {label.toUpperCase()}
+      </Text>
     </View>
   );
 }
