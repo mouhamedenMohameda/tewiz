@@ -18,6 +18,7 @@ import { registerForPushNotifications } from '@/lib/notifications';
 import { readAndClearCrash } from '@/lib/crash-reporter';
 import { initI18n } from '@/lib/i18n';
 import { CrashBoundary } from '@/components/CrashBoundary';
+import { NotificationTapHandler } from '@/components/NotificationTapHandler';
 import { colors, fontAssets } from '@/theme';
 
 // Hold the native splash until our custom fonts are ready, so the UI never
@@ -99,6 +100,7 @@ export default function RootLayout() {
       <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.canvas }}>
         <SafeAreaProvider>
           <StatusBar style="dark" />
+          <NotificationTapHandler />
           <Stack
             screenOptions={{
               headerShown: false,

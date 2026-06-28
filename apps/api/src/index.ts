@@ -16,6 +16,7 @@ import { adminRouter } from './modules/admin/admin.routes.js';
 import { publicRouter } from './modules/public/public.routes.js';
 import { roadReportsRouter } from './modules/reports/road-reports.routes.js';
 import { geocodeRouter } from './modules/geocode/geocode.routes.js';
+import { userNotificationsRouter } from './modules/notifications/user.routes.js';
 import { startHeatmapCron } from './modules/heatmap/heatmap.service.js';
 import { startRideExpiryCron } from './modules/rides/expiry.service.js';
 import { errorHandler, notFound } from './middleware/error.js';
@@ -113,6 +114,8 @@ app.use('/admin', adminRouter);
 app.use('/road-reports', roadReportsRouter);
 // Shared geocoding proxy (auth required) — used by rider app and admin web
 app.use('/geocode', geocodeRouter);
+// User inbox for notifications (any signed-in user can read their own).
+app.use('/notifications', userNotificationsRouter);
 
 app.use(notFound);
 app.use(errorHandler);
