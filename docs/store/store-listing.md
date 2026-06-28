@@ -1,4 +1,4 @@
-# Alo Mama — Brouillons des fiches stores
+# Aloo — Brouillons des fiches stores
 
 Tout ce qui doit être copié-collé dans **App Store Connect** et **Google Play Console** avant la soumission. Édite ici, pas dans les consoles, pour garder un historique versionné.
 
@@ -8,8 +8,8 @@ Tout ce qui doit être copié-collé dans **App Store Connect** et **Google Play
 
 | Champ | Valeur |
 |---|---|
-| Nom de l'app (Apple, 30 car. max) | `Alo Mama` |
-| Nom de l'app (Google, 30 car. max) | `Alo Mama` |
+| Nom de l'app (Apple, 30 car. max) | `Aloo` |
+| Nom de l'app (Google, 30 car. max) | `Aloo` |
 | Sous-titre App Store (30 car. max) | `Course et chauffeur en Mauritanie` |
 | Bundle ID iOS / Package Android | `mr.tewiz.app` |
 | Catégorie principale | **Voyages** *(Travel)* |
@@ -38,7 +38,7 @@ Course en VTC partout en Mauritanie. Commande vocale, paiement cash.
 ## 3. Description longue (Google Play + "Description" App Store, 4000 car.)
 
 ```
-Alo Mama, c'est l'application de VTC pensée pour la Mauritanie.
+Aloo, c'est l'application de VTC pensée pour la Mauritanie.
 
 POUR LES PASSAGERS
 • Commandez une course en quelques secondes — au texte ou à la voix.
@@ -57,7 +57,7 @@ POUR LES CHAUFFEURS
 • Heatmap : voyez où sont les passagers en ce moment.
 • Acceptez vos courses récurrentes (école, travail) en un appui.
 
-POURQUOI ALO MAMA
+POURQUOI ALOO
 • Application 100 % locale, adaptée aux noms de lieux mauritaniens.
 • Compréhension vocale multilingue : français, hassaniya, arabe.
 • Paiement cash classique — pas de carte bancaire requise.
@@ -118,7 +118,7 @@ Recommandé : 5 captures dans cet ordre, chacune avec un texte court superposé.
 Même set que ci-dessus. Mêmes dimensions acceptées (Google est plus souple).
 
 ### Google Play — Feature Graphic (OBLIGATOIRE)
-Bandeau **1024 × 500 px**, format JPG ou PNG. Suggéré : logo Alo Mama centré sur fond beige (#FBF3E7), avec une silhouette de Nouakchott ou un pictogramme de voiture en ember (#F2682C).
+Bandeau **1024 × 500 px**, format JPG ou PNG. Suggéré : logo Aloo centré sur fond beige (#FBF3E7), avec une silhouette de Nouakchott ou un pictogramme de voiture en ember (#F2682C).
 
 ---
 
@@ -127,10 +127,10 @@ Bandeau **1024 × 500 px**, format JPG ou PNG. Suggéré : logo Alo Mama centré
 Ce texte va dans **App Store Connect → App Review Information → Notes** et **Google Play Console → App content → App access**. Crucial pour éviter le rejet.
 
 ```
-Bonjour, et merci pour la revue de Alo Mama.
+Bonjour, et merci pour la revue de Aloo.
 
 CE QU'EST L'APPLICATION
-Alo Mama est un service de VTC (transport de personnes) opérant en Mauritanie.
+Aloo est un service de VTC (transport de personnes) opérant en Mauritanie.
 Les passagers commandent une course, un chauffeur l'accepte, et la course est
 réglée en espèces à la fin du trajet — exactement comme un taxi traditionnel.
 
