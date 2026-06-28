@@ -21,6 +21,9 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.59.0
         version: 5.101.0(react@19.1.0)
+      '@tewiz/shared-types':
+        specifier: workspace:*
+        version: link:../../packages/shared-types
       axios:
         specifier: ^1.7.7
         version: 1.17.0

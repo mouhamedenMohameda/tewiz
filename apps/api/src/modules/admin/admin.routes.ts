@@ -1,7 +1,13 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { pool, withTx } from '../../db/pool.js';
-import { requireAuth, requireRole, type AuthedRequest } from '../../middleware/auth.js';
+import {
+  requireAuth,
+  requireRole,
+  requireAdminRole,
+  requireAdminRoleByMethod,
+  type AuthedRequest,
+} from '../../middleware/auth.js';
 import { HttpError } from '../../middleware/error.js';
 import { defaultStorage } from '../storage/local-disk.js';
 import { generatePassword, hashPassword } from '../auth/password.js';
@@ -24,33 +30,90 @@ import type { ApplicationStatus } from '@tewiz/shared-types';
 export const adminRouter = Router();
 adminRouter.use(requireAuth, requireRole('admin'));
 
-// Top-up review queue
-adminRouter.use('/topups', adminTopupRouter);
-// Recurring rides processor (triggered by cron in prod)
-adminRouter.use('/recurring', adminRecurringRouter);
-// Cron-triggered batch jobs (heatmap, expiry, etc.)
-adminRouter.use('/jobs', adminJobsRouter);
-// Admin books rides for phone-only passengers
-adminRouter.use('/rides', adminRidesRouter);
-// User management (create + regenerate password)
-adminRouter.use('/users', adminUsersRouter);
-// Pricing + commission knobs editable from the admin panel
-adminRouter.use('/settings', adminSettingsRouter);
-// Per-document-type "required" flag editable from the admin panel
-adminRouter.use('/document-requirements', adminDocumentRequirementsRouter);
-// Aggregated stats for the operator dashboard (app vs operator split, accept rates…)
-adminRouter.use('/stats', adminStatsRouter);
-// Voice-ride dispatch queue (listen → pin pickup/dropoff → confirm)
-adminRouter.use('/voice-rides', adminVoiceRidesRouter);
-// Restaurants directory — CRUD + bulk-import for the rider mobile catalog.
-adminRouter.use('/restaurants', adminRestaurantsRouter);
-// Push + inbox notifications to captains (broadcast / group / single).
-adminRouter.use('/notifications', adminNotificationsRouter);
+// ─── Sub-router permission gates ─────────────────────────────────────────────
+// super_admin implicitly bypasses every requireAdminRole(...) check, so the
+// lists below enumerate only the OTHER admin sub-roles that get access.
+// Two-tier sections use requireAdminRoleByMethod(viewRoles, actionRoles):
+// GET/HEAD goes through viewRoles, anything else through actionRoles.
 
-// Admin can also drop abusive road reports.
-adminRouter.delete('/road-reports/:id', async (req, res) => {
-  res.json(await roadReports.adminRemove(req.params.id!));
-});
+// Top-up review queue — FINANCE acts, SUPPORT can look.
+adminRouter.use(
+  '/topups',
+  requireAdminRoleByMethod(
+    ['ops_manager', 'finance', 'support'],
+    ['ops_manager', 'finance'],
+  ),
+  adminTopupRouter,
+);
+// Recurring rides processor — internal/cron, super_admin only.
+adminRouter.use('/recurring', requireAdminRole(), adminRecurringRouter);
+// Cron-triggered batch jobs (heatmap, expiry, etc.) — super_admin only.
+adminRouter.use('/jobs', requireAdminRole(), adminJobsRouter);
+// Rides: dispatchers act, finance + support look.
+adminRouter.use(
+  '/rides',
+  requireAdminRoleByMethod(
+    ['ops_manager', 'dispatcher', 'finance', 'support'],
+    ['ops_manager', 'dispatcher'],
+  ),
+  adminRidesRouter,
+);
+// User directory — ops can list and manage riders/captains; admin-on-admin
+// actions are further restricted inside the router (super_admin only).
+adminRouter.use(
+  '/users',
+  requireAdminRole('ops_manager'),
+  adminUsersRouter,
+);
+// Global settings — super_admin only.
+adminRouter.use('/settings', requireAdminRole(), adminSettingsRouter);
+// Required document types — kyc_reviewer can read, super_admin edits.
+adminRouter.use(
+  '/document-requirements',
+  requireAdminRoleByMethod(['kyc_reviewer'], []),
+  adminDocumentRequirementsRouter,
+);
+// Stats — currently only operational rides data, so only the roles that
+// consume it. When KYC / finance sections are added, expand this list and
+// guard the new endpoints individually inside stats.routes.ts.
+adminRouter.use(
+  '/stats',
+  requireAdminRole('ops_manager', 'dispatcher'),
+  adminStatsRouter,
+);
+// Voice-ride dispatch queue — dispatchers act, support can look.
+adminRouter.use(
+  '/voice-rides',
+  requireAdminRoleByMethod(
+    ['ops_manager', 'dispatcher', 'support'],
+    ['ops_manager', 'dispatcher'],
+  ),
+  adminVoiceRidesRouter,
+);
+// Restaurants directory — ops acts, everyone except finance can look.
+adminRouter.use(
+  '/restaurants',
+  requireAdminRoleByMethod(
+    ['ops_manager', 'dispatcher', 'kyc_reviewer', 'support'],
+    ['ops_manager'],
+  ),
+  adminRestaurantsRouter,
+);
+// Notifications broadcast — ops only.
+adminRouter.use(
+  '/notifications',
+  requireAdminRole('ops_manager'),
+  adminNotificationsRouter,
+);
+
+// Admin can also drop abusive road reports — ops + super.
+adminRouter.delete(
+  '/road-reports/:id',
+  requireAdminRole('ops_manager'),
+  async (req, res) => {
+    res.json(await roadReports.adminRemove(req.params.id as string));
+  },
+);
 
 // ─── Captains directory ──────────────────────────────────────────────────────
 
@@ -67,7 +130,9 @@ adminRouter.delete('/road-reports/:id', async (req, res) => {
  *      middleware on every authenticated request) — "online" if seen in the
  *      last 5 minutes, else "offline".
  */
-adminRouter.get('/captains', async (_req, res) => {
+adminRouter.get('/captains', requireAdminRole(
+  'ops_manager', 'dispatcher', 'kyc_reviewer', 'finance', 'support',
+), async (_req, res) => {
   const r = await pool.query(
     `SELECT
         u.id                                    AS id,
@@ -105,6 +170,14 @@ adminRouter.get('/captains', async (_req, res) => {
 });
 
 // ─── Applications queue ──────────────────────────────────────────────────────
+// KYC reviewers act, ops + dispatcher + support can look.
+adminRouter.use(
+  '/applications',
+  requireAdminRoleByMethod(
+    ['ops_manager', 'dispatcher', 'kyc_reviewer', 'support'],
+    ['ops_manager', 'kyc_reviewer'],
+  ),
+);
 
 const listQuery = z.object({
   status: z.enum([

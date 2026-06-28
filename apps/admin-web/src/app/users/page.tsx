@@ -19,11 +19,23 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AppShell } from '@/components/AppShell';
 import { ResponsiveTable, type Column } from '@/components/ResponsiveTable';
 import { api } from '@/lib/api';
+import { useCan } from '@/lib/permissions';
+import { ADMIN_ROLES, type AdminRole } from '@tewiz/shared-types';
+
+const ADMIN_ROLE_LABEL: Record<AdminRole, string> = {
+  super_admin:  'Super admin',
+  ops_manager:  'Manager opérations',
+  dispatcher:   'Dispatcher',
+  kyc_reviewer: 'Vérificateur KYC',
+  finance:      'Finance',
+  support:      'Support',
+};
 
 interface UserRow {
   id: string;
   phone: string;
   role: 'rider' | 'captain' | 'admin';
+  admin_role: AdminRole | null;
   status: 'active' | 'suspended' | 'banned' | 'deleted';
   full_name: string | null;
   language: 'fr' | 'ar' | 'en';
@@ -53,11 +65,13 @@ interface PasswordReveal {
 
 export default function UsersPage() {
   const qc = useQueryClient();
+  const isSuperAdmin = useCan(); // super_admin only — useCan() with no args
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<UserRow['role'] | 'all'>('all');
   const [onlineOnly, setOnlineOnly] = useState(false);
   const [reveal, setReveal] = useState<PasswordReveal | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [editingRole, setEditingRole] = useState<UserRow | null>(null);
 
   const list = useQuery<ListResponse>({
     queryKey: ['admin-users', search, roleFilter, onlineOnly],
@@ -123,9 +137,16 @@ export default function UsersPage() {
       key: 'role',
       header: 'Rôle',
       cell: (u) => (
-        <span className={`px-2 py-1 text-xs rounded-md font-medium ${roleBadge(u.role)}`}>
-          {u.role}
-        </span>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className={`px-2 py-1 text-xs rounded-md font-medium ${roleBadge(u.role)}`}>
+            {u.role}
+          </span>
+          {u.admin_role && (
+            <span className="px-2 py-1 text-xs rounded-md font-medium bg-purple-50 text-purple-700 border border-purple-200">
+              {ADMIN_ROLE_LABEL[u.admin_role]}
+            </span>
+          )}
+        </div>
       ),
     },
     {
@@ -163,13 +184,23 @@ export default function UsersPage() {
       align: 'right',
       hideOnMobile: true,
       cell: (u) => (
-        <button
-          onClick={() => regenerate.mutate(u)}
-          disabled={regenerate.isPending}
-          className="text-xs text-emerald-700 hover:text-emerald-900 font-medium"
-        >
-          Régénérer
-        </button>
+        <div className="flex items-center justify-end gap-3">
+          {isSuperAdmin && u.role === 'admin' && (
+            <button
+              onClick={() => setEditingRole(u)}
+              className="text-xs text-purple-700 hover:text-purple-900 font-medium"
+            >
+              Rôle admin
+            </button>
+          )}
+          <button
+            onClick={() => regenerate.mutate(u)}
+            disabled={regenerate.isPending}
+            className="text-xs text-emerald-700 hover:text-emerald-900 font-medium"
+          >
+            Régénérer
+          </button>
+        </div>
       ),
     },
   ];
@@ -273,6 +304,16 @@ export default function UsersPage() {
         {reveal && (
           <PasswordRevealModal payload={reveal} onClose={() => setReveal(null)} />
         )}
+        {editingRole && (
+          <EditAdminRoleModal
+            user={editingRole}
+            onClose={() => setEditingRole(null)}
+            onSaved={() => {
+              setEditingRole(null);
+              qc.invalidateQueries({ queryKey: ['admin-users'] });
+            }}
+          />
+        )}
       </div>
     </AppShell>
   );
@@ -308,9 +349,11 @@ function CreateUserModal({
   onClose: () => void;
   onCreated: (p: PasswordReveal) => void;
 }) {
+  const isSuperAdmin = useCan();
   const [phone, setPhone] = useState('+222');
   const [fullName, setFullName] = useState('');
   const [role, setRole] = useState<'rider' | 'captain' | 'admin'>('rider');
+  const [adminRole, setAdminRole] = useState<AdminRole>('support');
   const [error, setError] = useState<string | null>(null);
 
   const submit = useMutation({
@@ -320,7 +363,12 @@ function CreateUserModal({
         user: { id: string; phone: string; role: string; fullName: string };
         password: string;
         whatsappLink: string;
-      }>('/admin/users', { phone, role, fullName });
+      }>('/admin/users', {
+        phone,
+        role,
+        fullName,
+        ...(role === 'admin' ? { adminRole } : {}),
+      });
       return {
         userId: r.data.user.id,
         phone: r.data.user.phone,
@@ -379,9 +427,28 @@ function CreateUserModal({
             >
               <option value="rider">Rider (passager)</option>
               <option value="captain">Chauffeur</option>
-              <option value="admin">Administrateur</option>
+              {isSuperAdmin && (
+                <option value="admin">Administrateur</option>
+              )}
             </select>
           </div>
+          {role === 'admin' && (
+            <div>
+              <label className="block text-xs text-slate-600 mb-1">Sous-rôle admin</label>
+              <select
+                value={adminRole}
+                onChange={(e) => setAdminRole(e.target.value as AdminRole)}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white"
+              >
+                {ADMIN_ROLES.map((r) => (
+                  <option key={r} value={r}>{ADMIN_ROLE_LABEL[r]}</option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-slate-500">
+                Détermine les pages et actions accessibles dans l'admin.
+              </p>
+            </div>
+          )}
         </div>
 
         {error && (
@@ -401,6 +468,82 @@ function CreateUserModal({
             className="px-4 py-2 text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg disabled:opacity-50"
           >
             {submit.isPending ? 'Création…' : 'Créer et générer le mot de passe'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Edit admin sub-role (super_admin only)
+// ---------------------------------------------------------------------------
+
+function EditAdminRoleModal({
+  user, onClose, onSaved,
+}: {
+  user: UserRow;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [adminRole, setAdminRole] = useState<AdminRole>(user.admin_role ?? 'support');
+  const [error, setError] = useState<string | null>(null);
+
+  const save = useMutation({
+    mutationFn: async () => {
+      setError(null);
+      await api.patch(`/admin/users/${user.id}/admin-role`, { adminRole });
+    },
+    onSuccess: onSaved,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onError: (e: any) => {
+      const code = e.response?.data?.error?.code;
+      const msg = e.response?.data?.error?.message;
+      if (code === 'last_super_admin') {
+        setError('Impossible de retirer le dernier super_admin actif.');
+      } else {
+        setError(msg ?? 'Erreur lors de la mise à jour du rôle.');
+      }
+    },
+  });
+
+  const unchanged = adminRole === user.admin_role;
+
+  return (
+    <div className="fixed inset-0 bg-slate-900/40 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+        <h2 className="text-lg font-bold mb-1">Changer le rôle admin</h2>
+        <p className="text-sm text-slate-500 mb-4">
+          {user.full_name ?? user.phone} — actuellement {user.admin_role
+            ? ADMIN_ROLE_LABEL[user.admin_role]
+            : 'sans rôle'}.
+        </p>
+
+        <select
+          value={adminRole}
+          onChange={(e) => setAdminRole(e.target.value as AdminRole)}
+          className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white"
+        >
+          {ADMIN_ROLES.map((r) => (
+            <option key={r} value={r}>{ADMIN_ROLE_LABEL[r]}</option>
+          ))}
+        </select>
+
+        {error && <div className="mt-3 text-sm text-red-600">{error}</div>}
+
+        <div className="mt-6 flex justify-end gap-2">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg"
+          >
+            Annuler
+          </button>
+          <button
+            onClick={() => save.mutate()}
+            disabled={save.isPending || unchanged}
+            className="px-4 py-2 text-sm font-medium bg-purple-600 hover:bg-purple-700 text-white rounded-lg disabled:opacity-50"
+          >
+            {save.isPending ? 'Enregistrement…' : 'Enregistrer'}
           </button>
         </div>
       </div>

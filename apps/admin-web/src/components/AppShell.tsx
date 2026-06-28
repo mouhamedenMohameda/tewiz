@@ -4,8 +4,18 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth';
+import { canAccessPath, defaultLandingFor, PAGE_PERMS } from '@/lib/permissions';
 import { APP_NAME } from '@/lib/brand';
 import clsx from 'clsx';
+
+// Match the most specific registered path prefix — e.g. "/settings/documents"
+// wins over "/settings" for /settings/documents/foo.
+function resolvePermPath(pathname: string): string | null {
+  const candidates = Object.keys(PAGE_PERMS)
+    .filter((p) => pathname === p || pathname.startsWith(p + '/'))
+    .sort((a, b) => b.length - a.length);
+  return candidates[0] ?? null;
+}
 
 const NAV = [
   { href: '/applications',   label: 'Dossiers KYC', icon: '📋' },
@@ -21,6 +31,15 @@ const NAV = [
   { href: '/settings',       label: 'Paramètres',  icon: '⚙️' },
   { href: '/settings/documents', label: 'Documents requis', icon: '📑' },
 ];
+
+const ADMIN_ROLE_LABEL: Record<string, string> = {
+  super_admin:  'Super admin',
+  ops_manager:  'Manager opérations',
+  dispatcher:   'Dispatcher',
+  kyc_reviewer: 'Vérificateur KYC',
+  finance:      'Finance',
+  support:      'Support',
+};
 
 function Logo({ size = 38 }: { size?: number }) {
   return (
@@ -54,8 +73,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => { hydrate(); }, [hydrate]);
   useEffect(() => {
-    if (hydrated && (!user || user.role !== 'admin')) router.replace('/login');
-  }, [hydrated, user, router]);
+    if (!hydrated) return;
+    if (!user || user.role !== 'admin' || !user.adminRole) {
+      router.replace('/login');
+      return;
+    }
+    // Sub-role gate: bounce to a page they CAN see if they hit a forbidden URL.
+    const permPath = resolvePermPath(path);
+    if (permPath && !canAccessPath(user.adminRole, permPath)) {
+      router.replace(defaultLandingFor(user.adminRole));
+    }
+  }, [hydrated, user, router, path]);
 
   // Close drawer on route change
   useEffect(() => { setDrawerOpen(false); }, [path]);
@@ -75,6 +103,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
+
+  // Don't render the forbidden page's content while the redirect is in flight.
+  const permPath = resolvePermPath(path);
+  const allowed = !permPath || canAccessPath(user.adminRole, permPath);
 
   const sidebarContent = (
     <>
@@ -100,7 +132,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-        {NAV.map((item) => {
+        {NAV.filter((item) => canAccessPath(user.adminRole, item.href)).map((item) => {
           const active =
             path === item.href ||
             path.startsWith(item.href + '/');
@@ -128,6 +160,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="text-sm font-medium text-slate-900 mt-0.5 truncate">
             {user.fullName ?? user.phone}
           </div>
+          {user.adminRole && (
+            <div className="text-xs text-brand-700 font-medium mt-0.5">
+              {ADMIN_ROLE_LABEL[user.adminRole] ?? user.adminRole}
+            </div>
+          )}
         </div>
         <button
           onClick={() => { clear(); router.replace('/login'); }}
@@ -186,7 +223,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main */}
-      <main className="flex-1 overflow-auto min-w-0">{children}</main>
+      <main className="flex-1 overflow-auto min-w-0">
+        {allowed ? children : (
+          <div className="min-h-screen flex items-center justify-center text-slate-500">
+            Redirection…
+          </div>
+        )}
+      </main>
     </div>
   );
 }

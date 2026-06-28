@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
+import { defaultLandingFor } from '@/lib/permissions';
 
 export default function Home() {
   const router = useRouter();
@@ -13,7 +14,11 @@ export default function Home() {
   useEffect(() => { hydrate(); }, [hydrate]);
   useEffect(() => {
     if (!hydrated) return;
-    router.replace(user?.role === 'admin' ? '/applications' : '/login');
+    if (user?.role !== 'admin') {
+      router.replace('/login');
+      return;
+    }
+    router.replace(defaultLandingFor(user.adminRole));
   }, [hydrated, user, router]);
 
   return (

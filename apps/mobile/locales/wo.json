@@ -387,7 +387,11 @@
         "missingPhotoBody": "Yokk capture sa fey.",
         "failTitle": "Mënul",
         "failBody": "Mënul yonnee.",
-        "galleryPermission": "Joxe accès ci galerie."
+        "galleryPermission": "Joxe accès ci galerie.",
+        "sendTo": "Yónnee recharge bi ci numero {{provider}}",
+        "copy": "Copier",
+        "phoneCopiedTitle": "Numero copié",
+        "phoneCopiedBody": "Numero {{phone}} copié na ci presse-papiers."
       }
     },
     "homeLocation": {

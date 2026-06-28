@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
+import * as Clipboard from 'expo-clipboard';
 import { api } from '@/lib/api';
 import { formatMru } from '@/lib/format';
 import {
@@ -50,6 +51,14 @@ const PROVIDER_LABELS: Record<Provider, string> = {
   masrivi: 'Masrivi',
   sedad: 'Sedad',
   cash_office: `Bureau ${APP_NAME}`,
+};
+
+// Numéros officiels où le chauffeur doit envoyer la recharge. Affichés
+// dans la modale dès qu'il sélectionne le fournisseur correspondant.
+const PROVIDER_PHONES: Partial<Record<Provider, string>> = {
+  bankily: '42986738',
+  sedad: '32164356',
+  masrivi: '36863516',
 };
 
 export default function WalletScreen() {
@@ -164,6 +173,46 @@ function TopupRow({ t: tx, locale }: { t: Topup; locale: string }) {
         </AppText>
       </View>
     </Card>
+  );
+}
+
+function ProviderPhonePanel({ provider }: { provider: Provider }) {
+  const { t } = useTranslation();
+  const phone = PROVIDER_PHONES[provider];
+  if (!phone) return null;
+  async function copy() {
+    await Clipboard.setStringAsync(phone!);
+    Alert.alert(t('captain.wallet.topupModal.phoneCopiedTitle'), t('captain.wallet.topupModal.phoneCopiedBody', { phone }));
+  }
+  return (
+    <View style={{
+      marginTop: spacing.md, padding: spacing.md, borderRadius: radius.md,
+      backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.line,
+      flexDirection: 'row', alignItems: 'center', gap: spacing.md,
+    }}>
+      <View style={{ flex: 1 }}>
+        <AppText variant="overline" color={colors.muted}>
+          {t('captain.wallet.topupModal.sendTo', { provider: PROVIDER_LABELS[provider] })}
+        </AppText>
+        <AppText variant="h2" style={{ marginTop: 2, letterSpacing: 1.5 }}>
+          {phone}
+        </AppText>
+      </View>
+      <Pressable
+        onPress={copy}
+        hitSlop={8}
+        style={({ pressed }) => ({
+          flexDirection: 'row', alignItems: 'center', gap: 6,
+          paddingHorizontal: 14, paddingVertical: 9, borderRadius: radius.pill,
+          backgroundColor: pressed ? colors.emberDeep : colors.ember,
+        })}
+      >
+        <Icon name="document" size={14} color={colors.onEmber} />
+        <AppText variant="label" color={colors.onEmber}>
+          {t('captain.wallet.topupModal.copy')}
+        </AppText>
+      </Pressable>
+    </View>
   );
 }
 
@@ -293,6 +342,8 @@ function TopupModal({
               );
             })}
           </View>
+
+          <ProviderPhonePanel provider={provider} />
 
           <TextField
             containerStyle={{ marginTop: spacing.xl }}
