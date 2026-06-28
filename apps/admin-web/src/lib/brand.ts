@@ -8,4 +8,4 @@
  *   - the API domain (src/lib/env.ts)
  *   - the localStorage auth key (src/lib/auth.ts)
  */
-export const APP_NAME = 'Alo Mama';
+export const APP_NAME = 'Aloo';

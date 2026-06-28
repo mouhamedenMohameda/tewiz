@@ -1,10 +1,11 @@
 import jwt from 'jsonwebtoken';
 import { env } from '../../config/env.js';
-import type { UserRole } from '@tewiz/shared-types';
+import type { UserRole, AdminRole } from '@tewiz/shared-types';
 
 export interface AccessTokenPayload {
   sub: string;          // user id
   role: UserRole;
+  adminRole: AdminRole | null;
   sid: string;          // session id
 }
 

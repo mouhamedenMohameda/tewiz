@@ -14,7 +14,7 @@ const BUNDLE_ID = brand.bundleId;
 const config: ExpoConfig = {
   name: APP_NAME,
   slug: APP_SLUG,
-  version: '0.0.1',
+  version: '1.0.5',
   orientation: 'portrait',
   userInterfaceStyle: 'light',
   icon: './assets/icon.png',

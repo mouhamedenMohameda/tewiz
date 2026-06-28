@@ -13,7 +13,7 @@ import {
 } from './password.js';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from './jwt.js';
 import { requireAuth, type AuthedRequest } from '../../middleware/auth.js';
-import type { UserRole } from '@tewiz/shared-types';
+import type { UserRole, AdminRole } from '@tewiz/shared-types';
 
 export const authRouter = Router();
 
@@ -96,7 +96,7 @@ authRouter.post('/login', async (req, res) => {
   // 4. Mint a session.
   await recordAttempt(phone, true, ip, ua);
   const { accessToken, refreshToken } = await issueSession(
-    { id: userRow!.id, role: userRow!.role },
+    { id: userRow!.id, role: userRow!.role, admin_role: userRow!.admin_role },
     deviceId,
     ua,
   );
@@ -106,6 +106,7 @@ authRouter.post('/login', async (req, res) => {
       id: userRow!.id,
       phone: userRow!.phone,
       role: userRow!.role,
+      adminRole: userRow!.admin_role,
       fullName: userRow!.full_name,
       language: userRow!.language,
       mustResetPassword: userRow!.must_reset_password,
@@ -146,7 +147,7 @@ authRouter.post('/guest', async (req, res) => {
   );
   const user = rows[0]!;
   const { accessToken, refreshToken } = await issueSession(
-    { id: user.id, role: user.role },
+    { id: user.id, role: user.role, admin_role: null },
     deviceId,
     ua,
   );
@@ -156,6 +157,7 @@ authRouter.post('/guest', async (req, res) => {
       id: user.id,
       phone: null,
       role: user.role,
+      adminRole: null,
       fullName: null,
       language: 'fr',
       isGuest: true,
@@ -247,7 +249,12 @@ authRouter.post('/refresh', async (req, res) => {
 
   await pool.query('UPDATE sessions SET last_used_at = now() WHERE id = $1', [payload.sid]);
 
-  const accessToken = signAccessToken({ sub: user.id, role: user.role, sid: payload.sid });
+  const accessToken = signAccessToken({
+    sub: user.id,
+    role: user.role,
+    adminRole: user.admin_role,
+    sid: payload.sid,
+  });
   res.json({ accessToken, accessExpiresIn: env.JWT_ACCESS_TTL_SECONDS });
 });
 
@@ -329,6 +336,7 @@ authRouter.get('/me', requireAuth, async (req, res) => {
     id: user.id,
     phone: user.phone,
     role: user.role,
+    adminRole: user.admin_role,
     fullName: user.full_name,
     language: user.language,
     isGuest: user.is_guest ?? false,
@@ -374,6 +382,7 @@ authRouter.patch('/me', requireAuth, async (req, res) => {
       id: user.id,
       phone: user.phone,
       role: user.role,
+      adminRole: user.admin_role,
       fullName: user.full_name,
       language: user.language,
       isGuest: user.is_guest ?? false,
@@ -386,7 +395,7 @@ authRouter.patch('/me', requireAuth, async (req, res) => {
   const { rows } = await pool.query<UserRow>(
     `UPDATE users SET ${sets.join(', ')}
       WHERE id = $${params.length}
-      RETURNING id, phone, role, full_name, language,
+      RETURNING id, phone, role, admin_role, full_name, language,
                 COALESCE(is_guest, false) AS is_guest,
                 COALESCE(must_reset_password, false) AS must_reset_password`,
     params,
@@ -397,6 +406,7 @@ authRouter.patch('/me', requireAuth, async (req, res) => {
     id: u.id,
     phone: u.phone,
     role: u.role,
+    adminRole: u.admin_role,
     fullName: u.full_name,
     language: u.language,
     isGuest: u.is_guest ?? false,
@@ -450,12 +460,17 @@ authRouter.delete('/me', requireAuth, async (req, res) => {
  * (sessions row + last_seen_at) stays in one place.
  */
 async function issueSession(
-  user: { id: string; role: UserRole },
+  user: { id: string; role: UserRole; admin_role: AdminRole | null },
   deviceId: string,
   ua: string | null,
 ): Promise<{ accessToken: string; refreshToken: string }> {
   const sessionId = crypto.randomUUID();
-  const accessToken = signAccessToken({ sub: user.id, role: user.role, sid: sessionId });
+  const accessToken = signAccessToken({
+    sub: user.id,
+    role: user.role,
+    adminRole: user.admin_role,
+    sid: sessionId,
+  });
   const refreshToken = signRefreshToken({ sub: user.id, sid: sessionId });
   const refreshHash = await bcrypt.hash(refreshToken, 8);
 
@@ -473,6 +488,7 @@ interface UserRow {
   id: string;
   phone: string | null;
   role: UserRole;
+  admin_role: AdminRole | null;
   full_name: string | null;
   language: 'fr' | 'ar' | 'en';
   is_guest?: boolean;
@@ -486,7 +502,7 @@ interface UserRowWithPassword extends UserRow {
 
 async function findUserByPhoneWithPassword(phone: string): Promise<UserRowWithPassword | null> {
   const { rows } = await pool.query<UserRowWithPassword>(
-    `SELECT id, phone, role, full_name, language,
+    `SELECT id, phone, role, admin_role, full_name, language,
             password_hash, COALESCE(must_reset_password, false) AS must_reset_password
        FROM users WHERE phone = $1`,
     [phone],
@@ -496,7 +512,7 @@ async function findUserByPhoneWithPassword(phone: string): Promise<UserRowWithPa
 
 async function getUserById(id: string): Promise<UserRow | null> {
   const { rows } = await pool.query<UserRow>(
-    `SELECT id, phone, role, full_name, language,
+    `SELECT id, phone, role, admin_role, full_name, language,
             COALESCE(is_guest, false) AS is_guest,
             COALESCE(must_reset_password, false) AS must_reset_password
        FROM users WHERE id = $1`,

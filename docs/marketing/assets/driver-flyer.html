@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Aloo — Flyer chauffeur (A5, à imprimer)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ember:#F2682C; --emberDeep:#D9531B; --sun:#F6A623; --saffron:#FBC65A; --saffronSoft:#FCEFC9;
+    --ink:#2C1D10; --canvas:#FBF3E7;
+    --grad-ember:linear-gradient(150deg,#F8843E 0%,#F2682C 50%,#E85617 100%);
+    --display:'Sora',sans-serif; --text:'Plus Jakarta Sans',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#E9DEC9;font-family:var(--text);display:flex;flex-direction:column;align-items:center;padding:30px 16px 60px}
+  .hint{max-width:520px;background:var(--ink);color:#FBEFDD;border-radius:14px;padding:16px 20px;margin-bottom:28px;font-size:14px;line-height:1.6}
+  .hint b{color:var(--saffron)}
+  .hint code{background:rgba(255,255,255,.12);padding:2px 7px;border-radius:6px;font-size:12.5px}
+
+  /* A5 sheet: 148 × 210 mm. On screen we render at a fixed px size with the A5 ratio. */
+  .flyer{width:520px;height:736px;background:var(--grad-ember);color:#fff;border-radius:18px;
+    overflow:hidden;position:relative;box-shadow:0 24px 60px rgba(90,52,20,.28);
+    display:flex;flex-direction:column;padding:42px 40px}
+  .glow{position:absolute;width:300px;height:300px;border-radius:50%;background:#FBC65A;opacity:.4;
+    top:-110px;right:-80px;filter:blur(3px)}
+  .logo{display:inline-flex;align-items:center;gap:12px;font-family:var(--display);font-weight:800;font-size:23px;position:relative;z-index:2}
+  .logo .mk{width:44px;height:44px;border-radius:13px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center}
+  .eyebrow{font-family:var(--text);font-weight:700;font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:#FCEFC9;margin-top:26px;position:relative;z-index:2}
+  h1{font-family:var(--display);font-weight:800;font-size:54px;line-height:.96;letter-spacing:-.02em;margin-top:12px;position:relative;z-index:2}
+  .sub{font-size:17px;color:#FDEAD9;margin-top:14px;line-height:1.4;position:relative;z-index:2;max-width:380px}
+  .perks{display:flex;flex-direction:column;gap:11px;margin-top:22px;position:relative;z-index:2}
+  .perk{display:flex;align-items:center;gap:11px;font-size:16px;font-weight:600}
+  .perk .c{width:26px;height:26px;border-radius:8px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;flex:0 0 auto;font-size:15px}
+  .founder{margin-top:18px;align-self:flex-start;background:var(--saffron);color:var(--ink);font-weight:700;
+    font-size:13.5px;padding:8px 15px;border-radius:999px;position:relative;z-index:2}
+  .qrcard{margin-top:auto;background:#fff;border-radius:18px;padding:18px;display:flex;align-items:center;gap:18px;position:relative;z-index:2}
+  #qr{width:128px;height:128px;flex:0 0 auto}
+  #qr img,#qr canvas{display:block;width:128px !important;height:128px !important}
+  .qrtxt .t{font-family:var(--display);font-weight:700;font-size:18px;color:var(--ink);line-height:1.15}
+  .qrtxt .w{font-size:15px;color:var(--emberDeep);font-weight:700;margin-top:6px}
+  .qrtxt .ar{font-size:14px;color:#6B5740;margin-top:4px;direction:rtl}
+  .foot{margin-top:14px;display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#FCEFC9;position:relative;z-index:2}
+
+  @media print{
+    body{background:#fff;padding:0}
+    .hint{display:none}
+    .flyer{width:148mm;height:210mm;border-radius:0;box-shadow:none}
+    @page{size:A5;margin:0}
+  }
+</style>
+</head>
+<body>
+
+  <div class="hint">
+    <b>À imprimer :</b> format <b>A5</b>. Pour imprimer → <code>Ctrl/Cmd + P</code> → Destination imprimante, marges « Aucune ». Pour exporter en image → ouvre dans Chrome, clic droit sur le flyer → Inspecter → <code>Capture node screenshot</code>. &nbsp;Le <b>numéro et le QR code</b> se mettent à jour depuis le bloc <code>SITE</code> en bas du fichier — mets ton numéro WhatsApp +222 puis réimprime.
+  </div>
+
+  <div class="flyer" id="flyer">
+    <span class="glow"></span>
+    <div class="logo">
+      <span class="mk"><svg width="26" height="26" viewBox="0 0 1024 1024"><g fill="none" stroke="#FFFCF6" stroke-width="92" stroke-linecap="round" stroke-linejoin="round"><path d="M300 760 512 286"/><path d="M724 760 512 286"/><path d="M388 596 636 596"/></g></svg></span>
+      Aloo
+    </div>
+
+    <div class="eyebrow">Devenir chauffeur · Nouakchott</div>
+    <h1>Gagne plus.<br/>Le reste,<br/>dans ta poche.</h1>
+    <div class="sub">L'app de course mauritanienne recrute. Conduis à ton rythme, dans ta ville. · <i>rbah aktar · w lba9i f lbntk</i></div>
+
+    <div class="perks">
+      <div class="perk"><span class="c">💰</span> Tu gardes ~93% de ta course</div>
+      <div class="perk"><span class="c">💵</span> Payé cash, chaque jour</div>
+      <div class="perk"><span class="c">⭐</span> Tes clients reviennent vers toi</div>
+      <div class="perk"><span class="c">⏱️</span> Inscription en 2 minutes</div>
+    </div>
+
+    <span class="founder">🏅 Avantages réservés aux 50 premiers</span>
+
+    <div class="qrcard">
+      <div id="qr"></div>
+      <div class="qrtxt">
+        <div class="t">Scanne pour<br/>t'inscrire</div>
+        <div class="w" id="wa-num">WhatsApp +222 …</div>
+        <div class="ar">سجّل في دقيقتين على واتساب</div>
+      </div>
+    </div>
+
+    <div class="foot">
+      <span>Parle. On t'amène.</span>
+      <span style="direction:rtl">احكي... ونوصّلوك</span>
+    </div>
+  </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+  /* ── Edit your number once; the QR + displayed number update. ── */
+  const SITE = {
+    whatsapp: '2220000000',  // ← your +222 WhatsApp Business number, digits only
+    waMessage: 'Salam ! Je veux devenir chauffeur Aloo 🚖',
+  };
+  const link = `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(SITE.waMessage)}`;
+  new QRCode(document.getElementById('qr'), {
+    text: link, width: 128, height: 128,
+    colorDark: '#2C1D10', colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.M,
+  });
+  document.getElementById('wa-num').textContent =
+    'WhatsApp +' + SITE.whatsapp.replace(/^(\d{3})(\d{2})(\d{2})(\d{2})(\d+)?/, '$1 $2 $3 $4 $5').trim();
+</script>
+</body>
+</html>

@@ -19,12 +19,16 @@ async function main() {
     console.error('Invalid Mauritanian phone:', normalized);
     process.exit(1);
   }
+  // Seed scripts mint super_admins by default — they bootstrap the panel
+  // and can then assign narrower sub-roles to other admins via the UI.
   const r = await pool.query(
-    `INSERT INTO users (phone, role, full_name)
-     VALUES ($1, 'admin', $2)
+    `INSERT INTO users (phone, role, admin_role, full_name)
+     VALUES ($1, 'admin', 'super_admin', $2)
      ON CONFLICT (phone) DO UPDATE
-       SET role = 'admin', full_name = COALESCE(EXCLUDED.full_name, users.full_name)
-     RETURNING id, phone, role, full_name`,
+       SET role = 'admin',
+           admin_role = COALESCE(users.admin_role, 'super_admin'),
+           full_name = COALESCE(EXCLUDED.full_name, users.full_name)
+     RETURNING id, phone, role, admin_role, full_name`,
     [normalized, name],
   );
   console.log('Admin ready:', r.rows[0]);

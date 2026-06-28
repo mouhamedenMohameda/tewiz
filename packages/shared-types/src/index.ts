@@ -5,10 +5,30 @@ export type UserRole = 'rider' | 'captain' | 'admin';
 export type UserStatus = 'active' | 'suspended' | 'banned' | 'deleted';
 export type Language = 'fr' | 'ar' | 'en';
 
+// Sub-role inside the admin panel (RBAC). Set only when role='admin'.
+// See migration 0029_admin_roles.sql for the per-role permission matrix.
+export type AdminRole =
+  | 'super_admin'
+  | 'ops_manager'
+  | 'dispatcher'
+  | 'kyc_reviewer'
+  | 'finance'
+  | 'support';
+
+export const ADMIN_ROLES: readonly AdminRole[] = [
+  'super_admin',
+  'ops_manager',
+  'dispatcher',
+  'kyc_reviewer',
+  'finance',
+  'support',
+] as const;
+
 export interface UserPublic {
   id: string;
   phone: string;
   role: UserRole;
+  adminRole: AdminRole | null;
   fullName: string | null;
   language: Language;
   createdAt: string;
