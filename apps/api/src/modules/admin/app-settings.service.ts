@@ -34,6 +34,12 @@ export interface PricingSettings {
   // Migration 0025. A ride in 'searching' longer than this is auto-cancelled
   // by the background expiry job. 0 disables the job.
   searchingTimeoutS: number;
+  // Migration 0028. Captain commission bonus: when a captain pays X MRU of
+  // commission within Y days, their commission is halved for Z days.
+  commissionBonusEnabled: boolean;
+  commissionBonusThresholdMru: number;
+  commissionBonusWindowDays: number;
+  commissionBonusRewardDays: number;
   updatedAt: string;
   updatedBy: string | null;
 }
@@ -54,6 +60,10 @@ interface Row {
   operator_passenger_commission_bps: number;
   operator_colis_commission_bps: number;
   searching_timeout_s: number;
+  commission_bonus_enabled: boolean;
+  commission_bonus_threshold_mru: number;
+  commission_bonus_window_days: number;
+  commission_bonus_reward_days: number;
   updated_at: Date;
   updated_by: string | null;
 }
@@ -72,6 +82,10 @@ function toSettings(r: Row): PricingSettings {
     operatorPassengerCommissionBps: r.operator_passenger_commission_bps,
     operatorColisCommissionBps: r.operator_colis_commission_bps,
     searchingTimeoutS: r.searching_timeout_s,
+    commissionBonusEnabled: r.commission_bonus_enabled,
+    commissionBonusThresholdMru: r.commission_bonus_threshold_mru,
+    commissionBonusWindowDays: r.commission_bonus_window_days,
+    commissionBonusRewardDays: r.commission_bonus_reward_days,
     updatedAt: r.updated_at.toISOString(),
     updatedBy: r.updated_by,
   };
@@ -88,6 +102,8 @@ export async function getPricingSettings(): Promise<PricingSettings> {
             long_distance_threshold_m,
             operator_passenger_commission_bps, operator_colis_commission_bps,
             searching_timeout_s,
+            commission_bonus_enabled, commission_bonus_threshold_mru,
+            commission_bonus_window_days, commission_bonus_reward_days,
             updated_at, updated_by
        FROM app_settings WHERE id = 1`,
   );
@@ -114,6 +130,10 @@ export interface PricingSettingsPatch {
   operatorPassengerCommissionBps?: number;
   operatorColisCommissionBps?: number;
   searchingTimeoutS?: number;
+  commissionBonusEnabled?: boolean;
+  commissionBonusThresholdMru?: number;
+  commissionBonusWindowDays?: number;
+  commissionBonusRewardDays?: number;
 }
 
 export async function updatePricingSettings(
@@ -134,8 +154,12 @@ export async function updatePricingSettings(
             operator_passenger_commission_bps = COALESCE($10, operator_passenger_commission_bps),
             operator_colis_commission_bps     = COALESCE($11, operator_colis_commission_bps),
             searching_timeout_s               = COALESCE($12, searching_timeout_s),
+            commission_bonus_enabled          = COALESCE($13, commission_bonus_enabled),
+            commission_bonus_threshold_mru    = COALESCE($14, commission_bonus_threshold_mru),
+            commission_bonus_window_days      = COALESCE($15, commission_bonus_window_days),
+            commission_bonus_reward_days      = COALESCE($16, commission_bonus_reward_days),
             updated_at                        = now(),
-            updated_by                        = $13
+            updated_by                        = $17
       WHERE id = 1
       RETURNING base_fare_mru, per_km_mru, min_fare_mru,
                 colis_base_fare_mru, colis_per_km_mru, colis_min_fare_mru,
@@ -143,6 +167,8 @@ export async function updatePricingSettings(
                 long_distance_threshold_m,
                 operator_passenger_commission_bps, operator_colis_commission_bps,
                 searching_timeout_s,
+                commission_bonus_enabled, commission_bonus_threshold_mru,
+                commission_bonus_window_days, commission_bonus_reward_days,
                 updated_at, updated_by`,
     [
       patch.baseFareMru ?? null,
@@ -157,6 +183,10 @@ export async function updatePricingSettings(
       patch.operatorPassengerCommissionBps ?? null,
       patch.operatorColisCommissionBps ?? null,
       patch.searchingTimeoutS ?? null,
+      patch.commissionBonusEnabled ?? null,
+      patch.commissionBonusThresholdMru ?? null,
+      patch.commissionBonusWindowDays ?? null,
+      patch.commissionBonusRewardDays ?? null,
       adminId,
     ],
   );

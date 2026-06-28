@@ -9,6 +9,8 @@ import { distanceMeters, eligibleCaptainsForRide } from './dispatch.service.js';
 import { debitWallet } from '../wallet/wallet.service.js';
 import { sms } from '../auth/sms.js';
 import { notifyCaptainsNewRide } from '../push/expo-push.js';
+import { applyBonusOnCompletion } from './commission-bonus.service.js';
+import { notifyCaptainBonusEarned } from '../notifications/notifications.service.js';
 import type { RideStatus, RideType, PaymentMethod } from '@tewiz/shared-types';
 
 // Normalize MR phones (same logic as auth/phone.ts but inline for the service).
@@ -890,7 +892,13 @@ export async function completeRide(input: CompleteInput) {
       fareFinalMru = fareMru;
     }
 
-    const commission = commissionMru(fareFinalMru, ride.commission_rate_bps);
+    const baseCommission = commissionMru(fareFinalMru, ride.commission_rate_bps);
+
+    // Captain bonus (migration 0028): if the captain currently has an active
+    // bonus, halve the commission; otherwise accumulate towards the threshold.
+    // Runs inside the same tx so the wallet debit and bonus state stay aligned.
+    const bonus = await applyBonusOnCompletion(client, input.captainId, baseCommission);
+    const commission = bonus.effectiveCommissionMru;
 
     // Debit the captain wallet for the commission (atomically inside this tx).
     // When commission is 0 (e.g. admin set rate to 0%), there's nothing to debit;
@@ -901,7 +909,9 @@ export async function completeRide(input: CompleteInput) {
           amountMru: commission,
           type: 'commission',
           rideId: ride.id,
-          reason: `Commission ${(ride.commission_rate_bps / 100).toFixed(2)}% on ride ${ride.id}`,
+          reason: bonus.bonusApplied
+            ? `Commission ${(ride.commission_rate_bps / 100).toFixed(2)}% ÷2 (bonus) on ride ${ride.id}`
+            : `Commission ${(ride.commission_rate_bps / 100).toFixed(2)}% on ride ${ride.id}`,
         }, client)
       : { transactionId: null, balanceAfter: await (async () => {
           const r = await client.query<{ balance_mru: string }>(
@@ -918,10 +928,11 @@ export async function completeRide(input: CompleteInput) {
               fare_final_mru = $1,
               commission_mru = $2,
               distance_m = $3,
-              duration_s = $4
-        WHERE id = $5
+              duration_s = $4,
+              commission_bonus_applied = $5
+        WHERE id = $6
       RETURNING ${RIDE_COLUMNS}`,
-      [fareFinalMru, commission, finalDistanceM, finalDurationS, ride.id],
+      [fareFinalMru, commission, finalDistanceM, finalDurationS, bonus.bonusApplied, ride.id],
     );
 
     // Captain goes back to "online".
@@ -930,6 +941,13 @@ export async function completeRide(input: CompleteInput) {
         WHERE captain_id = $1`,
       [input.captainId],
     );
+
+    // Fire-and-forget notification when the captain just earned the bonus.
+    // Outside the wallet write so a notification hiccup never rolls back
+    // the ride completion.
+    if (bonus.bonusJustEarned && bonus.bonusUntil) {
+      void notifyCaptainBonusEarned(input.captainId, bonus.bonusUntil);
+    }
 
     return {
       ride: shape(upd.rows[0]!, { revealCode: true }),

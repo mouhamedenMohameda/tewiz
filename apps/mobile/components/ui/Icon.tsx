@@ -59,6 +59,9 @@ const REGISTRY = {
   tune: { set: 'mci', glyph: 'tune-variant' },
   restaurant: { set: 'ion', glyph: 'restaurant' },
   menu: { set: 'mci', glyph: 'silverware-fork-knife' },
+  gift: { set: 'ion', glyph: 'gift' },
+  bell: { set: 'ion', glyph: 'notifications-outline' },
+  bellFilled: { set: 'ion', glyph: 'notifications' },
 } as const satisfies Record<string, IconEntry>;
 
 export type IconName = keyof typeof REGISTRY;

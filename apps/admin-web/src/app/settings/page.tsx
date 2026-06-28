@@ -25,6 +25,10 @@ interface PricingSettings {
   operatorPassengerCommissionBps: number;
   operatorColisCommissionBps: number;
   searchingTimeoutS: number;
+  commissionBonusEnabled: boolean;
+  commissionBonusThresholdMru: number;
+  commissionBonusWindowDays: number;
+  commissionBonusRewardDays: number;
   updatedAt: string;
   updatedBy: string | null;
 }
@@ -42,6 +46,10 @@ interface FormState {
   operatorColisCommissionPct: string;
   longDistanceThresholdKm: string;
   searchingTimeoutMin: string;
+  commissionBonusEnabled: boolean;
+  commissionBonusThresholdMru: string;
+  commissionBonusWindowDays: string;
+  commissionBonusRewardDays: string;
 }
 
 const EMPTY_FORM: FormState = {
@@ -57,6 +65,10 @@ const EMPTY_FORM: FormState = {
   operatorColisCommissionPct: '',
   longDistanceThresholdKm: '',
   searchingTimeoutMin: '',
+  commissionBonusEnabled: false,
+  commissionBonusThresholdMru: '',
+  commissionBonusWindowDays: '',
+  commissionBonusRewardDays: '',
 };
 
 function settingsToForm(s: PricingSettings): FormState {
@@ -73,6 +85,10 @@ function settingsToForm(s: PricingSettings): FormState {
     operatorColisCommissionPct: (s.operatorColisCommissionBps / 100).toString(),
     longDistanceThresholdKm: (s.longDistanceThresholdM / 1000).toString(),
     searchingTimeoutMin: (s.searchingTimeoutS / 60).toString(),
+    commissionBonusEnabled: s.commissionBonusEnabled,
+    commissionBonusThresholdMru: String(s.commissionBonusThresholdMru),
+    commissionBonusWindowDays: String(s.commissionBonusWindowDays),
+    commissionBonusRewardDays: String(s.commissionBonusRewardDays),
   };
 }
 
@@ -110,6 +126,10 @@ export default function SettingsPage() {
         operatorColisCommissionBps: Math.round(parseFloat(form.operatorColisCommissionPct) * 100),
         longDistanceThresholdM: Math.round(parseFloat(form.longDistanceThresholdKm) * 1000),
         searchingTimeoutS: Math.round(parseFloat(form.searchingTimeoutMin) * 60),
+        commissionBonusEnabled: form.commissionBonusEnabled,
+        commissionBonusThresholdMru: parseInt(form.commissionBonusThresholdMru, 10),
+        commissionBonusWindowDays: parseInt(form.commissionBonusWindowDays, 10),
+        commissionBonusRewardDays: parseInt(form.commissionBonusRewardDays, 10),
       };
       const r = await api.put<PricingSettings>('/admin/settings', payload);
       return r.data;
@@ -289,6 +309,54 @@ export default function SettingsPage() {
             </section>
 
             <section className="card p-5 mb-4">
+              <div className="flex items-start justify-between mb-1">
+                <h2 className="font-semibold text-slate-900">Bonus chauffeur</h2>
+                <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.commissionBonusEnabled}
+                    onChange={(e) => setForm({ ...form, commissionBonusEnabled: e.target.checked })}
+                    className="w-4 h-4 accent-emerald-600"
+                  />
+                  <span className={form.commissionBonusEnabled ? 'text-emerald-700 font-medium' : 'text-slate-500'}>
+                    {form.commissionBonusEnabled ? 'Activé' : 'Désactivé'}
+                  </span>
+                </label>
+              </div>
+              <p className="text-xs text-slate-500 mb-4">
+                Quand un chauffeur paie <strong>{form.commissionBonusThresholdMru || 'X'} MRU</strong> de
+                commission en <strong>{form.commissionBonusWindowDays || 'Y'} jours</strong>, sa commission
+                est divisée par 2 pendant <strong>{form.commissionBonusRewardDays || 'Z'} jours</strong>,
+                sur toutes les courses (in-app, colis, call-center). Tout changement déclenche
+                automatiquement une notification à tous les chauffeurs.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <Field
+                  label="Seuil"
+                  suffix="MRU"
+                  value={form.commissionBonusThresholdMru}
+                  onChange={(v) => setForm({ ...form, commissionBonusThresholdMru: v })}
+                  step="10"
+                />
+                <Field
+                  label="Fenêtre"
+                  suffix="jours"
+                  value={form.commissionBonusWindowDays}
+                  onChange={(v) => setForm({ ...form, commissionBonusWindowDays: v })}
+                  step="1"
+                />
+                <Field
+                  label="Durée du bonus"
+                  suffix="jours"
+                  value={form.commissionBonusRewardDays}
+                  onChange={(v) => setForm({ ...form, commissionBonusRewardDays: v })}
+                  step="1"
+                />
+              </div>
+            </section>
+
+            <section className="card p-5 mb-4">
               <h2 className="font-semibold text-slate-900 mb-1">Expiration des courses</h2>
               <p className="text-xs text-slate-500 mb-4">
                 Une course qui reste en « Recherche » plus longtemps que ce délai
@@ -404,5 +472,13 @@ function isFormValid(f: FormState): boolean {
   // 0 disables the feature, otherwise between 1 and 60 minutes.
   if (Number.isNaN(timeoutMin) || timeoutMin < 0 || timeoutMin > 60) return false;
   if (timeoutMin > 0 && timeoutMin < 1) return false;
+  const bonusInts = [
+    parseInt(f.commissionBonusThresholdMru, 10),
+    parseInt(f.commissionBonusWindowDays, 10),
+    parseInt(f.commissionBonusRewardDays, 10),
+  ];
+  if (bonusInts.some((n) => Number.isNaN(n) || n < 1)) return false;
+  if (bonusInts[0]! > 1_000_000) return false;
+  if (bonusInts[1]! > 365 || bonusInts[2]! > 365) return false;
   return true;
 }

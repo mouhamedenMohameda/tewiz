@@ -16,6 +16,7 @@ import {
   updatePricingSettings,
   type PricingSettings,
 } from './app-settings.service.js';
+import { notifyCaptainsBonusConfigChanged } from '../notifications/notifications.service.js';
 
 export const adminSettingsRouter = Router();
 
@@ -44,6 +45,11 @@ const patchBody = z.object({
                                       (n) => n === 0 || (n >= 60 && n <= 3_600),
                                       'Must be 0 or between 60 and 3600',
                                     ).optional(),
+  // Commission bonus knobs (migration 0028).
+  commissionBonusEnabled:           z.boolean().optional(),
+  commissionBonusThresholdMru:      z.number().int().min(1).max(1_000_000).optional(),
+  commissionBonusWindowDays:        z.number().int().min(1).max(365).optional(),
+  commissionBonusRewardDays:        z.number().int().min(1).max(365).optional(),
 }).refine(
   (b) => Object.values(b).some((v) => v !== undefined),
   { message: 'At least one field is required' },
@@ -64,6 +70,24 @@ adminSettingsRouter.put('/', async (req, res) => {
     before: changedFields(before, after),
     after: changedFields(after, before),
   });
+
+  // If any bonus knob changed, fan out a broadcast notification so every
+  // captain learns the new rules. Fire-and-forget — the settings update
+  // already succeeded and shouldn't be rolled back by a push hiccup.
+  const bonusChanged =
+    before.commissionBonusEnabled       !== after.commissionBonusEnabled ||
+    before.commissionBonusThresholdMru  !== after.commissionBonusThresholdMru ||
+    before.commissionBonusWindowDays    !== after.commissionBonusWindowDays ||
+    before.commissionBonusRewardDays    !== after.commissionBonusRewardDays;
+  if (bonusChanged) {
+    void notifyCaptainsBonusConfigChanged({
+      enabled: after.commissionBonusEnabled,
+      thresholdMru: after.commissionBonusThresholdMru,
+      windowDays: after.commissionBonusWindowDays,
+      rewardDays: after.commissionBonusRewardDays,
+      adminId,
+    });
+  }
 
   res.json(after);
 });

@@ -17,6 +17,7 @@ const NAV = [
   { href: '/rides/new',      label: 'Nouvelle course', icon: '🗺️' },
   { href: '/restaurants',    label: 'Restaurants', icon: '🍽️' },
   { href: '/stats',          label: 'Statistiques', icon: '📊' },
+  { href: '/notifications',  label: 'Notifications', icon: '🔔' },
   { href: '/settings',       label: 'Paramètres',  icon: '⚙️' },
   { href: '/settings/documents', label: 'Documents requis', icon: '📑' },
 ];
@@ -48,15 +49,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <aside className="w-64 bg-white border-r border-slate-200 flex flex-col">
         <div className="px-6 py-5 border-b border-slate-200">
           <div className="flex items-center gap-2.5">
-            <svg width="38" height="38" viewBox="0 0 1024 1024" aria-label="Alo Mama" className="shrink-0">
+            <svg width="38" height="38" viewBox="0 0 1024 1024" aria-label="Aloo" className="shrink-0">
               <defs>
-                <linearGradient id="aloMamaMark" x1="0" y1="0" x2="1" y2="1">
+                <linearGradient id="aloLogoMark" x1="0" y1="0" x2="1" y2="1">
                   <stop offset="0" stopColor="#F6A623" />
                   <stop offset="0.55" stopColor="#F2682C" />
                   <stop offset="1" stopColor="#D9531B" />
                 </linearGradient>
               </defs>
-              <rect x="0" y="0" width="1024" height="1024" rx="232" fill="url(#aloMamaMark)" />
+              <rect x="0" y="0" width="1024" height="1024" rx="232" fill="url(#aloLogoMark)" />
               <g fill="none" stroke="#FFFCF6" strokeWidth="86" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M300 760 L512 286" />
                 <path d="M724 760 L512 286" />

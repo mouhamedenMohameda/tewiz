@@ -17,6 +17,7 @@ import { getRequiredDocumentTypes } from './document-requirements.service.js';
 import { adminStatsRouter } from './stats.routes.js';
 import { adminVoiceRidesRouter } from '../voice-rides/admin-voice-rides.routes.js';
 import { adminRestaurantsRouter } from '../restaurants/admin-restaurants.routes.js';
+import { adminNotificationsRouter } from '../notifications/admin.routes.js';
 import * as roadReports from '../reports/road-reports.service.js';
 import type { ApplicationStatus } from '@tewiz/shared-types';
 
@@ -43,6 +44,8 @@ adminRouter.use('/stats', adminStatsRouter);
 adminRouter.use('/voice-rides', adminVoiceRidesRouter);
 // Restaurants directory — CRUD + bulk-import for the rider mobile catalog.
 adminRouter.use('/restaurants', adminRestaurantsRouter);
+// Push + inbox notifications to captains (broadcast / group / single).
+adminRouter.use('/notifications', adminNotificationsRouter);
 
 // Admin can also drop abusive road reports.
 adminRouter.delete('/road-reports/:id', async (req, res) => {

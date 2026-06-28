@@ -12,6 +12,8 @@ import { formatMru } from '@/lib/format';
 import { usePolling } from '@/lib/usePolling';
 import { ModeToggle } from '@/components/ModeToggle';
 import { resetRideAlerts } from '@/components/CaptainRideWatcher';
+import { BonusCard } from '@/components/BonusCard';
+import { NotificationsBellButton } from '@/components/NotificationsBellButton';
 import {
   AppText, Button, Card, FadeInView, Icon, PressableScale, Screen, type IconName,
 } from '@/components/ui';
@@ -174,6 +176,7 @@ export default function CaptainHome() {
             </AppText>
           </View>
         </View>
+        <NotificationsBellButton />
         <Pressable
           onPress={() => router.push('/(app)/settings')}
           hitSlop={10}
@@ -181,6 +184,7 @@ export default function CaptainHome() {
           style={{
             width: 44, height: 44, borderRadius: radius.md,
             backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center',
+            marginLeft: spacing.sm,
             ...shadow.card,
           }}
         >
@@ -222,6 +226,11 @@ export default function CaptainHome() {
           </View>
           <Icon name="chevron" size={22} color={colors.faint} />
         </Card>
+      </FadeInView>
+
+      {/* Commission bonus — hidden when disabled and no bonus is in flight */}
+      <FadeInView delay={100}>
+        <BonusCard refreshKey={wallet?.updatedAt} />
       </FadeInView>
 
       {/* Going-home */}
