@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction, RequestHandler } from 'express';
-import type { UserRole } from '@tewiz/shared-types';
+import type { UserRole, AdminRole } from '@tewiz/shared-types';
 import { verifyAccessToken } from '../modules/auth/jwt.js';
 import { HttpError } from './error.js';
 import { bumpHeartbeat } from './heartbeat.js';
@@ -19,13 +19,23 @@ declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
-      user?: { id: string; role: UserRole; sid: string };
+      user?: {
+        id: string;
+        role: UserRole;
+        adminRole: AdminRole | null;
+        sid: string;
+      };
     }
   }
 }
 
 export interface AuthedRequest extends Request {
-  user: { id: string; role: UserRole; sid: string };
+  user: {
+    id: string;
+    role: UserRole;
+    adminRole: AdminRole | null;
+    sid: string;
+  };
 }
 
 /**
@@ -45,6 +55,7 @@ export const requireAuth: RequestHandler = (req, _res, next) => {
     req.user! = {
       id: payload.sub,
       role: payload.role,
+      adminRole: payload.adminRole ?? null,
       sid: payload.sid,
     };
     bumpHeartbeat(payload.sub);
@@ -63,6 +74,27 @@ export function requireRole(...roles: UserRole[]): RequestHandler {
     if (!user) return next(new HttpError(401, 'no_token', 'Not authenticated'));
     if (!roles.includes(user.role)) {
       return next(new HttpError(403, 'forbidden', `Required role: ${roles.join(', ')}`));
+    }
+    next();
+  };
+}
+
+/**
+ * Use AFTER requireAuth. Restricts a route to admins with one of the given
+ * sub-roles. super_admin implicitly passes every check.
+ */
+export function requireAdminRole(...adminRoles: AdminRole[]): RequestHandler {
+  return (req, _res, next) => {
+    const user = req.user!;
+    if (!user) return next(new HttpError(401, 'no_token', 'Not authenticated'));
+    if (user.role !== 'admin' || !user.adminRole) {
+      return next(new HttpError(403, 'forbidden', 'Admin access required'));
+    }
+    if (user.adminRole === 'super_admin') return next();
+    if (!adminRoles.includes(user.adminRole)) {
+      return next(
+        new HttpError(403, 'forbidden', `Required admin role: ${adminRoles.join(', ')}`),
+      );
     }
     next();
   };

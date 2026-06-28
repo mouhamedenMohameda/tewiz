@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1640 624" width="1640" height="624" role="img" aria-label="Aloo — Parle. On t'amène. (Facebook cover)">
+  <defs>
+    <linearGradient id="sahara" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F6A623"/>
+      <stop offset="0.55" stop-color="#F2682C"/>
+      <stop offset="1" stop-color="#D9531B"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.78" cy="0.32" r="0.55">
+      <stop offset="0" stop-color="#F6A623" stop-opacity="0.42"/>
+      <stop offset="0.6" stop-color="#F6A623" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#F6A623" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="inkfade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1F140C"/>
+      <stop offset="1" stop-color="#3A2418"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background canvas (warm beige cream) -->
+  <rect width="1640" height="624" fill="#FBF3E7"/>
+
+  <!-- Warm sun glow top-right -->
+  <rect width="1640" height="624" fill="url(#glow)"/>
+
+  <!-- Subtle horizon line (Mauritanian skyline hint) -->
+  <g opacity="0.10" fill="#3A2418">
+    <rect x="0" y="495" width="1640" height="2"/>
+    <rect x="980" y="455" width="60" height="40"/>
+    <rect x="1055" y="430" width="36" height="65"/>
+    <rect x="1105" y="445" width="48" height="50"/>
+    <rect x="1170" y="420" width="28" height="75"/>
+    <rect x="1215" y="465" width="52" height="30"/>
+    <rect x="1285" y="438" width="34" height="57"/>
+    <rect x="1340" y="455" width="60" height="40"/>
+    <rect x="1418" y="425" width="40" height="70"/>
+    <rect x="1475" y="448" width="55" height="47"/>
+  </g>
+
+  <!-- Big A monogram tile (matches concept-d-monogram-icon.svg exactly) -->
+  <g transform="translate(120,168)">
+    <rect width="288" height="288" rx="66" fill="url(#sahara)"/>
+    <g fill="none" stroke="#FFFCF6" stroke-width="86" stroke-linecap="round" stroke-linejoin="round" transform="scale(0.28125)">
+      <path d="M300 760 L512 286"/>
+      <path d="M724 760 L512 286"/>
+      <path d="M388 596 L636 596"/>
+    </g>
+  </g>
+
+  <!-- Eyebrow -->
+  <text x="448" y="246"
+        fill="#D9531B"
+        font-family="'Sora','Helvetica Neue',Arial,sans-serif"
+        font-weight="700"
+        font-size="22"
+        letter-spacing="5">
+    L'APP DE COURSE MAURITANIENNE · NOUAKCHOTT
+  </text>
+
+  <!-- Wordmark "Aloo" -->
+  <text x="446" y="372"
+        fill="url(#inkfade)"
+        font-family="'Sora','Helvetica Neue',Arial,sans-serif"
+        font-weight="800"
+        font-size="148"
+        letter-spacing="-3">
+    Aloo
+  </text>
+
+  <!-- Tagline -->
+  <text x="448" y="448"
+        fill="#3A2418"
+        font-family="'Sora','Helvetica Neue',Arial,sans-serif"
+        font-weight="700"
+        font-size="54"
+        letter-spacing="-1">
+    Parle. On t'amène.
+  </text>
+
+  <!-- Arabic / Hassaniya subtagline -->
+  <text x="448" y="496"
+        fill="#7A5440"
+        font-family="'Noto Naskh Arabic','Amiri','Sora',Arial,sans-serif"
+        font-weight="500"
+        font-size="34"
+        direction="rtl">
+    احكي… ونوصّلوك
+  </text>
+
+  <!-- Trust pills -->
+  <g font-family="'Sora','Helvetica Neue',Arial,sans-serif" font-weight="700" font-size="20" fill="#3A2418">
+    <g transform="translate(448,540)">
+      <rect width="172" height="46" rx="23" fill="#FFFFFF" stroke="#E7D9C5" stroke-width="1.5"/>
+      <text x="86" y="30" text-anchor="middle">🎙️  6 langues</text>
+    </g>
+    <g transform="translate(636,540)">
+      <rect width="118" height="46" rx="23" fill="#FFFFFF" stroke="#E7D9C5" stroke-width="1.5"/>
+      <text x="59" y="30" text-anchor="middle">💵  Cash</text>
+    </g>
+    <g transform="translate(770,540)">
+      <rect width="232" height="46" rx="23" fill="#FFFFFF" stroke="#E7D9C5" stroke-width="1.5"/>
+      <text x="116" y="30" text-anchor="middle">🇲🇷  Made in Mauritania</text>
+    </g>
+  </g>
+</svg>

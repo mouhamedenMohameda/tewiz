@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Aloo — Kit créatif (templates prêts à exporter)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sora:wght@400;600;700;800&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ember:#F2682C; --emberDeep:#D9531B; --sun:#F6A623; --saffron:#FBC65A; --saffronSoft:#FCEFC9;
+    --ink:#2C1D10; --ink2:#6B5740; --muted:#9C886E; --canvas:#FBF3E7; --surface:#FFFCF6;
+    --espresso:#2A1A0E; --onEspresso:#FBEFDD; --onEspressoMuted:#C9B49A;
+    --grad-ember:linear-gradient(135deg,#F8843E 0%,#F2682C 52%,#E85617 100%);
+    --grad-sun:linear-gradient(150deg,#FBC65A 0%,#F58A2B 50%,#EC6A1F 100%);
+    --display:'Sora',sans-serif; --text:'Plus Jakarta Sans',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#E9DEC9;font-family:var(--text);color:var(--ink);padding:40px 20px 80px}
+  .page{max-width:1180px;margin:0 auto}
+  .howto{background:var(--ink);color:var(--onEspresso);border-radius:16px;padding:22px 26px;margin-bottom:36px;font-size:14.5px;line-height:1.6}
+  .howto b{color:var(--saffron)}
+  .howto code{background:rgba(255,255,255,.12);padding:2px 7px;border-radius:6px;font-size:13px}
+  figure{margin:0 0 40px}
+  figcaption{font-family:var(--display);font-weight:700;font-size:14px;color:var(--ink2);margin-bottom:12px;letter-spacing:.01em}
+  figcaption span{font-weight:500;color:var(--muted)}
+  .creative{overflow:hidden;position:relative;box-shadow:0 24px 60px rgba(90,52,20,.22);color:#fff}
+  .ico{display:inline-flex;vertical-align:middle}
+  .row{display:flex;gap:14px;flex-wrap:wrap}
+
+  .logo{display:inline-flex;align-items:center;gap:14px;font-family:var(--display);font-weight:800}
+  .logo .mk{background:var(--grad-ember);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 20px rgba(232,84,26,.4)}
+  .chip{display:inline-flex;align-items:center;gap:9px;background:rgba(255,252,246,.18);border-radius:999px;font-weight:600;color:#fff}
+  .pill{display:inline-flex;align-items:center;gap:11px;background:#FFFCF6;color:#D9531B;border-radius:999px;font-weight:700;font-family:var(--text)}
+  .eyebrow{font-family:var(--text);font-weight:700;text-transform:uppercase;letter-spacing:.18em}
+
+  /* device blob decoration */
+  .glow{position:absolute;border-radius:50%;filter:blur(2px);opacity:.5}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="howto">
+    <b>Comment exporter en PNG (taille exacte) :</b> ouvre ce fichier dans <b>Chrome</b> → clic droit sur une création → <code>Inspecter</code> → dans l'onglet Elements, le <code>&lt;div class="creative"&gt;</code> est surligné → clic droit dessus → <code>Capture node screenshot</code>. Tu obtiens un PNG aux dimensions exactes. &nbsp;·&nbsp; Alternative rapide : zoom navigateur + capture d'écran, puis recadre. &nbsp;·&nbsp; Couleurs &amp; polices viennent du <b>brand-kit</b>. Modifie le texte directement ici.
+  </div>
+
+  <!-- 1 · GOOGLE PLAY FEATURE GRAPHIC -->
+  <figure>
+    <figcaption>Google Play — Feature graphic <span>· 1024 × 500 · obligatoire pour la fiche Play</span></figcaption>
+    <div class="creative" id="play-feature" style="width:1024px;height:500px;background:var(--grad-ember);display:flex;align-items:center;padding:0 64px">
+      <span class="glow" style="width:360px;height:360px;background:#FBC65A;top:-120px;right:-60px"></span>
+      <div style="flex:1;position:relative;z-index:2">
+        <div class="logo" style="font-size:30px;color:#fff">
+          <span class="mk" style="width:56px;height:56px;border-radius:16px">
+            <svg width="32" height="32" viewBox="0 0 1024 1024"><g fill="none" stroke="#FFFCF6" stroke-width="92" stroke-linecap="round" stroke-linejoin="round"><path d="M300 760 512 286"/><path d="M724 760 512 286"/><path d="M388 596 636 596"/></g></svg>
+          </span>Aloo
+        </div>
+        <div style="font-family:var(--display);font-weight:800;font-size:74px;line-height:.98;letter-spacing:-.02em;margin-top:26px">Parle.<br/>On t'amène.</div>
+        <div style="font-size:20px;color:#FDEAD9;margin-top:18px;max-width:430px;line-height:1.45">L'app de course mauritanienne. Ta voix suffit. Paie en cash.</div>
+      </div>
+      <div style="position:relative;z-index:2;display:flex;flex-direction:column;gap:14px;align-items:flex-start">
+        <span class="chip" style="padding:11px 18px;font-size:17px">🎙️ Ta voix suffit</span>
+        <span class="chip" style="padding:11px 18px;font-size:17px">💵 Paiement cash</span>
+        <span class="chip" style="padding:11px 18px;font-size:17px">📍 Suivi en direct</span>
+      </div>
+    </div>
+  </figure>
+
+  <!-- 2 · OG / SHARE IMAGE -->
+  <figure>
+    <figcaption>Open Graph — image de partage <span>· 1200 × 630 · pour WhatsApp / Facebook / le site (assets/og-image.png)</span></figcaption>
+    <div class="creative" id="og" style="width:1200px;height:630px;background:var(--grad-ember);display:flex;flex-direction:column;justify-content:center;padding:0 80px">
+      <span class="glow" style="width:420px;height:420px;background:#FBC65A;bottom:-160px;left:-80px;opacity:.4"></span>
+      <div class="logo" style="font-size:28px;color:#fff;position:relative;z-index:2">
+        <span class="mk" style="width:52px;height:52px;border-radius:15px">
+          <svg width="30" height="30" viewBox="0 0 1024 1024"><g fill="none" stroke="#FFFCF6" stroke-width="92" stroke-linecap="round" stroke-linejoin="round"><path d="M300 760 512 286"/><path d="M724 760 512 286"/><path d="M388 596 636 596"/></g></svg>
+        </span>Aloo
+      </div>
+      <div style="font-family:var(--display);font-weight:800;font-size:96px;line-height:.96;letter-spacing:-.02em;margin-top:28px;position:relative;z-index:2">Parle. On t'amène.</div>
+      <div style="font-size:26px;color:#FDEAD9;margin-top:20px;position:relative;z-index:2">Ta voix suffit. Paie en cash. À Nouakchott.</div>
+      <div class="row" style="margin-top:34px;position:relative;z-index:2;align-items:center">
+        <span class="pill" style="padding:14px 24px;font-size:19px">⭐ Première course offerte</span>
+        <span style="font-size:20px;color:#FCEFC9;font-weight:600;direction:rtl">احكي... ونوصّلوك</span>
+      </div>
+    </div>
+  </figure>
+
+  <!-- 3 · SOCIAL POST — LAUNCH (matches P6) -->
+  <figure>
+    <figcaption>Post réseaux — Annonce de lancement <span>· 1080 × 1080 · Instagram / Facebook (post P6)</span></figcaption>
+    <div class="creative" id="post-launch" style="width:1080px;height:1080px;background:var(--grad-ember);display:flex;flex-direction:column;padding:80px 72px">
+      <span class="glow" style="width:460px;height:460px;background:#FBC65A;top:-160px;right:-120px;opacity:.45"></span>
+      <div class="eyebrow" style="font-size:21px;color:#FCEFC9;position:relative;z-index:2">Nouakchott · Lancement</div>
+      <div style="font-family:var(--display);font-weight:800;font-size:128px;line-height:.94;letter-spacing:-.03em;margin-top:24px;position:relative;z-index:2">Parle.<br/>On t'amène.</div>
+      <div style="font-size:31px;color:#FDEAD9;margin-top:28px;line-height:1.4;max-width:760px;position:relative;z-index:2"><b>Ta voix suffit.</b> L'app de course mauritanienne. Première course offerte.</div>
+      <div style="display:flex;flex-direction:column;gap:16px;margin-top:40px;position:relative;z-index:2">
+        <span class="chip" style="padding:15px 26px;font-size:23px;align-self:flex-start">🎙️ Hassaniya · français · arabe · pulaar · wolof · soninké</span>
+        <span class="chip" style="padding:15px 26px;font-size:25px;align-self:flex-start">💵 Paiement cash · 📍 Suivi en direct</span>
+      </div>
+      <div style="margin-top:auto;display:flex;align-items:center;justify-content:space-between;position:relative;z-index:2">
+        <span class="pill" style="padding:20px 32px;font-size:27px">💬 Crée ton compte sur WhatsApp</span>
+        <span class="logo" style="font-size:30px;color:#fff">
+          <span class="mk" style="width:60px;height:60px;border-radius:17px"><svg width="34" height="34" viewBox="0 0 1024 1024"><g fill="none" stroke="#FFFCF6" stroke-width="92" stroke-linecap="round" stroke-linejoin="round"><path d="M300 760 512 286"/><path d="M724 760 512 286"/><path d="M388 596 636 596"/></g></svg></span>
+        </span>
+      </div>
+    </div>
+  </figure>
+
+  <!-- 4 · SOCIAL POST — RIDE FOR A LOVED ONE (matches P8) -->
+  <figure>
+    <figcaption>Post réseaux — Une course pour un proche <span>· 1080 × 1080 · le post émotionnel (post P8)</span></figcaption>
+    <div class="creative" id="post-proche" style="width:1080px;height:1080px;background:var(--canvas);color:var(--ink);display:flex;flex-direction:column;padding:84px 76px">
+      <span class="glow" style="width:380px;height:380px;background:#FDEAD9;top:-120px;right:-100px;opacity:.8"></span>
+      <div style="width:120px;height:120px;border-radius:34px;background:var(--grad-sun);display:flex;align-items:center;justify-content:center;box-shadow:0 18px 40px rgba(232,84,26,.34);position:relative;z-index:2">
+        <svg width="62" height="62" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20S3.5 14.5 3.5 8.8A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 8.5 1.8C20.5 14.5 12 20 12 20Z"/></svg>
+      </div>
+      <div style="font-family:var(--display);font-weight:800;font-size:90px;line-height:.98;letter-spacing:-.02em;margin-top:40px;position:relative;z-index:2">Une course pour un proche,<br/>depuis ton tel.</div>
+      <div style="font-size:32px;color:var(--ink2);margin-top:28px;line-height:1.45;max-width:800px;position:relative;z-index:2">Elle n'a pas l'app ? <b style="color:var(--emberDeep)">Commande pour elle</b>, où que tu sois. Le chauffeur l'appelle et l'amène — <b style="color:var(--emberDeep)">toi, tu paies</b>. Elle n'a même pas à le savoir.</div>
+      <div style="font-size:30px;color:var(--muted);margin-top:22px;direction:rtl;position:relative;z-index:2">مشوار لشخص تحبّه، من تيلفونك. · <span style="direction:ltr;display:inline-block">mchwar llwalde</span></div>
+      <div style="margin-top:auto;display:flex;align-items:center;justify-content:space-between;position:relative;z-index:2">
+        <span class="logo" style="font-size:32px;color:var(--ink)">
+          <span class="mk" style="width:60px;height:60px;border-radius:17px"><svg width="34" height="34" viewBox="0 0 1024 1024"><g fill="none" stroke="#FFFCF6" stroke-width="92" stroke-linecap="round" stroke-linejoin="round"><path d="M300 760 512 286"/><path d="M724 760 512 286"/><path d="M388 596 636 596"/></g></svg></span>
+          Aloo
+        </span>
+        <span style="font-size:24px;color:var(--muted);font-weight:600">💬 WhatsApp +222 …</span>
+      </div>
+    </div>
+  </figure>
+
+  <!-- 5 · SOCIAL POST — DRIVER RECRUITMENT (matches D1 / P9) -->
+  <figure>
+    <figcaption>Post réseaux — Recrutement chauffeurs <span>· 1080 × 1080 · groupes Facebook chauffeurs (post D1)</span></figcaption>
+    <div class="creative" id="post-driver" style="width:1080px;height:1080px;background:var(--espresso);color:var(--onEspresso);display:flex;flex-direction:column;padding:84px 76px">
+      <span class="glow" style="width:420px;height:420px;background:var(--ember);top:-160px;right:-120px;opacity:.22"></span>
+      <div class="eyebrow" style="font-size:22px;color:var(--saffron);position:relative;z-index:2">Devenir chauffeur</div>
+      <div style="font-family:var(--display);font-weight:800;font-size:104px;line-height:.95;letter-spacing:-.03em;margin-top:24px;color:#fff;position:relative;z-index:2">Gagne plus.<br/>Le reste,<br/>dans ta poche.</div>
+      <div style="font-size:26px;color:var(--saffron);margin-top:18px;direction:rtl;position:relative;z-index:2;font-weight:700">ربح أكثر، والباقي في جيبك · <span style="direction:ltr;display:inline-block">rbah aktar · w lba9i f lbntk</span></div>
+      <div style="display:flex;flex-direction:column;gap:22px;margin-top:40px;position:relative;z-index:2">
+        <div style="display:flex;gap:20px;align-items:center"><span style="width:64px;height:64px;border-radius:18px;background:rgba(246,166,35,.16);color:var(--saffron);display:flex;align-items:center;justify-content:center;flex:0 0 auto;font-size:30px">💰</span><span style="font-size:30px;color:#fff;font-weight:600">Commission basse — cash chaque jour</span></div>
+        <div style="display:flex;gap:20px;align-items:center"><span style="width:64px;height:64px;border-radius:18px;background:rgba(246,166,35,.16);color:var(--saffron);display:flex;align-items:center;justify-content:center;flex:0 0 auto;font-size:30px">⭐</span><span style="font-size:30px;color:#fff;font-weight:600">Tes clients reviennent vers toi</span></div>
+        <div style="display:flex;gap:20px;align-items:center"><span style="width:64px;height:64px;border-radius:18px;background:rgba(246,166,35,.16);color:var(--saffron);display:flex;align-items:center;justify-content:center;flex:0 0 auto;font-size:30px">🏠</span><span style="font-size:30px;color:#fff;font-weight:600">Mode « je rentre chez moi »</span></div>
+      </div>
+      <div style="margin-top:auto;display:flex;align-items:center;justify-content:space-between;position:relative;z-index:2">
+        <span class="pill" style="padding:20px 32px;font-size:27px;background:var(--grad-ember);color:#fff">💬 Inscris-toi sur WhatsApp</span>
+        <span class="logo" style="font-size:30px;color:#fff">
+          <span class="mk" style="width:60px;height:60px;border-radius:17px"><svg width="34" height="34" viewBox="0 0 1024 1024"><g fill="none" stroke="#FFFCF6" stroke-width="92" stroke-linecap="round" stroke-linejoin="round"><path d="M300 760 512 286"/><path d="M724 760 512 286"/><path d="M388 596 636 596"/></g></svg></span>
+        </span>
+      </div>
+    </div>
+  </figure>
+
+  <!-- 6 · FACEBOOK COVER — FRENCH -->
+  <figure>
+    <figcaption>Facebook — Photo de couverture <span>· 820 × 312 · upload à 2× (1640 × 624) pour le retina · version française</span></figcaption>
+    <div class="creative" id="fb-cover-fr" style="width:820px;height:312px;background:var(--grad-ember);display:flex;align-items:center;padding:0 48px;gap:34px;position:relative">
+      <span class="glow" style="width:280px;height:280px;background:#FBC65A;top:-100px;right:-80px;opacity:.5"></span>
+      <span class="glow" style="width:160px;height:160px;background:#FDEAD9;bottom:-80px;left:-40px;opacity:.4"></span>
+      <div style="position:relative;z-index:2;display:flex;flex-direction:column;gap:8px">
+        <div class="logo" style="font-size:22px;color:#fff">
+          <span class="mk" style="width:46px;height:46px;border-radius:13px"><svg width="26" height="26" viewBox="0 0 1024 1024"><g fill="none" stroke="#FFFCF6" stroke-width="92" stroke-linecap="round" stroke-linejoin="round"><path d="M300 760 512 286"/><path d="M724 760 512 286"/><path d="M388 596 636 596"/></g></svg></span>
+          Aloo
+        </div>
+        <div style="font-family:var(--display);font-weight:800;font-size:54px;line-height:.98;letter-spacing:-.02em;margin-top:12px">Parle. On t'amène.</div>
+        <div style="font-size:18px;color:#FDEAD9;margin-top:6px;font-weight:600">Ta voix suffit. Paie en cash. À Nouakchott.</div>
+        <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+          <span class="chip" style="padding:6px 13px;font-size:12.5px">🎙️ 6 langues</span>
+          <span class="chip" style="padding:6px 13px;font-size:12.5px">💵 Cash</span>
+          <span class="chip" style="padding:6px 13px;font-size:12.5px">📍 Direct</span>
+        </div>
+      </div>
+      <div style="margin-left:auto;position:relative;z-index:2">
+        <span class="pill" style="padding:10px 18px;font-size:14px">🇲🇷 Nouakchott · Bientôt</span>
+      </div>
+    </div>
+  </figure>
+
+  <!-- 7 · FACEBOOK COVER — ARABIC / HASSANIYA -->
+  <figure>
+    <figcaption>Facebook — صورة الغلاف <span>· 820 × 312 · upload à 2× (1640 × 624) · version arabe / حسانية</span></figcaption>
+    <div class="creative" id="fb-cover-ar" dir="rtl" style="width:820px;height:312px;background:var(--grad-ember);display:flex;align-items:center;padding:0 48px;gap:34px;position:relative;font-family:'Cairo','Tajawal',sans-serif">
+      <span class="glow" style="width:280px;height:280px;background:#FBC65A;top:-100px;left:-80px;opacity:.5"></span>
+      <span class="glow" style="width:160px;height:160px;background:#FDEAD9;bottom:-80px;right:-40px;opacity:.4"></span>
+      <div style="position:relative;z-index:2;display:flex;flex-direction:column;gap:8px">
+        <div style="display:inline-flex;align-items:center;gap:14px;font-weight:800;font-size:22px;color:#fff">
+          <span style="width:46px;height:46px;border-radius:13px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center"><svg width="26" height="26" viewBox="0 0 1024 1024"><g fill="none" stroke="#FFFCF6" stroke-width="92" stroke-linecap="round" stroke-linejoin="round"><path d="M300 760 512 286"/><path d="M724 760 512 286"/><path d="M388 596 636 596"/></g></svg></span>
+          ألو
+        </div>
+        <div style="font-weight:800;font-size:54px;line-height:1.1;margin-top:12px;color:#fff">احكي... ونوصّلوك.</div>
+        <div style="font-size:18px;color:#FDEAD9;margin-top:6px;font-weight:600">صوتك يكفي. خلّص كاش. في نواكشوط.</div>
+        <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+          <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,252,246,.18);padding:6px 13px;font-size:12.5px;font-weight:600;color:#fff;border-radius:999px">🎙️ 6 لغات</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,252,246,.18);padding:6px 13px;font-size:12.5px;font-weight:600;color:#fff;border-radius:999px">💵 كاش</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,252,246,.18);padding:6px 13px;font-size:12.5px;font-weight:600;color:#fff;border-radius:999px">📍 مباشر</span>
+        </div>
+      </div>
+      <div style="margin-right:auto;position:relative;z-index:2">
+        <span style="display:inline-flex;align-items:center;gap:11px;background:#FFFCF6;color:#D9531B;border-radius:999px;font-weight:700;padding:10px 18px;font-size:14px">🇲🇷 نواكشوط · قريباً</span>
+      </div>
+    </div>
+  </figure>
+
+  <!-- 9 · FACEBOOK COVER — BILINGUAL FR + AR (the recommended cover) -->
+  <figure>
+    <figcaption>Facebook — Couverture bilingue FR + AR <span>· 820 × 312 · upload à 2× (1640 × 624) · la version recommandée pour une page nationale</span></figcaption>
+    <div class="creative" id="fb-cover-bi" style="width:820px;height:312px;background:var(--grad-ember);position:relative;overflow:hidden;color:#fff">
+      <span class="glow" style="width:320px;height:320px;background:#FBC65A;top:-110px;right:-100px;opacity:.5"></span>
+      <span class="glow" style="width:240px;height:240px;background:#FDEAD9;bottom:-120px;left:-90px;opacity:.4"></span>
+      <span class="glow" style="width:180px;height:180px;background:#F58A2B;top:50%;left:50%;transform:translate(-50%,-50%);opacity:.18;filter:blur(40px)"></span>
+
+      <!-- Wordmarks: Aloo top-left, ألو top-right -->
+      <div style="position:absolute;top:18px;left:24px;display:inline-flex;align-items:center;gap:10px;font-family:'Sora',sans-serif;font-weight:800;font-size:18px;z-index:3">
+        <span style="width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 1024 1024"><g fill="none" stroke="#FFFCF6" stroke-width="92" stroke-linecap="round" stroke-linejoin="round"><path d="M300 760 512 286"/><path d="M724 760 512 286"/><path d="M388 596 636 596"/></g></svg></span>
+        Aloo
+      </div>
+      <div dir="rtl" style="position:absolute;top:18px;right:24px;display:inline-flex;align-items:center;gap:10px;font-family:'Cairo',sans-serif;font-weight:800;font-size:18px;z-index:3">
+        <span style="width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 1024 1024"><g fill="none" stroke="#FFFCF6" stroke-width="92" stroke-linecap="round" stroke-linejoin="round"><path d="M300 760 512 286"/><path d="M724 760 512 286"/><path d="M388 596 636 596"/></g></svg></span>
+        ألو
+      </div>
+
+      <!-- Center stack: two taglines, equal visual weight -->
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;z-index:3;width:calc(100% - 48px)">
+        <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:44px;line-height:1;letter-spacing:-.02em">Parle. On t'amène.</div>
+        <div style="height:10px"></div>
+        <div dir="rtl" style="font-family:'Cairo',sans-serif;font-weight:800;font-size:44px;line-height:1.1">احكي... ونوصّلوك.</div>
+        <div style="height:14px"></div>
+        <div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:15px;color:#FDEAD9;display:inline-flex;align-items:center;gap:10px">
+          <span>🎙️ Ta voix suffit</span>
+          <span style="opacity:.55">·</span>
+          <span dir="rtl" style="font-family:'Tajawal',sans-serif;font-weight:700">صوتك يكفي</span>
+          <span style="opacity:.55">·</span>
+          <span>💵 Cash</span>
+        </div>
+      </div>
+
+      <!-- Bottom pills: Nouakchott + Bientôt -->
+      <div style="position:absolute;bottom:18px;left:24px;z-index:3">
+        <span style="display:inline-flex;align-items:center;gap:7px;background:#FFFCF6;color:#D9531B;border-radius:999px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;padding:7px 14px;font-size:12.5px">🇲🇷 Nouakchott</span>
+      </div>
+      <div style="position:absolute;bottom:18px;right:24px;z-index:3">
+        <span style="display:inline-flex;align-items:center;gap:7px;background:rgba(0,0,0,.22);color:#fff;border-radius:999px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;padding:7px 14px;font-size:12.5px">Bientôt · <span dir="rtl" style="font-family:'Tajawal',sans-serif">قريباً</span></span>
+      </div>
+    </div>
+  </figure>
+
+  <!-- 8 · FACEBOOK COVER — PULAAR -->
+  <figure>
+    <figcaption>Facebook — Foto kappugol <span>· 820 × 312 · upload à 2× (1640 × 624) · version pulaar (DRAFT — needs Halpulaar speaker review)</span></figcaption>
+    <div class="creative" id="fb-cover-ff" style="width:820px;height:312px;background:var(--grad-ember);display:flex;align-items:center;padding:0 48px;gap:34px;position:relative">
+      <span class="glow" style="width:280px;height:280px;background:#FBC65A;top:-100px;right:-80px;opacity:.5"></span>
+      <span class="glow" style="width:160px;height:160px;background:#FDEAD9;bottom:-80px;left:-40px;opacity:.4"></span>
+      <div style="position:relative;z-index:2;display:flex;flex-direction:column;gap:8px">
+        <div class="logo" style="font-size:22px;color:#fff">
+          <span class="mk" style="width:46px;height:46px;border-radius:13px"><svg width="26" height="26" viewBox="0 0 1024 1024"><g fill="none" stroke="#FFFCF6" stroke-width="92" stroke-linecap="round" stroke-linejoin="round"><path d="M300 760 512 286"/><path d="M724 760 512 286"/><path d="M388 596 636 596"/></g></svg></span>
+          Aloo
+        </div>
+        <div style="font-family:var(--display);font-weight:800;font-size:54px;line-height:.98;letter-spacing:-.02em;margin-top:12px">Haal. Min nawra-ma.</div>
+        <div style="font-size:18px;color:#FDEAD9;margin-top:6px;font-weight:600">Daande maa yonii. Yoɓ kash. E Nuwaasoot.</div>
+        <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+          <span class="chip" style="padding:6px 13px;font-size:12.5px">🎙️ Ɗemɗe 6</span>
+          <span class="chip" style="padding:6px 13px;font-size:12.5px">💵 Kash</span>
+          <span class="chip" style="padding:6px 13px;font-size:12.5px">📍 Joonin</span>
+        </div>
+      </div>
+      <div style="margin-left:auto;position:relative;z-index:2">
+        <span class="pill" style="padding:10px 18px;font-size:14px">🇲🇷 Nuwaasoot · Aray</span>
+      </div>
+    </div>
+  </figure>
+
+</div>
+</body>
+</html>

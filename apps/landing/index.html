@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Aloo — Parle. On t'amène. | L'app de course mauritanienne</title>
+<meta name="description" content="L'app de course mauritanienne. Commande à la voix — en hassaniya, français, arabe, pulaar, wolof ou soninké. Paie en cash. Suis ton chauffeur en direct à Nouakchott." />
+<meta name="theme-color" content="#F2682C" />
+
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Aloo — Parle. On t'amène." />
+<meta property="og:description" content="L'app de course mauritanienne. Ta voix suffit. Paie en cash. Première course offerte." />
+<meta property="og:locale" content="fr_FR" />
+<meta property="og:locale:alternate" content="ar_MR" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Aloo — Parle. On t'amène." />
+<meta name="twitter:description" content="L'app de course mauritanienne. Ta voix suffit. Paie en cash. Première course offerte." />
+
+<link rel="icon" href="./assets/favicon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+<style>
+  :root{
+    --ember:#F2682C; --emberDeep:#D9531B; --emberSoft:#FDEAD9;
+    --sun:#F6A623; --saffron:#FBC65A; --saffronSoft:#FCEFC9;
+    --ink:#2C1D10; --ink2:#6B5740; --muted:#9C886E; --faint:#BCA98E;
+    --canvas:#FBF3E7; --canvasDeep:#F4E7D2; --surface:#FFFCF6; --surfaceAlt:#F7EEDF;
+    --line:#ECDFCB; --lineStrong:#E1CFB2;
+    --espresso:#2A1A0E; --espressoAlt:#3A2615; --onEspresso:#FBEFDD; --onEspressoMuted:#C9B49A;
+    --success:#3E9C5F;
+    --grad-ember:linear-gradient(135deg,#F8843E 0%,#F2682C 52%,#E85617 100%);
+    --grad-sun:linear-gradient(150deg,#FBC65A 0%,#F58A2B 50%,#EC6A1F 100%);
+    --shadow-card:0 8px 30px rgba(90,52,20,.10);
+    --shadow-raised:0 22px 54px rgba(90,52,20,.18);
+    --shadow-ember:0 14px 30px rgba(232,84,26,.36);
+    --r-sm:12px; --r-md:18px; --r-lg:26px; --r-xl:34px; --r-pill:999px;
+    --display:'Sora',-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --text:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:var(--text);color:var(--ink);background:var(--canvas);line-height:1.6;
+    -webkit-font-smoothing:antialiased;overflow-x:hidden}
+  h1,h2,h3{font-family:var(--display);font-weight:800;letter-spacing:-.02em;line-height:1.05;color:var(--ink)}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 22px}
+  .eyebrow{font-family:var(--text);font-weight:700;font-size:12px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--emberDeep)}
+
+  /* buttons */
+  .btn{display:inline-flex;align-items:center;gap:9px;font-family:var(--text);font-weight:700;
+    font-size:15px;padding:14px 22px;border-radius:var(--r-pill);cursor:pointer;border:0;
+    transition:transform .15s ease, box-shadow .15s ease;white-space:nowrap}
+  .btn:active{transform:scale(.97)}
+  .btn-ember{background:var(--grad-ember);color:#fff;box-shadow:var(--shadow-ember)}
+  .btn-ember:hover{box-shadow:0 18px 40px rgba(232,84,26,.46)}
+  .btn-ink{background:var(--ink);color:var(--onEspresso)}
+  .btn-ghost{background:var(--surface);color:var(--ink);border:1.5px solid var(--lineStrong)}
+  .btn-ghost:hover{border-color:var(--ember);color:var(--emberDeep)}
+  .icon{width:20px;height:20px;flex:0 0 auto}
+
+  /* nav */
+  header.nav{position:sticky;top:0;z-index:50;background:rgba(251,243,231,.82);
+    backdrop-filter:saturate(140%) blur(12px);border-bottom:1px solid var(--line)}
+  .nav-in{display:flex;align-items:center;justify-content:space-between;height:68px}
+  .brand{display:flex;align-items:center;gap:11px;font-family:var(--display);font-weight:800;font-size:21px}
+  .brand .mark{width:38px;height:38px;border-radius:11px;background:var(--grad-ember);
+    display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(232,84,26,.34)}
+  .nav-links{display:flex;align-items:center;gap:30px}
+  .nav-links a{font-weight:600;font-size:15px;color:var(--ink2)}
+  .nav-links a:hover{color:var(--ember)}
+  .nav-cta{display:flex;align-items:center;gap:12px}
+  .burger{display:none;background:none;border:0;cursor:pointer;padding:8px}
+
+  /* hero */
+  .hero{position:relative;padding:64px 0 40px;overflow:hidden}
+  .hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:center}
+  .hero h1{font-size:clamp(40px,6.4vw,68px)}
+  .hero .lead{font-size:clamp(17px,2vw,20px);color:var(--ink2);max-width:480px;margin:22px 0 8px}
+  .hero .ar{direction:rtl;font-size:19px;color:var(--muted);margin-top:6px}
+  .hero-cta{display:flex;flex-wrap:wrap;gap:14px;margin-top:30px}
+  .hero-foot{display:flex;align-items:center;gap:18px;margin-top:26px;flex-wrap:wrap}
+  .stores{display:flex;gap:10px;flex-wrap:wrap}
+  .store-badge{display:inline-flex;align-items:center;gap:9px;background:var(--ink);color:#fff;
+    padding:9px 16px;border-radius:14px;font-size:13px;line-height:1.15;position:relative}
+  .store-badge b{font-family:var(--display);font-weight:700;font-size:15px;display:block}
+  .store-badge.soon::after{content:"Bientôt";position:absolute;top:-9px;right:-7px;background:var(--saffron);
+    color:var(--ink);font-size:10px;font-weight:800;padding:2px 7px;border-radius:999px;letter-spacing:.04em}
+  .rating{display:flex;align-items:center;gap:9px;color:var(--ink2);font-size:14px;font-weight:600}
+  .stars{color:var(--sun);letter-spacing:2px;font-size:15px}
+  .blob{position:absolute;border-radius:50%;filter:blur(8px);opacity:.5;z-index:-1}
+
+  /* phone */
+  .phone-wrap{display:flex;justify-content:center}
+  .phone{width:288px;height:592px;background:var(--espresso);border-radius:46px;padding:13px;
+    box-shadow:var(--shadow-raised);position:relative}
+  .phone .notch{position:absolute;top:13px;left:50%;transform:translateX(-50%);width:118px;height:26px;
+    background:var(--espresso);border-radius:0 0 16px 16px;z-index:3}
+  .screen{width:100%;height:100%;border-radius:34px;overflow:hidden;background:linear-gradient(180deg,#FCF6EC,#F4E7D2);
+    position:relative;display:flex;flex-direction:column}
+  .map{position:absolute;inset:0;background:
+    radial-gradient(120% 80% at 80% 10%,rgba(246,166,35,.16),transparent 60%),
+    linear-gradient(180deg,#FCF6EC,#F1E3CC)}
+  .map .road{position:absolute;background:#E8D8BC;border-radius:30px}
+  .map .r1{width:240%;height:18px;top:120px;left:-60%;transform:rotate(-18deg)}
+  .map .r2{width:240%;height:14px;top:300px;left:-70%;transform:rotate(12deg)}
+  .map .r3{width:18px;height:260%;left:64px;top:-30%}
+  .pin{position:absolute;width:26px;height:26px;border-radius:50% 50% 50% 2px;background:var(--ember);
+    transform:rotate(45deg);box-shadow:0 6px 14px rgba(232,84,26,.4)}
+  .pin.b{background:var(--ink)}
+  .screen-top{position:relative;z-index:2;padding:40px 18px 0;text-align:center}
+  .screen-top .q{font-family:var(--display);font-weight:700;font-size:18px;color:var(--ink)}
+  .screen-top .sub{font-size:12px;color:var(--ink2);margin-top:3px}
+  .voice{margin-top:auto;position:relative;z-index:2;padding:0 18px 30px;text-align:center}
+  .chip{display:inline-flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--line);
+    padding:8px 13px;border-radius:999px;font-size:12.5px;font-weight:600;color:var(--ink);
+    box-shadow:0 6px 16px rgba(90,52,20,.08);margin-bottom:18px}
+  .chip .dot{width:7px;height:7px;border-radius:50%;background:var(--success)}
+  .mic{width:78px;height:78px;border-radius:50%;background:var(--grad-ember);margin:0 auto;
+    display:flex;align-items:center;justify-content:center;color:#fff;position:relative;
+    box-shadow:var(--shadow-ember)}
+  .mic::before,.mic::after{content:"";position:absolute;inset:-1px;border-radius:50%;
+    border:2px solid rgba(242,104,44,.5);animation:pulse 2.4s ease-out infinite}
+  .mic::after{animation-delay:1.2s}
+  @keyframes pulse{0%{transform:scale(1);opacity:.7}100%{transform:scale(2.1);opacity:0}}
+  .voice .say{font-size:13px;color:var(--ink2);margin-top:14px;font-weight:600}
+  .voice .say b{color:var(--emberDeep)}
+
+  /* trust bar */
+  .trust{background:var(--ink);color:var(--onEspresso)}
+  .trust-in{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;padding:26px 0}
+  .trust-item{display:flex;align-items:center;gap:12px}
+  .trust-item .ti-ic{width:42px;height:42px;border-radius:12px;background:rgba(246,166,35,.16);
+    color:var(--saffron);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .trust-item b{font-family:var(--display);font-weight:700;font-size:15px;display:block}
+  .trust-item span{font-size:12.5px;color:var(--onEspressoMuted)}
+
+  /* sections */
+  section.block{padding:80px 0}
+  .sec-head{max-width:620px;margin-bottom:46px}
+  .sec-head h2{font-size:clamp(30px,4.4vw,44px);margin:14px 0 0}
+  .sec-head p{color:var(--ink2);font-size:17px;margin-top:14px}
+
+  .feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);
+    padding:28px 26px;box-shadow:var(--shadow-card);transition:transform .18s ease, box-shadow .18s ease}
+  .card:hover{transform:translateY(-4px);box-shadow:var(--shadow-raised)}
+  .card .f-ic{width:52px;height:52px;border-radius:15px;background:var(--emberSoft);color:var(--emberDeep);
+    display:flex;align-items:center;justify-content:center;margin-bottom:18px}
+  .card h3{font-size:20px;margin-bottom:8px}
+  .card p{color:var(--ink2);font-size:15px}
+  .card.gold .f-ic{background:var(--saffronSoft);color:#A35A06}
+  .card.feature{background:var(--grad-sun);border:0;color:#fff;grid-column:span 1}
+  .card.feature .f-ic{background:rgba(255,255,255,.22);color:#fff}
+  .card.feature h3,.card.feature p{color:#fff}
+  .card.feature p{opacity:.94}
+
+  /* steps */
+  .steps{background:var(--canvasDeep)}
+  .step-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;counter-reset:s}
+  .step{position:relative;padding-top:14px}
+  .step .n{font-family:var(--display);font-weight:800;font-size:15px;width:40px;height:40px;border-radius:50%;
+    background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;margin-bottom:18px}
+  .step h3{font-size:21px;margin-bottom:8px}
+  .step p{color:var(--ink2);font-size:15px}
+  .note{margin-top:34px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);
+    padding:16px 20px;display:flex;gap:12px;align-items:flex-start;font-size:14.5px;color:var(--ink2)}
+  .note svg{color:var(--ember);flex:0 0 auto;margin-top:2px}
+
+  /* captain */
+  .captain{background:var(--espresso);color:var(--onEspresso);border-radius:var(--r-xl);
+    padding:56px;display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center;
+    box-shadow:var(--shadow-raised);position:relative;overflow:hidden}
+  .captain::before{content:"";position:absolute;width:340px;height:340px;border-radius:50%;
+    background:var(--grad-ember);opacity:.18;top:-120px;right:-90px;filter:blur(10px)}
+  .captain h2{color:#fff;font-size:clamp(28px,3.6vw,40px)}
+  .captain .lead{color:var(--onEspressoMuted);font-size:17px;margin:16px 0 26px;max-width:440px}
+  .perks{display:flex;flex-direction:column;gap:14px}
+  .perk{display:flex;gap:13px;align-items:flex-start}
+  .perk .p-ic{width:38px;height:38px;border-radius:11px;background:rgba(246,166,35,.16);color:var(--saffron);
+    display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .perk b{font-family:var(--display);font-weight:700;font-size:16px;color:#fff;display:block}
+  .perk span{font-size:13.5px;color:var(--onEspressoMuted)}
+
+  /* final cta */
+  .final{text-align:center;padding:90px 0}
+  .final h2{font-size:clamp(32px,5vw,52px)}
+  .final .ar{direction:rtl;color:var(--muted);font-size:20px;margin-top:10px}
+  .final-cta{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:30px}
+
+  /* footer */
+  footer.ft{background:var(--ink);color:var(--onEspressoMuted);padding:54px 0 30px}
+  .ft-top{display:flex;justify-content:space-between;gap:30px;flex-wrap:wrap;padding-bottom:30px;
+    border-bottom:1px solid rgba(255,255,255,.1)}
+  .ft .brand{color:#fff}
+  .ft-cols{display:flex;gap:60px;flex-wrap:wrap}
+  .ft-col h4{font-family:var(--text);font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--faint);margin-bottom:14px}
+  .ft-col a{display:block;color:var(--onEspressoMuted);font-size:14.5px;margin-bottom:9px}
+  .ft-col a:hover{color:var(--saffron)}
+  .ft-bot{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;padding-top:24px;font-size:13px}
+  .ft-bot .made{color:var(--saffron);font-weight:600}
+
+  @media(max-width:880px){
+    .nav-links{display:none}
+    .nav-links.open{display:flex;position:absolute;top:68px;left:0;right:0;flex-direction:column;
+      background:var(--surface);padding:18px 22px;gap:16px;border-bottom:1px solid var(--line);box-shadow:var(--shadow-card)}
+    .burger{display:block}
+    .nav-cta .btn-text{display:none}
+    .hero-grid,.captain{grid-template-columns:1fr}
+    .hero{padding:38px 0 20px;text-align:center}
+    .hero .lead,.hero-cta,.hero-foot{margin-left:auto;margin-right:auto;justify-content:center}
+    .phone-wrap{margin-top:30px}
+    .trust-in{grid-template-columns:1fr 1fr;gap:22px}
+    .feat-grid,.step-grid{grid-template-columns:1fr}
+    .captain{padding:38px 26px;text-align:left}
+    section.block{padding:56px 0}
+  }
+  @media(max-width:480px){
+    .trust-in{grid-template-columns:1fr}
+    .phone{width:248px;height:516px}
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></symbol>
+  <symbol id="i-cash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20S3.5 14.5 3.5 8.8A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 8.5 1.8C20.5 14.5 12 20 12 20Z"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.9 6.8 19.2l1-5.9L3.5 9.2l5.9-.8Z"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z"/><path d="m4 7.5 8 4.5 8-4.5M12 12v9"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m9 4 6 2 6-2v14l-6 2-6-2-6 2V6l6-2Z"/><path d="M9 4v14M15 6v14"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-wallet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h12v4M3 7v10a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1v-3M3 7h17a1 1 0 0 1 1 1v3"/><circle cx="16" cy="13" r="1.3"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11 12 4l8 7M6 10v9h12v-9"/></symbol>
+  <symbol id="i-wa" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2Zm5.6 14.1c-.2.6-1.2 1.2-1.7 1.2-.5.1-1 .2-3.2-.7s-3.6-3.1-3.7-3.2c-.1-.2-.9-1.2-.9-2.2s.5-1.6.7-1.8c.2-.2.4-.3.6-.3h.4c.2 0 .4 0 .6.5l.8 1.9c.1.2.1.4 0 .5l-.4.6c-.1.2-.3.3-.1.6.1.2.6 1 1.3 1.6.9.8 1.6 1 1.8 1.2.2.1.4.1.5-.1l.6-.8c.2-.2.3-.2.6-.1l1.8.9c.3.1.4.2.5.3.1.2.1.7-.1 1.3Z"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-apple" viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.9c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.8-3.5.8-.7 0-1.8-.8-3-.8-1.5 0-2.9.9-3.7 2.3-1.6 2.7-.4 6.8 1.1 9 .7 1.1 1.6 2.3 2.8 2.2 1.1 0 1.5-.7 2.9-.7 1.3 0 1.7.7 2.9.7 1.2 0 2-1.1 2.7-2.2.9-1.3 1.2-2.5 1.2-2.6 0 0-2.3-.9-2.3-3.6ZM14.1 6c.6-.8 1-1.8.9-2.9-.9 0-2 .6-2.6 1.3-.6.7-1.1 1.7-1 2.7 1 .1 2-.5 2.7-1.1Z"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24" fill="currentColor"><path d="M4 3.5v17l13-8.5L4 3.5Z" opacity=".95"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></symbol>
+</svg>
+
+<header class="nav">
+  <div class="wrap nav-in">
+    <a class="brand" href="#top">
+      <span class="mark">
+        <svg width="22" height="22" viewBox="0 0 1024 1024" aria-hidden="true"><g fill="none" stroke="#FFFCF6" stroke-width="92" stroke-linecap="round" stroke-linejoin="round"><path d="M300 760 512 286"/><path d="M724 760 512 286"/><path d="M388 596 636 596"/></g></svg>
+      </span>
+      Aloo
+    </a>
+    <nav class="nav-links" id="navlinks">
+      <a href="#pourquoi">Pourquoi</a>
+      <a href="#comment">Comment ça marche</a>
+      <a href="#chauffeurs">Chauffeurs</a>
+      <a href="#contact">Contact</a>
+    </nav>
+    <div class="nav-cta">
+      <a href="/ar/" style="font-weight:600;font-size:14px;color:var(--ink2);border:1.5px solid var(--lineStrong);padding:7px 13px;border-radius:999px">Arabe</a>
+      <a href="/ff/" style="font-weight:600;font-size:14px;color:var(--ink2);border:1.5px solid var(--lineStrong);padding:7px 13px;border-radius:999px">Pulaar</a>
+      <a class="btn btn-ember" data-wa href="#signup"><svg class="icon"><use href="#i-wa"/></svg><span class="btn-text">Créer mon compte</span></a>
+      <button class="burger" id="burger" aria-label="Menu">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2C1D10" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+  <section class="hero">
+    <span class="blob" style="width:300px;height:300px;background:#FBC65A;top:-60px;right:-40px"></span>
+    <span class="blob" style="width:220px;height:220px;background:#FDEAD9;bottom:0;left:-60px;opacity:.7"></span>
+    <div class="wrap hero-grid">
+      <div>
+        <span class="eyebrow">L'app de course mauritanienne · Nouakchott</span>
+        <h1>Parle.<br/>On t'amène.</h1>
+        <p class="lead"><b>Ta voix suffit.</b> Commande à la voix — en hassaniya, français, arabe, pulaar, wolof ou soninké. Paie en <b>cash</b>. Suis ton chauffeur en direct.</p>
+        <div class="hero-cta">
+          <a class="btn btn-ember" data-wa href="#signup"><svg class="icon"><use href="#i-wa"/></svg>Crée ton compte — c'est gratuit</a>
+          <a class="btn btn-ghost" href="#comment"><svg class="icon"><use href="#i-arrow"/></svg>Comment ça marche</a>
+        </div>
+        <div class="hero-foot">
+          <div class="stores">
+            <a class="store-badge soon" data-ios href="#signup"><svg class="icon" style="width:22px;height:22px"><use href="#i-apple"/></svg><span>Télécharger sur<b>App Store</b></span></a>
+            <a class="store-badge soon" data-android href="#signup"><svg class="icon" style="width:22px;height:22px"><use href="#i-play"/></svg><span>Disponible sur<b>Google Play</b></span></a>
+          </div>
+          <div class="rating"><span class="stars">★★★★★</span> Première course offerte</div>
+        </div>
+      </div>
+
+      <div class="phone-wrap">
+        <div class="phone">
+          <span class="notch"></span>
+          <div class="screen">
+            <div class="map">
+              <span class="road r1"></span><span class="road r2"></span><span class="road r3"></span>
+              <span class="pin b" style="top:150px;left:96px"></span>
+              <span class="pin" style="top:330px;left:188px"></span>
+            </div>
+            <div class="screen-top">
+              <div class="q">Où allez-vous ?</div>
+              <div class="sub">Dites-le, on s'occupe du reste</div>
+            </div>
+            <div class="voice">
+              <div class="chip"><span class="dot"></span>À l'écoute…</div>
+              <div class="mic"><svg width="34" height="34"><use href="#i-mic"/></svg></div>
+              <div class="say">« Je vais au <b>Marché Capitale</b> »</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="trust">
+    <div class="wrap trust-in">
+      <div class="trust-item"><span class="ti-ic"><svg width="22" height="22"><use href="#i-mic"/></svg></span><div><b>Ta voix suffit</b><span>Hassaniya · français · arabe · pulaar · wolof · soninké</span></div></div>
+      <div class="trust-item"><span class="ti-ic"><svg width="22" height="22"><use href="#i-cash"/></svg></span><div><b>Paiement cash</b><span>Pas de carte bancaire</span></div></div>
+      <div class="trust-item"><span class="ti-ic"><svg width="22" height="22"><use href="#i-pin"/></svg></span><div><b>Suivi en direct</b><span>Ton chauffeur sur la carte</span></div></div>
+      <div class="trust-item"><span class="ti-ic"><svg width="22" height="22"><use href="#i-flag"/></svg></span><div><b>Faite en Mauritanie</b><span>Tes quartiers, tes langues</span></div></div>
+    </div>
+  </section>
+
+  <section class="block" id="pourquoi">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="eyebrow">Pourquoi Aloo</span>
+        <h2>Pensée ici, pour nous.</h2>
+        <p>Pas une application étrangère adaptée à la va-vite. Une app construite pour la Mauritanie — sa langue, ses quartiers, sa façon de payer.</p>
+      </div>
+      <div class="feat-grid">
+        <div class="card"><span class="f-ic"><svg width="24" height="24"><use href="#i-mic"/></svg></span><h3>Ta voix suffit</h3><p>Pas besoin d'écrire. Dis simplement où tu vas — en hassaniya, français, arabe, pulaar, wolof ou soninké — et la course part.</p></div>
+        <div class="card feature"><span class="f-ic"><svg width="24" height="24"><use href="#i-heart"/></svg></span><h3>Une course pour un proche, depuis ton tel</h3><p>Elle n'a pas l'app ? <b>Commande pour elle</b>, où que tu sois. Le chauffeur l'appelle et la prend — toi, tu paies depuis ton compte. Elle n'a même pas à le savoir.</p></div>
+        <div class="card"><span class="f-ic"><svg width="24" height="24"><use href="#i-cash"/></svg></span><h3>Tu paies en cash</h3><p>Comme toujours, à la fin de la course. Aucune carte bancaire, aucun compte en ligne requis.</p></div>
+        <div class="card gold"><span class="f-ic"><svg width="24" height="24"><use href="#i-star"/></svg></span><h3>Tes chauffeurs favoris</h3><p>Un chauffeur en qui tu as confiance ? Mets-le en favori — il viendra en priorité la prochaine fois.</p></div>
+        <div class="card gold"><span class="f-ic"><svg width="24" height="24"><use href="#i-calendar"/></svg></span><h3>Courses récurrentes</h3><p>École, travail, même trajet chaque jour ? Programme-le une fois et oublie le stress du matin.</p></div>
+        <div class="card"><span class="f-ic"><svg width="24" height="24"><use href="#i-box"/></svg></span><h3>Envoie un colis</h3><p>Un document, un paquet à livrer ? Un chauffeur s'en charge, avec confirmation par code à l'arrivée.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block steps" id="comment">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="eyebrow">Comment ça marche</span>
+        <h2>Ta première course, en 3 étapes.</h2>
+      </div>
+      <div class="step-grid">
+        <div class="step"><div class="n">1</div><h3>Écris-nous sur WhatsApp</h3><p>On crée ton compte en 2 minutes. On vérifie chaque utilisateur à la main — pour garder la communauté sûre.</p></div>
+        <div class="step"><div class="n">2</div><h3>Dis où tu vas</h3><p>Ouvre l'app, parle ou touche la carte. On trouve un chauffeur proche de toi en quelques secondes.</p></div>
+        <div class="step"><div class="n">3</div><h3>Monte et roule</h3><p>Suis l'arrivée en direct, confirme avec ton code à 4 chiffres, et paie en cash à la fin.</p></div>
+      </div>
+      <div class="note">
+        <svg width="22" height="22"><use href="#i-shield"/></svg>
+        <span><b>Pourquoi l'inscription passe par WhatsApp ?</b> Pour ta sécurité, chaque compte est validé par notre équipe — c'est ce qui tient les comptes frauduleux à l'écart. Ça prend quelques minutes, pas plus.</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="chauffeurs">
+    <div class="wrap">
+      <div class="captain">
+        <div>
+          <span class="eyebrow" style="color:var(--saffron)">Devenir chauffeur</span>
+          <h2>Gagne plus.<br/>Le reste, dans ta poche.</h2>
+          <p class="lead" style="margin-bottom:26px">Rejoins Aloo et conduis à ton rythme, dans ta ville. Une commission basse, tes clients qui reviennent, et des outils pensés pour toi.</p>
+          <a class="btn btn-ember" data-wa-driver href="#signup"><svg class="icon"><use href="#i-wa"/></svg>Devenir chauffeur</a>
+        </div>
+        <div class="perks">
+          <div class="perk"><span class="p-ic"><svg width="20" height="20"><use href="#i-wallet"/></svg></span><div><b>Commission basse, cash chaque jour</b><span>Tu gardes l'essentiel de tes gains.</span></div></div>
+          <div class="perk"><span class="p-ic"><svg width="20" height="20"><use href="#i-star"/></svg></span><div><b>Tes clients reviennent vers toi</b><span>Deviens le favori de tes passagers.</span></div></div>
+          <div class="perk"><span class="p-ic"><svg width="20" height="20"><use href="#i-home"/></svg></span><div><b>Mode « je rentre chez moi »</b><span>Reçois des courses sur ta route du retour.</span></div></div>
+          <div class="perk"><span class="p-ic"><svg width="20" height="20"><use href="#i-map"/></svg></span><div><b>Zones chaudes</b><span>Vois où sont les passagers, en temps réel.</span></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="final" id="signup">
+    <div class="wrap">
+      <span class="eyebrow">Prêt à rouler ?</span>
+      <h2>Parle. On t'amène.</h2>
+      <p style="font-family:var(--display);font-weight:600;color:var(--muted);font-size:22px;margin-top:14px">Ta voix suffit.</p>
+      <div class="final-cta">
+        <a class="btn btn-ember" data-wa href="#"><svg class="icon"><use href="#i-wa"/></svg>Crée ton compte sur WhatsApp</a>
+        <a class="btn btn-ink" data-call href="#"><svg class="icon"><use href="#i-clock"/></svg>Réponse en quelques minutes</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="ft" id="contact">
+  <div class="wrap">
+    <div class="ft-top">
+      <div style="max-width:300px">
+        <a class="brand" href="#top">
+          <span class="mark"><svg width="22" height="22" viewBox="0 0 1024 1024" aria-hidden="true"><g fill="none" stroke="#FFFCF6" stroke-width="92" stroke-linecap="round" stroke-linejoin="round"><path d="M300 760 512 286"/><path d="M724 760 512 286"/><path d="M388 596 636 596"/></g></svg></span>
+          Aloo
+        </a>
+        <p style="margin-top:14px;font-size:14.5px">L'app de course mauritanienne. Commande à la voix, paie en cash, à Nouakchott.</p>
+      </div>
+      <div class="ft-cols">
+        <div class="ft-col">
+          <h4>Produit</h4>
+          <a href="#pourquoi">Pourquoi Aloo</a>
+          <a href="#comment">Comment ça marche</a>
+          <a href="#chauffeurs">Devenir chauffeur</a>
+        </div>
+        <div class="ft-col">
+          <h4>Aide</h4>
+          <a data-support href="/legal/support.html">Support</a>
+          <a data-privacy href="/legal/privacy-policy.html">Confidentialité</a>
+          <a data-wa href="#">WhatsApp</a>
+        </div>
+        <div class="ft-col">
+          <h4>Contact</h4>
+          <a data-wa href="#"><span style="display:inline-flex;gap:7px;align-items:center"><svg width="16" height="16"><use href="#i-wa"/></svg> <span data-wa-label>+222 — — — — —</span></span></a>
+        </div>
+      </div>
+    </div>
+    <div class="ft-bot">
+      <span>© 2026 Aloo. Tous droits réservés.</span>
+      <span class="made">🇲🇷 Fait en Mauritanie</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  /* ─────────────────────────────────────────────────────────────
+     EDIT THESE 5 VALUES ONLY — everything on the page updates itself.
+     ───────────────────────────────────────────────────────────── */
+  const SITE = {
+    whatsapp:   '2220000000',                 // ← your +222 WhatsApp Business number, digits only (no +, no spaces)
+    waMessage:  'Salam ! Je veux créer mon compte Aloo 🚗',
+    waDriver:   'Salam ! Je veux devenir chauffeur Aloo 🚖',
+    iosUrl:     '',                            // ← App Store URL when the app is live (leave empty until then)
+    androidUrl: '',                            // ← Google Play URL when live
+  };
+
+  const wa = (msg) => `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(msg)}`;
+  const set = (sel, fn) => document.querySelectorAll(sel).forEach(fn);
+
+  set('[data-wa]',        el => el.href = wa(SITE.waMessage));
+  set('[data-wa-driver]', el => el.href = wa(SITE.waDriver));
+  set('[data-call]',      el => el.href = wa(SITE.waMessage));
+  set('[data-wa-label]',  el => el.textContent = '+' + SITE.whatsapp.replace(/^(\d{3})(\d{2})(\d{2})(\d{2})(\d+)?/, '$1 $2 $3 $4 $5').trim());
+
+  // Store badges: link out only when a real URL exists, else funnel to WhatsApp signup.
+  const iosEl = document.querySelector('[data-ios]'), andEl = document.querySelector('[data-android]');
+  if (SITE.iosUrl)     { iosEl.href = SITE.iosUrl; iosEl.classList.remove('soon'); }
+  else                 { iosEl.href = wa(SITE.waMessage); }
+  if (SITE.androidUrl) { andEl.href = SITE.androidUrl; andEl.classList.remove('soon'); }
+  else                 { andEl.href = wa(SITE.waMessage); }
+
+  // Mobile menu
+  const burger = document.getElementById('burger'), links = document.getElementById('navlinks');
+  burger.addEventListener('click', () => links.classList.toggle('open'));
+  links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => links.classList.remove('open')));
+</script>
+
+</body>
+</html>
