@@ -17,7 +17,9 @@ const locationSchema = z.object({
 
 const createBody = z.object({
   pickup: locationSchema,
-  dropoff: locationSchema,
+  // Required for closed rides; must be absent for open rides (isOpen=true).
+  dropoff: locationSchema.optional(),
+  isOpen: z.boolean().optional(),
   rideType: z.enum(['passenger', 'colis']).default('passenger'),
   paymentMethod: z.enum(['cash', 'wallet']).default('cash'),
   // Passenger reached the operator by phone — they don't have an app.
@@ -32,6 +34,10 @@ const createBody = z.object({
 }).refine(
   (v) => v.rideType !== 'colis' || (v.recipientName && v.recipientPhone),
   { message: 'Colis rides require recipientName and recipientPhone', path: ['recipientName'] },
+).refine(
+  // Either you give a dropoff, or you flip isOpen. Not both, not neither.
+  (v) => v.isOpen ? !v.dropoff : !!v.dropoff,
+  { message: 'Provide a dropoff for closed rides, or set isOpen=true for an open ride', path: ['dropoff'] },
 );
 
 /**
@@ -110,6 +116,7 @@ adminRidesRouter.post('/', async (req, res) => {
     bookerId: adminId,
     pickup: body.pickup,
     dropoff: body.dropoff,
+    isOpen: body.isOpen,
     rideType: body.rideType,
     paymentMethod: body.paymentMethod,
     passengerName: body.passengerName,
@@ -134,7 +141,8 @@ adminRidesRouter.post('/', async (req, res) => {
     after: {
       passengerPhone: body.passengerPhone,
       pickup: body.pickup.label,
-      dropoff: body.dropoff.label,
+      dropoff: body.isOpen ? '(course ouverte)' : body.dropoff?.label,
+      isOpen: !!body.isOpen,
     },
   });
   res.json(ride);
