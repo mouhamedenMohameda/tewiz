@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { AppShell } from '@/components/AppShell';
+import { ResponsiveTable, type Column } from '@/components/ResponsiveTable';
 import { api } from '@/lib/api';
 import clsx from 'clsx';
 
@@ -100,9 +101,131 @@ export default function RidesPage() {
     refetchInterval: filter === 'active' ? 5_000 : false,
   });
 
+  const columns: Column<RideRow>[] = [
+    {
+      key: 'requested',
+      header: 'Demandée',
+      mobilePrimary: true,
+      cell: (r) => (
+        <Link href={`/rides/${r.id}`} className="text-brand-700 hover:underline whitespace-nowrap">
+          {fmtTime(r.requestedAt)}
+        </Link>
+      ),
+      mobileCell: (r) => (
+        <div className="flex items-center gap-2">
+          <span>{r.rideType === 'colis' ? '📦' : '🚖'}</span>
+          <Link href={`/rides/${r.id}`} className="text-brand-700">
+            {fmtTime(r.requestedAt)}
+          </Link>
+          {r.source === 'operator' && (
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-violet-100 text-violet-800">
+              📞 CC
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'type',
+      header: 'Type',
+      mobileLabel: null,
+      cell: (r) => (
+        <div className="flex items-center gap-1.5">
+          <span>{r.rideType === 'colis' ? '📦' : '🚖'}</span>
+          {r.source === 'operator' && (
+            <span
+              title="Course créée par le call-center"
+              className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-violet-100 text-violet-800"
+            >
+              📞 CC
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'passenger',
+      header: 'Passager',
+      cell: (r) => (
+        <div className="text-slate-700">
+          <div className="font-medium">{r.passengerName ?? '—'}</div>
+          <div className="text-xs text-slate-500">{r.passengerPhone ?? ''}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'route',
+      header: 'Trajet',
+      cell: (r) => (
+        <div className="text-slate-700 max-w-md">
+          <div className="text-xs">
+            <span className="text-slate-400">de </span>
+            {r.pickup.label ?? `${r.pickup.lat.toFixed(3)}, ${r.pickup.lng.toFixed(3)}`}
+          </div>
+          <div className="text-xs">
+            <span className="text-slate-400">vers </span>
+            {r.dropoff.label ?? `${r.dropoff.lat.toFixed(3)}, ${r.dropoff.lng.toFixed(3)}`}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'fare',
+      header: 'Tarif',
+      cell: (r) => (
+        <div className="whitespace-nowrap">
+          <div className="font-medium">
+            {fmtMru(r.fareFinalMru ?? r.fareEstimateMru)}
+          </div>
+          <div className="text-xs text-slate-400">
+            {r.paymentMethod === 'cash' ? 'Espèces' : 'Wallet'}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'commission',
+      header: 'Commission',
+      cell: (r) => (
+        <span className="text-slate-600 whitespace-nowrap">{fmtMru(r.commissionMru)}</span>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'État',
+      cell: (r) => {
+        const pill = STATUS_PILL[r.status];
+        return (
+          <span className={clsx(
+            'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium',
+            pill.cls,
+          )}>
+            {pill.label}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'actions',
+      header: 'Action',
+      align: 'right',
+      hideOnMobile: true,
+      cell: (r) =>
+        r.status === 'searching' ? (
+          <button
+            onClick={() => rebroadcast.mutate(r.id)}
+            disabled={busyId === r.id}
+            className="text-xs font-medium px-3 py-1.5 rounded-md bg-brand-50 text-brand-700 hover:bg-brand-100 disabled:opacity-50 whitespace-nowrap"
+          >
+            {busyId === r.id ? 'Relance…' : '↻ Relancer'}
+          </button>
+        ) : null,
+    },
+  ];
+
   return (
     <AppShell>
-      <div className="p-6 max-w-7xl mx-auto">
+      <div className="p-4 md:p-6 max-w-7xl mx-auto">
         <div className="flex items-end justify-between mb-1">
           <h1 className="text-2xl font-bold text-slate-900">Courses</h1>
           <button
@@ -118,13 +241,13 @@ export default function RidesPage() {
           archive consultable pour les terminées.
         </p>
 
-        <div className="flex gap-1 mb-6 border-b border-slate-200">
+        <div className="flex gap-1 mb-6 border-b border-slate-200 overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
           {FILTERS.map((f) => (
             <button
               key={f.value}
               onClick={() => setFilter(f.value)}
               className={clsx(
-                'px-4 py-2 text-sm font-medium border-b-2 transition -mb-px',
+                'px-4 py-2 text-sm font-medium border-b-2 transition -mb-px whitespace-nowrap shrink-0',
                 filter === f.value ? 'border-brand-600 text-brand-700'
                                    : 'border-transparent text-slate-600 hover:text-slate-900',
               )}
@@ -136,98 +259,24 @@ export default function RidesPage() {
 
         {isLoading ? (
           <div className="text-slate-500 text-sm">Chargement…</div>
-        ) : (data?.length ?? 0) === 0 ? (
-          <div className="bg-white rounded-xl border border-slate-200 p-10 text-center text-slate-500 text-sm">
-            Aucune course dans cette catégorie.
-          </div>
         ) : (
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-slate-600 text-xs uppercase tracking-wide">
-                <tr>
-                  <th className="text-left px-4 py-3 font-semibold">Demandée</th>
-                  <th className="text-left px-4 py-3 font-semibold">Type</th>
-                  <th className="text-left px-4 py-3 font-semibold">Passager</th>
-                  <th className="text-left px-4 py-3 font-semibold">Trajet</th>
-                  <th className="text-left px-4 py-3 font-semibold">Tarif</th>
-                  <th className="text-left px-4 py-3 font-semibold">Commission</th>
-                  <th className="text-left px-4 py-3 font-semibold">État</th>
-                  <th className="text-right px-4 py-3 font-semibold">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {data!.map((r) => {
-                  const pill = STATUS_PILL[r.status];
-                  return (
-                    <tr key={r.id} className="hover:bg-slate-50">
-                      <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
-                        <Link href={`/rides/${r.id}`} className="text-brand-700 hover:underline">
-                          {fmtTime(r.requestedAt)}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1.5">
-                          <span>{r.rideType === 'colis' ? '📦' : '🚖'}</span>
-                          {r.source === 'operator' && (
-                            <span
-                              title="Course créée par le call-center"
-                              className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-violet-100 text-violet-800"
-                            >
-                              📞 CC
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-slate-700">
-                        <div className="font-medium">{r.passengerName ?? '—'}</div>
-                        <div className="text-xs text-slate-500">{r.passengerPhone ?? ''}</div>
-                      </td>
-                      <td className="px-4 py-3 text-slate-700 max-w-md">
-                        <div className="text-xs">
-                          <span className="text-slate-400">de </span>
-                          {r.pickup.label ?? `${r.pickup.lat.toFixed(3)}, ${r.pickup.lng.toFixed(3)}`}
-                        </div>
-                        <div className="text-xs">
-                          <span className="text-slate-400">vers </span>
-                          {r.dropoff.label ?? `${r.dropoff.lat.toFixed(3)}, ${r.dropoff.lng.toFixed(3)}`}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="font-medium">
-                          {fmtMru(r.fareFinalMru ?? r.fareEstimateMru)}
-                        </div>
-                        <div className="text-xs text-slate-400">
-                          {r.paymentMethod === 'cash' ? 'Espèces' : 'Wallet'}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
-                        {fmtMru(r.commissionMru)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={clsx(
-                          'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium',
-                          pill.cls,
-                        )}>
-                          {pill.label}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right whitespace-nowrap">
-                        {r.status === 'searching' ? (
-                          <button
-                            onClick={() => rebroadcast.mutate(r.id)}
-                            disabled={busyId === r.id}
-                            className="text-xs font-medium px-3 py-1.5 rounded-md bg-brand-50 text-brand-700 hover:bg-brand-100 disabled:opacity-50"
-                          >
-                            {busyId === r.id ? 'Relance…' : '↻ Relancer'}
-                          </button>
-                        ) : null}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <ResponsiveTable
+            data={data ?? []}
+            columns={columns}
+            rowKey={(r) => r.id}
+            emptyMessage="Aucune course dans cette catégorie."
+            mobileActions={(r) =>
+              r.status === 'searching' ? (
+                <button
+                  onClick={() => rebroadcast.mutate(r.id)}
+                  disabled={busyId === r.id}
+                  className="text-xs font-medium px-3 py-1.5 rounded-md bg-brand-50 text-brand-700 hover:bg-brand-100 disabled:opacity-50"
+                >
+                  {busyId === r.id ? 'Relance…' : '↻ Relancer'}
+                </button>
+              ) : null
+            }
+          />
         )}
       </div>
     </AppShell>

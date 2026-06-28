@@ -15,6 +15,7 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AppShell } from '@/components/AppShell';
+import { ResponsiveTable, type Column } from '@/components/ResponsiveTable';
 import { api } from '@/lib/api';
 
 type PriceLevel = '$' | '$$' | '$$$';
@@ -107,11 +108,107 @@ export default function RestaurantsPage() {
     };
   }, [list.data]);
 
+  const columns: Column<Restaurant>[] = [
+    {
+      key: 'restaurant',
+      header: 'Restaurant',
+      mobilePrimary: true,
+      cell: (r) => (
+        <div className="flex items-center gap-3">
+          {r.photo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={r.photo} alt="" className="w-10 h-10 rounded-md object-cover bg-slate-100" />
+          ) : (
+            <div className="w-10 h-10 rounded-md bg-orange-100 text-orange-700 font-semibold flex items-center justify-center">
+              {r.name.charAt(0).toUpperCase() || '?'}
+            </div>
+          )}
+          <div className="min-w-0">
+            <div className="font-medium text-slate-900 truncate">{r.name}</div>
+            <div className="text-xs text-slate-500 font-mono truncate">{r.id}</div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'cuisine',
+      header: 'Cuisine',
+      cell: (r) =>
+        r.cuisine ? (
+          <span className="text-xs bg-slate-100 text-slate-700 px-2 py-1 rounded">{r.cuisine}</span>
+        ) : (
+          <span className="text-xs text-slate-400">—</span>
+        ),
+    },
+    {
+      key: 'zone',
+      header: 'Zone',
+      cell: (r) => <span className="text-slate-600">{r.zone ?? '—'}</span>,
+    },
+    {
+      key: 'coords',
+      header: 'Coords',
+      cell: (r) => (
+        <span className="text-slate-500 text-xs font-mono">
+          {r.lat.toFixed(4)}, {r.lng.toFixed(4)}
+        </span>
+      ),
+    },
+    {
+      key: 'popularity',
+      header: 'Popularité',
+      cell: (r) => <span className="text-slate-600">{r.popularity}</span>,
+    },
+    {
+      key: 'status',
+      header: 'État',
+      cell: (r) =>
+        r.isActive ? (
+          <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded">Actif</span>
+        ) : (
+          <span className="text-xs bg-slate-200 text-slate-600 px-2 py-1 rounded">Masqué</span>
+        ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      hideOnMobile: true,
+      cell: (r) => (
+        <div className="flex justify-end gap-3">
+          <button
+            onClick={() => setEditing(r)}
+            className="text-xs text-blue-700 hover:text-blue-900 font-medium"
+          >
+            Modifier
+          </button>
+          {r.isActive ? (
+            <button
+              onClick={() => {
+                if (confirm(`Masquer "${r.name}" du catalogue mobile ?`)) softDelete.mutate(r.id);
+              }}
+              className="text-xs text-red-700 hover:text-red-900 font-medium"
+            >
+              Masquer
+            </button>
+          ) : (
+            <button
+              onClick={() => restore.mutate(r.id)}
+              className="text-xs text-emerald-700 hover:text-emerald-900 font-medium"
+            >
+              Restaurer
+            </button>
+          )}
+        </div>
+      ),
+    },
+  ];
+
   return (
     <AppShell>
-      <div className="max-w-7xl mx-auto p-6">
+      <div className="max-w-7xl mx-auto p-4 md:p-6">
         {/* Header */}
-        <div className="flex items-start justify-between mb-6 gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-6 gap-3">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Restaurants</h1>
             <p className="text-sm text-slate-500 mt-1">
@@ -127,13 +224,13 @@ export default function RestaurantsPage() {
           <div className="flex gap-2 shrink-0">
             <button
               onClick={() => setShowBulk(true)}
-              className="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg font-medium text-sm"
+              className="flex-1 sm:flex-none bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg font-medium text-sm"
             >
               Importer JSON
             </button>
             <button
               onClick={() => setShowCreate(true)}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium text-sm"
+              className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium text-sm"
             >
               + Ajouter
             </button>
@@ -141,7 +238,7 @@ export default function RestaurantsPage() {
         </div>
 
         {/* Filters */}
-        <div className="flex gap-3 mb-4">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mb-4">
           <input
             type="search"
             placeholder="Rechercher un nom, un quartier…"
@@ -149,124 +246,70 @@ export default function RestaurantsPage() {
             onChange={(e) => setSearch(e.target.value)}
             className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm"
           />
-          <select
-            value={cuisineFilter}
-            onChange={(e) => setCuisineFilter(e.target.value)}
-            className="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white"
-          >
-            <option value="">Toutes les cuisines</option>
-            {CUISINES.filter(Boolean).map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={() => setShowInactive((v) => !v)}
-            className={`px-3 py-2 text-sm rounded-lg border flex items-center gap-2 ${
-              showInactive
-                ? 'bg-slate-100 border-slate-300 text-slate-700'
-                : 'bg-white border-slate-300 text-slate-500 hover:bg-slate-50'
-            }`}
-          >
-            <span className={`w-2 h-2 rounded-full ${showInactive ? 'bg-slate-500' : 'bg-slate-300'}`} />
-            Inclure masquées
-          </button>
+          <div className="flex gap-2 sm:gap-3">
+            <select
+              value={cuisineFilter}
+              onChange={(e) => setCuisineFilter(e.target.value)}
+              className="flex-1 sm:flex-none border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white"
+            >
+              <option value="">Toutes les cuisines</option>
+              {CUISINES.filter(Boolean).map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => setShowInactive((v) => !v)}
+              className={`px-3 py-2 text-sm rounded-lg border flex items-center gap-2 whitespace-nowrap ${
+                showInactive
+                  ? 'bg-slate-100 border-slate-300 text-slate-700'
+                  : 'bg-white border-slate-300 text-slate-500 hover:bg-slate-50'
+              }`}
+            >
+              <span className={`w-2 h-2 rounded-full ${showInactive ? 'bg-slate-500' : 'bg-slate-300'}`} />
+              <span className="hidden sm:inline">Inclure masquées</span>
+              <span className="sm:hidden">Masquées</span>
+            </button>
+          </div>
         </div>
 
         {list.isLoading && <div className="text-slate-500">Chargement...</div>}
         {list.error ? <div className="text-red-600">Erreur de chargement.</div> : null}
 
         {list.data && (
-          <div className="card overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 border-b border-slate-200">
-                <tr>
-                  <th className="px-4 py-3 text-left font-medium text-slate-700">Restaurant</th>
-                  <th className="px-4 py-3 text-left font-medium text-slate-700">Cuisine</th>
-                  <th className="px-4 py-3 text-left font-medium text-slate-700">Zone</th>
-                  <th className="px-4 py-3 text-left font-medium text-slate-700">Coords</th>
-                  <th className="px-4 py-3 text-left font-medium text-slate-700">Popularité</th>
-                  <th className="px-4 py-3 text-left font-medium text-slate-700">État</th>
-                  <th className="px-4 py-3 text-right font-medium text-slate-700">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {list.data.items.map((r) => (
-                  <tr key={r.id} className={`hover:bg-slate-50 ${r.isActive ? '' : 'opacity-60'}`}>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        {r.photo ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={r.photo} alt="" className="w-10 h-10 rounded-md object-cover bg-slate-100" />
-                        ) : (
-                          <div className="w-10 h-10 rounded-md bg-orange-100 text-orange-700 font-semibold flex items-center justify-center">
-                            {r.name.charAt(0).toUpperCase() || '?'}
-                          </div>
-                        )}
-                        <div>
-                          <div className="font-medium text-slate-900">{r.name}</div>
-                          <div className="text-xs text-slate-500 font-mono">{r.id}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      {r.cuisine ? (
-                        <span className="text-xs bg-slate-100 text-slate-700 px-2 py-1 rounded">{r.cuisine}</span>
-                      ) : (
-                        <span className="text-xs text-slate-400">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">{r.zone ?? '—'}</td>
-                    <td className="px-4 py-3 text-slate-500 text-xs font-mono">
-                      {r.lat.toFixed(4)}, {r.lng.toFixed(4)}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">{r.popularity}</td>
-                    <td className="px-4 py-3">
-                      {r.isActive ? (
-                        <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded">Actif</span>
-                      ) : (
-                        <span className="text-xs bg-slate-200 text-slate-600 px-2 py-1 rounded">Masqué</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex justify-end gap-3">
-                        <button
-                          onClick={() => setEditing(r)}
-                          className="text-xs text-blue-700 hover:text-blue-900 font-medium"
-                        >
-                          Modifier
-                        </button>
-                        {r.isActive ? (
-                          <button
-                            onClick={() => {
-                              if (confirm(`Masquer "${r.name}" du catalogue mobile ?`)) softDelete.mutate(r.id);
-                            }}
-                            className="text-xs text-red-700 hover:text-red-900 font-medium"
-                          >
-                            Masquer
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => restore.mutate(r.id)}
-                            className="text-xs text-emerald-700 hover:text-emerald-900 font-medium"
-                          >
-                            Restaurer
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {list.data.items.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
-                      Aucun restaurant. Importe ton JSON ou clique "+ Ajouter".
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
-          </div>
+          <ResponsiveTable
+            data={list.data.items}
+            columns={columns}
+            rowKey={(r) => r.id}
+            emptyMessage={"Aucun restaurant. Importe ton JSON ou clique \"+ Ajouter\"."}
+            mobileActions={(r) => (
+              <>
+                <button
+                  onClick={() => setEditing(r)}
+                  className="text-xs text-blue-700 hover:text-blue-900 font-medium px-3 py-1.5 bg-blue-50 rounded-md"
+                >
+                  Modifier
+                </button>
+                {r.isActive ? (
+                  <button
+                    onClick={() => {
+                      if (confirm(`Masquer "${r.name}" du catalogue mobile ?`)) softDelete.mutate(r.id);
+                    }}
+                    className="text-xs text-red-700 hover:text-red-900 font-medium px-3 py-1.5 bg-red-50 rounded-md"
+                  >
+                    Masquer
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => restore.mutate(r.id)}
+                    className="text-xs text-emerald-700 hover:text-emerald-900 font-medium px-3 py-1.5 bg-emerald-50 rounded-md"
+                  >
+                    Restaurer
+                  </button>
+                )}
+              </>
+            )}
+          />
         )}
 
         {showCreate || editing ? (
@@ -360,7 +403,7 @@ function RestaurantForm({
 
   return (
     <Modal title={isEdit ? `Modifier — ${initial!.name}` : 'Nouveau restaurant'} onClose={onClose}>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Nom *" value={name} onChange={setName} />
         <Field label="Nom (français)" value={nameFr} onChange={setNameFr} />
         <Field label="Nom (arabe)" value={nameAr} onChange={setNameAr} />
@@ -518,11 +561,11 @@ function BulkImportModal({ onClose, onDone }: { onClose: () => void; onDone: () 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
     <div
-      className="fixed inset-0 bg-black/40 flex items-start justify-center pt-20 px-4 z-50 overflow-auto"
+      className="fixed inset-0 bg-black/40 flex items-start justify-center pt-6 sm:pt-20 px-3 sm:px-4 z-50 overflow-auto"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-xl shadow-xl max-w-2xl w-full p-6"
+        className="bg-white rounded-xl shadow-xl max-w-2xl w-full p-4 sm:p-6 mb-6"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">

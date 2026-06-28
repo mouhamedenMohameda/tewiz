@@ -17,6 +17,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AppShell } from '@/components/AppShell';
+import { ResponsiveTable, type Column } from '@/components/ResponsiveTable';
 import { api } from '@/lib/api';
 
 interface UserRow {
@@ -90,10 +91,93 @@ export default function UsersPage() {
     },
   });
 
+  const columns: Column<UserRow>[] = [
+    {
+      key: 'name',
+      header: 'Nom',
+      mobilePrimary: true,
+      cell: (u) => (
+        <div className="flex items-center gap-2 font-medium">
+          <span
+            title={
+              u.online
+                ? 'En ligne (vu < 5 min)'
+                : u.last_seen_at
+                ? `Vu ${formatLastSeen(u.last_seen_at)}`
+                : 'Jamais connecté'
+            }
+            className={`w-2 h-2 rounded-full shrink-0 ${
+              u.online ? 'bg-emerald-500 ring-2 ring-emerald-100' : 'bg-slate-300'
+            }`}
+          />
+          <span>{u.full_name ?? '—'}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'phone',
+      header: 'Téléphone',
+      cell: (u) => <span className="text-slate-600 font-mono">{u.phone}</span>,
+    },
+    {
+      key: 'role',
+      header: 'Rôle',
+      cell: (u) => (
+        <span className={`px-2 py-1 text-xs rounded-md font-medium ${roleBadge(u.role)}`}>
+          {u.role}
+        </span>
+      ),
+    },
+    {
+      key: 'password',
+      header: 'Mot de passe',
+      mobileLabel: 'M.d.p.',
+      cell: (u) => (
+        <span className="text-xs">
+          {!u.has_password ? (
+            <span className="text-amber-600">Non défini</span>
+          ) : u.must_reset_password ? (
+            <span className="text-amber-600">À régénérer</span>
+          ) : (
+            <span className="text-emerald-600">
+              OK · {u.password_updated_at
+                ? new Date(u.password_updated_at).toLocaleDateString('fr-FR')
+                : ''}
+            </span>
+          )}
+        </span>
+      ),
+    },
+    {
+      key: 'created',
+      header: 'Créé',
+      cell: (u) => (
+        <span className="text-slate-500 text-xs">
+          {new Date(u.created_at).toLocaleDateString('fr-FR')}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      hideOnMobile: true,
+      cell: (u) => (
+        <button
+          onClick={() => regenerate.mutate(u)}
+          disabled={regenerate.isPending}
+          className="text-xs text-emerald-700 hover:text-emerald-900 font-medium"
+        >
+          Régénérer
+        </button>
+      ),
+    },
+  ];
+
   return (
     <AppShell>
-      <div className="p-6 max-w-7xl mx-auto">
-        <div className="flex items-end justify-between mb-6">
+      <div className="p-4 md:p-6 max-w-7xl mx-auto">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
           <div>
             <h1 className="text-2xl font-bold text-slate-900 mb-1">Utilisateurs</h1>
             <p className="text-sm text-slate-500">
@@ -112,14 +196,14 @@ export default function UsersPage() {
           </div>
           <button
             onClick={() => setShowCreate(true)}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium text-sm"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg font-medium text-sm w-full sm:w-auto"
           >
             + Créer un utilisateur
           </button>
         </div>
 
         {/* Filters */}
-        <div className="flex gap-3 mb-4">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mb-4">
           <input
             type="search"
             placeholder="Rechercher par nom ou téléphone…"
@@ -127,109 +211,52 @@ export default function UsersPage() {
             onChange={(e) => setSearch(e.target.value)}
             className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm"
           />
-          <select
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value as 'rider' | 'captain' | 'admin' | 'all')}
-            className="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white"
-          >
-            <option value="all">Tous les rôles</option>
-            <option value="rider">Riders</option>
-            <option value="captain">Chauffeurs</option>
-            <option value="admin">Admins</option>
-          </select>
-          <button
-            type="button"
-            onClick={() => setOnlineOnly((v) => !v)}
-            className={`px-3 py-2 text-sm rounded-lg border transition flex items-center gap-2 ${
-              onlineOnly
-                ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
-                : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
-            }`}
-          >
-            <span className={`w-2 h-2 rounded-full ${onlineOnly ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-            En ligne uniquement
-          </button>
+          <div className="flex gap-2 sm:gap-3">
+            <select
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value as 'rider' | 'captain' | 'admin' | 'all')}
+              className="flex-1 sm:flex-none border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white"
+            >
+              <option value="all">Tous les rôles</option>
+              <option value="rider">Riders</option>
+              <option value="captain">Chauffeurs</option>
+              <option value="admin">Admins</option>
+            </select>
+            <button
+              type="button"
+              onClick={() => setOnlineOnly((v) => !v)}
+              className={`px-3 py-2 text-sm rounded-lg border transition flex items-center gap-2 whitespace-nowrap ${
+                onlineOnly
+                  ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
+                  : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <span className={`w-2 h-2 rounded-full ${onlineOnly ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+              <span className="hidden sm:inline">En ligne uniquement</span>
+              <span className="sm:hidden">En ligne</span>
+            </button>
+          </div>
         </div>
 
         {list.isLoading && <div className="text-slate-500">Chargement...</div>}
         {list.error && <div className="text-red-600">Erreur de chargement.</div>}
 
         {list.data && (
-          <div className="card overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 border-b border-slate-200">
-                <tr>
-                  <th className="px-4 py-3 text-left font-medium text-slate-700">Nom</th>
-                  <th className="px-4 py-3 text-left font-medium text-slate-700">Téléphone</th>
-                  <th className="px-4 py-3 text-left font-medium text-slate-700">Rôle</th>
-                  <th className="px-4 py-3 text-left font-medium text-slate-700">Mot de passe</th>
-                  <th className="px-4 py-3 text-left font-medium text-slate-700">Créé</th>
-                  <th className="px-4 py-3 text-right font-medium text-slate-700">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {list.data.users.map((u) => (
-                  <tr key={u.id} className="hover:bg-slate-50">
-                    <td className="px-4 py-3 font-medium">
-                      <div className="flex items-center gap-2">
-                        <span
-                          title={
-                            u.online
-                              ? 'En ligne (vu < 5 min)'
-                              : u.last_seen_at
-                              ? `Vu ${formatLastSeen(u.last_seen_at)}`
-                              : 'Jamais connecté'
-                          }
-                          className={`w-2 h-2 rounded-full shrink-0 ${
-                            u.online ? 'bg-emerald-500 ring-2 ring-emerald-100' : 'bg-slate-300'
-                          }`}
-                        />
-                        <span>{u.full_name ?? '—'}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-slate-600 font-mono">{u.phone}</td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-1 text-xs rounded-md font-medium ${roleBadge(u.role)}`}>
-                        {u.role}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-xs">
-                      {!u.has_password ? (
-                        <span className="text-amber-600">Non défini</span>
-                      ) : u.must_reset_password ? (
-                        <span className="text-amber-600">À régénérer</span>
-                      ) : (
-                        <span className="text-emerald-600">
-                          OK · {u.password_updated_at
-                            ? new Date(u.password_updated_at).toLocaleDateString('fr-FR')
-                            : ''}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-slate-500 text-xs">
-                      {new Date(u.created_at).toLocaleDateString('fr-FR')}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => regenerate.mutate(u)}
-                        disabled={regenerate.isPending}
-                        className="text-xs text-emerald-700 hover:text-emerald-900 font-medium"
-                      >
-                        Régénérer
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {list.data.users.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-slate-500 text-sm">
-                      Aucun utilisateur ne correspond à ce filtre.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          <ResponsiveTable
+            data={list.data.users}
+            columns={columns}
+            rowKey={(u) => u.id}
+            emptyMessage="Aucun utilisateur ne correspond à ce filtre."
+            mobileActions={(u) => (
+              <button
+                onClick={() => regenerate.mutate(u)}
+                disabled={regenerate.isPending}
+                className="text-xs text-emerald-700 hover:text-emerald-900 font-medium px-3 py-1.5 bg-emerald-50 rounded-md"
+              >
+                Régénérer le mot de passe
+              </button>
+            )}
+          />
         )}
 
         {/* Modals */}

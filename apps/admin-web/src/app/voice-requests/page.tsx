@@ -137,11 +137,21 @@ export default function VoiceRequestsPage() {
 
   const canConfirm = isPending && !!pickup && !!dropoff && !confirm.isPending;
 
+  // Mobile navigation: when a request is selected, the queue is hidden and
+  // the detail + map appear. A back button returns to the queue.
+  const showDetailOnMobile = !!selectedId;
+
   return (
     <AppShell>
-      <div className="flex h-screen">
+      <div className="flex flex-col lg:flex-row h-[calc(100dvh-3.5rem)] lg:h-screen">
         {/* ── Column 1: queue ──────────────────────────────────────────────── */}
-        <div className="w-80 shrink-0 border-r border-slate-200 bg-white flex flex-col">
+        <div
+          className={clsx(
+            'lg:w-80 lg:shrink-0 border-r border-slate-200 bg-white flex flex-col min-h-0',
+            'flex-1 lg:flex-initial',
+            showDetailOnMobile && 'hidden lg:flex',
+          )}
+        >
           <div className="px-4 py-4 border-b border-slate-200">
             <div className="flex items-center justify-between">
               <h1 className="text-lg font-bold text-slate-900">🎙️ Demandes vocales</h1>
@@ -202,7 +212,27 @@ export default function VoiceRequestsPage() {
         </div>
 
         {/* ── Column 2: detail + audio + actions ───────────────────────────── */}
-        <div className="w-96 shrink-0 border-r border-slate-200 bg-white flex flex-col overflow-auto">
+        <div
+          className={clsx(
+            'lg:w-96 lg:shrink-0 border-r border-slate-200 bg-white flex flex-col overflow-auto min-h-0',
+            showDetailOnMobile ? 'flex max-h-[55vh] lg:max-h-none' : 'hidden lg:flex',
+          )}
+        >
+          {/* Mobile-only back button */}
+          {showDetailOnMobile && (
+            <div className="lg:hidden sticky top-0 z-10 bg-white border-b border-slate-200 px-3 py-2 flex items-center gap-2">
+              <button
+                onClick={() => setSelectedId(null)}
+                className="p-1.5 -ml-1.5 rounded-md text-slate-600 hover:bg-slate-100"
+                aria-label="Retour à la file"
+              >
+                ←
+              </button>
+              <span className="text-sm font-medium text-slate-700 truncate">
+                {selected?.user.fullName ?? selected?.user.phone ?? 'Demande'}
+              </span>
+            </div>
+          )}
           {!selected ? (
             <div className="flex-1 grid place-items-center text-sm text-slate-400 p-6 text-center">
               Sélectionne une demande pour l’écouter et la traiter.
@@ -328,7 +358,12 @@ export default function VoiceRequestsPage() {
         </div>
 
         {/* ── Column 3: map + POI search ───────────────────────────────────── */}
-        <div className="flex-1 flex flex-col bg-slate-50 min-w-0">
+        <div
+          className={clsx(
+            'flex-1 flex flex-col bg-slate-50 min-w-0 min-h-0',
+            showDetailOnMobile ? 'flex' : 'hidden lg:flex',
+          )}
+        >
           {selected && isPending && (
             <PoiSearch
               proximity={proximity}
@@ -336,7 +371,7 @@ export default function VoiceRequestsPage() {
               onPick={pickCandidate}
             />
           )}
-          <div className="flex-1 min-h-0">
+          <div className="flex-1 min-h-[40vh] lg:min-h-0">
             <VoiceRequestMap
               pickup={pickup}
               dropoff={dropoff}

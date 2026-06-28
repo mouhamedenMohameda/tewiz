@@ -67,19 +67,22 @@ export default function CaptainsPage() {
     [data, selectedId],
   );
 
+  // Mobile-only view toggle: list ↔ map (detail card still floats over map)
+  const [mobileView, setMobileView] = useState<'list' | 'map'>('list');
+
   return (
     <AppShell>
-      <div className="h-screen flex flex-col">
+      <div className="h-[calc(100dvh-3.5rem)] lg:h-screen flex flex-col">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-200 bg-white">
-          <div className="flex items-center justify-between gap-4">
+        <div className="px-4 md:px-6 py-3 md:py-4 border-b border-slate-200 bg-white">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">Chauffeurs</h1>
-              <p className="text-sm text-slate-500">
+              <h1 className="text-xl md:text-2xl font-bold text-slate-900">Chauffeurs</h1>
+              <p className="text-xs md:text-sm text-slate-500">
                 Vue temps réel · rafraîchi toutes les 10 s
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
               <StatChip label="Total" value={counts.total} dot="bg-slate-400" />
               <StatChip label="En ligne" value={counts.online} dot="bg-emerald-500" />
               <StatChip label="En course" value={counts.on_ride} dot="bg-orange-500" />
@@ -88,16 +91,40 @@ export default function CaptainsPage() {
           </div>
         </div>
 
+        {/* Mobile-only list ↔ map toggle */}
+        <div className="lg:hidden flex border-b border-slate-200 bg-white">
+          {(['list', 'map'] as const).map((v) => (
+            <button
+              key={v}
+              onClick={() => setMobileView(v)}
+              className={clsx(
+                'flex-1 py-2.5 text-sm font-medium transition',
+                mobileView === v
+                  ? 'text-brand-700 border-b-2 border-brand-600'
+                  : 'text-slate-500 border-b-2 border-transparent',
+              )}
+            >
+              {v === 'list' ? '📋 Liste' : '🗺️ Carte'}
+            </button>
+          ))}
+        </div>
+
         {/* Body */}
         <div className="flex-1 flex min-h-0">
           {/* Sidebar list */}
-          <aside className="w-[420px] border-r border-slate-200 bg-white flex flex-col min-h-0">
+          <aside
+            className={clsx(
+              'lg:w-[420px] border-r border-slate-200 bg-white flex-col min-h-0',
+              'lg:flex',
+              mobileView === 'list' ? 'flex w-full' : 'hidden',
+            )}
+          >
             <div className="p-3 border-b border-slate-200 space-y-2">
               <input
                 type="search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Rechercher nom, téléphone, plaque, véhicule…"
+                placeholder="Rechercher nom, téléphone, plaque…"
                 className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-200"
               />
               <div className="flex gap-1">
@@ -131,7 +158,10 @@ export default function CaptainsPage() {
                     <CaptainRow
                       captain={c}
                       selected={selectedId === c.id}
-                      onClick={() => setSelectedId(c.id)}
+                      onClick={() => {
+                        setSelectedId(c.id);
+                        setMobileView('map');
+                      }}
                     />
                   </li>
                 ))}
@@ -140,7 +170,13 @@ export default function CaptainsPage() {
           </aside>
 
           {/* Map + detail overlay */}
-          <div className="flex-1 min-h-0 relative">
+          <div
+            className={clsx(
+              'flex-1 min-h-0 relative',
+              'lg:block',
+              mobileView === 'map' ? 'block' : 'hidden',
+            )}
+          >
             <CaptainsMap
               captains={data ?? []}
               selectedId={selectedId}
@@ -233,7 +269,7 @@ function CaptainDetailCard({
 }) {
   const rating = formatRating(c.rating_avg);
   return (
-    <div className="absolute top-4 right-4 w-[340px] bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-10">
+    <div className="absolute top-2 right-2 left-2 sm:left-auto sm:top-4 sm:right-4 sm:w-[340px] bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-10">
       <div className="px-4 py-3 border-b border-slate-100 flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="font-semibold text-slate-900 truncate">
@@ -309,8 +345,8 @@ function DetailRow({ label, value, mono }: { label: string; value: string; mono?
 
 function StatChip({ label, value, dot }: { label: string; value: number; dot: string }) {
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg">
-      <span className={clsx('w-2 h-2 rounded-full', dot)} />
+    <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg whitespace-nowrap shrink-0">
+      <span className={clsx('w-2 h-2 rounded-full shrink-0', dot)} />
       <span className="text-xs text-slate-500">{label}</span>
       <span className="text-sm font-semibold text-slate-900">{value}</span>
     </div>
