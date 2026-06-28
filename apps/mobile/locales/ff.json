@@ -387,7 +387,11 @@
         "missingPhotoBody": "Sortinu capture yoɓdu maa.",
         "failTitle": "Ronkii",
         "failBody": "Ronkii nelde.",
-        "galleryPermission": "Hokku accès e galerie."
+        "galleryPermission": "Hokku accès e galerie.",
+        "sendTo": "Neldu kaalisaaru e numero {{provider}}",
+        "copy": "Tuƴƴu",
+        "phoneCopiedTitle": "Numero tuƴƴaama",
+        "phoneCopiedBody": "Numero {{phone}} tuƴƴaama e presse-papiers."
       }
     },
     "homeLocation": {

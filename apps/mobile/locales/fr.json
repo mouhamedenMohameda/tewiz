@@ -432,7 +432,11 @@
         "missingPhotoBody": "Joignez la capture d'écran de votre paiement.",
         "failTitle": "Échec",
         "failBody": "Impossible d'envoyer.",
-        "galleryPermission": "Accordez l'accès à la galerie."
+        "galleryPermission": "Accordez l'accès à la galerie.",
+        "sendTo": "Envoyer la recharge au numéro {{provider}}",
+        "copy": "Copier",
+        "phoneCopiedTitle": "Numéro copié",
+        "phoneCopiedBody": "Le numéro {{phone}} a été copié dans le presse-papiers."
       }
     },
     "homeLocation": {

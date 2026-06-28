@@ -432,7 +432,11 @@
         "missingPhotoBody": "Attach the screenshot of your payment.",
         "failTitle": "Failed",
         "failBody": "Could not send.",
-        "galleryPermission": "Grant gallery access."
+        "galleryPermission": "Grant gallery access.",
+        "sendTo": "Send the top-up to the {{provider}} number",
+        "copy": "Copy",
+        "phoneCopiedTitle": "Number copied",
+        "phoneCopiedBody": "The number {{phone}} was copied to your clipboard."
       }
     },
     "homeLocation": {

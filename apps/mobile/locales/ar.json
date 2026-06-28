@@ -407,7 +407,11 @@
         "missingPhotoBody": "أرفق لقطة شاشة لدفعك.",
         "failTitle": "فشل",
         "failBody": "تعذّر الإرسال.",
-        "galleryPermission": "امنح الوصول إلى المعرض."
+        "galleryPermission": "امنح الوصول إلى المعرض.",
+        "sendTo": "أرسل الشحن إلى رقم {{provider}}",
+        "copy": "نسخ",
+        "phoneCopiedTitle": "تم نسخ الرقم",
+        "phoneCopiedBody": "تم نسخ الرقم {{phone}} إلى الحافظة."
       }
     },
     "homeLocation": {

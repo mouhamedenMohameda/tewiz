@@ -1,11 +1,13 @@
 'use client';
 
 import { create } from 'zustand';
+import type { AdminRole } from '@tewiz/shared-types';
 
 export interface AuthUser {
   id: string;
   phone: string;
   role: 'admin' | 'rider' | 'captain';
+  adminRole: AdminRole | null;
   fullName: string | null;
 }
 

@@ -981,6 +981,64 @@ export async function cancelRide(input: CancelInput) {
         `Cannot cancel from ${ride.status}`);
     }
 
+    // ── Captain cancels a ride they had accepted (accepted or arrived) ──
+    // Don't kill the ride: put it back into 'searching' so other nearby
+    // captains can take over. The cancelling captain is added to the
+    // ride_declines table so they won't be re-notified for the same ride.
+    // The trip that the rider booked is preserved.
+    if (
+      input.role === 'captain'
+      && ride.captain_id === input.userId
+      && (ride.status === 'accepted' || ride.status === 'arrived')
+    ) {
+      const upd = await client.query<RideRow>(
+        `UPDATE rides
+            SET captain_id   = NULL,
+                status       = 'searching',
+                accepted_at  = NULL,
+                arrived_at   = NULL
+          WHERE id = $1
+        RETURNING ${RIDE_COLUMNS}`,
+        [ride.id],
+      );
+
+      // Cancelling captain returns to 'online' and is recorded as having
+      // declined this specific ride (so the dispatcher and the alert modal
+      // both skip them on the re-broadcast).
+      await client.query(
+        `UPDATE captain_state SET presence = 'online', updated_at = now()
+          WHERE captain_id = $1 AND presence = 'on_ride'`,
+        [input.userId],
+      );
+      await client.query(
+        `INSERT INTO ride_declines (ride_id, captain_id)
+         VALUES ($1, $2)
+         ON CONFLICT (ride_id, captain_id) DO NOTHING`,
+        [ride.id, input.userId],
+      );
+
+      // Re-broadcast to every other eligible captain, after the tx commits
+      // so we don't notify on a state another query might still rollback.
+      const reborn = upd.rows[0]!;
+      void (async () => {
+        try {
+          const captainIds = await eligibleCaptainsForRide(reborn.id);
+          if (captainIds.length > 0) {
+            await notifyCaptainsNewRide(captainIds, {
+              id: reborn.id,
+              rideType: reborn.ride_type,
+              fareEstimateMru: reborn.fare_estimate_mru == null ? null : Number(reborn.fare_estimate_mru),
+            });
+          }
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.warn('[rides] re-broadcast after captain cancel failed', err);
+        }
+      })();
+
+      return shape(reborn, { revealCode: true });
+    }
+
     const newStatus = input.role === 'rider'
       ? 'cancelled_by_rider'
       : 'cancelled_by_captain';

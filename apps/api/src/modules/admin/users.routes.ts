@@ -15,10 +15,11 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { pool } from '../../db/pool.js';
 import { HttpError } from '../../middleware/error.js';
-import type { AuthedRequest } from '../../middleware/auth.js';
+import { requireAdminRole, type AuthedRequest } from '../../middleware/auth.js';
 import { generatePassword, hashPassword } from '../auth/password.js';
 import { phoneSchema } from '../auth/phone.js';
 import { audit } from './audit.js';
+import { ADMIN_ROLES } from '@tewiz/shared-types';
 
 export const adminUsersRouter = Router();
 
@@ -66,7 +67,7 @@ adminUsersRouter.get('/', async (req, res) => {
   params.push(q.offset);
 
   const { rows } = await pool.query(
-    `SELECT id, phone, role, status, full_name, language,
+    `SELECT id, phone, role, admin_role, status, full_name, language,
             (password_hash IS NOT NULL) AS has_password,
             must_reset_password,
             password_updated_at, last_seen_at, created_at,
@@ -101,16 +102,26 @@ adminUsersRouter.get('/', async (req, res) => {
 // The password is returned in the response (and ONLY in the response).
 // ---------------------------------------------------------------------------
 
-const createBody = z.object({
-  phone: phoneSchema,
-  role: z.enum(['rider', 'captain', 'admin']),
-  fullName: z.string().min(2).max(100),
-  language: z.enum(['fr', 'ar', 'en']).default('fr'),
-});
+const createBody = z
+  .object({
+    phone: phoneSchema,
+    role: z.enum(['rider', 'captain', 'admin']),
+    adminRole: z.enum(ADMIN_ROLES as unknown as [string, ...string[]]).optional(),
+    fullName: z.string().min(2).max(100),
+    language: z.enum(['fr', 'ar', 'en']).default('fr'),
+  })
+  .refine((b) => (b.role === 'admin') === !!b.adminRole, {
+    message: 'adminRole is required when role=admin and forbidden otherwise',
+    path: ['adminRole'],
+  });
 
 adminUsersRouter.post('/', async (req, res) => {
   const body = createBody.parse(req.body);
   const adminId = req.user!.id;
+  // Only super_admin can mint other admins.
+  if (body.role === 'admin' && req.user!.adminRole !== 'super_admin') {
+    throw new HttpError(403, 'forbidden', 'Seul un super_admin peut créer un administrateur.');
+  }
 
   // Reject duplicate phones cleanly so the admin can retry without
   // bumping into a 500.
@@ -130,12 +141,20 @@ adminUsersRouter.post('/', async (req, res) => {
   const hash = await hashPassword(password);
 
   const { rows } = await pool.query<{ id: string }>(
-    `INSERT INTO users (phone, role, full_name, language,
+    `INSERT INTO users (phone, role, admin_role, full_name, language,
                         password_hash, password_updated_at,
                         must_reset_password, created_by_admin_id)
-     VALUES ($1, $2, $3, $4, $5, now(), false, $6)
+     VALUES ($1, $2, $3, $4, $5, $6, now(), false, $7)
      RETURNING id`,
-    [body.phone, body.role, body.fullName, body.language, hash, adminId],
+    [
+      body.phone,
+      body.role,
+      body.adminRole ?? null,
+      body.fullName,
+      body.language,
+      hash,
+      adminId,
+    ],
   );
 
   const userId = rows[0]!.id;
@@ -144,7 +163,12 @@ adminUsersRouter.post('/', async (req, res) => {
     action: 'user.create',
     targetType: 'user',
     targetId: userId,
-    after: { role: body.role, phone: body.phone, fullName: body.fullName },
+    after: {
+      role: body.role,
+      adminRole: body.adminRole ?? null,
+      phone: body.phone,
+      fullName: body.fullName,
+    },
   });
 
   res.status(201).json({
@@ -152,6 +176,7 @@ adminUsersRouter.post('/', async (req, res) => {
       id: userId,
       phone: body.phone,
       role: body.role,
+      adminRole: body.adminRole ?? null,
       fullName: body.fullName,
       language: body.language,
     },
@@ -172,12 +197,21 @@ adminUsersRouter.post('/:id/regenerate-password', async (req, res) => {
   const { id } = idParam.parse(req.params);
   const adminId = req.user!.id;
 
-  const user = await pool.query<{ phone: string; full_name: string | null }>(
-    `SELECT phone, full_name FROM users WHERE id = $1 LIMIT 1`,
+  const user = await pool.query<{ phone: string; full_name: string | null; role: string }>(
+    `SELECT phone, full_name, role FROM users WHERE id = $1 LIMIT 1`,
     [id],
   );
   if (!user.rows[0]) {
     throw new HttpError(404, 'user_not_found', 'Utilisateur introuvable');
+  }
+  // Regenerating an admin's password is super_admin only — it would
+  // otherwise let any ops_manager hijack the panel.
+  if (user.rows[0].role === 'admin' && req.user!.adminRole !== 'super_admin') {
+    throw new HttpError(
+      403,
+      'forbidden',
+      "Seul un super_admin peut régénérer le mot de passe d'un administrateur.",
+    );
   }
 
   const password = generatePassword();
@@ -217,6 +251,68 @@ adminUsersRouter.post('/:id/regenerate-password', async (req, res) => {
       password,
     ),
   });
+});
+
+// ---------------------------------------------------------------------------
+// PATCH /admin/users/:id/admin-role
+// Reassigns an admin's sub-role. Super_admin only. Refuses to demote the
+// last remaining super_admin so the panel can never lock itself out.
+// ---------------------------------------------------------------------------
+
+const adminRoleBody = z.object({
+  adminRole: z.enum(ADMIN_ROLES as unknown as [string, ...string[]]),
+});
+
+adminUsersRouter.patch('/:id/admin-role', requireAdminRole(), async (req, res) => {
+  const { id } = idParam.parse(req.params);
+  const { adminRole: newRole } = adminRoleBody.parse(req.body);
+  const actorId = req.user!.id;
+
+  const target = await pool.query<{ role: string; admin_role: string | null }>(
+    `SELECT role, admin_role FROM users WHERE id = $1 LIMIT 1`,
+    [id],
+  );
+  const t = target.rows[0];
+  if (!t) throw new HttpError(404, 'user_not_found', 'Utilisateur introuvable');
+  if (t.role !== 'admin') {
+    throw new HttpError(400, 'not_admin', "Cet utilisateur n'est pas un administrateur");
+  }
+  if (t.admin_role === newRole) {
+    res.json({ ok: true, userId: id, adminRole: newRole });
+    return;
+  }
+
+  // Lock-out guard: refuse demoting the last super_admin.
+  if (t.admin_role === 'super_admin' && newRole !== 'super_admin') {
+    const { rows } = await pool.query<{ count: string }>(
+      `SELECT COUNT(*)::text AS count FROM users
+        WHERE role = 'admin' AND admin_role = 'super_admin'
+          AND status = 'active'`,
+    );
+    if (parseInt(rows[0]?.count ?? '0', 10) <= 1) {
+      throw new HttpError(
+        409,
+        'last_super_admin',
+        'Impossible de retirer le dernier super_admin actif.',
+      );
+    }
+  }
+
+  await pool.query(
+    `UPDATE users SET admin_role = $1 WHERE id = $2`,
+    [newRole, id],
+  );
+
+  await audit({
+    adminId: actorId,
+    action: 'user.admin_role.update',
+    targetType: 'user',
+    targetId: id,
+    before: { adminRole: t.admin_role },
+    after: { adminRole: newRole },
+  });
+
+  res.json({ ok: true, userId: id, adminRole: newRole });
 });
 
 // ---------------------------------------------------------------------------

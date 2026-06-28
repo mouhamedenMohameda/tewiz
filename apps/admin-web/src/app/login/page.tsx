@@ -12,6 +12,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { defaultLandingFor } from '@/lib/permissions';
 import { APP_NAME } from '@/lib/brand';
 
 const DEVICE_ID_PREFIX = 'tewiz-admin-web-';
@@ -31,7 +32,9 @@ export default function LoginPage() {
 
   useEffect(() => { hydrate(); }, [hydrate]);
   useEffect(() => {
-    if (hydrated && user?.role === 'admin') router.replace('/applications');
+    if (hydrated && user?.role === 'admin') {
+      router.replace(defaultLandingFor(user.adminRole));
+    }
   }, [hydrated, user, router]);
 
   async function submit(e: React.FormEvent) {
@@ -57,7 +60,7 @@ export default function LoginPage() {
         accessToken: r.data.tokens.accessToken,
         refreshToken: r.data.tokens.refreshToken,
       });
-      router.replace('/applications');
+      router.replace(defaultLandingFor(r.data.user.adminRole ?? null));
     } catch (e: any) {
       const code = e.response?.data?.error?.code;
       const status = e.response?.status;

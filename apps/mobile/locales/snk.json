@@ -387,7 +387,11 @@
         "missingPhotoBody": "An yoxu capture bira.",
         "failTitle": "A nta wari",
         "failBody": "A nta faabu.",
-        "galleryPermission": "Galerie hayru bira."
+        "galleryPermission": "Galerie hayru bira.",
+        "sendTo": "Rechargee xa numero {{provider}}",
+        "copy": "Daabu",
+        "phoneCopiedTitle": "Numero daabu",
+        "phoneCopiedBody": "Numero {{phone}} daabu presse-papiers ya."
       }
     },
     "homeLocation": {

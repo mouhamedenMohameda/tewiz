@@ -99,3 +99,19 @@ export function requireAdminRole(...adminRoles: AdminRole[]): RequestHandler {
     next();
   };
 }
+
+/**
+ * Convenience guard for whole sub-routers where the read/write permissions
+ * differ — GET/HEAD use viewRoles, everything else uses actionRoles. Both
+ * lists pass through requireAdminRole, so super_admin always wins.
+ */
+export function requireAdminRoleByMethod(
+  viewRoles: AdminRole[],
+  actionRoles: AdminRole[],
+): RequestHandler {
+  return (req, res, next) => {
+    const isView = req.method === 'GET' || req.method === 'HEAD';
+    const roles = isView ? viewRoles : actionRoles;
+    return requireAdminRole(...roles)(req, res, next);
+  };
+}
