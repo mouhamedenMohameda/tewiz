@@ -53,6 +53,41 @@ export default function NewRidePage() {
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Course ouverte ("taxi à la course"): no upfront destination, the meter
+  // runs server-side from the captain's GPS. Only meaningful for passenger
+  // rides. We fetch the tariff once so the form shows the rate before the
+  // operator commits.
+  const [isOpen, setIsOpen] = useState(false);
+  // The map click handler is bound once at mount, so it captures `isOpen=false`
+  // from the first render. We mirror the state into a ref so the closure can
+  // read the current value without re-binding.
+  const isOpenRef = useRef(false);
+  useEffect(() => { isOpenRef.current = isOpen; }, [isOpen]);
+  const [openQuote, setOpenQuote] = useState<{
+    enabled: boolean;
+    baseFareMru: number;
+    perKmMru: number;
+    perMinuteMru: number;
+    minFareMru: number;
+  } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    api.get('/rider/rides/open-quote')
+      .then((r) => { if (!cancelled) setOpenQuote(r.data); })
+      .catch(() => { /* feature stays hidden */ });
+    return () => { cancelled = true; };
+  }, []);
+  // Auto-disable when the operator picks colis — open metered rides are
+  // passenger-only.
+  useEffect(() => { if (rideType === 'colis' && isOpen) setIsOpen(false); }, [rideType, isOpen]);
+  // Clear the dropoff marker when switching ON so the map doesn't lie.
+  useEffect(() => {
+    if (!isOpen) return;
+    dropoffMarkerRef.current?.remove();
+    dropoffMarkerRef.current = null;
+    setDropoff(null);
+  }, [isOpen]);
+
   // 1. Load Leaflet from CDN + boot the map.
   useEffect(() => {
     let cancelled = false;
@@ -86,6 +121,14 @@ export default function NewRidePage() {
 
       map.on('click', (e: any) => {
         const p = { lat: e.latlng.lat, lng: e.latlng.lng, label: 'Point sur la carte' };
+        // Open ride mode: only the pickup pin is meaningful; all clicks place
+        // / move the pickup so the operator can't accidentally create a phantom
+        // dropoff that won't be sent to the API.
+        if (isOpenRef.current) {
+          dropMarker('pickup', p);
+          setPickup(p);
+          return;
+        }
         if (!pickupMarkerRef.current) {
           dropMarker('pickup', p);
           setPickup(p);
@@ -197,7 +240,7 @@ export default function NewRidePage() {
   const [estimateKm, setEstimateKm] = useState<number | null>(null);
   const [estimating, setEstimating] = useState(false);
   useEffect(() => {
-    if (!pickup || !dropoff) {
+    if (isOpen || !pickup || !dropoff) {
       setEstimateMru(null);
       setEstimateKm(null);
       return;
@@ -228,11 +271,15 @@ export default function NewRidePage() {
       cancelled = true;
       clearTimeout(handle);
     };
-  }, [pickup?.lat, pickup?.lng, dropoff?.lat, dropoff?.lng, rideType]);
+  }, [pickup?.lat, pickup?.lng, dropoff?.lat, dropoff?.lng, rideType, isOpen]);
 
   async function submit() {
-    if (!pickup || !dropoff) {
-      setErrorMsg('Sélectionnez départ et destination.');
+    if (!pickup) {
+      setErrorMsg('Sélectionnez le point de départ.');
+      return;
+    }
+    if (!isOpen && !dropoff) {
+      setErrorMsg('Sélectionnez la destination, ou activez « Course ouverte ».');
       return;
     }
     if (!passengerName.trim() || !passengerPhone.trim()) {
@@ -250,7 +297,9 @@ export default function NewRidePage() {
     try {
       const r = await api.post('/admin/rides', {
         pickup: { lat: pickup.lat, lng: pickup.lng, label: pickup.label },
-        dropoff: { lat: dropoff.lat, lng: dropoff.lng, label: dropoff.label },
+        ...(isOpen
+          ? { isOpen: true }
+          : { dropoff: { lat: dropoff!.lat, lng: dropoff!.lng, label: dropoff!.label } }),
         rideType,
         passengerName: passengerName.trim(),
         passengerPhone: passengerPhone.trim(),
@@ -300,23 +349,33 @@ export default function NewRidePage() {
                 setPickup(null);
               }}
             />
-            <AddressField
-              color={DROPOFF_COLOR}
-              label="Destination"
-              place={dropoff}
-              active={editing === 'dropoff'}
-              value={editing === 'dropoff' ? query : (dropoff?.label ?? '')}
-              placeholder="Où va le client ?"
-              onFocus={() => { setEditing('dropoff'); setQuery(dropoff?.label ?? ''); }}
-              onChange={setQuery}
-              onClear={() => {
-                dropoffMarkerRef.current?.remove();
-                dropoffMarkerRef.current = null;
-                setDropoff(null);
-              }}
-            />
+            {isOpen ? (
+              <OpenTariffCard quote={openQuote} />
+            ) : (
+              <AddressField
+                color={DROPOFF_COLOR}
+                label="Destination"
+                place={dropoff}
+                active={editing === 'dropoff'}
+                value={editing === 'dropoff' ? query : (dropoff?.label ?? '')}
+                placeholder="Où va le client ?"
+                onFocus={() => { setEditing('dropoff'); setQuery(dropoff?.label ?? ''); }}
+                onChange={setQuery}
+                onClear={() => {
+                  dropoffMarkerRef.current?.remove();
+                  dropoffMarkerRef.current = null;
+                  setDropoff(null);
+                }}
+              />
+            )}
 
-            {editing && (
+            {/* Course ouverte toggle: shown only when the feature is enabled
+                in app_settings AND the operator is on a passenger ride. */}
+            {rideType === 'passenger' && openQuote?.enabled ? (
+              <OpenRideToggle value={isOpen} onChange={setIsOpen} />
+            ) : null}
+
+            {!isOpen && editing && (
               <div className="border border-slate-200 rounded-lg overflow-hidden bg-slate-50">
                 {searching && <div className="px-3 py-2 text-sm text-slate-500">Recherche…</div>}
                 {!searching && query.length < 2 && (
@@ -432,7 +491,20 @@ export default function NewRidePage() {
               </div>
             )}
 
-            {pickup && dropoff && (
+            {isOpen && pickup && openQuote ? (
+              <div className="bg-slate-900 text-white rounded-lg p-3">
+                <div className="text-xs text-slate-400">Tarif au compteur</div>
+                <div className="text-lg font-bold mt-1">
+                  {openQuote.baseFareMru} MRU départ
+                  {' + '}{openQuote.perKmMru}/km
+                  {' + '}{openQuote.perMinuteMru}/min
+                </div>
+                <div className="text-xs text-slate-400 mt-1">
+                  Course minimum {openQuote.minFareMru} MRU. Le chauffeur termine la course.
+                </div>
+              </div>
+            ) : null}
+            {!isOpen && pickup && dropoff && (
               <div className="bg-slate-100 rounded-lg p-3">
                 <div className="text-xs text-slate-500">
                   Tarif estimé{estimateKm != null ? ` · ${estimateKm.toFixed(1)} km` : ''}
@@ -451,14 +523,16 @@ export default function NewRidePage() {
               disabled={
                 submitting ||
                 !pickup ||
-                !dropoff ||
+                (!isOpen && !dropoff) ||
                 !passengerName ||
                 !passengerPhone ||
                 (rideType === 'colis' && (!recipientName || !recipientPhone))
               }
               className="btn-primary w-full"
             >
-              {submitting ? 'Création…' : 'Créer la course'}
+              {submitting
+                ? 'Création…'
+                : (isOpen ? 'Créer la course (compteur)' : 'Créer la course')}
             </button>
           </div>
 
@@ -474,6 +548,80 @@ export default function NewRidePage() {
         </div>
       </div>
     </AppShell>
+  );
+}
+
+function OpenRideToggle({
+  value, onChange,
+}: { value: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!value)}
+      className={clsx(
+        'w-full flex items-center gap-3 rounded-lg px-3 py-3 transition border text-left',
+        value
+          ? 'bg-slate-900 border-slate-900 text-white'
+          : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300',
+      )}
+    >
+      <span
+        className={clsx(
+          'inline-flex w-11 h-6 rounded-full p-0.5 transition shrink-0',
+          value ? 'bg-emerald-500' : 'bg-slate-300',
+        )}
+      >
+        <span
+          className={clsx(
+            'block w-5 h-5 rounded-full bg-white shadow transition-transform',
+            value ? 'translate-x-5' : 'translate-x-0',
+          )}
+        />
+      </span>
+      <span className="flex-1">
+        <span className="block text-sm font-semibold">Course ouverte</span>
+        <span className={clsx('block text-xs', value ? 'text-slate-300' : 'text-slate-500')}>
+          Pas de destination — le compteur démarre à bord
+        </span>
+      </span>
+    </button>
+  );
+}
+
+function OpenTariffCard({
+  quote,
+}: { quote: { baseFareMru: number; perKmMru: number; perMinuteMru: number; minFareMru: number } | null }) {
+  if (!quote) {
+    return (
+      <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-3 text-sm text-amber-800">
+        Chargement du tarif au compteur…
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-lg bg-slate-900 text-white px-3 py-3">
+      <div className="text-[11px] font-semibold tracking-wide text-emerald-400 uppercase">
+        Tarif au compteur
+      </div>
+      <div className="mt-2 grid grid-cols-3 gap-2">
+        <Cell value={`${quote.baseFareMru}`} unit="MRU" label="Départ" />
+        <Cell value={`${quote.perKmMru}`} unit="MRU/km" label="Distance" />
+        <Cell value={`${quote.perMinuteMru}`} unit="MRU/min" label="Temps" />
+      </div>
+      <div className="mt-2 text-[11px] text-slate-400">
+        Course minimum {quote.minFareMru} MRU. Seul le chauffeur peut terminer la course.
+      </div>
+    </div>
+  );
+}
+
+function Cell({ value, unit, label }: { value: string; unit: string; label: string }) {
+  return (
+    <div className="bg-slate-800 rounded p-2 text-center">
+      <div className="text-base font-bold text-amber-300">{value}</div>
+      <div className="text-[9px] text-slate-400 uppercase tracking-wide mt-0.5">{unit}</div>
+      <div className="text-[9px] text-slate-500 mt-0.5">{label}</div>
+    </div>
   );
 }
 
