@@ -23,7 +23,10 @@ interface RideRow {
   passengerName: string | null;
   passengerPhone: string | null;
   pickup: { lat: number; lng: number; label: string | null };
-  dropoff: { lat: number; lng: number; label: string | null };
+  // Null for open rides (no upfront destination) until the captain ends the
+  // trip — at that point the last GPS sample is written back as dropoff.
+  dropoff: { lat: number; lng: number; label: string | null } | null;
+  isOpen?: boolean;
   fareEstimateMru: number | null;
   fareFinalMru: number | null;
   commissionMru: number | null;
@@ -164,7 +167,9 @@ export default function RidesPage() {
           </div>
           <div className="text-xs">
             <span className="text-slate-400">vers </span>
-            {r.dropoff.label ?? `${r.dropoff.lat.toFixed(3)}, ${r.dropoff.lng.toFixed(3)}`}
+            {r.dropoff
+              ? (r.dropoff.label ?? `${r.dropoff.lat.toFixed(3)}, ${r.dropoff.lng.toFixed(3)}`)
+              : <span className="italic text-slate-500">Course ouverte</span>}
           </div>
         </div>
       ),

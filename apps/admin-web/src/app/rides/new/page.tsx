@@ -72,7 +72,9 @@ export default function NewRidePage() {
   } | null>(null);
   useEffect(() => {
     let cancelled = false;
-    api.get('/rider/rides/open-quote')
+    // /admin/rides/open-quote mirrors the rider endpoint but is gated to the
+    // admin role (the rider one would 403 against an admin token).
+    api.get('/admin/rides/open-quote')
       .then((r) => { if (!cancelled) setOpenQuote(r.data); })
       .catch(() => { /* feature stays hidden */ });
     return () => { cancelled = true; };

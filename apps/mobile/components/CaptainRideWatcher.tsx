@@ -28,7 +28,9 @@ interface InboxItem {
   source?: RideSource;
   isForOther: boolean;
   pickup: { lat: number; lng: number; label: string | null };
-  dropoff: { lat: number; lng: number; label: string | null };
+  // Null for open rides (no upfront destination).
+  dropoff: { lat: number; lng: number; label: string | null } | null;
+  isOpen?: boolean;
   fareEstimateMru: number | null;
   distanceM: number | null;
   distanceToPickupM: number;
@@ -69,7 +71,8 @@ interface RideInsights {
     ratingsCount: number;
   };
   pickup: EndpointEnrichment;
-  dropoff: EndpointEnrichment;
+  // Open rides have no upfront destination → server returns null.
+  dropoff: EndpointEnrichment | null;
 }
 
 // Module-level so a ride the captain already saw doesn't re-alert when the
@@ -520,7 +523,9 @@ export function CaptainRideWatcher() {
                 <RoutePoint
                   color={colors.ember}
                   label={t('common.to')}
-                  rawLabel={alertRide.dropoff.label}
+                  rawLabel={alertRide.isOpen
+                    ? t('captain.rides.openDestinationShort')
+                    : (alertRide.dropoff?.label ?? null)}
                   fallback={t('captain.rides.dropoffFallback')}
                   enrichment={insights?.dropoff ?? null}
                   t={t}

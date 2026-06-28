@@ -19,7 +19,8 @@ interface RideRow {
   status: RideStatus;
   rideType: 'passenger' | 'colis';
   pickup: { label: string | null };
-  dropoff: { label: string | null };
+  dropoff: { label: string | null } | null;
+  isOpen?: boolean;
   fareEstimateMru: number | null;
   fareFinalMru: number | null;
   requestedAt: string;
@@ -105,7 +106,9 @@ export default function HistoryScreen() {
                   ⚫ {item.pickup.label ?? t('rider.history.pickupFallback')}
                 </Text>
                 <Text style={{ fontSize: 14, color: '#0f172a', marginTop: 4 }} numberOfLines={1}>
-                  🔴 {item.dropoff.label ?? t('rider.history.dropoffFallback')}
+                  🔴 {item.isOpen && !item.dropoff
+                    ? t('rider.current.openDestinationValue')
+                    : (item.dropoff?.label ?? t('rider.history.dropoffFallback'))}
                 </Text>
               </View>
               <View style={{
