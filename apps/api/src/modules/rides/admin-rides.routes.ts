@@ -5,6 +5,7 @@ import { audit } from '../admin/audit.js';
 import * as rides from './rides.service.js';
 import { estimateFareMru } from './pricing.js';
 import { distanceMeters } from './dispatch.service.js';
+import { getPricingSettings } from '../admin/app-settings.service.js';
 
 // Parent (adminRouter) already enforces requireAuth + requireRole('admin').
 export const adminRidesRouter = Router();
@@ -68,6 +69,27 @@ adminRidesRouter.get('/', async (req, res) => {
     before: q.before ? new Date(q.before) : undefined,
   });
   res.json(items);
+});
+
+/**
+ * GET /admin/rides/open-quote
+ * Mirrors the rider endpoint so the operator's "Nouvelle course" form can
+ * display the open-ride tariff. The rider variant is gated to role=rider, so
+ * the admin token would 403 against it — hence this duplicate.
+ *
+ * MUST be declared BEFORE the `/:id` route, or Express matches `/open-quote`
+ * as `:id="open-quote"` and tries to look up a ride by that "uuid", returning
+ * a 400 / 500 from Postgres before this handler ever runs.
+ */
+adminRidesRouter.get('/open-quote', async (_req, res) => {
+  const s = await getPricingSettings();
+  res.json({
+    enabled: s.allowOpenRides,
+    baseFareMru: s.openBaseFareMru,
+    perKmMru: s.openPerKmMru,
+    perMinuteMru: s.openPerMinuteMru,
+    minFareMru: s.openMinFareMru,
+  });
 });
 
 /**

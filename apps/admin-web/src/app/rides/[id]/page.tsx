@@ -23,7 +23,8 @@ interface Ride {
   isForOther: boolean;
   captainId: string | null;
   pickup: { lat: number; lng: number; label: string | null };
-  dropoff: { lat: number; lng: number; label: string | null };
+  dropoff: { lat: number; lng: number; label: string | null } | null;
+  isOpen?: boolean;
   fareEstimateMru: number | null;
   fareFinalMru: number | null;
   commissionMru: number | null;
@@ -165,7 +166,9 @@ export default function RideDetailPage({ params }: { params: Promise<{ id: strin
               <div>
                 <div className="text-xs text-slate-500">Destination</div>
                 <div className="text-sm text-slate-900">
-                  {ride.dropoff.label ?? `${ride.dropoff.lat.toFixed(5)}, ${ride.dropoff.lng.toFixed(5)}`}
+                  {ride.dropoff
+                    ? (ride.dropoff.label ?? `${ride.dropoff.lat.toFixed(5)}, ${ride.dropoff.lng.toFixed(5)}`)
+                    : <span className="italic text-slate-500">Course ouverte — décidée en route</span>}
                 </div>
               </div>
             </div>
