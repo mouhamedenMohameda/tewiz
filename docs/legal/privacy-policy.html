@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Politique de confidentialité — Alo Mama</title>
+<title>Politique de confidentialité — Aloo</title>
 <style>
   :root { --ink:#1d1b16; --muted:#6b6359; --ember:#F2682C; --line:#e7e0d6; }
   * { box-sizing: border-box; }
@@ -25,19 +25,19 @@
 </head>
 <body>
 <main>
-  <h1>Politique de confidentialité — Alo Mama</h1>
+  <h1>Politique de confidentialité — Aloo</h1>
   <p class="meta">Dernière mise à jour : 18 juin 2026</p>
 
   <p>
-    Alo Mama (« l'application », « nous ») est une plateforme de mise en relation
+    Aloo (« l'application », « nous ») est une plateforme de mise en relation
     pour le transport de personnes en Mauritanie, reliant des passagers et des
     chauffeurs. Cette politique explique quelles données nous collectons, pourquoi,
     avec qui nous les partageons, et quels sont vos droits.
   </p>
 
   <div class="note">
-    <strong>Responsable du traitement :</strong> Alo Mama —
-    <a href="mailto:contact@alomama.mr">contact@alomama.mr</a><!-- ⚠️ remplacez par votre e-mail/entité réels -->.
+    <strong>Responsable du traitement :</strong> Aloo —
+    <a data-wa-contact href="#">WhatsApp +222 …</a><!-- ⚠️ remplacez par votre e-mail/entité réels -->.
     Pour toute question relative à vos données, écrivez-nous à cette adresse.
   </div>
 
@@ -134,7 +134,7 @@
   <p>
     Vous pouvez aussi nous demander l'accès, la rectification ou l'effacement de vos
     données en écrivant à
-    <a href="mailto:contact@alomama.mr">contact@alomama.mr</a>.
+    <a data-wa-contact href="#">WhatsApp +222 …</a>.
   </p>
 
   <h2>7. Enfants</h2>
@@ -152,12 +152,22 @@
 
   <h2>9. Contact</h2>
   <p>
-    Pour toute question : <a href="mailto:contact@alomama.mr">contact@alomama.mr</a>.
+    Pour toute question : <a data-wa-contact href="#">WhatsApp +222 …</a>.
   </p>
 
   <footer>
-    © 2026 Alo Mama. Tous droits réservés.
+    © 2026 Aloo. Tous droits réservés.
   </footer>
 </main>
+<script>
+  // Single source of truth for the WhatsApp number used throughout this policy.
+  const WHATSAPP = '2220000000'; // ← replace with your +222 WhatsApp Business number, digits only
+  const waHref = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent('Salam ! Une question sur Aloo 🚗')}`;
+  const fmt = n => '+' + n.replace(/^(\d{3})(\d{2})(\d{2})(\d{2})(\d+)?/, '$1 $2 $3 $4 $5').trim();
+  document.querySelectorAll('[data-wa-contact]').forEach(el => {
+    el.href = waHref;
+    el.textContent = 'WhatsApp ' + fmt(WHATSAPP);
+  });
+</script>
 </body>
 </html>
