@@ -56,3 +56,54 @@ export async function loginAsGuest(): Promise<void> {
     refreshToken: r.data.tokens.refreshToken,
   });
 }
+
+/**
+ * Reviewer / demonstration accounts. Self-signup is disabled, so App Store and
+ * Google Play reviewers need a frictionless way in. Both accounts are
+ * provisioned by `pnpm --filter @tewiz/api seed:store-test`:
+ *   - rider:   browse + book a ride.
+ *   - captain: KYC approved + active vehicle (also exposes the rider/captain
+ *     ModeToggle, so it covers every feature).
+ * These are surfaced as one-tap buttons on the welcome screen so a reviewer
+ * never has to type the phone/password on an unfamiliar keyboard (the original
+ * Guideline 2.1 rejection cause).
+ */
+export const DEMO_ACCOUNTS = {
+  rider: { phone: '+22244000001', password: 'Demo2026!' },
+  captain: { phone: '+22244000002', password: 'Demo2026!' },
+} as const;
+
+export type DemoRole = keyof typeof DEMO_ACCOUNTS;
+
+/**
+ * Logs into a fixed reviewer account (POST /auth/login) and stores the session.
+ * Shared by the welcome screen demo buttons and the login screen so the device
+ * id handling and session bookkeeping live in one place. The backend promotes
+ * the captain account to its real role, so the stored session reflects it.
+ */
+export async function loginAsDemo(roleAccount: DemoRole): Promise<void> {
+  const { phone, password } = DEMO_ACCOUNTS[roleAccount];
+  const deviceId = await getDeviceId();
+
+  const r = await api.post<{
+    user: {
+      id: string;
+      phone: string | null;
+      role: 'rider' | 'captain' | 'admin';
+      fullName: string | null;
+    };
+    tokens: { accessToken: string; refreshToken: string };
+  }>('/auth/login', { phone, password, role: 'rider', deviceId });
+
+  await useAuth.getState().setSession({
+    user: {
+      id: r.data.user.id,
+      phone: r.data.user.phone,
+      role: r.data.user.role,
+      fullName: r.data.user.fullName,
+      isGuest: false,
+    },
+    accessToken: r.data.tokens.accessToken,
+    refreshToken: r.data.tokens.refreshToken,
+  });
+}

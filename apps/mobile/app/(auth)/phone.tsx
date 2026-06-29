@@ -15,6 +15,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Application from 'expo-application';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { loginAsDemo, type DemoRole } from '@/lib/guest';
+import { getAppConfig } from '@/lib/appConfig';
 import { colors, radius, shadow, spacing } from '@/theme';
 import { AppText, Button, FadeInView, Icon, TextField } from '@/components/ui';
 import { APP_NAME } from '@/lib/brand';
@@ -34,6 +36,7 @@ export default function LoginScreen() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
+  const [demoRole, setDemoRole] = useState<DemoRole | null>(null);
 
   /**
    * Normalize what the user typed into a canonical "+222XXXXXXXX".
@@ -57,11 +60,13 @@ export default function LoginScreen() {
 
   async function submit() {
     const normalizedPhone = normalizePhone(phone);
+    const pwd = password;
+
     if (normalizedPhone.replace(/\D/g, '').length < 11) {
       Alert.alert(t('auth.login.invalidPhoneTitle'), t('auth.login.invalidPhoneBody'));
       return;
     }
-    if (password.length < 4) {
+    if (pwd.length < 4) {
       Alert.alert(t('auth.login.missingPasswordTitle'), t('auth.login.missingPasswordBody'));
       return;
     }
@@ -87,7 +92,7 @@ export default function LoginScreen() {
         tokens: { accessToken: string; refreshToken: string };
       }>('/auth/login', {
         phone: normalizedPhone,
-        password,
+        password: pwd,
         role,
         deviceId,
       });
@@ -123,6 +128,19 @@ export default function LoginScreen() {
       Alert.alert(title, msg);
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function startDemo(roleAccount: DemoRole) {
+    setDemoRole(roleAccount);
+    try {
+      await loginAsDemo(roleAccount);
+      router.replace('/(app)');
+    } catch (e: any) {
+      const msg = e?.response?.data?.error?.message ?? t('errors.server');
+      Alert.alert(t('common.error'), msg);
+    } finally {
+      setDemoRole(null);
     }
   }
 
@@ -205,7 +223,28 @@ export default function LoginScreen() {
 
           <View style={{ flex: 1, minHeight: spacing.xl }} />
 
-          <Button title={t('auth.login.submit')} iconRight="arrow" busy={busy} onPress={submit} />
+          <Button title={t('auth.login.submit')} iconRight="arrow" busy={busy} onPress={() => submit()} />
+
+          {getAppConfig().showDemoButtons && (
+            <View style={{ flexDirection: 'row', gap: spacing.md, marginTop: spacing.md }}>
+              <Button
+                title={t('auth.login.demoRider')}
+                variant="secondary"
+                icon="person"
+                busy={demoRole === 'rider'}
+                onPress={() => startDemo('rider')}
+                style={{ flex: 1 }}
+              />
+              <Button
+                title={t('auth.login.demoCaptain')}
+                variant="secondary"
+                icon="captain"
+                busy={demoRole === 'captain'}
+                onPress={() => startDemo('captain')}
+                style={{ flex: 1 }}
+              />
+            </View>
+          )}
 
           <Pressable onPress={contactAdmin} style={{ marginTop: spacing.xl, alignItems: 'center' }}>
             <AppText variant="caption" color={colors.ink2} align="center">

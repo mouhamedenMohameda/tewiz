@@ -48,6 +48,10 @@ export interface PricingSettings {
   openPerKmMru: number;
   openPerMinuteMru: number;
   openMinFareMru: number;
+  // Migration 0031. Show the one-tap reviewer demo-login buttons on the welcome
+  // and login screens. Flip to true before an App Store / Play submission,
+  // back to false once the build is approved.
+  showDemoButtons: boolean;
   updatedAt: string;
   updatedBy: string | null;
 }
@@ -77,6 +81,7 @@ interface Row {
   open_per_km_mru: number;
   open_per_minute_mru: number;
   open_min_fare_mru: number;
+  show_demo_buttons: boolean;
   updated_at: Date;
   updated_by: string | null;
 }
@@ -104,6 +109,7 @@ function toSettings(r: Row): PricingSettings {
     openPerKmMru: r.open_per_km_mru,
     openPerMinuteMru: r.open_per_minute_mru,
     openMinFareMru: r.open_min_fare_mru,
+    showDemoButtons: r.show_demo_buttons,
     updatedAt: r.updated_at.toISOString(),
     updatedBy: r.updated_by,
   };
@@ -124,6 +130,7 @@ export async function getPricingSettings(): Promise<PricingSettings> {
             commission_bonus_window_days, commission_bonus_reward_days,
             allow_open_rides, open_base_fare_mru, open_per_km_mru,
             open_per_minute_mru, open_min_fare_mru,
+            show_demo_buttons,
             updated_at, updated_by
        FROM app_settings WHERE id = 1`,
   );
@@ -159,6 +166,7 @@ export interface PricingSettingsPatch {
   openPerKmMru?: number;
   openPerMinuteMru?: number;
   openMinFareMru?: number;
+  showDemoButtons?: boolean;
 }
 
 export async function updatePricingSettings(
@@ -188,6 +196,7 @@ export async function updatePricingSettings(
             open_per_km_mru                   = COALESCE($19, open_per_km_mru),
             open_per_minute_mru               = COALESCE($20, open_per_minute_mru),
             open_min_fare_mru                 = COALESCE($21, open_min_fare_mru),
+            show_demo_buttons                 = COALESCE($23, show_demo_buttons),
             updated_at                        = now(),
             updated_by                        = $22
       WHERE id = 1
@@ -201,6 +210,7 @@ export async function updatePricingSettings(
                 commission_bonus_window_days, commission_bonus_reward_days,
                 allow_open_rides, open_base_fare_mru, open_per_km_mru,
                 open_per_minute_mru, open_min_fare_mru,
+                show_demo_buttons,
                 updated_at, updated_by`,
     [
       patch.baseFareMru ?? null,
@@ -225,6 +235,7 @@ export async function updatePricingSettings(
       patch.openPerMinuteMru ?? null,
       patch.openMinFareMru ?? null,
       adminId,
+      patch.showDemoButtons ?? null,
     ],
   );
   cache = null;

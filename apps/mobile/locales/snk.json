@@ -42,7 +42,9 @@
       "tagline": "Course soxu. Doogu maxa a kanaado.",
       "primary": "Course soxu",
       "secondary": "N na compte yaa",
-      "note": "Inscription nta tuga. Bira an nimero an ga course soxu."
+      "note": "Inscription nta tuga. Bira an nimero an ga course soxu.",
+      "demoRider": "Demo rider",
+      "demoCaptain": "Demo captain"
     },
     "login": {
       "title": "Nawa fo kaada",
@@ -62,7 +64,9 @@
       "notActivatedBody": "Mot de passe nta yaa. Administrateur ya soxu.",
       "tooManyTitle": "Etto a gaba",
       "tooManyBody": "Niini koota minit kese xaa.",
-      "contactMessage": "Salaamu, n ga moyni compte {{app}} na sira."
+      "contactMessage": "Salaamu, n ga moyni compte {{app}} na sira.",
+      "demoRider": "Demo rider",
+      "demoCaptain": "Demo captain"
     }
   },
   "phonePrompt": {
@@ -76,8 +80,15 @@
     "takenAction": "Don",
     "saveError": "A nta nimero ya maxa."
   },
-  "modeToggle": { "rider": "Yaagu", "captain": "Doogu" },
-  "roles": { "rider": "Yaagu", "captain": "Doogu", "admin": "Administrateur" },
+  "modeToggle": {
+    "rider": "Yaagu",
+    "captain": "Doogu"
+  },
+  "roles": {
+    "rider": "Yaagu",
+    "captain": "Doogu",
+    "admin": "Administrateur"
+  },
   "rider": {
     "home": {
       "shortcuts": "An raccourcis",
@@ -145,16 +156,46 @@
       "cancelling": "A faatini…",
       "cancelAction": "Course faatu",
       "banners": {
-        "pending_passenger_confirm": { "title": "Confirmation kanu", "sub": "SMS do confirmer bira." },
-        "searching": { "title": "Doogu ñini", "sub": "Sahaa kese kanu…" },
-        "accepted": { "title": "Doogu a giri", "sub": "An ñin a giri." },
-        "arrived": { "title": "Doogu a kaada", "sub": "Code bira ka don." },
-        "in_progress": { "title": "Course saxu", "sub": "Diga selamatu do." },
-        "completed": { "title": "Course koota", "sub": "Baraka {{app}} do an wari." },
-        "cancelled_by_rider": { "title": "An faatuna", "sub": "" },
-        "cancelled_by_captain": { "title": "Doogu a faatuna", "sub": "" },
-        "cancelled_by_system": { "title": "Faatuna", "sub": "" },
-        "no_show": { "title": "A nta gunto", "sub": "" }
+        "pending_passenger_confirm": {
+          "title": "Confirmation kanu",
+          "sub": "SMS do confirmer bira."
+        },
+        "searching": {
+          "title": "Doogu ñini",
+          "sub": "Sahaa kese kanu…"
+        },
+        "accepted": {
+          "title": "Doogu a giri",
+          "sub": "An ñin a giri."
+        },
+        "arrived": {
+          "title": "Doogu a kaada",
+          "sub": "Code bira ka don."
+        },
+        "in_progress": {
+          "title": "Course saxu",
+          "sub": "Diga selamatu do."
+        },
+        "completed": {
+          "title": "Course koota",
+          "sub": "Baraka {{app}} do an wari."
+        },
+        "cancelled_by_rider": {
+          "title": "An faatuna",
+          "sub": ""
+        },
+        "cancelled_by_captain": {
+          "title": "Doogu a faatuna",
+          "sub": ""
+        },
+        "cancelled_by_system": {
+          "title": "Faatuna",
+          "sub": ""
+        },
+        "no_show": {
+          "title": "A nta gunto",
+          "sub": ""
+        }
       },
       "rating": {
         "missingTitle": "Note nta",
@@ -468,20 +509,62 @@
     "stepDocsTitle": "Documents",
     "stepDocsSub": "{{done}} / {{total}} nataal faabuna",
     "status": {
-      "none": { "title": "{{app}} do doogu", "subtitle": "An dossier faabu (kayit + oto nataal), bunje don.", "cta": "Dossier don" },
-      "draft": { "title": "Dossier saxu", "subtitle": "Yere do an taxawu gaaba.", "cta": "Gaaba" },
-      "needs_correction": { "title": "Corrections tuga", "subtitle": "Admin an dossier yindina.", "cta": "Corrections xolli" },
-      "submitted": { "title": "Dossier revu do", "subtitle": "A kanaado an kayinaado.", "cta": "État xolli" },
-      "rejected": { "title": "Dossier faatuna", "subtitle": "Sababu xolli, koota faabu.", "cta": "Sababu xolli" },
-      "approved": { "title": "Selamatu doogu", "subtitle": "Mode doogu da yindi sahaa.", "cta": "Mode doogu da" }
+      "none": {
+        "title": "{{app}} do doogu",
+        "subtitle": "An dossier faabu (kayit + oto nataal), bunje don.",
+        "cta": "Dossier don"
+      },
+      "draft": {
+        "title": "Dossier saxu",
+        "subtitle": "Yere do an taxawu gaaba.",
+        "cta": "Gaaba"
+      },
+      "needs_correction": {
+        "title": "Corrections tuga",
+        "subtitle": "Admin an dossier yindina.",
+        "cta": "Corrections xolli"
+      },
+      "submitted": {
+        "title": "Dossier revu do",
+        "subtitle": "A kanaado an kayinaado.",
+        "cta": "État xolli"
+      },
+      "rejected": {
+        "title": "Dossier faatuna",
+        "subtitle": "Sababu xolli, koota faabu.",
+        "cta": "Sababu xolli"
+      },
+      "approved": {
+        "title": "Selamatu doogu",
+        "subtitle": "Mode doogu da yindi sahaa.",
+        "cta": "Mode doogu da"
+      }
     },
     "banner": {
-      "draft": { "label": "Brouillon", "desc": "3 étape koota faabu." },
-      "submitted": { "label": "Faabuna", "desc": "An dossier file d'attente do." },
-      "under_review": { "label": "Revue do", "desc": "Admin an dossier xollini." },
-      "needs_correction": { "label": "Corrections tuga", "desc": "Documents yindi koota faabu." },
-      "approved": { "label": "Kanaado", "desc": "Selamatu {{app}} do." },
-      "rejected": { "label": "Faatuna", "desc": "An dossier faatuna." }
+      "draft": {
+        "label": "Brouillon",
+        "desc": "3 étape koota faabu."
+      },
+      "submitted": {
+        "label": "Faabuna",
+        "desc": "An dossier file d'attente do."
+      },
+      "under_review": {
+        "label": "Revue do",
+        "desc": "Admin an dossier xollini."
+      },
+      "needs_correction": {
+        "label": "Corrections tuga",
+        "desc": "Documents yindi koota faabu."
+      },
+      "approved": {
+        "label": "Kanaado",
+        "desc": "Selamatu {{app}} do."
+      },
+      "rejected": {
+        "label": "Faatuna",
+        "desc": "An dossier faatuna."
+      }
     },
     "credentials": {
       "title": "Compte chauffeur tugunna",
@@ -633,8 +716,12 @@
     }
   },
   "languages": {
-    "fr": "Français", "ar": "العربية", "en": "English",
-    "ff": "Pulaar", "wo": "Wolof", "snk": "Sooninkanxanne"
+    "fr": "Français",
+    "ar": "العربية",
+    "en": "English",
+    "ff": "Pulaar",
+    "wo": "Wolof",
+    "snk": "Sooninkanxanne"
   },
   "captainAlert": {
     "newColis": "📦 Colis kura",

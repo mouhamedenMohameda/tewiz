@@ -1,9 +1,30 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import * as rides from '../rides/rides.service.js';
+import { getPricingSettings } from '../admin/app-settings.service.js';
 
 // Public — NO auth. Used by passengers who don't have an app, only an SMS.
 export const publicRouter = Router();
+
+/**
+ * GET /public/config
+ *
+ * Minimal public config read by the mobile app on launch, before the user
+ * authenticates. Currently only exposes feature flags that the welcome / login
+ * screens need before any session exists.
+ *
+ * showDemoButtons — controlled via PUT /admin/settings { showDemoButtons: bool }.
+ *   true  → show the one-tap reviewer demo-login buttons (set before a store review).
+ *   false → hide them (set after the build is approved so real users never see them).
+ *
+ * Values are cached server-side for 30 s (same TTL as app_settings). The
+ * mobile app additionally caches in AsyncStorage so first paint is instant even
+ * on a slow connection; the cached value is refreshed on every cold launch.
+ */
+publicRouter.get('/config', async (_req, res) => {
+  const s = await getPricingSettings();
+  res.json({ showDemoButtons: s.showDemoButtons });
+});
 
 const confirmBody = z.object({
   code: z.string().regex(/^\d{4}$/),

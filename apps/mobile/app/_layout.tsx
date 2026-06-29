@@ -17,6 +17,7 @@ import { type AuthUser, useAuth } from '@/lib/auth';
 import { registerForPushNotifications } from '@/lib/notifications';
 import { readAndClearCrash } from '@/lib/crash-reporter';
 import { initI18n } from '@/lib/i18n';
+import { loadAppConfig } from '@/lib/appConfig';
 import { CrashBoundary } from '@/components/CrashBoundary';
 import { NotificationTapHandler } from '@/components/NotificationTapHandler';
 import { colors, fontAssets } from '@/theme';
@@ -34,6 +35,9 @@ export default function RootLayout() {
   useEffect(() => {
     let mounted = true;
     initI18n().finally(() => { if (mounted) setI18nReady(true); });
+    // Fire-and-forget: populate the in-memory + AsyncStorage config cache.
+    // The auth screens read it synchronously via getAppConfig() once i18n is ready.
+    void loadAppConfig();
     return () => { mounted = false; };
   }, []);
 

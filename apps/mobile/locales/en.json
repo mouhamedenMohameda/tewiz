@@ -39,8 +39,18 @@
     "load": "Could not load."
   },
   "months": [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December"
   ],
   "vehicleColors": {
     "white": "White",
@@ -62,7 +72,9 @@
       "tagline": "Order a ride. Drive whenever you want.",
       "primary": "Order a ride",
       "secondary": "I already have an account",
-      "note": "No sign-up required. Enter your number when you place your first ride."
+      "note": "No sign-up required. Enter your number when you place your first ride.",
+      "demoRider": "Demo rider",
+      "demoCaptain": "Demo captain"
     },
     "login": {
       "title": "Welcome back",
@@ -82,7 +94,9 @@
       "notActivatedBody": "No password set yet. Please contact the administrator.",
       "tooManyTitle": "Too many attempts",
       "tooManyBody": "Please try again in a few minutes.",
-      "contactMessage": "Hello, I would like to create a {{app}} account."
+      "contactMessage": "Hello, I would like to create a {{app}} account.",
+      "demoRider": "Demo rider",
+      "demoCaptain": "Demo captain"
     }
   },
   "phonePrompt": {
@@ -196,10 +210,22 @@
           "title": "Ride completed",
           "sub": "Thanks for travelling with {{app}}."
         },
-        "cancelled_by_rider": { "title": "Cancelled by you", "sub": "" },
-        "cancelled_by_captain": { "title": "Cancelled by driver", "sub": "" },
-        "cancelled_by_system": { "title": "Cancelled", "sub": "" },
-        "no_show": { "title": "No show", "sub": "" }
+        "cancelled_by_rider": {
+          "title": "Cancelled by you",
+          "sub": ""
+        },
+        "cancelled_by_captain": {
+          "title": "Cancelled by driver",
+          "sub": ""
+        },
+        "cancelled_by_system": {
+          "title": "Cancelled",
+          "sub": ""
+        },
+        "no_show": {
+          "title": "No show",
+          "sub": ""
+        }
       },
       "rating": {
         "missingTitle": "Missing rating",
@@ -545,12 +571,30 @@
       }
     },
     "banner": {
-      "draft": { "label": "Draft", "desc": "Complete the 3 steps below then submit." },
-      "submitted": { "label": "Submitted", "desc": "Your application is in the queue." },
-      "under_review": { "label": "Under review", "desc": "An admin is reviewing it right now." },
-      "needs_correction": { "label": "Corrections requested", "desc": "Redo the flagged documents and submit again." },
-      "approved": { "label": "Approved", "desc": "Welcome to {{app}}." },
-      "rejected": { "label": "Rejected", "desc": "Your application was rejected." }
+      "draft": {
+        "label": "Draft",
+        "desc": "Complete the 3 steps below then submit."
+      },
+      "submitted": {
+        "label": "Submitted",
+        "desc": "Your application is in the queue."
+      },
+      "under_review": {
+        "label": "Under review",
+        "desc": "An admin is reviewing it right now."
+      },
+      "needs_correction": {
+        "label": "Corrections requested",
+        "desc": "Redo the flagged documents and submit again."
+      },
+      "approved": {
+        "label": "Approved",
+        "desc": "Welcome to {{app}}."
+      },
+      "rejected": {
+        "label": "Rejected",
+        "desc": "Your application was rejected."
+      }
     },
     "credentials": {
       "title": "Driver account activated",
