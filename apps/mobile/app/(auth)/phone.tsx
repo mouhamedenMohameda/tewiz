@@ -16,7 +16,7 @@ import * as Application from 'expo-application';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { loginAsDemo, type DemoRole } from '@/lib/guest';
-import { getAppConfig } from '@/lib/appConfig';
+import { useAppConfig } from '@/lib/appConfig';
 import { colors, radius, shadow, spacing } from '@/theme';
 import { AppText, Button, FadeInView, Icon, TextField } from '@/components/ui';
 import { APP_NAME } from '@/lib/brand';
@@ -27,6 +27,7 @@ export default function LoginScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const setSession = useAuth((s) => s.setSession);
+  const config = useAppConfig();
 
   // Start empty (not pre-filled with "+222"). Pre-filling broke the
   // App Store reviewer who typed their number on top of "+222" and got
@@ -225,7 +226,7 @@ export default function LoginScreen() {
 
           <Button title={t('auth.login.submit')} iconRight="arrow" busy={busy} onPress={() => submit()} />
 
-          {getAppConfig().showDemoButtons && (
+          {config.showDemoButtons && (
             <View style={{ flexDirection: 'row', gap: spacing.md, marginTop: spacing.md }}>
               <Button
                 title={t('auth.login.demoRider')}

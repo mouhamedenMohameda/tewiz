@@ -9,6 +9,7 @@
  *   showDemoButtons: false  — demo buttons stay hidden for real users.
  */
 
+import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from './api';
 
@@ -72,4 +73,24 @@ export async function loadAppConfig(): Promise<AppConfig> {
 /** Read the already-loaded config synchronously. Returns defaults if not yet loaded. */
 export function getAppConfig(): AppConfig {
   return memCache ?? DEFAULTS;
+}
+
+/**
+ * React hook — returns the app config and re-renders the component once the
+ * async load completes. Use this in screens that need to react to the config
+ * (e.g. show/hide demo buttons) rather than getAppConfig() which is
+ * synchronous and may return stale defaults on first render.
+ */
+export function useAppConfig(): AppConfig {
+  const [config, setConfig] = useState<AppConfig>(getAppConfig);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadAppConfig().then((cfg) => {
+      if (!cancelled) setConfig(cfg);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  return config;
 }
