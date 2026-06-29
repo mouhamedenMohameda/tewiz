@@ -2,6 +2,11 @@ import { env } from '../../config/env.js';
 import { getPricingSettings } from '../admin/app-settings.service.js';
 import type { RideType } from '@tewiz/shared-types';
 
+/** Arrondit au multiple de 5 supérieur (ex: 312 → 315, 315 → 315, 316 → 320). */
+function roundUpToNearest5(n: number): number {
+  return Math.ceil(n / 5) * 5;
+}
+
 /**
  * Fare estimate (in MRU) from straight-line distance.
  * The route is usually ~30% longer than crow-flies, hence ROUTE_MULTIPLIER.
@@ -30,7 +35,7 @@ export async function estimateFareMru(
     ? { base: s.colisBaseFareMru, perKm: s.colisPerKmMru, min: s.colisMinFareMru }
     : { base: s.baseFareMru,      perKm: s.perKmMru,      min: s.minFareMru      };
   const raw = tariff.base + (distanceEstimateM / 1000) * tariff.perKm;
-  const fareMru = Math.max(tariff.min, Math.round(raw));
+  const fareMru = roundUpToNearest5(Math.max(tariff.min, raw));
   return { fareMru, distanceEstimateM };
 }
 
@@ -72,5 +77,5 @@ export function openFareMru(
   const km = Math.max(0, distanceM) / 1000;
   const min = Math.max(0, durationS) / 60;
   const raw = tariff.baseFareMru + km * tariff.perKmMru + min * tariff.perMinuteMru;
-  return Math.max(tariff.minFareMru, Math.round(raw));
+  return roundUpToNearest5(Math.max(tariff.minFareMru, raw));
 }

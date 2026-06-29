@@ -28,6 +28,16 @@ docs/             # Design notes, runbooks
 scripts/          # Dev helpers
 ```
 
+## Project tree snapshot
+
+To keep a lightweight, up-to-date map of the repository, run:
+
+```bash
+pnpm tree:update
+```
+
+This regenerates [docs/project-tree.md](docs/project-tree.md) with a depth-limited tree, so we can reference structure quickly without rescanning the full workspace each time.
+
 ## Getting started
 
 Postgres+PostGIS and Redis run on a **Contabo VPS** (no Docker locally).

@@ -5,8 +5,12 @@ export const API_URL =
   || process.env.NEXT_PUBLIC_API_URL
   || 'https://tewiz-api.radar-mr.com';
 
-// Browser Google Maps JS key (Maps JavaScript API). Distinct from the
-// server-side GOOGLE_PLACES_API_KEY used by the API. When empty, the
-// voice-requests map degrades gracefully to manual lat/lng + POI search.
-export const GOOGLE_MAPS_API_KEY =
-  process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
+// Browser Mapbox public token (pk.*). Restrict to the admin-web domain in
+// the Mapbox dashboard. When empty, map components render a graceful
+// fallback panel and the rest of the admin keeps working.
+export const MAPBOX_TOKEN =
+  process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
+
+// Default style used across every admin map. Swap for a branded style URL
+// once one is published from Mapbox Studio.
+export const MAPBOX_STYLE = 'mapbox://styles/mapbox/streets-v12';

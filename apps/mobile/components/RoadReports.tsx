@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator, Alert, Modal, Pressable, Text, TextInput, View,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Circle, Marker } from 'react-native-maps';
+import Mapbox from '@rnmapbox/maps';
 import { api } from '@/lib/api';
 
 export type RoadReason =
@@ -64,9 +64,23 @@ export function useRoadReports() {
   return { reports, loading, refresh };
 }
 
+/** ~64-sided polygon approximating a circle of `radiusM` metres around `[lng,lat]`. */
+function circlePolygon(lng: number, lat: number, radiusM: number, sides = 48): GeoJSON.Position[] {
+  const coords: GeoJSON.Position[] = [];
+  const earth = 6378137;
+  const latRad = (lat * Math.PI) / 180;
+  for (let i = 0; i <= sides; i++) {
+    const theta = (i * 2 * Math.PI) / sides;
+    const dx = (radiusM * Math.cos(theta)) / (earth * Math.cos(latRad));
+    const dy = (radiusM * Math.sin(theta)) / earth;
+    coords.push([lng + (dx * 180) / Math.PI, lat + (dy * 180) / Math.PI]);
+  }
+  return coords;
+}
+
 /**
  * Map overlay: a circle for each active report's affected zone + a small
- * marker for its centre. Must be rendered as a direct child of <MapView>.
+ * marker for its centre. Must be rendered as a direct child of <MapShell>.
  */
 export function RoadReportMarkers({
   reports, onPress,
@@ -75,32 +89,59 @@ export function RoadReportMarkers({
   onPress?: (r: RoadReport) => void;
 }) {
   const { t } = useTranslation();
+
+  // Build one FeatureCollection for the zones so a single layer renders all
+  // overlays (cheaper than one source per report).
+  const zonesGeoJson = useMemo<GeoJSON.FeatureCollection>(() => ({
+    type: 'FeatureCollection',
+    features: reports.map((r) => ({
+      type: 'Feature',
+      id: r.id,
+      properties: { color: REASON_META[r.reason].color },
+      geometry: {
+        type: 'Polygon',
+        coordinates: [circlePolygon(r.location.lng, r.location.lat, r.radiusM)],
+      },
+    })),
+  }), [reports]);
+
   return (
     <>
+      <Mapbox.ShapeSource id="road-report-zones" shape={zonesGeoJson}>
+        <Mapbox.FillLayer
+          id="road-report-zone-fill"
+          style={{
+            fillColor: ['get', 'color'],
+            fillOpacity: 0.2,
+          }}
+        />
+        <Mapbox.LineLayer
+          id="road-report-zone-outline"
+          style={{
+            lineColor: ['get', 'color'],
+            lineWidth: 1.5,
+          }}
+        />
+      </Mapbox.ShapeSource>
       {reports.map((r) => {
         const m = REASON_META[r.reason];
+        const label = `${m.emoji} ${t(`roadReports.reasons.${r.reason}` as const)}`;
         return (
-          <Circle
-            key={`zone-${r.id}`}
-            center={{ latitude: r.location.lat, longitude: r.location.lng }}
-            radius={r.radiusM}
-            fillColor={`${m.color}33`}      // ~20% alpha
-            strokeColor={m.color}
-            strokeWidth={1.5}
-          />
-        );
-      })}
-      {reports.map((r) => {
-        const m = REASON_META[r.reason];
-        return (
-          <Marker
+          <Mapbox.PointAnnotation
             key={`pin-${r.id}`}
-            coordinate={{ latitude: r.location.lat, longitude: r.location.lng }}
-            title={`${m.emoji} ${t(`roadReports.reasons.${r.reason}` as const)}`}
-            description={r.note ?? t('roadReports.markerDesc', { up: r.confirmations, down: r.dismissals })}
-            pinColor={m.color}
-            onPress={onPress ? () => onPress(r) : undefined}
-          />
+            id={`pin-${r.id}`}
+            coordinate={[r.location.lng, r.location.lat]}
+            title={label}
+            onSelected={onPress ? () => onPress(r) : undefined}
+          >
+            <View style={{
+              width: 28, height: 28, borderRadius: 14,
+              backgroundColor: m.color, borderWidth: 2, borderColor: '#fff',
+              alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Text style={{ fontSize: 14 }}>{m.emoji}</Text>
+            </View>
+          </Mapbox.PointAnnotation>
         );
       })}
     </>

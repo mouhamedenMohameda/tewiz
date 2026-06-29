@@ -1,0 +1,244 @@
+# Project Tree Snapshot
+
+- Generated: 2026-06-29 00:52:06 UTC
+- Root: course
+- Source: scripts/update-project-tree.sh
+
+
+The snapshot below is depth-limited to keep it readable and cheap to refresh.
+
+```text
+.
+pnpm-lock.yaml
+app.json
+tsconfig.base.json
+.claude
+  settings.local.json
+  launch.json
+.npmrc
+docs
+  project-tree.md
+  contabo-setup.md
+  marketing
+    voice-demo-video.md
+    facebook-launch-kit.md
+    driver-recruitment-kit.md
+    brand-kit.md
+    README.md
+    launch-14-day-sprint.md
+    assets
+      fb-cover-aloo.svg
+      index.html
+      fb-cover-aloo.svg.png
+      driver-flyer.html
+      fb-cover-aloo.png
+      creatives.html
+      preview-server.js
+    aso-and-store.md
+  features.md
+  legal
+    privacy-policy.html
+    support.html
+  store
+    store-listing.md
+    assets
+      screenshots
+      screenshots-6.5
+      feature-graphic-1024x500.png
+README.md
+.gitignore
+package.json
+.env
+scripts
+  test-ride-flow.sh
+  backup-uploads.sh
+  update-project-tree.sh
+  test-phase5-flow.sh
+  test-phase6-flow.sh
+  setup-contabo.sh
+  test-wallet-flow.sh
+  deploy.sh
+  test-captain-flow.sh
+  tunnel.sh
+packages
+  shared-types
+    tsconfig.tsbuildinfo
+    package.json
+    tsconfig.json
+    src
+      index.js
+      index.ts
+db
+  migrations
+    0030_open_rides.sql
+    0022_long_distance_and_operator_commission.sql
+    0014_password_auth.sql
+    0002_users_auth.sql
+    0012_voiceloc_pois.sql
+    0003_captains_kyc.sql
+    0005_wallet.sql
+    0016_guest_users.sql
+    0001_extensions.sql
+    0020_restaurants.sql
+    0017_money_in_mru.sql
+    0023_ride_source.sql
+    0010_helpers.sql
+    0025_searching_timeout.sql
+    0009_heatmap_and_audit.sql
+    0026_document_requirements.sql
+    0007_favorites_recurring.sql
+    0004_home_and_location.sql
+    0006_rides.sql
+    0015_voice_ride_requests.sql
+    0028_commission_bonus_and_notifications.sql
+    0019_colis_pricing.sql
+    0018_app_settings.sql
+    0021_widen_audit_target_id.sql
+    0029_admin_roles.sql
+    0027_captain_delivered_password.sql
+    0008_road_reports.sql
+    0024_ride_declines.sql
+    0011_voice_location_api.sql
+    0013_voiceloc_confirmations.sql
+.env.example
+apps
+  admin-web
+    .env.local.example
+    .env.local
+    postcss.config.mjs
+    tsconfig.tsbuildinfo
+    next-env.d.ts
+    README.md
+    tailwind.config.ts
+    package.json
+    tsconfig.json
+    next.config.ts
+    src
+      app
+      components
+      hooks
+      lib
+  landing
+    index.html
+    README.md
+    ar
+      index.html
+    preview-server.js
+    ff
+      index.html
+    assets
+      icon.png
+      favicon.png
+  mobile
+    brand.json
+    locales
+      en.json
+      fr.json
+      ff.json
+      wo.json
+      snk.json
+      ar.json
+    app
+      index.tsx
+      (app)
+      _layout.tsx
+      (auth)
+    expo-env.d.ts
+    eas.json
+    README.md
+    components
+      ui
+      BonusCard.tsx
+      NotificationsBellButton.tsx
+      VoiceCandidateSheet.tsx
+      VoiceMicButton.tsx
+      CrashBoundary.tsx
+      CaptainRideWatcher.tsx
+      ModeToggle.tsx
+      CaptainCredentialsGate.tsx
+      RoadReports.tsx
+      NotificationTapHandler.tsx
+    metro.config.js
+    app.config.ts
+    babel.config.js
+    .gitignore
+    package.json
+    theme
+      fontAssets.ts
+      index.ts
+    .watchmanconfig
+    lib
+      voiceRides.ts
+      restaurantPhotos.ts
+      brand.ts
+      usePolling.ts
+      sentry.ts
+      notifications.ts
+      i18n.ts
+      guest.ts
+      install-crash-handlers.ts
+      api.ts
+      format.ts
+      useVoiceRecorder.ts
+      crash-reporter.ts
+      vehicle-options.ts
+      voiceLocation.ts
+      kyc.ts
+      restaurants.ts
+      env.ts
+      auth.ts
+      form.tsx
+    tsconfig.json
+    assets
+      icon.png
+      brand
+      favicon.png
+      adaptive-icon.png
+      splash-icon.png
+  api
+    tsconfig.tsbuildinfo
+    uploads
+      topups
+      applications
+    package.json
+    seeds
+      restaurants-nouakchott-full.json
+      restaurants-nouakchott.json
+    scripts
+      fetch-food-pois.ts
+      clean-test-captain.ts
+      seed-restaurants.ts
+      seed-store-test-accounts.ts
+      clean-test-rider.ts
+      seed-admin.ts
+      generate-test-images.mjs
+      seed-heatmap-demo.ts
+    tsconfig.json
+    src
+      middleware
+      config
+      db
+      index.ts
+      modules
+  voice-location-api
+    README.md
+    DEPLOY.md
+    package.json
+    seeds
+      manual-pois.json
+    scripts
+      ingest-poi-nouakchott.ts
+      ingest-poi-manual.ts
+      create-key.ts
+    tsconfig.json
+    .env.example
+    src
+      middleware
+      lib
+      db
+      index.ts
+      config.ts
+      routes
+      services
+pnpm-workspace.yaml
+```

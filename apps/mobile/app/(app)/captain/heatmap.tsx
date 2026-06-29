@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import MapView, { Circle, Marker, PROVIDER_DEFAULT, type Region } from 'react-native-maps';
+import Mapbox from '@rnmapbox/maps';
 import * as Location from 'expo-location';
 import { api } from '@/lib/api';
 import { usePolling } from '@/lib/usePolling';
+import { MapShell } from '@/components/MapShell';
 import {
   RoadReportButton, RoadReportMarkers, useRoadReports,
 } from '@/components/RoadReports';
@@ -22,70 +23,13 @@ interface Cell {
 }
 
 // Nouakchott — Tevragh Zeina fallback when GPS isn't available.
-const FALLBACK_REGION: Region = {
-  latitude: 18.0853, longitude: -15.9785,
-  latitudeDelta: 0.08, longitudeDelta: 0.08,
-};
-
-// Snap-style heat blob: thin concentric rings of low alpha stacked
-// outer→inner. Alpha accumulates toward the centre into a smooth radial
-// fade. Snap's palette is warm-only (faint yellow halo → orange → red core)
-// — no cool tones, despite some thermal-map references.
-const BLOB_RING_COUNT = 10;
-const BLOB_OUTER_M = 350;   // soft halo edge
-const BLOB_INNER_M = 12;    // hot dot
-const BLOB_RING_ALPHA = 0.06;
-
-// Cap how many cells we paint per frame. ~1000 demo rides produce 100+ cells;
-// drawing all of them with 10 rings each (~1000 Circles) tanks Apple Maps.
-// 80 cells × 10 = 800 Circles, smooth on iOS.
-const MAX_VISIBLE_CELLS = 80;
-
-// Quadratic ease packs rings near the centre — bright core, gentle halo.
-const BLOB_RING_RADII: number[] = Array.from(
-  { length: BLOB_RING_COUNT },
-  (_, i) => {
-    const t = i / (BLOB_RING_COUNT - 1);
-    const ease = t * t;
-    return BLOB_OUTER_M - (BLOB_OUTER_M - BLOB_INNER_M) * ease;
-  },
-);
-
-// Warm palette stops (outer → inner). RGB only; alpha applied at render.
-const WARM_STOPS: Array<[number, [number, number, number]]> = [
-  [0.00, [255, 230, 130]],   // soft yellow halo
-  [0.45, [255, 165, 50]],    // orange
-  [0.80, [232, 70, 30]],     // bright red
-  [1.00, [180, 24, 18]],     // deep red core
-];
+const FALLBACK_CENTER: [number, number] = [-15.9785, 18.0853];
+const FALLBACK_ZOOM = 11;
 
 function accentFor(score: number): string {
   if (score >= 0.66) return '#B41812';
   if (score >= 0.33) return '#E84620';
   return '#FFA532';
-}
-
-/**
- * Warm gradient colour for ring index `i`. Hotter cells reach further into
- * the deep-red end; cooler cells top out at orange.
- */
-function ringColor(score: number, ringIdx: number): string {
-  const t = (ringIdx / (BLOB_RING_COUNT - 1)) * (0.55 + 0.45 * score);
-
-  let from = WARM_STOPS[0]!, to = WARM_STOPS[WARM_STOPS.length - 1]!;
-  for (let i = 0; i < WARM_STOPS.length - 1; i++) {
-    if (t >= WARM_STOPS[i]![0] && t <= WARM_STOPS[i + 1]![0]) {
-      from = WARM_STOPS[i]!;
-      to = WARM_STOPS[i + 1]!;
-      break;
-    }
-  }
-  const span = to[0] - from[0];
-  const local = span === 0 ? 0 : (t - from[0]) / span;
-  const r = Math.round(from[1][0] + (to[1][0] - from[1][0]) * local);
-  const g = Math.round(from[1][1] + (to[1][1] - from[1][1]) * local);
-  const b = Math.round(from[1][2] + (to[1][2] - from[1][2]) * local);
-  return `rgba(${r}, ${g}, ${b}, ${BLOB_RING_ALPHA})`;
 }
 
 interface Cluster {
@@ -110,13 +54,10 @@ function haversineM(a: { lat: number; lng: number }, b: { lat: number; lng: numb
 }
 
 /**
- * Greedy clustering: any two cells whose centroids fall within `mergeRadiusM`
- * of each other collapse into a single blob. The blob's centre is the
- * isobarycentre of the merged cells, weighted by ride count — so the centre
- * sits closer to the cells with more demand.
- *
- * Cells are processed hottest-first so high-density spots seed each cluster
- * and absorb their cooler neighbours rather than the other way around.
+ * Greedy clustering used only for the side list: collapse cells within
+ * `mergeRadiusM` of each other into a single zone so adjacent activity reads
+ * as one entry. The map renders every cell individually through the heatmap
+ * layer — no clustering needed at draw time.
  */
 function clusterCells(cells: Cell[], mergeRadiusM: number): Cluster[] {
   const sorted = [...cells].sort((a, b) => b.demandScore - a.demandScore);
@@ -158,7 +99,7 @@ function clusterCells(cells: Cell[], mergeRadiusM: number): Cluster[] {
 export default function HeatmapScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const mapRef = useRef<MapView>(null);
+  const cameraRef = useRef<Mapbox.Camera>(null);
   const [cells, setCells] = useState<Cell[]>([]);
   const [loading, setLoading] = useState(true);
   const [myPos, setMyPos] = useState<{ lat: number; lng: number } | null>(null);
@@ -187,32 +128,37 @@ export default function HeatmapScreen() {
         const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
         const p = { lat: loc.coords.latitude, lng: loc.coords.longitude };
         setMyPos(p);
-        mapRef.current?.animateToRegion({
-          latitude: p.lat, longitude: p.lng,
-          latitudeDelta: 0.06, longitudeDelta: 0.06,
-        }, 500);
+        cameraRef.current?.setCamera({
+          centerCoordinate: [p.lng, p.lat],
+          zoomLevel: 12,
+          animationDuration: 500,
+        });
       } catch {}
     })();
   }, []);
 
-  // Top-3 list groups cells within ~800 m so adjacent activity reads as one
-  // zone in the side list. The map itself ignores clustering — every cell
-  // paints its own gradient blob, and overlapping blobs blend additively.
   const clusters = clusterCells(cells, 800);
   const hottest = [...clusters].sort((a, b) => b.score - a.score).slice(0, 3);
-  // Cut noise + cap to top N hottest cells so the map stays smooth on iOS.
-  // Apple Maps degrades sharply past ~1000 Circle overlays; 80 cells × 10
-  // rings ≈ 800 Circles is the sweet spot.
-  const visibleCells = cells
-    .filter((c) => c.demandScore >= 0.10)
-    .sort((a, b) => b.demandScore - a.demandScore)
-    .slice(0, MAX_VISIBLE_CELLS);
+
+  // Feed every cell whose score is non-trivial into the heatmap layer. The
+  // GPU handles thousands of points easily, so no MAX_VISIBLE_CELLS cap.
+  const heatmapGeoJson = useMemo<GeoJSON.FeatureCollection>(() => ({
+    type: 'FeatureCollection',
+    features: cells
+      .filter((c) => c.demandScore >= 0.05)
+      .map((c) => ({
+        type: 'Feature',
+        properties: { weight: c.demandScore },
+        geometry: { type: 'Point', coordinates: [c.centroid.lng, c.centroid.lat] },
+      })),
+  }), [cells]);
 
   function flyToCluster(c: Cluster) {
-    mapRef.current?.animateToRegion({
-      latitude: c.centerLat, longitude: c.centerLng,
-      latitudeDelta: 0.05, longitudeDelta: 0.05,
-    }, 500);
+    cameraRef.current?.setCamera({
+      centerCoordinate: [c.centerLng, c.centerLat],
+      zoomLevel: 13,
+      animationDuration: 500,
+    });
   }
 
   return (
@@ -248,45 +194,60 @@ export default function HeatmapScreen() {
       </View>
 
       <View style={{ flex: 1 }}>
-        <MapView
-          ref={mapRef}
-          provider={PROVIDER_DEFAULT}
-          style={{ flex: 1 }}
-          initialRegion={FALLBACK_REGION}
+        <MapShell
+          cameraRef={cameraRef}
+          centerCoordinate={FALLBACK_CENTER}
+          zoomLevel={FALLBACK_ZOOM}
           showsUserLocation
-          showsMyLocationButton
         >
-          {/* Snap-style heat blobs — many thin concentric rings per cell
-              with constant low alpha so they accumulate into a smooth radial
-              gradient with no visible bands. */}
-          {visibleCells.flatMap((cell) => {
-            const center = { latitude: cell.centroid.lat, longitude: cell.centroid.lng };
-            return BLOB_RING_RADII.map((r, ring) => (
-              <Circle
-                key={`${cell.h3Index}-${ring}`}
-                center={center}
-                radius={r}
-                fillColor={ringColor(cell.demandScore, ring)}
-                strokeColor="rgba(0,0,0,0)"
-                strokeWidth={0}
-              />
-            ));
-          })}
+          {/* GPU heatmap — warm palette (yellow → orange → red) matching the
+              previous Snap-style blobs. Radius & intensity scale with zoom so
+              the heat reads at city zoom (~11) and street zoom (~16) alike. */}
+          <Mapbox.ShapeSource id="demand-heatmap" shape={heatmapGeoJson}>
+            <Mapbox.HeatmapLayer
+              id="demand-heatmap-layer"
+              sourceID="demand-heatmap"
+              style={{
+                heatmapWeight: ['interpolate', ['linear'], ['get', 'weight'], 0, 0, 1, 1],
+                heatmapIntensity: ['interpolate', ['linear'], ['zoom'], 10, 0.6, 15, 2.2],
+                heatmapRadius: ['interpolate', ['linear'], ['zoom'], 10, 18, 15, 55],
+                heatmapColor: [
+                  'interpolate',
+                  ['linear'],
+                  ['heatmap-density'],
+                  0, 'rgba(255, 230, 130, 0)',
+                  0.2, 'rgba(255, 230, 130, 0.55)',
+                  0.45, 'rgba(255, 165, 50, 0.75)',
+                  0.8, 'rgba(232, 70, 30, 0.85)',
+                  1, 'rgba(180, 24, 18, 0.95)',
+                ],
+                heatmapOpacity: ['interpolate', ['linear'], ['zoom'], 10, 0.85, 16, 0.6],
+              }}
+            />
+          </Mapbox.ShapeSource>
+
           {/* Tap-able markers on top-3 clusters so the captain can identify them */}
           {hottest.map((c, i) => (
-            <Marker
+            <Mapbox.PointAnnotation
               key={`top-${i}`}
-              coordinate={{ latitude: c.centerLat, longitude: c.centerLng }}
+              id={`top-${i}`}
+              coordinate={[c.centerLng, c.centerLat]}
               title={t('captain.heatmap.topClusterTitle', { rank: i + 1, count: c.rideCount })}
-              description={c.cellCount > 1
-                ? t('captain.heatmap.zonesMerged', { count: c.cellCount })
-                : t('captain.heatmap.twoHours')}
-              pinColor="#D6452F"
-            />
+            >
+              <View style={{
+                width: 30, height: 30, borderRadius: 15,
+                backgroundColor: accentFor(c.score),
+                borderWidth: 2, borderColor: '#fff',
+                alignItems: 'center', justifyContent: 'center',
+              }}>
+                <AppText variant="label" color={colors.white}>{String(i + 1)}</AppText>
+              </View>
+            </Mapbox.PointAnnotation>
           ))}
+
           {/* Active road reports — sand, accidents, police checkpoints, etc. */}
           <RoadReportMarkers reports={reports} />
-        </MapView>
+        </MapShell>
 
         {loading && cells.length === 0 ? (
           <View style={{

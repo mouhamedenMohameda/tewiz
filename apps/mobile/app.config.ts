@@ -52,17 +52,6 @@ const config: ExpoConfig = {
       'android.permission.READ_EXTERNAL_STORAGE',
       'android.permission.RECORD_AUDIO',
     ],
-    // Required for react-native-maps with PROVIDER_DEFAULT/PROVIDER_GOOGLE on
-    // Android. Without this the MapView activity crashes natively ("App
-    // stopped") the first time it tries to render. The key is injected at
-    // build time from the EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_KEY env var (set
-    // in eas.json per profile) — restrict the key to the app's package name
-    // + SHA-1 in Google Cloud Console.
-    config: {
-      googleMaps: {
-        apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_KEY,
-      },
-    },
   },
   web: {
     bundler: 'metro',
@@ -113,6 +102,17 @@ const config: ExpoConfig = {
           extractNativeLibs: true,
           useLegacyPackaging: true,
         },
+      },
+    ],
+    [
+      // Mapbox native SDK. The download token is a SECRET token (sk.*) with
+      // scope `downloads:read` — needed at *build* time to fetch the Android
+      // SDK from Mapbox's authenticated maven. The runtime *public* token
+      // (EXPO_PUBLIC_MAPBOX_TOKEN) is set via MapboxGL.setAccessToken() in
+      // lib/mapbox.ts so it can be restricted per platform / bundle ID.
+      '@rnmapbox/maps',
+      {
+        RNMapboxMapsDownloadToken: process.env.MAPBOX_DOWNLOAD_TOKEN,
       },
     ],
   ],

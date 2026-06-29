@@ -40,4 +40,4 @@ and Expo web). For a physical device on the same Wi-Fi, set
 - AsyncStorage for token + activeMode persistence, Zustand for auth state
 - axios with auto-refresh interceptor
 - expo-location for GPS, expo-image-picker for KYC photos
-- react-native-maps for the map view
+- @rnmapbox/maps (Mapbox GL) for the map view

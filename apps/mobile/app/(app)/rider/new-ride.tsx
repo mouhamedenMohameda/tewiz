@@ -6,10 +6,11 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import MapView, { Marker, PROVIDER_DEFAULT, type Region } from 'react-native-maps';
+import Mapbox from '@rnmapbox/maps';
 import * as Location from 'expo-location';
 import { api } from '@/lib/api';
 import { formatMru } from '@/lib/format';
+import { MapShell } from '@/components/MapShell';
 import {
   RoadReportButton, RoadReportMarkers, useRoadReports,
 } from '@/components/RoadReports';
@@ -18,10 +19,8 @@ import {
 // the manual map picker.
 
 // Nouakchott — Tevragh Zeina
-const DEFAULT_REGION: Region = {
-  latitude: 18.0853, longitude: -15.9785,
-  latitudeDelta: 0.05, longitudeDelta: 0.05,
-};
+const DEFAULT_CENTER: [number, number] = [-15.9785, 18.0853];
+const DEFAULT_ZOOM = 12;
 
 interface Point { lat: number; lng: number; label?: string }
 interface GeoResult { id: string; label: string; name: string; lat: number; lng: number }
@@ -47,7 +46,7 @@ function parsePoint(
 export default function NewRideScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const mapRef = useRef<MapView>(null);
+  const cameraRef = useRef<Mapbox.Camera>(null);
 
   // Deep-link params let other screens (e.g. the Restaurants directory) push
   // here with one or both ends already pinned. We just pre-fill the state and
@@ -117,10 +116,11 @@ export default function NewRideScreen() {
         };
         if (!pickup) setPickup(p);
         else if (!dropoff) setDropoff(p);
-        mapRef.current?.animateToRegion({
-          latitude: p.lat, longitude: p.lng,
-          latitudeDelta: 0.03, longitudeDelta: 0.03,
-        }, 500);
+        cameraRef.current?.setCamera({
+          centerCoordinate: [p.lng, p.lat],
+          zoomLevel: 13,
+          animationDuration: 500,
+        });
       } catch {}
     })();
     // Run once at mount — we don't want to keep stomping pickup/dropoff when
@@ -161,9 +161,8 @@ export default function NewRideScreen() {
     return () => { cancelled = true; };
   }, [pickup, dropoff, kind, isOpen]);
 
-  const onMapPress = useCallback((e: { nativeEvent: { coordinate: { latitude: number; longitude: number } } }) => {
-    const { latitude, longitude } = e.nativeEvent.coordinate;
-    const p: Point = { lat: latitude, lng: longitude, label: 'Point sur la carte' };
+  const onMapPress = useCallback((lngLat: [number, number]) => {
+    const p: Point = { lat: lngLat[1], lng: lngLat[0], label: 'Point sur la carte' };
     if (active === 'pickup' || (!active && !pickup)) setPickup(p);
     else setDropoff(p);
   }, [active, pickup]);
@@ -173,10 +172,11 @@ export default function NewRideScreen() {
     if (active === 'pickup') setPickup(p);
     else if (active === 'dropoff') setDropoff(p);
     setActive(null);
-    mapRef.current?.animateToRegion({
-      latitude: g.lat, longitude: g.lng,
-      latitudeDelta: 0.02, longitudeDelta: 0.02,
-    }, 400);
+    cameraRef.current?.setCamera({
+      centerCoordinate: [g.lng, g.lat],
+      zoomLevel: 14,
+      animationDuration: 400,
+    });
   }, [active]);
 
   function isReady(): { ok: true } | { ok: false; reason: string } {
@@ -333,22 +333,31 @@ export default function NewRideScreen() {
       </View>
 
       <View style={{ flex: 1 }}>
-        <MapView
-          ref={mapRef}
-          provider={PROVIDER_DEFAULT}
-          style={{ flex: 1 }}
-          initialRegion={DEFAULT_REGION}
+        <MapShell
+          cameraRef={cameraRef}
+          centerCoordinate={DEFAULT_CENTER}
+          zoomLevel={DEFAULT_ZOOM}
           onPress={onMapPress}
           showsUserLocation
         >
           {pickup ? (
-            <Marker coordinate={{ latitude: pickup.lat, longitude: pickup.lng }} pinColor="#2d4fd6" />
+            <Mapbox.PointAnnotation
+              id="pickup"
+              coordinate={[pickup.lng, pickup.lat]}
+            >
+              <View style={pinStyle('#2d4fd6')} />
+            </Mapbox.PointAnnotation>
           ) : null}
           {dropoff ? (
-            <Marker coordinate={{ latitude: dropoff.lat, longitude: dropoff.lng }} pinColor="#dc2626" />
+            <Mapbox.PointAnnotation
+              id="dropoff"
+              coordinate={[dropoff.lng, dropoff.lat]}
+            >
+              <View style={pinStyle('#dc2626')} />
+            </Mapbox.PointAnnotation>
           ) : null}
           <RoadReportMarkers reports={reports} />
-        </MapView>
+        </MapShell>
         <RoadReportButton at={pickup ?? null} onCreated={refreshReports} />
         {active ? (
           <View style={{
@@ -742,4 +751,20 @@ function SmallInput({
       />
     </View>
   );
+}
+
+function pinStyle(color: string) {
+  return {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: color,
+    borderWidth: 3,
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
+  } as const;
 }
