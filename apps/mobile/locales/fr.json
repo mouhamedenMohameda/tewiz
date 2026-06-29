@@ -39,8 +39,18 @@
     "load": "Impossible de charger."
   },
   "months": [
-    "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
-    "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
+    "Janvier",
+    "Février",
+    "Mars",
+    "Avril",
+    "Mai",
+    "Juin",
+    "Juillet",
+    "Août",
+    "Septembre",
+    "Octobre",
+    "Novembre",
+    "Décembre"
   ],
   "vehicleColors": {
     "white": "Blanc",
@@ -62,7 +72,9 @@
       "tagline": "Commandez une course. Conduisez quand vous voulez.",
       "primary": "Commander une course",
       "secondary": "J'ai déjà un compte",
-      "note": "Aucune inscription requise. Entrez votre numéro au moment de commander."
+      "note": "Aucune inscription requise. Entrez votre numéro au moment de commander.",
+      "demoRider": "Démo passager",
+      "demoCaptain": "Démo capitaine"
     },
     "login": {
       "title": "Bon retour",
@@ -82,7 +94,9 @@
       "notActivatedBody": "Aucun mot de passe défini. Contactez l'administrateur.",
       "tooManyTitle": "Trop d'essais",
       "tooManyBody": "Réessayez dans quelques minutes.",
-      "contactMessage": "Bonjour, je voudrais créer un compte {{app}}."
+      "contactMessage": "Bonjour, je voudrais créer un compte {{app}}.",
+      "demoRider": "Démo passager",
+      "demoCaptain": "Démo capitaine"
     }
   },
   "phonePrompt": {
@@ -202,10 +216,22 @@
           "title": "Course terminée",
           "sub": "Merci d'avoir voyagé avec {{app}}."
         },
-        "cancelled_by_rider": { "title": "Annulée par vous", "sub": "" },
-        "cancelled_by_captain": { "title": "Annulée par le chauffeur", "sub": "" },
-        "cancelled_by_system": { "title": "Annulée", "sub": "" },
-        "no_show": { "title": "Non présenté", "sub": "" }
+        "cancelled_by_rider": {
+          "title": "Annulée par vous",
+          "sub": ""
+        },
+        "cancelled_by_captain": {
+          "title": "Annulée par le chauffeur",
+          "sub": ""
+        },
+        "cancelled_by_system": {
+          "title": "Annulée",
+          "sub": ""
+        },
+        "no_show": {
+          "title": "Non présenté",
+          "sub": ""
+        }
       },
       "rating": {
         "missingTitle": "Note manquante",

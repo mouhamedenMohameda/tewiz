@@ -56,6 +56,8 @@ const patchBody = z.object({
   openPerKmMru:                     z.number().int().min(0).max(10_000).optional(),
   openPerMinuteMru:                 z.number().int().min(0).max(1_000).optional(),
   openMinFareMru:                   z.number().int().min(0).max(10_000).optional(),
+  // Feature flag for the reviewer demo-login buttons (migration 0031).
+  showDemoButtons:                  z.boolean().optional(),
 }).refine(
   (b) => Object.values(b).some((v) => v !== undefined),
   { message: 'At least one field is required' },

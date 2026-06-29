@@ -42,7 +42,9 @@
       "tagline": "Ƴamtu course. Doggu nde welaa.",
       "primary": "Ƴamtu course",
       "secondary": "Mi jogii compte",
-      "note": "Inscription wonataa. Naatnu nimero maa tuma ƴamto."
+      "note": "Inscription wonataa. Naatnu nimero maa tuma ƴamto.",
+      "demoRider": "Demo rider",
+      "demoCaptain": "Demo captain"
     },
     "login": {
       "title": "Mbiɗ-en mbittooɓe",
@@ -62,7 +64,9 @@
       "notActivatedBody": "Mot de passe walaa. Heɓto administrateur.",
       "tooManyTitle": "Etto-ɗaa heewi",
       "tooManyBody": "Etto kadi e nder daqiiqaaji seeɗa.",
-      "contactMessage": "Mbaɗ-Allah, miɗo yiɗi ko mahde compte {{app}}."
+      "contactMessage": "Mbaɗ-Allah, miɗo yiɗi ko mahde compte {{app}}.",
+      "demoRider": "Demo rider",
+      "demoCaptain": "Demo captain"
     }
   },
   "phonePrompt": {
@@ -76,8 +80,15 @@
     "takenAction": "Naatu",
     "saveError": "Ronkii reende nimero o."
   },
-  "modeToggle": { "rider": "Naatoowo", "captain": "Doggoowo" },
-  "roles": { "rider": "Naatoowo", "captain": "Doggoowo", "admin": "Administrateur" },
+  "modeToggle": {
+    "rider": "Naatoowo",
+    "captain": "Doggoowo"
+  },
+  "roles": {
+    "rider": "Naatoowo",
+    "captain": "Doggoowo",
+    "admin": "Administrateur"
+  },
   "rider": {
     "home": {
       "shortcuts": "Ɓooli am",
@@ -145,16 +156,46 @@
       "cancelling": "Ina haaytee…",
       "cancelAction": "Haaytu course",
       "banners": {
-        "pending_passenger_confirm": { "title": "Ina sabbii confirmation", "sub": "Confirmer e SMS." },
-        "searching": { "title": "Ina yiilee doggoowo", "sub": "Sabboɗen seeɗa…" },
-        "accepted": { "title": "Doggoowo ina ara", "sub": "Ina ara e maa." },
-        "arrived": { "title": "Doggoowo arii", "sub": "Okku mo code ngam fuɗɗoode." },
-        "in_progress": { "title": "Course wonndo", "sub": "Yahdu e jam." },
-        "completed": { "title": "Course gasii", "sub": "A jaaraama ko huutoraa-ɗaa {{app}}." },
-        "cancelled_by_rider": { "title": "A haaytii", "sub": "" },
-        "cancelled_by_captain": { "title": "Doggoowo o haaytii", "sub": "" },
-        "cancelled_by_system": { "title": "Haaytaama", "sub": "" },
-        "no_show": { "title": "Yaltaani", "sub": "" }
+        "pending_passenger_confirm": {
+          "title": "Ina sabbii confirmation",
+          "sub": "Confirmer e SMS."
+        },
+        "searching": {
+          "title": "Ina yiilee doggoowo",
+          "sub": "Sabboɗen seeɗa…"
+        },
+        "accepted": {
+          "title": "Doggoowo ina ara",
+          "sub": "Ina ara e maa."
+        },
+        "arrived": {
+          "title": "Doggoowo arii",
+          "sub": "Okku mo code ngam fuɗɗoode."
+        },
+        "in_progress": {
+          "title": "Course wonndo",
+          "sub": "Yahdu e jam."
+        },
+        "completed": {
+          "title": "Course gasii",
+          "sub": "A jaaraama ko huutoraa-ɗaa {{app}}."
+        },
+        "cancelled_by_rider": {
+          "title": "A haaytii",
+          "sub": ""
+        },
+        "cancelled_by_captain": {
+          "title": "Doggoowo o haaytii",
+          "sub": ""
+        },
+        "cancelled_by_system": {
+          "title": "Haaytaama",
+          "sub": ""
+        },
+        "no_show": {
+          "title": "Yaltaani",
+          "sub": ""
+        }
       },
       "rating": {
         "missingTitle": "Note walaa",
@@ -468,20 +509,62 @@
     "stepDocsTitle": "Documents",
     "stepDocsSub": "{{done}} / {{total}} nataal nelaaɗi",
     "status": {
-      "none": { "title": "Doggu e {{app}}", "subtitle": "Neldu dossier maa (kayit + nataal otoo) fuɗɗo heɓtude kaalis.", "cta": "Fuɗɗo dossier am" },
-      "draft": { "title": "Dossier wonndo", "subtitle": "Jokku to darnu-ɗaa.", "cta": "Jokku" },
-      "needs_correction": { "title": "Corrections ƴamaa", "subtitle": "Admin ƴamii waylitooje e dossier maa.", "cta": "Yiy corrections" },
-      "submitted": { "title": "Dossier woni e revue", "subtitle": "A anndintinte tuma jaɓaama.", "cta": "Yiy état" },
-      "rejected": { "title": "Dossier salaa", "subtitle": "Yiy sabaabu ngarnu kadi si waawi.", "cta": "Yiy sabaabu" },
-      "approved": { "title": "Mbiɗɗu doggoowo", "subtitle": "Aɗa waawi waylude e mode doggoowo jooni.", "cta": "Yaa e mode doggoowo" }
+      "none": {
+        "title": "Doggu e {{app}}",
+        "subtitle": "Neldu dossier maa (kayit + nataal otoo) fuɗɗo heɓtude kaalis.",
+        "cta": "Fuɗɗo dossier am"
+      },
+      "draft": {
+        "title": "Dossier wonndo",
+        "subtitle": "Jokku to darnu-ɗaa.",
+        "cta": "Jokku"
+      },
+      "needs_correction": {
+        "title": "Corrections ƴamaa",
+        "subtitle": "Admin ƴamii waylitooje e dossier maa.",
+        "cta": "Yiy corrections"
+      },
+      "submitted": {
+        "title": "Dossier woni e revue",
+        "subtitle": "A anndintinte tuma jaɓaama.",
+        "cta": "Yiy état"
+      },
+      "rejected": {
+        "title": "Dossier salaa",
+        "subtitle": "Yiy sabaabu ngarnu kadi si waawi.",
+        "cta": "Yiy sabaabu"
+      },
+      "approved": {
+        "title": "Mbiɗɗu doggoowo",
+        "subtitle": "Aɗa waawi waylude e mode doggoowo jooni.",
+        "cta": "Yaa e mode doggoowo"
+      }
     },
     "banner": {
-      "draft": { "label": "Brouillon", "desc": "Timminu étapes 3 ɗo les ngarnu." },
-      "submitted": { "label": "Nelaama", "desc": "Dossier maa woni e file d'attente." },
-      "under_review": { "label": "E revue", "desc": "Admin ina yiiloo dossier maa jooni." },
-      "needs_correction": { "label": "Corrections ƴamaa", "desc": "Fewtu documents ɓe njanngiraa ngarnu kadi." },
-      "approved": { "label": "Jaɓaama", "desc": "Mbiɗɗu e {{app}}." },
-      "rejected": { "label": "Salaa", "desc": "Dossier maa salaama." }
+      "draft": {
+        "label": "Brouillon",
+        "desc": "Timminu étapes 3 ɗo les ngarnu."
+      },
+      "submitted": {
+        "label": "Nelaama",
+        "desc": "Dossier maa woni e file d'attente."
+      },
+      "under_review": {
+        "label": "E revue",
+        "desc": "Admin ina yiiloo dossier maa jooni."
+      },
+      "needs_correction": {
+        "label": "Corrections ƴamaa",
+        "desc": "Fewtu documents ɓe njanngiraa ngarnu kadi."
+      },
+      "approved": {
+        "label": "Jaɓaama",
+        "desc": "Mbiɗɗu e {{app}}."
+      },
+      "rejected": {
+        "label": "Salaa",
+        "desc": "Dossier maa salaama."
+      }
     },
     "credentials": {
       "title": "Compte chauffeur huɓɓii",
@@ -633,8 +716,12 @@
     }
   },
   "languages": {
-    "fr": "Français", "ar": "العربية", "en": "English",
-    "ff": "Pulaar", "wo": "Wolof", "snk": "Sooninkanxanne"
+    "fr": "Français",
+    "ar": "العربية",
+    "en": "English",
+    "ff": "Pulaar",
+    "wo": "Wolof",
+    "snk": "Sooninkanxanne"
   },
   "captainAlert": {
     "newColis": "📦 Colis hesso",

@@ -17,7 +17,8 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { loginAsGuest } from '@/lib/guest';
+import { loginAsDemo, loginAsGuest, type DemoRole } from '@/lib/guest';
+import { getAppConfig } from '@/lib/appConfig';
 import { colors, gradients, radius, shadow, spacing } from '@/theme';
 import { AppText, Button, FadeInView, Icon } from '@/components/ui';
 import { APP_NAME } from '@/lib/brand';
@@ -28,6 +29,7 @@ export default function AuthWelcome() {
   const router = useRouter();
   const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
+  const [demoRole, setDemoRole] = useState<DemoRole | null>(null);
 
   async function startGuest() {
     setBusy(true);
@@ -39,6 +41,19 @@ export default function AuthWelcome() {
       Alert.alert(t('common.error'), msg);
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function startDemo(role: DemoRole) {
+    setDemoRole(role);
+    try {
+      await loginAsDemo(role);
+      router.replace('/(app)');
+    } catch (e: any) {
+      const msg = e?.response?.data?.error?.message ?? t('errors.network');
+      Alert.alert(t('common.error'), msg);
+    } finally {
+      setDemoRole(null);
     }
   }
 
@@ -114,6 +129,31 @@ export default function AuthWelcome() {
               icon="person"
               onPress={() => router.push('/(auth)/phone')}
             />
+
+            {/* Reviewer / demo access — only shown when showDemoButtons is
+                enabled server-side (PUT /admin/settings { showDemoButtons: true }).
+                Enabled before App Store / Google Play submissions, disabled
+                after approval so real users never see these buttons. */}
+            {getAppConfig().showDemoButtons && (
+              <View style={{ flexDirection: 'row', gap: spacing.md, marginTop: spacing.md }}>
+                <Button
+                  title={t('auth.welcome.demoRider')}
+                  variant="ghost"
+                  icon="person"
+                  busy={demoRole === 'rider'}
+                  onPress={() => startDemo('rider')}
+                  style={{ flex: 1 }}
+                />
+                <Button
+                  title={t('auth.welcome.demoCaptain')}
+                  variant="ghost"
+                  icon="captain"
+                  busy={demoRole === 'captain'}
+                  onPress={() => startDemo('captain')}
+                  style={{ flex: 1 }}
+                />
+              </View>
+            )}
 
             <View
               style={{

@@ -42,7 +42,9 @@
       "tagline": "Sànni course. Door bu la neexee.",
       "primary": "Sànni course",
       "secondary": "Am naa compte",
-      "note": "Inscription laajul. Bind nimero bi su nga doore sànni course."
+      "note": "Inscription laajul. Bind nimero bi su nga doore sànni course.",
+      "demoRider": "Demo rider",
+      "demoCaptain": "Demo captain"
     },
     "login": {
       "title": "Mbëggéel ñu",
@@ -62,7 +64,9 @@
       "notActivatedBody": "Mot de passe amul. Jokoo ak administrateur bi.",
       "tooManyTitle": "Jéem yu bare",
       "tooManyBody": "Jéem ci ay minit.",
-      "contactMessage": "Asalaa maalekum, dama bëgg sos compte {{app}}."
+      "contactMessage": "Asalaa maalekum, dama bëgg sos compte {{app}}.",
+      "demoRider": "Demo rider",
+      "demoCaptain": "Demo captain"
     }
   },
   "phonePrompt": {
@@ -76,8 +80,15 @@
     "takenAction": "Dugg",
     "saveError": "Mënul denc nimero bi."
   },
-  "modeToggle": { "rider": "Passager", "captain": "Chauffeur" },
-  "roles": { "rider": "Passager", "captain": "Chauffeur", "admin": "Administrateur" },
+  "modeToggle": {
+    "rider": "Passager",
+    "captain": "Chauffeur"
+  },
+  "roles": {
+    "rider": "Passager",
+    "captain": "Chauffeur",
+    "admin": "Administrateur"
+  },
   "rider": {
     "home": {
       "shortcuts": "Sama raccourcis",
@@ -145,16 +156,46 @@
       "cancelling": "Mu ngi bañ…",
       "cancelAction": "Bañ course bi",
       "banners": {
-        "pending_passenger_confirm": { "title": "Mu ngi xaar confirmation", "sub": "Confirmer ak SMS." },
-        "searching": { "title": "Mu ngi seet chauffeur", "sub": "Xaar tuuti…" },
-        "accepted": { "title": "Chauffeur mu ngi ñëw", "sub": "Mu ngi ñëw ci yow." },
-        "arrived": { "title": "Chauffeur agsi na", "sub": "Jox ko code bi ngir mu door." },
-        "in_progress": { "title": "Course bu jëkk", "sub": "Yendu jamm." },
-        "completed": { "title": "Course sotti na", "sub": "Jërejëf ci utiliser {{app}}." },
-        "cancelled_by_rider": { "title": "Yow nga ko bañ", "sub": "" },
-        "cancelled_by_captain": { "title": "Chauffeur bañ na ko", "sub": "" },
-        "cancelled_by_system": { "title": "Bañees na", "sub": "" },
-        "no_show": { "title": "Genwul", "sub": "" }
+        "pending_passenger_confirm": {
+          "title": "Mu ngi xaar confirmation",
+          "sub": "Confirmer ak SMS."
+        },
+        "searching": {
+          "title": "Mu ngi seet chauffeur",
+          "sub": "Xaar tuuti…"
+        },
+        "accepted": {
+          "title": "Chauffeur mu ngi ñëw",
+          "sub": "Mu ngi ñëw ci yow."
+        },
+        "arrived": {
+          "title": "Chauffeur agsi na",
+          "sub": "Jox ko code bi ngir mu door."
+        },
+        "in_progress": {
+          "title": "Course bu jëkk",
+          "sub": "Yendu jamm."
+        },
+        "completed": {
+          "title": "Course sotti na",
+          "sub": "Jërejëf ci utiliser {{app}}."
+        },
+        "cancelled_by_rider": {
+          "title": "Yow nga ko bañ",
+          "sub": ""
+        },
+        "cancelled_by_captain": {
+          "title": "Chauffeur bañ na ko",
+          "sub": ""
+        },
+        "cancelled_by_system": {
+          "title": "Bañees na",
+          "sub": ""
+        },
+        "no_show": {
+          "title": "Genwul",
+          "sub": ""
+        }
       },
       "rating": {
         "missingTitle": "Note amul",
@@ -468,20 +509,62 @@
     "stepDocsTitle": "Documents",
     "stepDocsSub": "{{done}} / {{total}} nataal yonnees nañu",
     "status": {
-      "none": { "title": "Door ak {{app}}", "subtitle": "Yonnee sa dossier (papiers + nataal oto) te door am xaalis.", "cta": "Door dossier" },
-      "draft": { "title": "Dossier mu ngi jëkk", "subtitle": "Toxal fa nga taxawoon.", "cta": "Toxal" },
-      "needs_correction": { "title": "Corrections laaj nañu", "subtitle": "Admin laaj na soppi ci sa dossier.", "cta": "Gis corrections" },
-      "submitted": { "title": "Dossier mu ngi revu", "subtitle": "Dees na la xamle bu mu ñu validee.", "cta": "Gis état" },
-      "rejected": { "title": "Dossier bañees na", "subtitle": "Jang sabab bi te yonneeti su nga mën.", "cta": "Gis sabab" },
-      "approved": { "title": "Dalal jamm chauffeur", "subtitle": "Mën nga toxal mode chauffeur leegi.", "cta": "Dem ci mode chauffeur" }
+      "none": {
+        "title": "Door ak {{app}}",
+        "subtitle": "Yonnee sa dossier (papiers + nataal oto) te door am xaalis.",
+        "cta": "Door dossier"
+      },
+      "draft": {
+        "title": "Dossier mu ngi jëkk",
+        "subtitle": "Toxal fa nga taxawoon.",
+        "cta": "Toxal"
+      },
+      "needs_correction": {
+        "title": "Corrections laaj nañu",
+        "subtitle": "Admin laaj na soppi ci sa dossier.",
+        "cta": "Gis corrections"
+      },
+      "submitted": {
+        "title": "Dossier mu ngi revu",
+        "subtitle": "Dees na la xamle bu mu ñu validee.",
+        "cta": "Gis état"
+      },
+      "rejected": {
+        "title": "Dossier bañees na",
+        "subtitle": "Jang sabab bi te yonneeti su nga mën.",
+        "cta": "Gis sabab"
+      },
+      "approved": {
+        "title": "Dalal jamm chauffeur",
+        "subtitle": "Mën nga toxal mode chauffeur leegi.",
+        "cta": "Dem ci mode chauffeur"
+      }
     },
     "banner": {
-      "draft": { "label": "Brouillon", "desc": "Matal 3 étape yi te yonnee." },
-      "submitted": { "label": "Yonnees", "desc": "Sa dossier mu ngi ci file d'attente." },
-      "under_review": { "label": "Ci revue", "desc": "Admin mu ngi xool sa dossier leegi." },
-      "needs_correction": { "label": "Corrections laaj nañu", "desc": "Soppi documents yi te yonneeti." },
-      "approved": { "label": "Nangu nañu ko", "desc": "Dalal jamm ci {{app}}." },
-      "rejected": { "label": "Bañees", "desc": "Sa dossier bañees na." }
+      "draft": {
+        "label": "Brouillon",
+        "desc": "Matal 3 étape yi te yonnee."
+      },
+      "submitted": {
+        "label": "Yonnees",
+        "desc": "Sa dossier mu ngi ci file d'attente."
+      },
+      "under_review": {
+        "label": "Ci revue",
+        "desc": "Admin mu ngi xool sa dossier leegi."
+      },
+      "needs_correction": {
+        "label": "Corrections laaj nañu",
+        "desc": "Soppi documents yi te yonneeti."
+      },
+      "approved": {
+        "label": "Nangu nañu ko",
+        "desc": "Dalal jamm ci {{app}}."
+      },
+      "rejected": {
+        "label": "Bañees",
+        "desc": "Sa dossier bañees na."
+      }
     },
     "credentials": {
       "title": "Compte chauffeur ubbi na",
@@ -633,8 +716,12 @@
     }
   },
   "languages": {
-    "fr": "Français", "ar": "العربية", "en": "English",
-    "ff": "Pulaar", "wo": "Wolof", "snk": "Sooninkanxanne"
+    "fr": "Français",
+    "ar": "العربية",
+    "en": "English",
+    "ff": "Pulaar",
+    "wo": "Wolof",
+    "snk": "Sooninkanxanne"
   },
   "captainAlert": {
     "newColis": "📦 Colis bu bees",
