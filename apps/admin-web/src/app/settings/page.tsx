@@ -34,6 +34,7 @@ interface PricingSettings {
   openPerKmMru: number;
   openPerMinuteMru: number;
   openMinFareMru: number;
+  showDemoButtons: boolean;
   updatedAt: string;
   updatedBy: string | null;
 }
@@ -60,6 +61,7 @@ interface FormState {
   openPerKmMru: string;
   openPerMinuteMru: string;
   openMinFareMru: string;
+  showDemoButtons: boolean;
 }
 
 const EMPTY_FORM: FormState = {
@@ -84,6 +86,7 @@ const EMPTY_FORM: FormState = {
   openPerKmMru: '',
   openPerMinuteMru: '',
   openMinFareMru: '',
+  showDemoButtons: false,
 };
 
 function settingsToForm(s: PricingSettings): FormState {
@@ -109,6 +112,7 @@ function settingsToForm(s: PricingSettings): FormState {
     openPerKmMru: String(s.openPerKmMru),
     openPerMinuteMru: String(s.openPerMinuteMru),
     openMinFareMru: String(s.openMinFareMru),
+    showDemoButtons: s.showDemoButtons,
   };
 }
 
@@ -155,6 +159,7 @@ export default function SettingsPage() {
         openPerKmMru: parseInt(form.openPerKmMru, 10),
         openPerMinuteMru: parseInt(form.openPerMinuteMru, 10),
         openMinFareMru: parseInt(form.openMinFareMru, 10),
+        showDemoButtons: form.showDemoButtons,
       };
       const r = await api.put<PricingSettings>('/admin/settings', payload);
       return r.data;
@@ -448,6 +453,28 @@ export default function SettingsPage() {
                   step="1"
                 />
               </div>
+            </section>
+
+            <section className="card p-5 mb-4 border-2 border-dashed border-amber-300 bg-amber-50">
+              <div className="flex items-start justify-between mb-1">
+                <h2 className="font-semibold text-slate-900">Boutons démo (App Store / Google Play)</h2>
+                <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.showDemoButtons}
+                    onChange={(e) => setForm({ ...form, showDemoButtons: e.target.checked })}
+                    className="w-4 h-4 accent-amber-500"
+                  />
+                  <span className={form.showDemoButtons ? 'text-amber-700 font-medium' : 'text-slate-500'}>
+                    {form.showDemoButtons ? '✓ Visible (mode review)' : 'Masqué'}
+                  </span>
+                </label>
+              </div>
+              <p className="text-xs text-slate-600">
+                Affiche des boutons de connexion en un tap sur l&apos;écran d&apos;accueil de l&apos;app
+                (comptes démo passager + capitaine). À activer avant une soumission App Store / Google Play,
+                à désactiver après approbation.
+              </p>
             </section>
 
             {error && (
