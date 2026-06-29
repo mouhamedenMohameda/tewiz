@@ -1,8 +1,11 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { MapShell } from '@/components/Map';
+import type { MapRef, MarkerDragEvent, MapMouseEvent } from 'react-map-gl/mapbox';
+import { Marker } from 'react-map-gl/mapbox';
 import { api } from '@/lib/api';
 import clsx from 'clsx';
 
@@ -20,22 +23,12 @@ interface GeoResult {
 }
 interface Place { lat: number; lng: number; label?: string }
 
-declare global {
-  interface Window {
-    L?: any;
-  }
-}
-
 type Field = 'pickup' | 'dropoff';
 
 export default function NewRidePage() {
   const router = useRouter();
-  const mapContainer = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<any>(null);
-  const pickupMarkerRef = useRef<any>(null);
-  const dropoffMarkerRef = useRef<any>(null);
+  const mapRef = useRef<MapRef | null>(null);
 
-  const [mapReady, setMapReady] = useState(false);
   const [pickup, setPickup] = useState<Place | null>(null);
   const [dropoff, setDropoff] = useState<Place | null>(null);
 
@@ -85,121 +78,34 @@ export default function NewRidePage() {
   // Clear the dropoff marker when switching ON so the map doesn't lie.
   useEffect(() => {
     if (!isOpen) return;
-    dropoffMarkerRef.current?.remove();
-    dropoffMarkerRef.current = null;
     setDropoff(null);
   }, [isOpen]);
 
-  // 1. Load Leaflet from CDN + boot the map.
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      if (!window.L) {
-        await new Promise<void>((resolve, reject) => {
-          const css = document.createElement('link');
-          css.rel = 'stylesheet';
-          css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-          document.head.appendChild(css);
-          const sc = document.createElement('script');
-          sc.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-          sc.onload = () => resolve();
-          sc.onerror = () => reject(new Error('Leaflet load failed'));
-          document.head.appendChild(sc);
-        });
-      }
-      if (cancelled || !mapContainer.current) return;
-
-      const L = window.L;
-      const map = L.map(mapContainer.current).setView(
-        [DEFAULT_CENTER.lat, DEFAULT_CENTER.lng],
-        12,
-      );
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '© OpenStreetMap',
-      }).addTo(map);
-      mapRef.current = map;
-      setMapReady(true);
-
-      map.on('click', (e: any) => {
-        const p = { lat: e.latlng.lat, lng: e.latlng.lng, label: 'Point sur la carte' };
-        // Open ride mode: only the pickup pin is meaningful; all clicks place
-        // / move the pickup so the operator can't accidentally create a phantom
-        // dropoff that won't be sent to the API.
-        if (isOpenRef.current) {
-          dropMarker('pickup', p);
-          setPickup(p);
-          return;
-        }
-        if (!pickupMarkerRef.current) {
-          dropMarker('pickup', p);
-          setPickup(p);
-        } else if (!dropoffMarkerRef.current) {
-          dropMarker('dropoff', p);
-          setDropoff(p);
-        } else {
-          dropMarker('dropoff', p);
-          setDropoff(p);
-        }
-      });
-    })();
-    return () => {
-      cancelled = true;
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
-    };
+  // Map click — Open ride mode places/moves the pickup only.
+  const handleMapClick = useCallback((e: MapMouseEvent) => {
+    const p: Place = { lat: e.lngLat.lat, lng: e.lngLat.lng, label: 'Point sur la carte' };
+    if (isOpenRef.current) {
+      setPickup(p);
+      return;
+    }
+    if (!pickupRef.current) {
+      setPickup(p);
+    } else {
+      setDropoff(p);
+    }
   }, []);
 
-  function makeColoredIcon(color: string) {
-    const L = window.L;
-    const html = `
-      <span style="
-        display:inline-block;
-        width:24px;height:24px;
-        border-radius:50% 50% 50% 0;
-        background:${color};
-        transform:rotate(-45deg);
-        border:2px solid #fff;
-        box-shadow:0 2px 4px rgba(0,0,0,0.3);
-      "></span>`;
-    return L.divIcon({
-      html,
-      className: 'tewiz-pin',
-      iconSize: [24, 24],
-      iconAnchor: [12, 24],
-    });
-  }
-
-  function dropMarker(field: Field, p: Place) {
-    const L = window.L;
-    const map = mapRef.current;
-    if (!L || !map) return;
-    const existing = field === 'pickup' ? pickupMarkerRef.current : dropoffMarkerRef.current;
-    if (existing) existing.remove();
-    const color = field === 'pickup' ? PICKUP_COLOR : DROPOFF_COLOR;
-    const marker = L.marker([p.lat, p.lng], {
-      draggable: true,
-      icon: makeColoredIcon(color),
-    }).addTo(map);
-    marker.on('dragend', () => {
-      const ll = marker.getLatLng();
-      const next = { lat: ll.lat, lng: ll.lng, label: 'Point sur la carte' };
-      if (field === 'pickup') setPickup(next);
-      else setDropoff(next);
-    });
-    if (field === 'pickup') pickupMarkerRef.current = marker;
-    else dropoffMarkerRef.current = marker;
-  }
+  // Mirror pickup/dropoff into refs so the (stable) click handler reads the
+  // current values without re-binding on every render.
+  const pickupRef = useRef<Place | null>(null);
+  const dropoffRef = useRef<Place | null>(null);
+  useEffect(() => { pickupRef.current = pickup; }, [pickup]);
+  useEffect(() => { dropoffRef.current = dropoff; }, [dropoff]);
 
   function applyPlace(field: Field, p: Place) {
-    const map = mapRef.current;
-    if (!map) return;
-    dropMarker(field, p);
     if (field === 'pickup') setPickup(p);
     else setDropoff(p);
-    map.setView([p.lat, p.lng], 14);
+    mapRef.current?.flyTo({ center: [p.lng, p.lat], zoom: 14 });
   }
 
   // 2. Debounced geocoding search.
@@ -346,8 +252,6 @@ export default function NewRidePage() {
               onFocus={() => { setEditing('pickup'); setQuery(pickup?.label ?? ''); }}
               onChange={setQuery}
               onClear={() => {
-                pickupMarkerRef.current?.remove();
-                pickupMarkerRef.current = null;
                 setPickup(null);
               }}
             />
@@ -364,8 +268,6 @@ export default function NewRidePage() {
                 onFocus={() => { setEditing('dropoff'); setQuery(dropoff?.label ?? ''); }}
                 onChange={setQuery}
                 onClear={() => {
-                  dropoffMarkerRef.current?.remove();
-                  dropoffMarkerRef.current = null;
                   setDropoff(null);
                 }}
               />
@@ -540,16 +442,62 @@ export default function NewRidePage() {
 
           {/* Right column: map */}
           <div className="card overflow-hidden h-[600px] relative">
-            <div ref={mapContainer} className="w-full h-full" />
-            {!mapReady && (
-              <div className="absolute inset-0 flex items-center justify-center bg-slate-50/80 text-slate-500">
-                Chargement de la carte…
-              </div>
-            )}
+            <MapShell
+              ref={mapRef}
+              onClick={handleMapClick}
+              initialViewState={{
+                longitude: DEFAULT_CENTER.lng,
+                latitude: DEFAULT_CENTER.lat,
+                zoom: 12,
+              }}
+            >
+              {pickup && (
+                <Marker
+                  longitude={pickup.lng}
+                  latitude={pickup.lat}
+                  anchor="bottom"
+                  draggable
+                  onDragEnd={(e: MarkerDragEvent) =>
+                    setPickup({ lat: e.lngLat.lat, lng: e.lngLat.lng, label: 'Point sur la carte' })
+                  }
+                >
+                  <ColoredPin color={PICKUP_COLOR} />
+                </Marker>
+              )}
+              {!isOpen && dropoff && (
+                <Marker
+                  longitude={dropoff.lng}
+                  latitude={dropoff.lat}
+                  anchor="bottom"
+                  draggable
+                  onDragEnd={(e: MarkerDragEvent) =>
+                    setDropoff({ lat: e.lngLat.lat, lng: e.lngLat.lng, label: 'Point sur la carte' })
+                  }
+                >
+                  <ColoredPin color={DROPOFF_COLOR} />
+                </Marker>
+              )}
+            </MapShell>
           </div>
         </div>
       </div>
     </AppShell>
+  );
+}
+
+function ColoredPin({ color }: { color: string }) {
+  return (
+    <svg
+      width="26"
+      height="36"
+      viewBox="0 0 26 36"
+      fill={color}
+      stroke="#fff"
+      strokeWidth="2"
+      style={{ cursor: 'grab', filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.3))' }}
+    >
+      <path d="M13 0C6.4 0 1 5.4 1 12c0 9 12 24 12 24s12-15 12-24c0-6.6-5.4-12-12-12z" />
+    </svg>
   );
 }
 

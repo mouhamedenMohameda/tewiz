@@ -1231,3 +1231,43 @@ export async function cancelRide(input: CancelInput) {
     return shape(upd.rows[0]!, { revealCode: true });
   });
 }
+
+interface AdminCancelInput {
+  rideId: string;
+  reason: string;
+}
+
+// Admin override cancel: can terminate a ride from ANY non-terminal state
+// (searching, accepted, arrived, in_progress, pending_passenger_confirm).
+// Sets status='cancelled_by_system' and frees the assigned captain.
+export async function adminCancelRide(input: AdminCancelInput) {
+  return withTx(async (client) => {
+    const ride = await lockRide(client, input.rideId);
+
+    const terminal = ['completed', 'cancelled_by_rider', 'cancelled_by_captain',
+                      'cancelled_by_system', 'no_show'];
+    if (terminal.includes(ride.status)) {
+      throw new HttpError(409, 'wrong_status',
+        `Ride is already in terminal state ${ride.status}`);
+    }
+
+    const upd = await client.query<RideRow>(
+      `UPDATE rides
+          SET status = 'cancelled_by_system',
+              cancelled_at = now(),
+              cancel_reason = $1
+        WHERE id = $2
+      RETURNING ${RIDE_COLUMNS}`,
+      [input.reason, ride.id],
+    );
+
+    if (ride.captain_id) {
+      await client.query(
+        `UPDATE captain_state SET presence = 'online', updated_at = now()
+          WHERE captain_id = $1 AND presence = 'on_ride'`,
+        [ride.captain_id],
+      );
+    }
+    return shape(upd.rows[0]!, { revealCode: true });
+  });
+}

@@ -188,3 +188,27 @@ adminRidesRouter.post('/:id/rebroadcast', async (req, res) => {
   });
   res.json(result);
 });
+
+/**
+ * POST /admin/rides/:id/cancel
+ * Admin override — cancel a ride from ANY non-terminal status.
+ * Sets status='cancelled_by_system' and frees the assigned captain.
+ */
+const cancelBody = z.object({
+  reason: z.string().min(1).max(500),
+});
+
+adminRidesRouter.post('/:id/cancel', async (req, res) => {
+  const adminId = req.user!.id;
+  const rideId = req.params.id!;
+  const body = cancelBody.parse(req.body);
+  const ride = await rides.adminCancelRide({ rideId, reason: body.reason });
+  await audit({
+    adminId,
+    action: 'cancel_ride',
+    targetType: 'ride',
+    targetId: rideId,
+    after: { reason: body.reason, status: ride.status },
+  });
+  res.json(ride);
+});

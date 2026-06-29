@@ -14,6 +14,7 @@
     "db:migrate": "pnpm --filter @tewiz/api migrate up",
     "db:migrate:down": "pnpm --filter @tewiz/api migrate down",
     "tunnel": "ssh -L 5432:localhost:5432 -L 6379:localhost:6379 root@5.189.153.144",
+    "tree:update": "bash scripts/update-project-tree.sh",
     "typecheck": "pnpm -r typecheck",
     "build": "pnpm -r build"
   },

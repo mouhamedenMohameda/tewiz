@@ -198,7 +198,8 @@ Merci !
 **Tiers à déclarer** (sous-traitants techniques) :
 - **OpenAI** — transcription audio (Whisper). Audio supprimé après transcription.
 - **Anthropic** — extraction de lieu depuis le texte transcrit.
-- **Google Maps Platform** — geocoding et cartes.
+- **Mapbox** — rendu des cartes et tuiles.
+- **Google Maps Platform** — geocoding (backend uniquement, pas de SDK client).
 - **Sentry** — reporting de crashes (région UE).
 - **Expo Push Notifications** — relai des notifications push (APNs / FCM).
 

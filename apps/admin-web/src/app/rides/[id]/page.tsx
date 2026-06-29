@@ -1,7 +1,7 @@
 'use client';
 
 import { use } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { AppShell } from '@/components/AppShell';
 import { api } from '@/lib/api';
@@ -77,6 +77,7 @@ function fmtTime(iso: string | null): string {
 
 export default function RideDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const queryClient = useQueryClient();
 
   const { data: ride, isLoading, error } = useQuery({
     queryKey: ['admin-ride', id],
@@ -88,6 +89,28 @@ export default function RideDetailPage({ params }: { params: Promise<{ id: strin
     refetchInterval: 4_000,
     refetchIntervalInBackground: false,
   });
+
+  const cancelMutation = useMutation({
+    mutationFn: async (reason: string) => {
+      const r = await api.post<Ride>(`/admin/rides/${id}/cancel`, { reason });
+      return r.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['admin-ride', id] });
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { message?: string } } })
+        ?.response?.data?.message ?? 'Échec de l\'annulation';
+      alert(msg);
+    },
+  });
+
+  function handleCancel() {
+    const reason = window.prompt('Raison de l\'annulation ?', 'Annulation administrateur');
+    if (!reason) return;
+    if (!window.confirm('Confirmer l\'annulation de cette course ?')) return;
+    cancelMutation.mutate(reason);
+  }
 
   if (isLoading) {
     return (
@@ -149,6 +172,22 @@ export default function RideDetailPage({ params }: { params: Promise<{ id: strin
           ) : null}
           {STATUS_LABEL[ride.status]}
         </div>
+
+        {!isFinal ? (
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={handleCancel}
+              disabled={cancelMutation.isPending}
+              className="inline-flex items-center gap-2 rounded-md bg-rose-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-50"
+            >
+              {cancelMutation.isPending ? 'Annulation…' : '✕ Annuler la course'}
+            </button>
+            <p className="mt-1 text-xs text-slate-500">
+              Annulation administrateur — disponible à tout moment, quel que soit l'état.
+            </p>
+          </div>
+        ) : null}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
           {/* Trip */}

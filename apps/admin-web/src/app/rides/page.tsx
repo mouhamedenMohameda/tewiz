@@ -93,6 +93,29 @@ export default function RidesPage() {
     },
   });
 
+  const cancelRide = useMutation({
+    mutationFn: async (rideId: string) => {
+      const reason = window.prompt('Raison de l\'annulation ?', 'Annulation administrateur');
+      if (!reason) throw new Error('cancelled_by_user');
+      const r = await api.post(`/admin/rides/${rideId}/cancel`, { reason });
+      return r.data;
+    },
+    onMutate: (rideId) => setBusyId(rideId),
+    onSettled: () => setBusyId(null),
+    onSuccess: () => refetch(),
+    onError: (err: unknown) => {
+      if ((err as Error)?.message === 'cancelled_by_user') return;
+      const msg = (err as { response?: { data?: { message?: string } } })
+        ?.response?.data?.message ?? 'Échec de l\'annulation';
+      alert(msg);
+    },
+  });
+
+  function confirmCancel(rideId: string) {
+    if (!window.confirm('Confirmer l\'annulation de cette course ?')) return;
+    cancelRide.mutate(rideId);
+  }
+
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['rides', filter],
     queryFn: async () => {
@@ -215,16 +238,33 @@ export default function RidesPage() {
       header: 'Action',
       align: 'right',
       hideOnMobile: true,
-      cell: (r) =>
-        r.status === 'searching' ? (
-          <button
-            onClick={() => rebroadcast.mutate(r.id)}
-            disabled={busyId === r.id}
-            className="text-xs font-medium px-3 py-1.5 rounded-md bg-brand-50 text-brand-700 hover:bg-brand-100 disabled:opacity-50 whitespace-nowrap"
-          >
-            {busyId === r.id ? 'Relance…' : '↻ Relancer'}
-          </button>
-        ) : null,
+      cell: (r) => {
+        const terminal = r.status === 'completed'
+          || r.status.startsWith('cancelled')
+          || r.status === 'no_show';
+        return (
+          <div className="flex items-center justify-end gap-2 whitespace-nowrap">
+            {r.status === 'searching' ? (
+              <button
+                onClick={() => rebroadcast.mutate(r.id)}
+                disabled={busyId === r.id}
+                className="text-xs font-medium px-3 py-1.5 rounded-md bg-brand-50 text-brand-700 hover:bg-brand-100 disabled:opacity-50"
+              >
+                {busyId === r.id ? 'Relance…' : '↻ Relancer'}
+              </button>
+            ) : null}
+            {!terminal ? (
+              <button
+                onClick={() => confirmCancel(r.id)}
+                disabled={busyId === r.id}
+                className="text-xs font-medium px-3 py-1.5 rounded-md bg-rose-50 text-rose-700 hover:bg-rose-100 disabled:opacity-50"
+              >
+                ✕ Annuler
+              </button>
+            ) : null}
+          </div>
+        );
+      },
     },
   ];
 
@@ -270,17 +310,33 @@ export default function RidesPage() {
             columns={columns}
             rowKey={(r) => r.id}
             emptyMessage="Aucune course dans cette catégorie."
-            mobileActions={(r) =>
-              r.status === 'searching' ? (
-                <button
-                  onClick={() => rebroadcast.mutate(r.id)}
-                  disabled={busyId === r.id}
-                  className="text-xs font-medium px-3 py-1.5 rounded-md bg-brand-50 text-brand-700 hover:bg-brand-100 disabled:opacity-50"
-                >
-                  {busyId === r.id ? 'Relance…' : '↻ Relancer'}
-                </button>
-              ) : null
-            }
+            mobileActions={(r) => {
+              const terminal = r.status === 'completed'
+                || r.status.startsWith('cancelled')
+                || r.status === 'no_show';
+              return (
+                <div className="flex items-center gap-2">
+                  {r.status === 'searching' ? (
+                    <button
+                      onClick={() => rebroadcast.mutate(r.id)}
+                      disabled={busyId === r.id}
+                      className="text-xs font-medium px-3 py-1.5 rounded-md bg-brand-50 text-brand-700 hover:bg-brand-100 disabled:opacity-50"
+                    >
+                      {busyId === r.id ? 'Relance…' : '↻ Relancer'}
+                    </button>
+                  ) : null}
+                  {!terminal ? (
+                    <button
+                      onClick={() => confirmCancel(r.id)}
+                      disabled={busyId === r.id}
+                      className="text-xs font-medium px-3 py-1.5 rounded-md bg-rose-50 text-rose-700 hover:bg-rose-100 disabled:opacity-50"
+                    >
+                      ✕ Annuler
+                    </button>
+                  ) : null}
+                </div>
+              );
+            }}
           />
         )}
       </div>
