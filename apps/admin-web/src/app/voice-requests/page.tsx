@@ -94,7 +94,7 @@ export default function VoiceRequestsPage() {
   }, [selected?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function setSide(side: PinSide, lat: number, lng: number) {
-    const pin: Pin = { lat, lng, label: 'Point sur la carte' };
+    const pin: Pin = { lat, lng };
     if (side === 'pickup') setPickup(pin); else setDropoff(pin);
   }
   function pickCandidate(c: PoiCandidate) {

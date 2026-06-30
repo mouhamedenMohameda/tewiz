@@ -83,7 +83,7 @@ export default function NewRidePage() {
 
   // Map click — Open ride mode places/moves the pickup only.
   const handleMapClick = useCallback((e: MapMouseEvent) => {
-    const p: Place = { lat: e.lngLat.lat, lng: e.lngLat.lng, label: 'Point sur la carte' };
+    const p: Place = { lat: e.lngLat.lat, lng: e.lngLat.lng };
     if (isOpenRef.current) {
       setPickup(p);
       return;
@@ -458,7 +458,7 @@ export default function NewRidePage() {
                   anchor="bottom"
                   draggable
                   onDragEnd={(e: MarkerDragEvent) =>
-                    setPickup({ lat: e.lngLat.lat, lng: e.lngLat.lng, label: 'Point sur la carte' })
+                    setPickup({ lat: e.lngLat.lat, lng: e.lngLat.lng })
                   }
                 >
                   <ColoredPin color={PICKUP_COLOR} />
@@ -471,7 +471,7 @@ export default function NewRidePage() {
                   anchor="bottom"
                   draggable
                   onDragEnd={(e: MarkerDragEvent) =>
-                    setDropoff({ lat: e.lngLat.lat, lng: e.lngLat.lng, label: 'Point sur la carte' })
+                    setDropoff({ lat: e.lngLat.lat, lng: e.lngLat.lng })
                   }
                 >
                   <ColoredPin color={DROPOFF_COLOR} />
