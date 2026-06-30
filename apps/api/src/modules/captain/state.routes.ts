@@ -132,16 +132,8 @@ captainStateRouter.post('/going-home', async (req, res) => {
   res.json(await goingHome.startSession(userId));
 });
 
-/**
- * DELETE /captain/state/going-home
- * Cancel the active going-home session.
- */
-captainStateRouter.delete('/going-home', async (req, res) => {
-  const userId = req.user!.id;
-  res.json(await goingHome.endSession({ captainId: userId, reason: 'cancelled' }));
-});
-
 // Dev-only: wipe all going-home history so the 24h cooldown can be retested.
+// Must be declared BEFORE DELETE /going-home to avoid Express sub-path ambiguity.
 captainStateRouter.delete('/going-home/reset', async (req, res) => {
   if (env.NODE_ENV === 'production') {
     res.status(403).json({ error: { code: 'forbidden', message: 'Not available in production' } });
@@ -150,6 +142,15 @@ captainStateRouter.delete('/going-home/reset', async (req, res) => {
   const userId = req.user!.id;
   await goingHome.resetSessions(userId);
   res.status(204).end();
+});
+
+/**
+ * DELETE /captain/state/going-home
+ * Cancel the active going-home session.
+ */
+captainStateRouter.delete('/going-home', async (req, res) => {
+  const userId = req.user!.id;
+  res.json(await goingHome.endSession({ captainId: userId, reason: 'cancelled' }));
 });
 
 /**
