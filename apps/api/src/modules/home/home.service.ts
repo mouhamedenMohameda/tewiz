@@ -58,7 +58,6 @@ export async function getHome(captainId: string) {
  * Skipped in development so the map picker can be tested without GPS spoofing.
  */
 async function assertGpsMatchesHome(client: pg.PoolClient, input: SetHomeInput) {
-  if (env.NODE_ENV !== 'production') return;
   const r = await client.query<{ d: string }>(
     `SELECT ST_Distance(
        ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography,
@@ -131,8 +130,7 @@ export async function updateHome(input: SetHomeInput) {
     const withinCorrectionWindow =
       !cur.correction_used && (now - cur.set_at.getTime()) < 48 * 3600_000;
 
-    // In development the lock is bypassed so the map picker can be tested.
-    if (env.NODE_ENV === 'production' && !expired && !withinCorrectionWindow) {
+    if (!expired && !withinCorrectionWindow) {
       throw new HttpError(409, 'locked',
         `Home is locked until ${cur.locked_until.toISOString()}`);
     }
