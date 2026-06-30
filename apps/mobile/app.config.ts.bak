@@ -122,7 +122,7 @@ const config: ExpoConfig = {
   extra: {
     router: {},
     eas: {
-      projectId: '42ccba7d-6c36-4a61-ae6e-dd8731400f60',
+      projectId: '5888957f-74bd-4a38-9dce-77f46a124cc7',
     },
   },
 };

@@ -259,6 +259,22 @@ export default function CaptainHome() {
                 })}
               </AppText>
             ) : null}
+            {__DEV__ ? (
+              <Pressable
+                onPress={async () => {
+                  try {
+                    await api.delete('/captain/state/going-home/reset');
+                    setGoingHome(null);
+                    Alert.alert('[DEV]', 'Historique going-home supprimé. Tu peux retester.');
+                  } catch (e: any) {
+                    Alert.alert('Erreur', e.response?.data?.error?.message ?? 'Impossible');
+                  }
+                }}
+                style={({ pressed }) => ({ marginTop: 6, opacity: pressed ? 0.5 : 1 })}
+              >
+                <AppText variant="caption" color={colors.danger}>[DEV] Réinitialiser le cooldown</AppText>
+              </Pressable>
+            ) : null}
           </View>
           {togglingGoingHome ? (
             <ActivityIndicator color={colors.ember} />

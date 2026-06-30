@@ -16,11 +16,15 @@ interface SessionRow {
 }
 
 function shape(r: SessionRow) {
+  const expiresAt = new Date(
+    new Date(r.started_at).getTime() + env.GOING_HOME_SESSION_MAX_HOURS * 3600_000,
+  );
   return {
     id: r.id,
     captainId: r.captain_id,
     home: { lat: r.home_lat, lng: r.home_lng },
     startedAt: r.started_at,
+    expiresAt: expiresAt.toISOString(),
     endedAt: r.ended_at,
     status: r.status,
     endReason: r.end_reason,
@@ -78,15 +82,15 @@ export async function startSession(captainId: string) {
       throw new HttpError(402, 'balance_too_low', 'Insufficient balance');
     }
 
-    const todayCount = await client.query<{ n: string }>(
+    const recentCount = await client.query<{ n: string }>(
       `SELECT COUNT(*)::text AS n FROM captain_going_home_sessions
         WHERE captain_id = $1
-          AND started_at > date_trunc('day', now() AT TIME ZONE 'Africa/Nouakchott') AT TIME ZONE 'Africa/Nouakchott'`,
+          AND started_at > now() - interval '24 hours'`,
       [captainId],
     );
-    if (Number(todayCount.rows[0]?.n ?? 0) >= env.GOING_HOME_MAX_PER_DAY) {
-      throw new HttpError(429, 'daily_limit',
-        `Limit ${env.GOING_HOME_MAX_PER_DAY} going-home sessions per day reached`);
+    if (Number(recentCount.rows[0]?.n ?? 0) >= 1) {
+      throw new HttpError(429, 'cooldown_active',
+        'You already started going-home mode in the last 24 hours');
     }
 
     const ins = await client.query<SessionRow>(
@@ -98,6 +102,13 @@ export async function startSession(captainId: string) {
     );
     return shape(ins.rows[0]!);
   });
+}
+
+export async function resetSessions(captainId: string) {
+  await pool.query(
+    `DELETE FROM captain_going_home_sessions WHERE captain_id = $1`,
+    [captainId],
+  );
 }
 
 interface EndSessionInput {

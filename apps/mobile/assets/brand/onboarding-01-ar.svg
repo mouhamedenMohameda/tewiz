@@ -1,0 +1,154 @@
+<svg width="1080" height="1920" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Aloo — onboarding 1 (AR)" direction="rtl">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="32%" r="85%">
+      <stop offset="0%" stop-color="#FBC65A"/>
+      <stop offset="55%" stop-color="#F6A623"/>
+      <stop offset="100%" stop-color="#F2682C"/>
+    </radialGradient>
+    <linearGradient id="topGlow" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#FFFCF6" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#FFFCF6" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="window" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FBC65A"/>
+      <stop offset="100%" stop-color="#F6A623"/>
+    </linearGradient>
+    <radialGradient id="head" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFF7DF"/>
+      <stop offset="100%" stop-color="#F6A623"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1080" height="1920" fill="url(#bg)"/>
+  <ellipse cx="540" cy="420" rx="700" ry="340" fill="url(#topGlow)"/>
+
+  <!-- Decorative dots -->
+  <g fill="#2C1D10" opacity="0.12">
+    <circle cx="120" cy="640" r="6"/>
+    <circle cx="180" cy="720" r="4"/>
+    <circle cx="960" cy="600" r="5"/>
+    <circle cx="900" cy="690" r="4"/>
+    <circle cx="80" cy="1180" r="5"/>
+    <circle cx="1000" cy="1240" r="6"/>
+  </g>
+
+  <!-- Logo: Aloo monogram A -->
+  <g transform="translate(420,150) scale(0.47)">
+    <g fill="none" stroke="#2C1D10" stroke-width="43" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M150 380 L256 143"/>
+      <path d="M362 380 L256 143"/>
+      <path d="M194 298 L318 298"/>
+    </g>
+  </g>
+
+  <!-- Wordmark in Arabic -->
+  <text x="540" y="450" text-anchor="middle" font-family="'Tajawal', 'Cairo', 'IBM Plex Arabic', 'Noto Sans Arabic', sans-serif" font-size="100" font-weight="700" fill="#2C1D10" direction="rtl">ألو</text>
+  <text x="540" y="500" text-anchor="middle" font-family="'Tajawal', 'Cairo', 'Noto Sans Arabic', sans-serif" font-size="24" fill="#2C1D10" opacity="0.65" letter-spacing="4" direction="rtl">رحلتك · بضغطة واحدة</text>
+
+  <!-- Floating pills (mirrored for RTL: prominent pill now on the right) -->
+  <g font-family="'Tajawal', 'Cairo', 'Noto Sans Arabic', sans-serif" font-weight="700">
+    <!-- سريع (top-right, light pill) -->
+    <g transform="translate(730,800)">
+      <rect x="0" y="6" width="240" height="96" rx="48" fill="#2C1D10" opacity="0.15"/>
+      <rect x="0" y="0" width="240" height="96" rx="48" fill="#FBF3E7"/>
+      <circle cx="196" cy="48" r="14" fill="#F2682C"/>
+      <text x="100" y="64" text-anchor="middle" font-size="46" fill="#2C1D10" direction="rtl">سريع</text>
+    </g>
+    <!-- آمن (top-left, dark pill) -->
+    <g transform="translate(110,890)">
+      <rect x="0" y="6" width="200" height="96" rx="48" fill="#2C1D10" opacity="0.2"/>
+      <rect x="0" y="0" width="200" height="96" rx="48" fill="#2C1D10"/>
+      <circle cx="156" cy="48" r="14" fill="#FBC65A"/>
+      <text x="80" y="64" text-anchor="middle" font-size="46" fill="#FBF3E7" direction="rtl">آمن</text>
+    </g>
+    <!-- قريب (bottom-center, light pill) -->
+    <g transform="translate(380,1310)">
+      <rect x="0" y="6" width="240" height="96" rx="48" fill="#2C1D10" opacity="0.18"/>
+      <rect x="0" y="0" width="240" height="96" rx="48" fill="#FBF3E7"/>
+      <circle cx="196" cy="48" r="14" fill="#F2682C"/>
+      <text x="100" y="64" text-anchor="middle" font-size="46" fill="#2C1D10" direction="rtl">قريب</text>
+    </g>
+  </g>
+
+  <!-- CAR (mirrored horizontally for RTL — now faces left) -->
+  <g transform="translate(540,1100) scale(-1,1)">
+    <!-- ground shadow -->
+    <ellipse cx="0" cy="180" rx="380" ry="28" fill="#2C1D10" opacity="0.22"/>
+
+    <!-- Main body silhouette -->
+    <path d="
+      M -340 90
+      L -340 40
+      C -340 10 -325 -10 -300 -25
+      L -240 -60
+      C -200 -120 -130 -150 -50 -155
+      L 80 -155
+      C 140 -155 185 -125 215 -75
+      L 250 -50
+      L 320 -25
+      C 348 -15 360 8 360 40
+      L 360 90
+      Z" fill="#2C1D10"/>
+
+    <!-- Windshield / windows -->
+    <path d="
+      M -200 -50
+      C -160 -110 -110 -135 -50 -138
+      L 75 -138
+      C 130 -138 170 -115 195 -70
+      L 200 -55
+      Z" fill="url(#window)" opacity="0.95"/>
+
+    <!-- Window divider -->
+    <line x1="40" y1="-138" x2="60" y2="-55" stroke="#2C1D10" stroke-width="6" stroke-linecap="round"/>
+
+    <!-- Hood highlight -->
+    <path d="M 215 -65 L 320 -22 L 358 -8 L 358 8 L 220 -45 Z" fill="#F2682C" opacity="0.55"/>
+
+    <!-- Headlight -->
+    <ellipse cx="332" cy="22" rx="22" ry="14" fill="url(#head)"/>
+    <ellipse cx="332" cy="22" rx="32" ry="22" fill="#FBC65A" opacity="0.35"/>
+
+    <!-- Side accent line -->
+    <path d="M -300 20 L 280 5" stroke="#F2682C" stroke-width="4" stroke-linecap="round" opacity="0.6"/>
+
+    <!-- Door handles -->
+    <rect x="-90" y="-10" width="36" height="6" rx="3" fill="#FBF3E7" opacity="0.4"/>
+    <rect x="100" y="-10" width="36" height="6" rx="3" fill="#FBF3E7" opacity="0.4"/>
+
+    <!-- Wheel wells -->
+    <circle cx="-200" cy="90" r="72" fill="url(#bg)"/>
+    <circle cx="240" cy="90" r="72" fill="url(#bg)"/>
+
+    <!-- Rear wheel -->
+    <circle cx="-200" cy="90" r="58" fill="#2C1D10"/>
+    <circle cx="-200" cy="90" r="46" fill="#171210"/>
+    <circle cx="-200" cy="90" r="22" fill="#FBC65A"/>
+    <circle cx="-200" cy="90" r="10" fill="#2C1D10"/>
+
+    <!-- Front wheel -->
+    <circle cx="240" cy="90" r="58" fill="#2C1D10"/>
+    <circle cx="240" cy="90" r="46" fill="#171210"/>
+    <circle cx="240" cy="90" r="22" fill="#FBC65A"/>
+    <circle cx="240" cy="90" r="10" fill="#2C1D10"/>
+  </g>
+
+  <!-- Motion lines behind car (mirrored to the right since car faces left) -->
+  <g stroke="#FBF3E7" stroke-linecap="round" opacity="0.55">
+    <line x1="910"  y1="1190" x2="1000" y2="1190" stroke-width="6"/>
+    <line x1="950"  y1="1230" x2="1020" y2="1230" stroke-width="4"/>
+    <line x1="920"  y1="1150" x2="980"  y2="1150" stroke-width="4"/>
+  </g>
+
+  <!-- Tagline in Arabic -->
+  <text x="540" y="1630" text-anchor="middle" font-family="'Tajawal', 'Cairo', 'Noto Sans Arabic', sans-serif" font-weight="700" font-size="74" fill="#2C1D10" direction="rtl">رحلتك،</text>
+  <text x="540" y="1710" text-anchor="middle" font-family="'Tajawal', 'Cairo', 'Noto Sans Arabic', sans-serif" font-weight="700" font-size="74" fill="#2C1D10" direction="rtl">بضغطة واحدة</text>
+
+  <!-- Page indicator -->
+  <g transform="translate(540,1810)">
+    <circle cx="-32" cy="0" r="9" fill="#2C1D10"/>
+    <circle cx="0"   cy="0" r="7" fill="#2C1D10" opacity="0.3"/>
+    <circle cx="28"  cy="0" r="7" fill="#2C1D10" opacity="0.3"/>
+  </g>
+</svg>
