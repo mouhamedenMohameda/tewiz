@@ -10,9 +10,11 @@
  *      "what it usually looks like" before committing.
  *
  *   2. Rider trust — "is this passenger reliable?"
- *      We aggregate the booker's lifetime stats: total rides, completion
- *      rate, no-show rate, average star rating, and how long they've been
- *      a member. This is the same signal Uber/Bolt show to drivers.
+ *      We aggregate lifetime stats by the rider's effective phone number
+ *      (passenger_phone when present, else the booker account's phone):
+ *      total rides, completion rate, no-show rate, average star rating,
+ *      and how long they've been a member. This avoids mixing call-center
+ *      operators with the real passenger history.
  *
  * Everything runs in a single Postgres roundtrip per section (no N+1) and
  * skips rides created by guests (which have no meaningful history).
@@ -260,12 +262,18 @@ export async function getRideInsights(rideId: string): Promise<RideInsights> {
   // Pull pickup + dropoff + booker_id once. Everything else hangs off these.
   const head = await pool.query<{
     booker_id: string;
+    passenger_name: string | null;
+    passenger_phone: string | null;
+    is_open: boolean;
     pickup_lat: number;
     pickup_lng: number;
     dropoff_lat: number | null;
     dropoff_lng: number | null;
   }>(
-    `SELECT booker_id,
+        `SELECT booker_id,
+          passenger_name,
+          passenger_phone,
+            is_open,
             ST_Y(pickup_location::geometry)  AS pickup_lat,
             ST_X(pickup_location::geometry)  AS pickup_lng,
             ST_Y(dropoff_location::geometry) AS dropoff_lat,
@@ -278,57 +286,107 @@ export async function getRideInsights(rideId: string): Promise<RideInsights> {
   }
   const {
     booker_id: bookerId,
+    passenger_name: passengerName,
+    passenger_phone: passengerPhone,
+    is_open: isOpen,
     pickup_lat:  puLat,  pickup_lng:  puLng,
     dropoff_lat: lat,    dropoff_lng: lng,
   } = head.rows[0];
-  // Open rides have no destination → no "destination zone demand" to compute.
-  // Use the pickup as the zone of interest so the captain still gets some
-  // useful context (recent activity near the rider).
-  const hasDestination = lat != null && lng != null;
-  const destLat = hasDestination ? lat : puLat;
-  const destLng = hasDestination ? lng : puLng;
+  // Open rides have no destination → no destination demand should be shown.
+  // We return zeroed counters instead of approximating with pickup activity,
+  // because that approximation is misleading for "course ouverte" flows.
+  const hasDestination = !isOpen && lat != null && lng != null;
 
   // ─── Destination demand ──────────────────────────────────────────────────
   // Excludes the current ride itself from the counts; we only count rides
   // that actually started "for real" (status not pending_passenger_confirm).
-  const destPromise = pool.query<DestRow>(
-    `WITH dest AS (
-       SELECT ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography AS pt
-     )
-     SELECT
-       COUNT(*) FILTER (
-         WHERE r.requested_at >= now() - make_interval(secs => $4)
-       ) AS rides_last_2h,
-       COUNT(*) FILTER (
-         WHERE r.requested_at BETWEEN
-               (now() - interval '1 day') - make_interval(secs => $5)
-           AND (now() - interval '1 day') + make_interval(secs => $5)
-       ) AS rides_yesterday
-       FROM rides r, dest
-      WHERE r.id <> $6
-        AND r.status <> 'pending_passenger_confirm'
-        AND ST_DWithin(r.dropoff_location, dest.pt, $3)`,
-    [destLng, destLat, DEST_RADIUS_M, RECENT_WINDOW_S, YESTERDAY_HALF_WINDOW_S, rideId],
-  );
+  const destPromise: Promise<{ rows: DestRow[] }> = hasDestination
+    ? pool.query<DestRow>(
+      `WITH dest AS (
+         SELECT ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography AS pt
+       )
+       SELECT
+         COUNT(*) FILTER (
+           WHERE r.requested_at >= now() - make_interval(secs => $4)
+         ) AS rides_last_2h,
+         COUNT(*) FILTER (
+           WHERE r.requested_at BETWEEN
+                 (now() - interval '1 day') - make_interval(secs => $5)
+             AND (now() - interval '1 day') + make_interval(secs => $5)
+         ) AS rides_yesterday
+         FROM rides r, dest
+        WHERE r.id <> $6
+          AND r.status <> 'pending_passenger_confirm'
+          AND ST_DWithin(r.dropoff_location, dest.pt, $3)`,
+      [lng!, lat!, DEST_RADIUS_M, RECENT_WINDOW_S, YESTERDAY_HALF_WINDOW_S, rideId],
+    )
+    : Promise.resolve({
+      rows: [{ rides_last_2h: '0', rides_yesterday: '0' }],
+    });
 
   // ─── Rider stats ─────────────────────────────────────────────────────────
-  // Subquery-per-metric so we always return exactly one row, even when the
-  // booker is a guest (no users entry). The previous WITH+FULL OUTER JOIN
-  // version was both fragile (could yield 0 rows depending on data shape)
-  // and inefficient (cross-joined the entire users table).
-  const riderPromise = pool.query<RiderRow>(
-    `SELECT
-        (SELECT id         FROM users WHERE id = $1)                                                AS user_id,
-        (SELECT full_name  FROM users WHERE id = $1)                                                AS full_name,
-        (SELECT created_at FROM users WHERE id = $1)                                                AS created_at,
-        (SELECT COUNT(*)                       FROM rides   WHERE booker_id = $1)                   AS total,
-        (SELECT COUNT(*) FILTER (WHERE status = 'completed')           FROM rides WHERE booker_id = $1) AS completed,
-        (SELECT COUNT(*) FILTER (WHERE status = 'cancelled_by_rider')  FROM rides WHERE booker_id = $1) AS cancelled_by_rider,
-        (SELECT COUNT(*) FILTER (WHERE status = 'no_show')             FROM rides WHERE booker_id = $1) AS no_show,
-        (SELECT AVG(stars)::numeric(3,2)       FROM ratings WHERE ratee_id = $1)                    AS avg_rating,
-        (SELECT COUNT(*)                       FROM ratings WHERE ratee_id = $1)                    AS ratings_count`,
-    [bookerId],
-  );
+  // Aggregate trust by the real rider identity (effective phone) so operator
+  // bookings don't inherit the call-center account history.
+  const riderPhone = passengerPhone
+    ?? (await pool.query<{ phone: string | null }>(
+      `SELECT phone FROM users WHERE id = $1`,
+      [bookerId],
+    )).rows[0]?.phone
+    ?? null;
+  const riderPromise = riderPhone
+    ? pool.query<RiderRow>(
+      `WITH target AS (
+         SELECT
+           $1::text AS phone,
+           (SELECT id FROM users WHERE phone = $1 LIMIT 1) AS user_id
+       )
+       SELECT
+         t.user_id AS user_id,
+         COALESCE(
+           (SELECT r.passenger_name
+              FROM rides r
+             WHERE r.passenger_phone = t.phone
+               AND r.passenger_name IS NOT NULL
+             ORDER BY r.requested_at DESC
+             LIMIT 1),
+           (SELECT u.full_name FROM users u WHERE u.id = t.user_id),
+           $2::text
+         ) AS full_name,
+         (SELECT u.created_at FROM users u WHERE u.id = t.user_id) AS created_at,
+         (SELECT COUNT(*)
+            FROM rides r
+            LEFT JOIN users u ON u.id = r.booker_id
+           WHERE COALESCE(r.passenger_phone, u.phone) = t.phone) AS total,
+         (SELECT COUNT(*) FILTER (WHERE r.status = 'completed')
+            FROM rides r
+            LEFT JOIN users u ON u.id = r.booker_id
+           WHERE COALESCE(r.passenger_phone, u.phone) = t.phone) AS completed,
+         (SELECT COUNT(*) FILTER (WHERE r.status = 'cancelled_by_rider')
+            FROM rides r
+            LEFT JOIN users u ON u.id = r.booker_id
+           WHERE COALESCE(r.passenger_phone, u.phone) = t.phone) AS cancelled_by_rider,
+         (SELECT COUNT(*) FILTER (WHERE r.status = 'no_show')
+            FROM rides r
+            LEFT JOIN users u ON u.id = r.booker_id
+           WHERE COALESCE(r.passenger_phone, u.phone) = t.phone) AS no_show,
+         (SELECT AVG(stars)::numeric(3,2) FROM ratings WHERE ratee_id = t.user_id) AS avg_rating,
+         (SELECT COUNT(*) FROM ratings WHERE ratee_id = t.user_id) AS ratings_count
+       FROM target t`,
+      [riderPhone, passengerName],
+    )
+    : pool.query<RiderRow>(
+      `SELECT
+          (SELECT id         FROM users WHERE id = $1) AS user_id,
+          (SELECT full_name  FROM users WHERE id = $1) AS full_name,
+          (SELECT created_at FROM users WHERE id = $1) AS created_at,
+          (SELECT COUNT(*)                       FROM rides   WHERE booker_id = $1) AS total,
+          (SELECT COUNT(*) FILTER (WHERE status = 'completed')          FROM rides WHERE booker_id = $1) AS completed,
+          (SELECT COUNT(*) FILTER (WHERE status = 'cancelled_by_rider') FROM rides WHERE booker_id = $1) AS cancelled_by_rider,
+          (SELECT COUNT(*) FILTER (WHERE status = 'no_show')            FROM rides WHERE booker_id = $1) AS no_show,
+          (SELECT AVG(stars)::numeric(3,2) FROM ratings WHERE ratee_id = $1) AS avg_rating,
+          (SELECT COUNT(*) FROM ratings WHERE ratee_id = $1) AS ratings_count`,
+      [bookerId],
+    );
 
   const [destRes, riderRes, pickupEnr, dropoffEnr, destNearbyPois] = await Promise.all([
     destPromise,
