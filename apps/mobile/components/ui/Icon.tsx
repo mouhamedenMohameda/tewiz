@@ -62,6 +62,7 @@ const REGISTRY = {
   gift: { set: 'ion', glyph: 'gift' },
   bell: { set: 'ion', glyph: 'notifications-outline' },
   bellFilled: { set: 'ion', glyph: 'notifications' },
+  globe: { set: 'ion', glyph: 'globe-outline' },
 } as const satisfies Record<string, IconEntry>;
 
 export type IconName = keyof typeof REGISTRY;

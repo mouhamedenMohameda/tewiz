@@ -12,15 +12,16 @@
  */
 
 import { useState } from 'react';
-import { Alert, Dimensions, Image, View } from 'react-native';
+import { Alert, Dimensions, Image, Modal, Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { loginAsDemo, loginAsGuest, type DemoRole } from '@/lib/guest';
 import { useAppConfig } from '@/lib/appConfig';
+import { AppLanguage, SUPPORTED_LANGUAGES, currentLanguage, setLanguage } from '@/lib/i18n';
 import { colors, gradients, radius, shadow, spacing } from '@/theme';
-import { AppText, Button, FadeInView, Icon } from '@/components/ui';
+import { AppText, Button, FadeInView, Icon, PressableScale } from '@/components/ui';
 import { APP_NAME } from '@/lib/brand';
 
 const { height: SCREEN_H } = Dimensions.get('window');
@@ -31,6 +32,18 @@ export default function AuthWelcome() {
   const config = useAppConfig();
   const [busy, setBusy] = useState(false);
   const [demoRole, setDemoRole] = useState<DemoRole | null>(null);
+  const [showLangPicker, setShowLangPicker] = useState(false);
+  const [lang, setLangState] = useState<AppLanguage>(currentLanguage());
+
+  async function pickLanguage(next: AppLanguage) {
+    setShowLangPicker(false);
+    if (next === lang) return;
+    const { needsRestart } = await setLanguage(next);
+    setLangState(next);
+    if (needsRestart) {
+      Alert.alert(t('settings.preferences.restartTitle'), t('settings.preferences.restartBody'));
+    }
+  }
 
   async function startGuest() {
     setBusy(true);
@@ -86,6 +99,29 @@ export default function AuthWelcome() {
       />
 
       <SafeAreaView style={{ flex: 1 }}>
+        {/* Language picker button — top right */}
+        <View style={{ alignItems: 'flex-end', paddingHorizontal: spacing.lg, paddingTop: spacing.sm }}>
+          <Pressable
+            onPress={() => setShowLangPicker(true)}
+            hitSlop={10}
+            style={({ pressed }) => ({
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              paddingVertical: 6,
+              paddingHorizontal: 12,
+              borderRadius: radius.pill,
+              backgroundColor: 'rgba(255,255,255,0.25)',
+              opacity: pressed ? 0.7 : 1,
+            })}
+          >
+            <Icon name="globe" size={16} color={colors.white} />
+            <AppText variant="caption" color={colors.white} style={{ fontWeight: '600' }}>
+              {lang.toUpperCase()}
+            </AppText>
+          </Pressable>
+        </View>
+
         <View style={{ flex: 1, paddingHorizontal: spacing.xl, justifyContent: 'space-between' }}>
           {/* Brand */}
           <FadeInView delay={80} style={{ alignItems: 'center', marginTop: SCREEN_H * 0.12 }}>
@@ -176,6 +212,72 @@ export default function AuthWelcome() {
           </FadeInView>
         </View>
       </SafeAreaView>
+
+      {/* Language picker modal */}
+      <Modal
+        visible={showLangPicker}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowLangPicker(false)}
+      >
+        <Pressable
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' }}
+          onPress={() => setShowLangPicker(false)}
+        >
+          <Pressable onPress={() => {}}>
+            <View
+              style={{
+                backgroundColor: colors.canvas,
+                borderTopLeftRadius: 24,
+                borderTopRightRadius: 24,
+                padding: spacing.xl,
+                gap: spacing.sm,
+              }}
+            >
+              <AppText variant="title" style={{ marginBottom: spacing.sm }}>
+                {t('settings.preferences.language')}
+              </AppText>
+              {SUPPORTED_LANGUAGES.map((code) => (
+                <PressableScale
+                  key={code}
+                  onPress={() => pickLanguage(code)}
+                  scaleTo={0.98}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: spacing.md,
+                    paddingVertical: spacing.md,
+                    paddingHorizontal: spacing.md,
+                    borderRadius: radius.md,
+                    backgroundColor: code === lang ? colors.emberSoft : colors.surface,
+                    borderWidth: 1,
+                    borderColor: code === lang ? colors.ember : colors.line,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 28, height: 28, borderRadius: 14,
+                      backgroundColor: code === lang ? colors.ember : colors.sunken,
+                      alignItems: 'center', justifyContent: 'center',
+                    }}
+                  >
+                    {code === lang ? <Icon name="checkSmall" size={18} color={colors.onEmber} /> : null}
+                  </View>
+                  <AppText
+                    variant="bodyStrong"
+                    color={code === lang ? colors.ember : colors.ink}
+                    style={{ flex: 1 }}
+                  >
+                    {t(`languages.${code}` as const)}
+                  </AppText>
+                  <AppText variant="caption" color={colors.muted}>{code.toUpperCase()}</AppText>
+                </PressableScale>
+              ))}
+              <View style={{ height: spacing.sm }} />
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
