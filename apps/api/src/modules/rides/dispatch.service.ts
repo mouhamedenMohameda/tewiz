@@ -35,7 +35,7 @@ export async function captainInbox(input: {
       SELECT ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography AS pt
     ),
     cap AS (
-      SELECT accepts_colis, accepts_long_distance FROM captains WHERE user_id = $5
+      SELECT vehicle_type, accepts_colis, accepts_long_distance FROM captains WHERE user_id = $5
     ),
     gh AS (
       SELECT s.home_snapshot
@@ -75,7 +75,10 @@ export async function captainInbox(input: {
     CROSS JOIN cap
     WHERE r.status = 'searching'
       AND ST_DWithin(r.pickup_location, me.pt, $3)
-      AND (r.ride_type <> 'colis' OR cap.accepts_colis = true)
+      AND (
+        (r.ride_type = 'colis' AND (cap.vehicle_type = 'moto' OR cap.accepts_colis = true))
+        OR (r.ride_type <> 'colis' AND cap.vehicle_type = 'car')
+      )
       -- Long-distance gate: rides whose total trip is >= the admin threshold
       -- are only offered to captains who opted in. distance_m may be null on
       -- legacy rows — treat null as "not long-distance" to stay permissive.
@@ -145,7 +148,8 @@ export async function captainInbox(input: {
 /**
  * Returns the user_ids of every captain currently eligible to receive a
  * push notification for the given ride. Mirrors the same filters as the
- * inbox query (online, within radius, accepts colis if applicable, not
+ * inbox query (online, within radius, filtered by vehicle type and colis
+ * preference, not
  * the booker themselves).
  */
 export async function eligibleCaptainsForRide(rideId: string): Promise<string[]> {
@@ -164,7 +168,10 @@ export async function eligibleCaptainsForRide(rideId: string): Promise<string[]>
      WHERE s.presence = 'online'
        AND s.location IS NOT NULL
        AND ST_DWithin(s.location, r.pickup_location, $2)
-       AND (r.ride_type <> 'colis' OR c.accepts_colis = true)
+       AND (
+         (r.ride_type = 'colis' AND (c.vehicle_type = 'moto' OR c.accepts_colis = true))
+         OR (r.ride_type <> 'colis' AND c.vehicle_type = 'car')
+       )
        AND (COALESCE(r.distance_m, 0) < $3 OR c.accepts_long_distance = true)
        AND s.captain_id <> r.booker_id
        AND NOT EXISTS (

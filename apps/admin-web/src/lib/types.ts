@@ -47,6 +47,7 @@ export interface ApplicationDetail {
     vehicle_year: number | null;
     vehicle_color: string | null;
     vehicle_seats: number | null;
+    vehicle_type: 'car' | 'moto';
     accepts_colis: boolean;
     accepts_long_distance: boolean;
     submitted_at: string | null;

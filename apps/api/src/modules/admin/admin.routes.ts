@@ -397,13 +397,17 @@ adminRouter.post('/applications/:id/approve', async (req, res) => {
       [app.user_id, app.full_name, finalPhone, passwordHash],
     );
 
+    const vehicleType: 'car' | 'moto' = app.vehicle_type === 'moto' ? 'moto' : 'car';
+    const acceptsColis = vehicleType === 'moto' ? true : !!app.accepts_colis;
+    const acceptsLongDistance = vehicleType === 'moto' ? false : !!app.accepts_long_distance;
+
     // Create captain row
     await client.query(
       `INSERT INTO captains
-         (user_id, application_id, status, accepts_colis, accepts_long_distance)
-       VALUES ($1, $2, 'active', $3, $4)
+         (user_id, application_id, status, vehicle_type, accepts_colis, accepts_long_distance)
+       VALUES ($1, $2, 'active', $3, $4, $5)
        ON CONFLICT (user_id) DO NOTHING`,
-      [app.user_id, app.id, app.accepts_colis, app.accepts_long_distance],
+      [app.user_id, app.id, vehicleType, acceptsColis, acceptsLongDistance],
     );
 
     // Vehicle (one active per captain). `plate` is globally UNIQUE, so a naive
@@ -432,8 +436,9 @@ adminRouter.post('/applications/:id/approve', async (req, res) => {
       await client.query(
         `UPDATE vehicles
             SET brand = $2, model = $3, year = $4, color = $5, seats = $6,
+                vehicle_type = $7,
                 is_active = true
-          WHERE plate = $1 AND captain_id = $7`,
+          WHERE plate = $1 AND captain_id = $8`,
         [
           app.vehicle_plate,
           app.vehicle_brand,
@@ -441,14 +446,15 @@ adminRouter.post('/applications/:id/approve', async (req, res) => {
           app.vehicle_year,
           app.vehicle_color,
           app.vehicle_seats,
+          vehicleType,
           app.user_id,
         ],
       );
     } else {
       await client.query(
         `INSERT INTO vehicles
-           (captain_id, plate, brand, model, year, color, seats)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+           (captain_id, plate, brand, model, year, color, seats, vehicle_type)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
         [
           app.user_id,
           app.vehicle_plate,
@@ -457,6 +463,7 @@ adminRouter.post('/applications/:id/approve', async (req, res) => {
           app.vehicle_year,
           app.vehicle_color,
           app.vehicle_seats,
+          vehicleType,
         ],
       );
     }

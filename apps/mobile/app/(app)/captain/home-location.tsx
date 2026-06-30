@@ -7,10 +7,9 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
-import Mapbox from '@rnmapbox/maps';
 import { api } from '@/lib/api';
 import { MapShell } from '@/components/MapShell';
-import { NKC_CENTER } from '@/lib/mapbox';
+import { getMapbox, NKC_CENTER } from '@/lib/mapbox';
 import { AppText, Button, Card, Icon, Screen, ScreenHeader } from '@/components/ui';
 import { colors, radius, shadow, spacing } from '@/theme';
 import { APP_NAME } from '@/lib/brand';
@@ -28,7 +27,8 @@ interface Home {
 export default function HomeLocationScreen() {
   const router = useRouter();
   const { t, i18n } = useTranslation();
-  const cameraRef = useRef<Mapbox.Camera>(null);
+  const M = getMapbox();
+  const cameraRef = useRef<any>(null);
 
   const [home, setHome] = useState<Home | null>(null);
   const [loading, setLoading] = useState(true);
@@ -185,8 +185,8 @@ export default function HomeLocationScreen() {
             showsUserLocation
             onPress={(lngLat) => setPinCoord(lngLat)}
           >
-            {pinCoord ? (
-              <Mapbox.PointAnnotation
+            {M && pinCoord ? (
+              <M.PointAnnotation
                 id="home-pin"
                 coordinate={pinCoord}
                 title={label || t('captain.homeLocation.title')}
@@ -199,7 +199,7 @@ export default function HomeLocationScreen() {
                 }}>
                   <Icon name="home" size={20} color={colors.white} />
                 </View>
-              </Mapbox.PointAnnotation>
+              </M.PointAnnotation>
             ) : null}
           </MapShell>
 
@@ -314,40 +314,6 @@ export default function HomeLocationScreen() {
             />
           ) : null}
 
-          {/* DEV ONLY — reset home to test the map picker from scratch */}
-          {__DEV__ ? (
-            <Pressable
-              onPress={async () => {
-                Alert.alert(
-                  '[DEV] Réinitialiser le domicile ?',
-                  'Supprime le domicile pour retester le sélecteur carte.',
-                  [
-                    { text: 'Annuler', style: 'cancel' },
-                    {
-                      text: 'Supprimer', style: 'destructive',
-                      onPress: async () => {
-                        try {
-                          await api.delete('/captain/home');
-                          setHome(null);
-                          setLabel('');
-                          setPinCoord(null);
-                          setEditing(true);
-                        } catch (e: any) {
-                          Alert.alert('Erreur', e.response?.data?.error?.message ?? 'Impossible');
-                        }
-                      },
-                    },
-                  ],
-                );
-              }}
-              style={({ pressed }) => ({
-                marginTop: spacing.sm, alignItems: 'center',
-                paddingVertical: spacing.sm, opacity: pressed ? 0.5 : 1,
-              })}
-            >
-              <AppText variant="caption" color={colors.danger}>[DEV] Réinitialiser le domicile</AppText>
-            </Pressable>
-          ) : null}
         </Card>
       ) : null}
     </Screen>

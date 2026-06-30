@@ -7,7 +7,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '@/lib/api';
-import { type ApplicationDto } from '@/lib/kyc';
+import { type ApplicationDto, type VehicleType } from '@/lib/kyc';
 import { Field, PrimaryButton } from '@/lib/form';
 import { SelectField, type SelectOption } from '@/components/ui';
 import { VEHICLE_BRANDS, VEHICLE_COLORS } from '@/lib/vehicle-options';
@@ -19,6 +19,7 @@ export default function VehicleScreen() {
   const [saving, setSaving] = useState(false);
 
   const [plate, setPlate] = useState('');
+  const [vehicleType, setVehicleType] = useState<VehicleType>('car');
   const [brand, setBrand] = useState('');
   const [model, setModel] = useState('');
   const [year, setYear] = useState('');
@@ -33,6 +34,7 @@ export default function VehicleScreen() {
         const r = await api.get<ApplicationDto>('/captain/applications/me');
         if (r.data) {
           setPlate(r.data.vehiclePlate ?? '');
+          setVehicleType(r.data.vehicleType ?? 'car');
           setBrand(r.data.vehicleBrand ?? '');
           setModel(r.data.vehicleModel ?? '');
           setYear(r.data.vehicleYear?.toString() ?? '');
@@ -74,12 +76,19 @@ export default function VehicleScreen() {
   }, []);
 
   const seatOptions: SelectOption[] = useMemo(
-    () => [1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({
+    () => (vehicleType === 'moto' ? [1, 2] : [1, 2, 3, 4, 5, 6, 7, 8]).map((n) => ({
       value: String(n),
       label: t('becomeCaptain.vehicle.seatsCount', { count: n, defaultValue: `${n}` }),
     })),
-    [t],
+    [t, vehicleType],
   );
+
+  useEffect(() => {
+    if (vehicleType !== 'moto') return;
+    setAcceptsColis(true);
+    setAcceptsLongDistance(false);
+    if (Number(seats) > 2) setSeats('2');
+  }, [vehicleType, seats]);
 
   async function save() {
     const yearNum = Number(year);
@@ -89,21 +98,28 @@ export default function VehicleScreen() {
       Alert.alert(t('becomeCaptain.vehicle.yearInvalidTitle'), t('becomeCaptain.vehicle.yearInvalidBody', { max: currentYear + 1 }));
       return;
     }
-    if (!seatsNum || seatsNum < 1 || seatsNum > 8) {
-      Alert.alert(t('becomeCaptain.vehicle.seatsInvalidTitle'), t('becomeCaptain.vehicle.seatsInvalidBody'));
+    const maxSeats = vehicleType === 'moto' ? 2 : 8;
+    if (!seatsNum || seatsNum < 1 || seatsNum > maxSeats) {
+      Alert.alert(
+        t('becomeCaptain.vehicle.seatsInvalidTitle'),
+        t('becomeCaptain.vehicle.seatsInvalidBody', { max: maxSeats }),
+      );
       return;
     }
+    const finalAcceptsColis = vehicleType === 'moto' ? true : acceptsColis;
+    const finalAcceptsLongDistance = vehicleType === 'moto' ? false : acceptsLongDistance;
     setSaving(true);
     try {
       await api.patch('/captain/applications/me', {
+        vehicleType,
         vehiclePlate: plate.trim().toUpperCase(),
         vehicleBrand: brand.trim(),
         vehicleModel: model.trim(),
         vehicleYear: yearNum,
         vehicleColor: color.trim(),
         vehicleSeats: seatsNum,
-        acceptsColis,
-        acceptsLongDistance,
+        acceptsColis: finalAcceptsColis,
+        acceptsLongDistance: finalAcceptsLongDistance,
       });
       router.back();
     } catch (e: any) {
@@ -134,6 +150,41 @@ export default function VehicleScreen() {
           <Text style={{ fontSize: 24, fontWeight: '700', color: '#0f172a', marginTop: 12 }}>
             {t('becomeCaptain.vehicle.title')}
           </Text>
+
+          <View style={{ marginTop: 16 }}>
+            <Text style={{ fontSize: 13, color: '#475569', marginBottom: 8 }}>
+              {t('becomeCaptain.vehicle.vehicleTypeLabel')}
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {(['car', 'moto'] as VehicleType[]).map((type) => {
+                const active = vehicleType === type;
+                return (
+                  <Pressable
+                    key={type}
+                    onPress={() => setVehicleType(type)}
+                    style={{
+                      flex: 1,
+                      borderRadius: 12,
+                      borderWidth: 1,
+                      borderColor: active ? '#0f172a' : '#cbd5e1',
+                      backgroundColor: active ? '#0f172a' : '#fff',
+                      paddingVertical: 12,
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Text style={{ color: active ? '#fff' : '#0f172a', fontWeight: '700' }}>
+                      {type === 'car'
+                        ? t('becomeCaptain.vehicle.typeCar')
+                        : t('becomeCaptain.vehicle.typeMoto')}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Text style={{ fontSize: 12, color: '#64748b', marginTop: 8 }}>
+              {t('becomeCaptain.vehicle.vehicleTypeHint')}
+            </Text>
+          </View>
 
           <Field label={t('becomeCaptain.vehicle.plate')} value={plate}
             onChangeText={setPlate} placeholder={t('becomeCaptain.vehicle.platePlaceholder')} autoCapitalize="characters" />
@@ -190,24 +241,45 @@ export default function VehicleScreen() {
             <View style={{ flex: 1, paddingRight: 12 }}>
               <Text style={{ fontSize: 15, fontWeight: '600', color: '#0f172a' }}>{t('becomeCaptain.vehicle.colisTitle')}</Text>
               <Text style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
-                {t('becomeCaptain.vehicle.colisHint')}
+                {vehicleType === 'moto'
+                  ? t('becomeCaptain.vehicle.motoForcedColisHint')
+                  : t('becomeCaptain.vehicle.colisHint')}
               </Text>
             </View>
-            <Switch value={acceptsColis} onValueChange={setAcceptsColis} />
+            <Switch
+              value={vehicleType === 'moto' ? true : acceptsColis}
+              onValueChange={setAcceptsColis}
+              disabled={vehicleType === 'moto'}
+            />
           </View>
 
-          <View style={{
-            marginTop: 12, backgroundColor: '#fff', borderRadius: 14, padding: 16,
-            flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-          }}>
-            <View style={{ flex: 1, paddingRight: 12 }}>
-              <Text style={{ fontSize: 15, fontWeight: '600', color: '#0f172a' }}>{t('becomeCaptain.vehicle.longDistanceTitle')}</Text>
-              <Text style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
-                {t('becomeCaptain.vehicle.longDistanceHint')}
+          {vehicleType === 'car' ? (
+            <View style={{
+              marginTop: 12, backgroundColor: '#fff', borderRadius: 14, padding: 16,
+              flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+            }}>
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={{ fontSize: 15, fontWeight: '600', color: '#0f172a' }}>{t('becomeCaptain.vehicle.longDistanceTitle')}</Text>
+                <Text style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
+                  {t('becomeCaptain.vehicle.longDistanceHint')}
+                </Text>
+              </View>
+              <Switch value={acceptsLongDistance} onValueChange={setAcceptsLongDistance} />
+            </View>
+          ) : (
+            <View style={{
+              marginTop: 12,
+              backgroundColor: '#fff7ed',
+              borderRadius: 14,
+              padding: 14,
+              borderWidth: 1,
+              borderColor: '#fed7aa',
+            }}>
+              <Text style={{ fontSize: 12, color: '#9a3412' }}>
+                {t('becomeCaptain.vehicle.motoPassengerBlockedHint')}
               </Text>
             </View>
-            <Switch value={acceptsLongDistance} onValueChange={setAcceptsLongDistance} />
-          </View>
+          )}
 
           <PrimaryButton title={t('becomeCaptain.vehicle.save')} onPress={save} busy={saving} />
         </ScrollView>

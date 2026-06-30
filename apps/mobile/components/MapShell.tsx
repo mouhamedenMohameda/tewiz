@@ -1,7 +1,8 @@
 import { forwardRef, ReactNode, useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import Mapbox from '@rnmapbox/maps';
-import { initMapbox, MAPBOX_STYLE_URL, MAPBOX_TOKEN, NKC_CENTER, DEFAULT_ZOOM } from '@/lib/mapbox';
+import {
+  getMapbox, initMapbox, MAPBOX_STYLE_URL, MAPBOX_TOKEN, NKC_CENTER, DEFAULT_ZOOM,
+} from '@/lib/mapbox';
 
 interface Props {
   children?: ReactNode;
@@ -11,7 +12,7 @@ interface Props {
   showsUserLocation?: boolean;
   /** Tap on the map — receives [lng, lat]. */
   onPress?: (lngLat: [number, number]) => void;
-  cameraRef?: React.RefObject<Mapbox.Camera | null>;
+  cameraRef?: React.RefObject<any>;
   style?: object;
 }
 
@@ -20,15 +21,28 @@ interface Props {
  * graceful fallback when no EXPO_PUBLIC_MAPBOX_TOKEN is set so the screen
  * keeps working in development without crashing.
  */
-export const MapShell = forwardRef<Mapbox.MapView, Props>(function MapShell(
+export const MapShell = forwardRef<any, Props>(function MapShell(
   { children, centerCoordinate, zoomLevel, showsUserLocation, onPress, cameraRef, style },
   ref,
 ) {
   const [ready, setReady] = useState(false);
+  const M = getMapbox();
 
   useEffect(() => {
     setReady(initMapbox());
   }, []);
+
+  if (!M) {
+    return (
+      <View style={[styles.fallback, style]}>
+        <Text style={styles.fallbackEmoji}>🧭</Text>
+        <Text style={styles.fallbackTitle}>Carte indisponible dans Expo Go</Text>
+        <Text style={styles.fallbackBody}>
+          Installe un development build iOS/Android pour activer Mapbox natif.
+        </Text>
+      </View>
+    );
+  }
 
   if (!MAPBOX_TOKEN) {
     return (
@@ -45,10 +59,10 @@ export const MapShell = forwardRef<Mapbox.MapView, Props>(function MapShell(
   if (!ready) return <View style={[{ flex: 1 }, style]} />;
 
   return (
-    <Mapbox.MapView
+    <M.MapView
       ref={ref}
       style={style ?? { flex: 1 }}
-      styleURL={MAPBOX_STYLE_URL}
+      styleURL={M.StyleURL?.Street ?? MAPBOX_STYLE_URL}
       onPress={
         onPress
           ? (feature: GeoJSON.Feature) => {
@@ -64,16 +78,16 @@ export const MapShell = forwardRef<Mapbox.MapView, Props>(function MapShell(
       compassEnabled={false}
       scaleBarEnabled={false}
     >
-      <Mapbox.Camera
+      <M.Camera
         ref={cameraRef}
         defaultSettings={{
           centerCoordinate: centerCoordinate ?? NKC_CENTER,
           zoomLevel: zoomLevel ?? DEFAULT_ZOOM,
         }}
       />
-      {showsUserLocation && <Mapbox.UserLocation visible animated />}
+      {showsUserLocation && <M.UserLocation visible animated />}
       {children}
-    </Mapbox.MapView>
+    </M.MapView>
   );
 });
 

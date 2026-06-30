@@ -73,6 +73,10 @@ export default function CurrentRideScreen() {
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
 
+  const goToRiderHome = useCallback(() => {
+    router.replace('/(app)/rider');
+  }, [router]);
+
   const load = useCallback(async () => {
     try {
       const r = await api.get<Ride>('/rider/rides/current', {
@@ -107,7 +111,7 @@ export default function CurrentRideScreen() {
             setCancelling(true);
             try {
               await api.post(`/rider/rides/${ride.id}/cancel`, { reason: 'rider_cancel' });
-              await load();
+              goToRiderHome();
             } catch (e: any) {
               Alert.alert(t('common.impossible'), e.response?.data?.error?.message ?? t('errors.generic'));
             } finally {
@@ -131,7 +135,7 @@ export default function CurrentRideScreen() {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
         <View style={{ padding: 20 }}>
-          <Pressable onPress={() => router.back()}>
+          <Pressable onPress={goToRiderHome}>
             <Text style={{ color: '#64748b', fontSize: 14 }}>‹ {t('common.back')}</Text>
           </Pressable>
         </View>
@@ -172,7 +176,7 @@ export default function CurrentRideScreen() {
         contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
         refreshControl={<RefreshControl refreshing={false} onRefresh={load} />}
       >
-        <Pressable onPress={() => router.back()}>
+        <Pressable onPress={goToRiderHome}>
           <Text style={{ color: '#64748b', fontSize: 14 }}>‹ {t('common.back')}</Text>
         </Pressable>
 

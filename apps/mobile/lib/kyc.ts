@@ -13,6 +13,7 @@ export type DocumentType =
   | 'car_front' | 'car_back' | 'car_left' | 'car_right' | 'car_interior';
 
 export type DocumentStatus = 'pending' | 'approved' | 'rejected' | 'expired';
+export type VehicleType = 'car' | 'moto';
 
 export const DOCUMENTS_WITH_EXPIRY: DocumentType[] = [
   'assurance', 'vignette', 'visite_technique',
@@ -68,6 +69,7 @@ export interface ApplicationDto {
   vehicleYear: number | null;
   vehicleColor: string | null;
   vehicleSeats: number | null;
+  vehicleType: VehicleType;
   acceptsColis: boolean;
   acceptsLongDistance: boolean;
   rejectReason?: string | null;
@@ -100,7 +102,7 @@ export function personalFieldsComplete(a: ApplicationDto): boolean {
 export function vehicleFieldsComplete(a: ApplicationDto): boolean {
   return !!(
     a.vehiclePlate && a.vehicleBrand && a.vehicleModel &&
-    a.vehicleYear && a.vehicleColor && a.vehicleSeats
+    a.vehicleYear && a.vehicleColor && a.vehicleSeats && a.vehicleType
   );
 }
 
