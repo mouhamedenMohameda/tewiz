@@ -257,16 +257,20 @@ export async function getInboxForUser(
     data: Record<string, unknown>; read_at: Date | null; created_at: Date;
   }>(
     `SELECT id, type, title, body, data, read_at, created_at
-       FROM notifications
+       FROM notifications n
       WHERE recipient_id = $1
+        AND n.created_at >= COALESCE((SELECT u.created_at FROM users u WHERE u.id = $1), '-infinity'::timestamptz)
         AND ($2::timestamptz IS NULL OR created_at < $2)
       ORDER BY created_at DESC
       LIMIT $3`,
     [userId, before, limit],
   );
   const { rows: cntRows } = await pool.query<{ c: string }>(
-    `SELECT COUNT(*)::text AS c FROM notifications
-      WHERE recipient_id = $1 AND read_at IS NULL`,
+    `SELECT COUNT(*)::text AS c
+       FROM notifications n
+      WHERE n.recipient_id = $1
+        AND n.read_at IS NULL
+        AND n.created_at >= COALESCE((SELECT u.created_at FROM users u WHERE u.id = $1), '-infinity'::timestamptz)`,
     [userId],
   );
   return {

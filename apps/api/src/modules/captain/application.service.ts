@@ -32,6 +32,7 @@ interface ApplicationRow {
   vehicle_year: number | null;
   vehicle_color: string | null;
   vehicle_seats: number | null;
+  vehicle_type: 'car' | 'moto';
   accepts_colis: boolean;
   accepts_long_distance: boolean;
   submitted_at: Date | null;
@@ -104,6 +105,7 @@ const PATCH_COLUMNS: Record<string, string> = {
   vehicleYear: 'vehicle_year',
   vehicleColor: 'vehicle_color',
   vehicleSeats: 'vehicle_seats',
+  vehicleType: 'vehicle_type',
   acceptsColis: 'accepts_colis',
   acceptsLongDistance: 'accepts_long_distance',
 };
@@ -241,10 +243,15 @@ export async function submitApplication(userId: string) {
       ['vehicle_year', 'Année'],
       ['vehicle_color', 'Couleur'],
       ['vehicle_seats', 'Nombre de places'],
+      ['vehicle_type', 'Type de véhicule'],
     ];
     for (const [col, label] of requiredFields) {
       const v = app[col];
       if (v === null || v === '' || v === undefined) missing.push(label);
+    }
+
+    if (app.vehicle_type === 'moto' && (app.vehicle_seats ?? 0) > 2) {
+      missing.push('Moto: le nombre de places doit etre entre 1 et 2');
     }
 
     const docs = await client.query<{ type: DocumentType }>(
@@ -316,6 +323,7 @@ async function withDocuments(app: ApplicationRow, client?: pg.PoolClient) {
     vehicleYear: app.vehicle_year,
     vehicleColor: app.vehicle_color,
     vehicleSeats: app.vehicle_seats,
+    vehicleType: app.vehicle_type,
     acceptsColis: app.accepts_colis,
     acceptsLongDistance: app.accepts_long_distance,
     submittedAt: app.submitted_at,

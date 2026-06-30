@@ -65,6 +65,7 @@ const updateBody = z.object({
   vehicleYear: z.coerce.number().int().min(1980).max(new Date().getFullYear() + 1).optional(),
   vehicleColor: z.string().min(2).max(30).optional(),
   vehicleSeats: z.coerce.number().int().min(1).max(8).optional(),
+  vehicleType: z.enum(['car', 'moto']).optional(),
   acceptsColis: z.boolean().optional(),
   acceptsLongDistance: z.boolean().optional(),
 });

@@ -100,6 +100,7 @@ export type WalletTxType =
 // --- Captain state ---
 export type CaptainPresence = 'offline' | 'online' | 'on_ride' | 'paused';
 export type CaptainStatus = 'active' | 'suspended' | 'banned';
+export type VehicleType = 'car' | 'moto';
 
 // --- Rides ---
 export type RideType = 'passenger' | 'colis';

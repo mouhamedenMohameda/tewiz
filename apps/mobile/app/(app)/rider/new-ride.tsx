@@ -9,7 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { api } from '@/lib/api';
 import { formatMru } from '@/lib/format';
-import { Mapbox } from '@/lib/mapbox';
+import { getMapbox } from '@/lib/mapbox';
 import { MapShell } from '@/components/MapShell';
 import {
   RoadReportButton, RoadReportMarkers, useRoadReports,
@@ -46,6 +46,7 @@ function parsePoint(
 export default function NewRideScreen() {
   const router = useRouter();
   const { t } = useTranslation();
+  const M = getMapbox();
   const cameraRef = useRef<any>(null);
 
   // Deep-link params let other screens (e.g. the Restaurants directory) push
@@ -340,21 +341,21 @@ export default function NewRideScreen() {
           onPress={onMapPress}
           showsUserLocation
         >
-          {Mapbox && pickup ? (
-            <Mapbox.PointAnnotation
+          {M && pickup ? (
+            <M.PointAnnotation
               id="pickup"
               coordinate={[pickup.lng, pickup.lat]}
             >
               <View style={pinStyle('#2d4fd6')} />
-            </Mapbox.PointAnnotation>
+            </M.PointAnnotation>
           ) : null}
-          {Mapbox && dropoff ? (
-            <Mapbox.PointAnnotation
+          {M && dropoff ? (
+            <M.PointAnnotation
               id="dropoff"
               coordinate={[dropoff.lng, dropoff.lat]}
             >
               <View style={pinStyle('#dc2626')} />
-            </Mapbox.PointAnnotation>
+            </M.PointAnnotation>
           ) : null}
           <RoadReportMarkers reports={reports} />
         </MapShell>

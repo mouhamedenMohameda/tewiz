@@ -17,17 +17,20 @@ import { HttpError } from '../../middleware/error.js';
 export const captainPreferencesRouter = Router();
 
 interface PreferencesRow {
+  vehicle_type: 'car' | 'moto';
   accepts_colis: boolean;
   accepts_long_distance: boolean;
 }
 
 interface Preferences {
+  vehicleType: 'car' | 'moto';
   acceptsColis: boolean;
   acceptsLongDistance: boolean;
 }
 
 function shape(r: PreferencesRow): Preferences {
   return {
+    vehicleType: r.vehicle_type,
     acceptsColis: r.accepts_colis,
     acceptsLongDistance: r.accepts_long_distance,
   };
@@ -36,7 +39,7 @@ function shape(r: PreferencesRow): Preferences {
 captainPreferencesRouter.get('/', async (req, res) => {
   const userId = req.user!.id;
   const r = await pool.query<PreferencesRow>(
-    `SELECT accepts_colis, accepts_long_distance
+    `SELECT vehicle_type, accepts_colis, accepts_long_distance
        FROM captains WHERE user_id = $1`,
     [userId],
   );
@@ -55,13 +58,28 @@ captainPreferencesRouter.patch('/', async (req, res) => {
   if (body.acceptsColis === undefined && body.acceptsLongDistance === undefined) {
     throw new HttpError(400, 'no_fields', 'Nothing to update');
   }
+  const cur = await pool.query<PreferencesRow>(
+    `SELECT vehicle_type, accepts_colis, accepts_long_distance
+       FROM captains WHERE user_id = $1`,
+    [userId],
+  );
+  if (!cur.rows[0]) throw new HttpError(404, 'not_captain', 'You are not an active captain');
+
+  let nextAcceptsColis = body.acceptsColis ?? cur.rows[0].accepts_colis;
+  let nextAcceptsLongDistance = body.acceptsLongDistance ?? cur.rows[0].accepts_long_distance;
+  if (cur.rows[0].vehicle_type === 'moto') {
+    // Moto captains are colis-only, so keep these flags coherent.
+    nextAcceptsColis = true;
+    nextAcceptsLongDistance = false;
+  }
+
   const r = await pool.query<PreferencesRow>(
     `UPDATE captains
-        SET accepts_colis         = COALESCE($1, accepts_colis),
-            accepts_long_distance = COALESCE($2, accepts_long_distance)
+        SET accepts_colis         = $1,
+            accepts_long_distance = $2
       WHERE user_id = $3
-  RETURNING accepts_colis, accepts_long_distance`,
-    [body.acceptsColis ?? null, body.acceptsLongDistance ?? null, userId],
+  RETURNING vehicle_type, accepts_colis, accepts_long_distance`,
+    [nextAcceptsColis, nextAcceptsLongDistance, userId],
   );
   if (!r.rows[0]) throw new HttpError(404, 'not_captain', 'You are not an active captain');
   res.json(shape(r.rows[0]));

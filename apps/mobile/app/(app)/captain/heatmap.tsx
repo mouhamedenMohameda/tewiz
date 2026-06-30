@@ -3,10 +3,10 @@ import { ActivityIndicator, Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Mapbox from '@rnmapbox/maps';
 import * as Location from 'expo-location';
 import { api } from '@/lib/api';
 import { usePolling } from '@/lib/usePolling';
+import { getMapbox } from '@/lib/mapbox';
 import { MapShell } from '@/components/MapShell';
 import {
   RoadReportButton, RoadReportMarkers, useRoadReports,
@@ -99,7 +99,8 @@ function clusterCells(cells: Cell[], mergeRadiusM: number): Cluster[] {
 export default function HeatmapScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const cameraRef = useRef<Mapbox.Camera>(null);
+  const M = getMapbox();
+  const cameraRef = useRef<any>(null);
   const [cells, setCells] = useState<Cell[]>([]);
   const [loading, setLoading] = useState(true);
   const [myPos, setMyPos] = useState<{ lat: number; lng: number } | null>(null);
@@ -200,11 +201,13 @@ export default function HeatmapScreen() {
           zoomLevel={FALLBACK_ZOOM}
           showsUserLocation
         >
+          {M ? (
+            <>
           {/* GPU heatmap — warm palette (yellow → orange → red) matching the
               previous Snap-style blobs. Radius & intensity scale with zoom so
               the heat reads at city zoom (~11) and street zoom (~16) alike. */}
-          <Mapbox.ShapeSource id="demand-heatmap" shape={heatmapGeoJson}>
-            <Mapbox.HeatmapLayer
+          <M.ShapeSource id="demand-heatmap" shape={heatmapGeoJson}>
+            <M.HeatmapLayer
               id="demand-heatmap-layer"
               sourceID="demand-heatmap"
               style={{
@@ -224,11 +227,11 @@ export default function HeatmapScreen() {
                 heatmapOpacity: ['interpolate', ['linear'], ['zoom'], 10, 0.85, 16, 0.6],
               }}
             />
-          </Mapbox.ShapeSource>
+          </M.ShapeSource>
 
           {/* Tap-able markers on top-3 clusters so the captain can identify them */}
           {hottest.map((c, i) => (
-            <Mapbox.PointAnnotation
+            <M.PointAnnotation
               key={`top-${i}`}
               id={`top-${i}`}
               coordinate={[c.centerLng, c.centerLat]}
@@ -242,11 +245,13 @@ export default function HeatmapScreen() {
               }}>
                 <AppText variant="label" color={colors.white}>{String(i + 1)}</AppText>
               </View>
-            </Mapbox.PointAnnotation>
+            </M.PointAnnotation>
           ))}
 
           {/* Active road reports — sand, accidents, police checkpoints, etc. */}
           <RoadReportMarkers reports={reports} />
+            </>
+          ) : null}
         </MapShell>
 
         {loading && cells.length === 0 ? (

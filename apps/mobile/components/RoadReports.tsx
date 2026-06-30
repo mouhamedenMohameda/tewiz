@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Mapbox from '@rnmapbox/maps';
+import { getMapbox } from '@/lib/mapbox';
 import { api } from '@/lib/api';
 
 export type RoadReason =
@@ -88,6 +88,9 @@ export function RoadReportMarkers({
   reports: RoadReport[];
   onPress?: (r: RoadReport) => void;
 }) {
+  const M = getMapbox();
+  if (!M) return null;
+
   const { t } = useTranslation();
 
   // Build one FeatureCollection for the zones so a single layer renders all
@@ -107,27 +110,27 @@ export function RoadReportMarkers({
 
   return (
     <>
-      <Mapbox.ShapeSource id="road-report-zones" shape={zonesGeoJson}>
-        <Mapbox.FillLayer
+      <M.ShapeSource id="road-report-zones" shape={zonesGeoJson}>
+        <M.FillLayer
           id="road-report-zone-fill"
           style={{
             fillColor: ['get', 'color'],
             fillOpacity: 0.2,
           }}
         />
-        <Mapbox.LineLayer
+        <M.LineLayer
           id="road-report-zone-outline"
           style={{
             lineColor: ['get', 'color'],
             lineWidth: 1.5,
           }}
         />
-      </Mapbox.ShapeSource>
+      </M.ShapeSource>
       {reports.map((r) => {
         const m = REASON_META[r.reason];
         const label = `${m.emoji} ${t(`roadReports.reasons.${r.reason}` as const)}`;
         return (
-          <Mapbox.PointAnnotation
+          <M.PointAnnotation
             key={`pin-${r.id}`}
             id={`pin-${r.id}`}
             coordinate={[r.location.lng, r.location.lat]}
@@ -141,7 +144,7 @@ export function RoadReportMarkers({
             }}>
               <Text style={{ fontSize: 14 }}>{m.emoji}</Text>
             </View>
-          </Mapbox.PointAnnotation>
+          </M.PointAnnotation>
         );
       })}
     </>

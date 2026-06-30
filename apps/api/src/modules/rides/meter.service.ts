@@ -189,17 +189,11 @@ export async function readLiveMeter(input: {
   tariff: OpenTariff;
   endAt?: Date;
 }): Promise<{ distanceM: number; durationS: number; fareMru: number }> {
-  const [distanceM, lastRow] = await Promise.all([
-    computeDistanceM(pool, input.rideId),
-    pool.query<{ last_recorded: Date | null }>(
-      `SELECT MAX(recorded_at) AS last_recorded
-         FROM ride_locations WHERE ride_id = $1`,
-      [input.rideId],
-    ),
-  ]);
-  const end = input.endAt
-    ?? lastRow.rows[0]?.last_recorded
-    ?? new Date();
+  const distanceM = await computeDistanceM(pool, input.rideId);
+  // For the live meter we use wall-clock time while the ride is running.
+  // GPS uploads can be delayed/intermittent; tying duration to last_recorded
+  // freezes the price for the rider even though time is passing.
+  const end = input.endAt ?? new Date();
   const durationS = Math.max(0, Math.round((end.getTime() - input.startedAt.getTime()) / 1000));
   const fareMru = openFareMru(input.tariff, distanceM, durationS);
   return { distanceM, durationS, fareMru };

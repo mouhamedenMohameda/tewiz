@@ -195,6 +195,9 @@ export function CaptainRideWatcher() {
   const ringIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
   const onRideRef = useRef(false); // skip polling inbox when on a ride
+  // Synchronous tap/poll guard: prevents double-accept and racey state updates
+  // on iOS when the user taps quickly and polling ticks at the same time.
+  const acceptPendingRef = useRef(false);
 
   const [, forceRerender] = useState(0);
 
@@ -269,6 +272,7 @@ export function CaptainRideWatcher() {
 
     async function tick() {
       if (cancelled) return;
+      if (acceptPendingRef.current) return;
       try {
         // Skip inbox poll if captain is on a ride — that's already a busy
         // foreground state.
@@ -352,14 +356,18 @@ export function CaptainRideWatcher() {
   }, [alertRide]);
 
   const acceptAlert = useCallback(async () => {
-    if (!alertRide) return;
+    if (!alertRide || acceptPendingRef.current) return;
+    const rideId = alertRide.id;
+    acceptPendingRef.current = true;
     setAccepting(true);
     try {
-      await api.post(`/captain/rides/${alertRide.id}/accept`);
+      await api.post(`/captain/rides/${rideId}/accept`);
       await stopRinging();
       setAlertRide(null);
       // Land the captain on the rides screen so the CurrentRideCard
-      // (call button, step actions) is right there.
+      // (call button, step actions) is right there. Use push (not replace)
+      // so the captain home stays in the back stack — otherwise "back" after
+      // a ride ends/cancels unwinds to the entry route and loops.
       router.push('/(app)/captain/rides');
     } catch (e: any) {
       const code = e.response?.data?.error?.code;
@@ -372,6 +380,7 @@ export function CaptainRideWatcher() {
       setAlertRide(null);
     } finally {
       setAccepting(false);
+      acceptPendingRef.current = false;
     }
   }, [alertRide, router, stopRinging, t]);
 
