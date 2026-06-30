@@ -262,6 +262,8 @@ export async function getRideInsights(rideId: string): Promise<RideInsights> {
   // Pull pickup + dropoff + booker_id once. Everything else hangs off these.
   const head = await pool.query<{
     booker_id: string;
+    booker_role: 'rider' | 'captain' | 'admin';
+    booker_phone: string | null;
     passenger_name: string | null;
     passenger_phone: string | null;
     is_open: boolean;
@@ -270,7 +272,9 @@ export async function getRideInsights(rideId: string): Promise<RideInsights> {
     dropoff_lat: number | null;
     dropoff_lng: number | null;
   }>(
-        `SELECT booker_id,
+        `SELECT r.booker_id,
+                u.role AS booker_role,
+                u.phone AS booker_phone,
           passenger_name,
           passenger_phone,
             is_open,
@@ -278,7 +282,9 @@ export async function getRideInsights(rideId: string): Promise<RideInsights> {
             ST_X(pickup_location::geometry)  AS pickup_lng,
             ST_Y(dropoff_location::geometry) AS dropoff_lat,
             ST_X(dropoff_location::geometry) AS dropoff_lng
-       FROM rides WHERE id = $1`,
+           FROM rides r
+           JOIN users u ON u.id = r.booker_id
+          WHERE r.id = $1`,
     [rideId],
   );
   if (!head.rows[0]) {
@@ -286,6 +292,8 @@ export async function getRideInsights(rideId: string): Promise<RideInsights> {
   }
   const {
     booker_id: bookerId,
+    booker_role: bookerRole,
+    booker_phone: bookerPhone,
     passenger_name: passengerName,
     passenger_phone: passengerPhone,
     is_open: isOpen,
@@ -328,10 +336,7 @@ export async function getRideInsights(rideId: string): Promise<RideInsights> {
   // Aggregate trust by the real rider identity (effective phone) so operator
   // bookings don't inherit the call-center account history.
   const riderPhone = passengerPhone
-    ?? (await pool.query<{ phone: string | null }>(
-      `SELECT phone FROM users WHERE id = $1`,
-      [bookerId],
-    )).rows[0]?.phone
+    ?? (bookerRole === 'admin' ? null : bookerPhone)
     ?? null;
   const riderPromise = riderPhone
     ? pool.query<RiderRow>(
