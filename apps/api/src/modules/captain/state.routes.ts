@@ -141,6 +141,17 @@ captainStateRouter.delete('/going-home', async (req, res) => {
   res.json(await goingHome.endSession({ captainId: userId, reason: 'cancelled' }));
 });
 
+// Dev-only: wipe all going-home history so the 24h cooldown can be retested.
+captainStateRouter.delete('/going-home/reset', async (req, res) => {
+  if (env.NODE_ENV === 'production') {
+    res.status(403).json({ error: { code: 'forbidden', message: 'Not available in production' } });
+    return;
+  }
+  const userId = req.user!.id;
+  await goingHome.resetSessions(userId);
+  res.status(204).end();
+});
+
 /**
  * GET /captain/state/going-home
  * Return the active session (204 if none).

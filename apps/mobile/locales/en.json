@@ -467,7 +467,7 @@
     },
     "homeLocation": {
       "title": "My home",
-      "intro": "Used by the \"Heading home\" mode. Locked for 30 days and verified by GPS (200 m).",
+      "intro": "Used for going-home mode. Locked for 30 days. You must be physically at the location to set it.",
       "addressLabel": "Address",
       "addressHelper": "You must be physically on site — GPS will be checked.",
       "addressPlaceholder": "Tevragh Zeina, near Saudique mosque",
@@ -484,7 +484,10 @@
       "errorBody": "Describe the place (e.g. \"near Saudique mosque\").",
       "locationRequiredBody": "{{app}} must verify you are on site.",
       "savedTitle": "Home saved",
-      "savedBody": "Locked until {{date}}."
+      "savedBody": "Locked until {{date}}.",
+      "mapInstruction": "Tap the map to place your home pin precisely",
+      "mapNoPin": "No location chosen — tap the map",
+      "pinHint": "You must be on site (max 200 m)"
     },
     "recurring": {
       "title": "Recurring rides",

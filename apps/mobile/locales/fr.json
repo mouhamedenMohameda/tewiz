@@ -491,7 +491,7 @@
     },
     "homeLocation": {
       "title": "Mon domicile",
-      "intro": "Sert au mode « Je rentre chez moi ». Verrouillé 30 jours et vérifié par GPS (200 m).",
+      "intro": "Sert au mode « Je rentre chez moi ». Verrouillé 30 jours. Vous devez être sur place pour définir votre position.",
       "addressLabel": "Adresse",
       "addressHelper": "Vous devez être physiquement sur place — la position GPS sera vérifiée.",
       "addressPlaceholder": "Tevragh Zeina, près mosquée Saudique",
@@ -508,7 +508,10 @@
       "errorBody": "Décrivez l'endroit (ex. \"près mosquée Saudique\").",
       "locationRequiredBody": "{{app}} doit vérifier que vous êtes bien sur place.",
       "savedTitle": "Domicile enregistré",
-      "savedBody": "Verrouillé jusqu'au {{date}}."
+      "savedBody": "Verrouillé jusqu'au {{date}}.",
+      "mapInstruction": "Appuyez sur la carte pour placer votre domicile précisément",
+      "mapNoPin": "Aucune position choisie — appuyez sur la carte",
+      "pinHint": "Vous devez être sur place (max 200 m)"
     },
     "recurring": {
       "title": "Courses récurrentes",

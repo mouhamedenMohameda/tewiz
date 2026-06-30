@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { env } from '../../config/env.js';
 import { type AuthedRequest } from '../../middleware/auth.js';
 import * as svc from './home.service.js';
 
@@ -34,4 +35,15 @@ captainHomeRouter.patch('/', async (req, res) => {
   const userId = req.user!.id;
   const body = upsertBody.parse(req.body);
   res.json(await svc.updateHome({ captainId: userId, ...body }));
+});
+
+// Dev-only: reset home so the map picker can be tested freely.
+captainHomeRouter.delete('/', async (req, res) => {
+  if (env.NODE_ENV === 'production') {
+    res.status(403).json({ error: { code: 'forbidden', message: 'Not available in production' } });
+    return;
+  }
+  const userId = req.user!.id;
+  await svc.deleteHome(userId);
+  res.status(204).end();
 });

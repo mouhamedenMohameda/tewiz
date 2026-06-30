@@ -55,8 +55,10 @@ export async function getHome(captainId: string) {
 
 /**
  * Verify the captain is physically near the proposed home (anti-abuse).
+ * Skipped in development so the map picker can be tested without GPS spoofing.
  */
 async function assertGpsMatchesHome(client: pg.PoolClient, input: SetHomeInput) {
+  if (env.NODE_ENV !== 'production') return;
   const r = await client.query<{ d: string }>(
     `SELECT ST_Distance(
        ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography,
@@ -69,6 +71,13 @@ async function assertGpsMatchesHome(client: pg.PoolClient, input: SetHomeInput) 
     throw new HttpError(400, 'too_far_from_home',
       `You must be at the location to set it (currently ${Math.round(d)} m away, max ${env.HOME_GPS_TOLERANCE_M} m)`);
   }
+}
+
+/**
+ * Delete the captain's home entirely (dev/testing only).
+ */
+export async function deleteHome(captainId: string) {
+  await pool.query(`DELETE FROM captain_home WHERE captain_id = $1`, [captainId]);
 }
 
 /**
@@ -122,7 +131,8 @@ export async function updateHome(input: SetHomeInput) {
     const withinCorrectionWindow =
       !cur.correction_used && (now - cur.set_at.getTime()) < 48 * 3600_000;
 
-    if (!expired && !withinCorrectionWindow) {
+    // In development the lock is bypassed so the map picker can be tested.
+    if (env.NODE_ENV === 'production' && !expired && !withinCorrectionWindow) {
       throw new HttpError(409, 'locked',
         `Home is locked until ${cur.locked_until.toISOString()}`);
     }
