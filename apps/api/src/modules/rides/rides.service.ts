@@ -22,6 +22,23 @@ function normalizeMrPhone(raw: string): string {
   return raw.startsWith('+') ? raw : `+${digits}`;
 }
 
+const GENERIC_LOCATION_LABELS = new Set([
+  'point sur la carte',
+  'ma position',
+  'pin on map',
+  'my location',
+  'نقطة على الخريطة',
+  'موقعي',
+]);
+
+function sanitizeLocationLabel(label: string | null | undefined): string | null {
+  if (!label) return null;
+  const trimmed = label.trim();
+  if (!trimmed) return null;
+  if (GENERIC_LOCATION_LABELS.has(trimmed.toLowerCase())) return null;
+  return trimmed;
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 // Public types
 
@@ -297,7 +314,8 @@ export async function createRide(input: CreateRideInput) {
     const dropoffGeo = isOpen
       ? null
       : { lng: input.dropoff!.lng, lat: input.dropoff!.lat };
-    const dropoffLabel = isOpen ? null : input.dropoff?.label ?? null;
+    const pickupLabel = sanitizeLocationLabel(input.pickup.label);
+    const dropoffLabel = isOpen ? null : sanitizeLocationLabel(input.dropoff?.label);
     const openTariff = isOpen
       ? {
           base: settings.openBaseFareMru,
@@ -333,7 +351,7 @@ export async function createRide(input: CreateRideInput) {
        RETURNING ${RIDE_COLUMNS}`,
       [
         input.bookerId, rideType,
-        input.pickup.lng, input.pickup.lat, input.pickup.label ?? null,
+        input.pickup.lng, input.pickup.lat, pickupLabel,
         dropoffGeo?.lng ?? null, dropoffGeo?.lat ?? null, dropoffLabel,
         fareEstimateMru, commissionBps, distanceEstimateM,
         input.paymentMethod ?? 'cash',
@@ -852,16 +870,26 @@ export async function acceptRide(rideId: string, captainId: string) {
         'You already have an active ride');
     }
 
-    // Colis: captain must accept colis rides
+    const cap = await client.query<{ accepts_colis: boolean; vehicle_type: 'car' | 'moto' }>(
+      `SELECT accepts_colis, vehicle_type FROM captains WHERE user_id = $1`,
+      [captainId],
+    );
+    const captain = cap.rows[0];
+    if (!captain) {
+      throw new HttpError(404, 'not_captain', 'Captain not found');
+    }
+
+    // Vehicle gate:
+    // - moto captains can only accept colis
+    // - car captains can accept colis only when opted in
     if (ride.ride_type === 'colis') {
-      const cap = await client.query<{ accepts_colis: boolean }>(
-        `SELECT accepts_colis FROM captains WHERE user_id = $1`,
-        [captainId],
-      );
-      if (!cap.rows[0]?.accepts_colis) {
+      if (captain.vehicle_type === 'car' && !captain.accepts_colis) {
         throw new HttpError(403, 'colis_not_allowed',
           "Vous n'acceptez pas les courses colis");
       }
+    } else if (captain.vehicle_type !== 'car') {
+      throw new HttpError(403, 'passenger_not_allowed',
+        'Les motos ne peuvent pas accepter les courses passagers');
     }
 
     const upd = await client.query<RideRow>(

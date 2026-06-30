@@ -6,10 +6,10 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Mapbox from '@rnmapbox/maps';
 import * as Location from 'expo-location';
 import { api } from '@/lib/api';
 import { formatMru } from '@/lib/format';
+import { Mapbox } from '@/lib/mapbox';
 import { MapShell } from '@/components/MapShell';
 import {
   RoadReportButton, RoadReportMarkers, useRoadReports,
@@ -46,7 +46,7 @@ function parsePoint(
 export default function NewRideScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const cameraRef = useRef<Mapbox.Camera>(null);
+  const cameraRef = useRef<any>(null);
 
   // Deep-link params let other screens (e.g. the Restaurants directory) push
   // here with one or both ends already pinned. We just pre-fill the state and
@@ -162,7 +162,7 @@ export default function NewRideScreen() {
   }, [pickup, dropoff, kind, isOpen]);
 
   const onMapPress = useCallback((lngLat: [number, number]) => {
-    const p: Point = { lat: lngLat[1], lng: lngLat[0], label: 'Point sur la carte' };
+    const p: Point = { lat: lngLat[1], lng: lngLat[0] };
     if (active === 'pickup' || (!active && !pickup)) setPickup(p);
     else setDropoff(p);
   }, [active, pickup]);
@@ -340,7 +340,7 @@ export default function NewRideScreen() {
           onPress={onMapPress}
           showsUserLocation
         >
-          {pickup ? (
+          {Mapbox && pickup ? (
             <Mapbox.PointAnnotation
               id="pickup"
               coordinate={[pickup.lng, pickup.lat]}
@@ -348,7 +348,7 @@ export default function NewRideScreen() {
               <View style={pinStyle('#2d4fd6')} />
             </Mapbox.PointAnnotation>
           ) : null}
-          {dropoff ? (
+          {Mapbox && dropoff ? (
             <Mapbox.PointAnnotation
               id="dropoff"
               coordinate={[dropoff.lng, dropoff.lat]}
