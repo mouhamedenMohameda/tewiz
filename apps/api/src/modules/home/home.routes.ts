@@ -39,10 +39,6 @@ captainHomeRouter.patch('/', async (req, res) => {
 
 // Dev-only: reset home so the map picker can be tested freely.
 captainHomeRouter.delete('/', async (req, res) => {
-  if (env.NODE_ENV === 'production') {
-    res.status(403).json({ error: { code: 'forbidden', message: 'Not available in production' } });
-    return;
-  }
   const userId = req.user!.id;
   await svc.deleteHome(userId);
   res.status(204).end();
