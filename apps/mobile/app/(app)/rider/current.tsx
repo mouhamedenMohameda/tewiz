@@ -395,11 +395,16 @@ function RatingSheet({
   );
 }
 
-function StatusBanner({ status }: { status: RideStatus }) {
+function StatusBanner({ status }: { status: string }) {
   const { t } = useTranslation();
-  const palette = STATUS_PALETTE[status];
-  const title = t(`rider.current.banners.${status}.title` as const);
-  const sub = t(`rider.current.banners.${status}.sub` as const, { app: APP_NAME });
+  const palette = STATUS_PALETTE[status as RideStatus] ?? STATUS_PALETTE.searching;
+  const title = t(`rider.current.banners.${status}.title`, {
+    defaultValue: t('rider.current.banners.searching.title'),
+  });
+  const sub = t(`rider.current.banners.${status}.sub`, {
+    app: APP_NAME,
+    defaultValue: '',
+  });
   return (
     <View style={{ marginTop: 16, backgroundColor: palette.bg, borderRadius: 14, padding: 16 }}>
       <Text style={{ fontSize: 17, fontWeight: '700', color: palette.fg }}>{title}</Text>
