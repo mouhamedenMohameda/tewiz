@@ -1,4 +1,5 @@
 import type { ExpoConfig } from 'expo/config';
+import { existsSync } from 'fs';
 import brand from './brand.json';
 
 // Single source of truth for the brand lives in ./brand.json (see lib/brand.ts).
@@ -6,6 +7,15 @@ const APP_NAME = brand.name;
 const APP_SLUG = brand.slug;
 const APP_SCHEME = brand.scheme;
 const BUNDLE_ID = brand.bundleId;
+
+// Android push (FCM) needs google-services.json baked into the build. We only
+// wire it when the file is actually present (env override or the default path)
+// so builds keep working before Firebase is set up. Without it, Expo push
+// token registration warns "Default FirebaseApp is not initialized" and Android
+// push stays disabled — the app itself still runs fine.
+const GOOGLE_SERVICES_FILE =
+  process.env.GOOGLE_SERVICES_JSON ?? './google-services.json';
+const HAS_GOOGLE_SERVICES = existsSync(GOOGLE_SERVICES_FILE);
 
 /**
  * Expo config is dynamic so the app name comes from the single source of
@@ -41,6 +51,7 @@ const config: ExpoConfig = {
   },
   android: {
     package: BUNDLE_ID,
+    ...(HAS_GOOGLE_SERVICES ? { googleServicesFile: GOOGLE_SERVICES_FILE } : {}),
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
       backgroundColor: '#F2682C',

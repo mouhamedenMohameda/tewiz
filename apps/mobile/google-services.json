@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "822665372721",
+    "project_id": "tewiz-4e243",
+    "storage_bucket": "tewiz-4e243.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:822665372721:android:d98e1385ec28fe2b64e110",
+        "android_client_info": {
+          "package_name": "mr.tewiz.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAraPC7JpANqd36vkepjelX4rHzumsHIuQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
