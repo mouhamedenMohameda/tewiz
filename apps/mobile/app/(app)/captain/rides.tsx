@@ -548,12 +548,35 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
   const [code, setCode] = useState('');
   const [cancelSheetVisible, setCancelSheetVisible] = useState(false);
 
+  function errorMessage(e: any) {
+    return (
+      e?.response?.data?.error?.message
+      ?? e?.response?.data?.message
+      ?? e?.message
+      ?? t('errors.generic')
+    );
+  }
+
   async function action(label: string, fn: () => Promise<void>) {
     setBusy(label);
-    try { await fn(); await onChanged(); }
-    catch (e: any) {
-      Alert.alert(t('common.impossible'), e.response?.data?.error?.message ?? t('errors.generic'));
-    } finally { setBusy(null); }
+    let transitionOk = false;
+    try {
+      await fn();
+      transitionOk = true;
+    } catch (e: any) {
+      Alert.alert(t('common.impossible'), errorMessage(e));
+    } finally {
+      if (transitionOk) {
+        try {
+          await onChanged();
+        } catch {
+          // The state transition already succeeded server-side. If the
+          // follow-up refresh fails (network hiccup), avoid showing a
+          // misleading blocking error to the captain.
+        }
+      }
+      setBusy(null);
+    }
   }
 
   function arrive() {
