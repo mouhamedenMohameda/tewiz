@@ -61,6 +61,12 @@ export interface PricingSettings {
   openPerKmMru: number;
   openPerMinuteMru: number;
   openMinFareMru: number;
+  // Night pricing window. When enabled, fares are multiplied during the
+  // configured local-hour interval.
+  nightPricingEnabled: boolean;
+  nightPriceMultiplier: number;
+  nightPriceStartHour: number;
+  nightPriceEndHour: number;
   // Migration 0031. Show the one-tap reviewer demo-login buttons on the welcome
   // and login screens. Flip to true before an App Store / Play submission,
   // back to false once the build is approved.
@@ -68,6 +74,7 @@ export interface PricingSettings {
   captainAlertSoundMode: CaptainAlertSoundMode;
   captainAlertRepeatIntervalS: number;
   captainAlertSoundUrl: string | null;
+  gpsFraudSevereMode: boolean;
   updatedAt: string;
   updatedBy: string | null;
 }
@@ -107,10 +114,15 @@ interface Row {
   open_per_km_mru: number;
   open_per_minute_mru: number;
   open_min_fare_mru: number;
+  night_pricing_enabled: boolean;
+  night_price_multiplier: string;
+  night_price_start_hour: number;
+  night_price_end_hour: number;
   show_demo_buttons: boolean;
   captain_alert_sound_mode: CaptainAlertSoundMode;
   captain_alert_repeat_interval_s: number;
   captain_alert_sound_url: string | null;
+  gps_fraud_severe_mode: boolean;
   updated_at: Date;
   updated_by: string | null;
 }
@@ -148,10 +160,15 @@ function toSettings(r: Row): PricingSettings {
     openPerKmMru: r.open_per_km_mru,
     openPerMinuteMru: r.open_per_minute_mru,
     openMinFareMru: r.open_min_fare_mru,
+    nightPricingEnabled: r.night_pricing_enabled,
+    nightPriceMultiplier: Number(r.night_price_multiplier),
+    nightPriceStartHour: r.night_price_start_hour,
+    nightPriceEndHour: r.night_price_end_hour,
     showDemoButtons: r.show_demo_buttons,
     captainAlertSoundMode: r.captain_alert_sound_mode,
     captainAlertRepeatIntervalS: r.captain_alert_repeat_interval_s,
     captainAlertSoundUrl: r.captain_alert_sound_url,
+    gpsFraudSevereMode: r.gps_fraud_severe_mode,
     updatedAt: r.updated_at.toISOString(),
     updatedBy: r.updated_by,
   };
@@ -182,9 +199,12 @@ export async function getPricingSettings(): Promise<PricingSettings> {
             commission_bonus_window_days, commission_bonus_reward_days,
             allow_open_rides, open_base_fare_mru, open_per_km_mru,
             open_per_minute_mru, open_min_fare_mru,
+            night_pricing_enabled, night_price_multiplier,
+            night_price_start_hour, night_price_end_hour,
             show_demo_buttons,
               captain_alert_sound_mode, captain_alert_repeat_interval_s,
               captain_alert_sound_url,
+                  gps_fraud_severe_mode,
             updated_at, updated_by
        FROM app_settings WHERE id = 1`,
   );
@@ -230,10 +250,15 @@ export interface PricingSettingsPatch {
   openPerKmMru?: number;
   openPerMinuteMru?: number;
   openMinFareMru?: number;
+  nightPricingEnabled?: boolean;
+  nightPriceMultiplier?: number;
+  nightPriceStartHour?: number;
+  nightPriceEndHour?: number;
   showDemoButtons?: boolean;
   captainAlertSoundMode?: CaptainAlertSoundMode;
   captainAlertRepeatIntervalS?: number;
   captainAlertSoundUrl?: string | null;
+  gpsFraudSevereMode?: boolean;
 }
 
 export async function updatePricingSettings(
@@ -273,12 +298,17 @@ export async function updatePricingSettings(
           open_per_km_mru                   = COALESCE($29, open_per_km_mru),
           open_per_minute_mru               = COALESCE($30, open_per_minute_mru),
           open_min_fare_mru                 = COALESCE($31, open_min_fare_mru),
-          show_demo_buttons                 = COALESCE($33, show_demo_buttons),
-          captain_alert_sound_mode          = COALESCE($34, captain_alert_sound_mode),
-          captain_alert_repeat_interval_s   = COALESCE($35, captain_alert_repeat_interval_s),
-          captain_alert_sound_url           = COALESCE($36, captain_alert_sound_url),
+          night_pricing_enabled             = COALESCE($32, night_pricing_enabled),
+          night_price_multiplier            = COALESCE($33, night_price_multiplier),
+          night_price_start_hour            = COALESCE($34, night_price_start_hour),
+          night_price_end_hour              = COALESCE($35, night_price_end_hour),
+          show_demo_buttons                 = COALESCE($37, show_demo_buttons),
+          captain_alert_sound_mode          = COALESCE($38, captain_alert_sound_mode),
+          captain_alert_repeat_interval_s   = COALESCE($39, captain_alert_repeat_interval_s),
+          captain_alert_sound_url           = COALESCE($40, captain_alert_sound_url),
+          gps_fraud_severe_mode             = COALESCE($41, gps_fraud_severe_mode),
             updated_at                        = now(),
-          updated_by                        = $32
+          updated_by                        = $36
       WHERE id = 1
       RETURNING base_fare_mru, per_km_mru, min_fare_mru,
                 colis_base_fare_mru, colis_per_km_mru, colis_min_fare_mru,
@@ -300,9 +330,12 @@ export async function updatePricingSettings(
                 commission_bonus_window_days, commission_bonus_reward_days,
                 allow_open_rides, open_base_fare_mru, open_per_km_mru,
                 open_per_minute_mru, open_min_fare_mru,
+                night_pricing_enabled, night_price_multiplier,
+                night_price_start_hour, night_price_end_hour,
                 show_demo_buttons,
                 captain_alert_sound_mode, captain_alert_repeat_interval_s,
                 captain_alert_sound_url,
+                gps_fraud_severe_mode,
                 updated_at, updated_by`,
     [
       patch.baseFareMru ?? null,
@@ -336,11 +369,16 @@ export async function updatePricingSettings(
       patch.openPerKmMru ?? null,
       patch.openPerMinuteMru ?? null,
       patch.openMinFareMru ?? null,
+      patch.nightPricingEnabled ?? null,
+      patch.nightPriceMultiplier ?? null,
+      patch.nightPriceStartHour ?? null,
+      patch.nightPriceEndHour ?? null,
       adminId,
       patch.showDemoButtons ?? null,
       patch.captainAlertSoundMode ?? null,
       patch.captainAlertRepeatIntervalS ?? null,
       patch.captainAlertSoundUrl ?? null,
+      patch.gpsFraudSevereMode ?? null,
     ],
   );
   cache = null;

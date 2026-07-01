@@ -1042,8 +1042,20 @@ async function evaluateClosedRideGpsViolation(input: {
   startedAt: Date;
   captainId: string;
   baseCommissionMru: number;
+  severeModeEnabled?: boolean;
+  enforceCancellationContext?: boolean;
 }): Promise<GpsPenaltyResult | null> {
-  const { client, rideId, startedAt, captainId, baseCommissionMru } = input;
+  const {
+    client,
+    rideId,
+    startedAt,
+    captainId,
+    baseCommissionMru,
+    severeModeEnabled = true,
+    enforceCancellationContext = false,
+  } = input;
+
+  if (!severeModeEnabled) return null;
 
   const gps = await client.query<{ samples: string; last_recorded: Date | null }>(
     `SELECT COUNT(*)::text AS samples,
@@ -1066,6 +1078,59 @@ async function evaluateClosedRideGpsViolation(input: {
     || (durationS >= 180 && samples < 2)
     || (durationS >= 300 && lastAgeS > 180);
   if (!missingTelemetry) return null;
+
+  if (enforceCancellationContext) {
+    const cancelCtx = await client.query<{ id: string; cancelled_at: Date; near_destination: boolean }>(
+      `WITH latest AS (
+         SELECT e.id, e.cancelled_at, e.cancel_dropoff
+           FROM captain_cancel_events e
+          WHERE e.captain_id = $1
+            AND e.resolved_at IS NULL
+            AND e.cancelled_at >= (now() - interval '6 hours')
+          ORDER BY e.cancelled_at DESC
+          LIMIT 1
+       ),
+       no_replacement AS (
+         SELECT l.id
+           FROM latest l
+          WHERE NOT EXISTS (
+            SELECT 1
+              FROM rides r2
+             WHERE r2.captain_id = $1
+               AND r2.accepted_at IS NOT NULL
+               AND r2.accepted_at > l.cancelled_at
+               AND r2.id <> $2
+               AND l.cancel_dropoff IS NOT NULL
+               AND r2.dropoff_location IS NOT NULL
+               AND ST_DWithin(r2.dropoff_location, l.cancel_dropoff, 500)
+          )
+       )
+       SELECT l.id,
+              l.cancelled_at,
+              EXISTS (
+                SELECT 1
+                  FROM ride_locations rl
+                 WHERE rl.ride_id = $2
+                   AND rl.recorded_at >= ($3::timestamptz - interval '10 seconds')
+                   AND l.cancel_dropoff IS NOT NULL
+                   AND ST_DWithin(rl.point, l.cancel_dropoff, 500)
+                 LIMIT 1
+              ) AS near_destination
+         FROM latest l
+         JOIN no_replacement nr ON nr.id = l.id`,
+      [captainId, rideId, startedAt],
+    );
+
+    const ctx = cancelCtx.rows[0];
+    if (!ctx?.near_destination) return null;
+
+    await client.query(
+      `UPDATE captain_cancel_events
+          SET resolved_at = now()
+        WHERE id = $1`,
+      [Number(ctx.id)],
+    );
+  }
 
   const countRes = await client.query<{ n: string }>(
     `SELECT COUNT(*)::text AS n
@@ -1137,6 +1202,7 @@ export const __test__ = {
 
 export async function completeRide(input: CompleteInput) {
   return withTx(async (client) => {
+    const settings = await getPricingSettings();
     const ride = await lockRide(client, input.rideId);
     if (ride.captain_id !== input.captainId) {
       throw new HttpError(403, 'forbidden', 'Not your ride');
@@ -1188,7 +1254,12 @@ export async function completeRide(input: CompleteInput) {
         perMinuteMru: ride.open_per_minute_mru!,
         minFareMru: ride.open_min_fare_mru!,
       };
-      fareFinalMru = openFareMru(tariff, finalDistanceM, finalDurationS);
+      fareFinalMru = openFareMru(tariff, finalDistanceM, finalDurationS, {
+        enabled: settings.nightPricingEnabled,
+        multiplier: settings.nightPriceMultiplier,
+        startHour: settings.nightPriceStartHour,
+        endHour: settings.nightPriceEndHour,
+      });
       finalDropoff = await lastTrailPoint(client, ride.id);
     } else {
       // Fixed-fare ride: keep the legacy behaviour. If the captain reports
@@ -1221,6 +1292,8 @@ export async function completeRide(input: CompleteInput) {
           startedAt: ride.started_at,
           captainId: input.captainId,
           baseCommissionMru: baselineCommission,
+          severeModeEnabled: settings.gpsFraudSevereMode,
+          enforceCancellationContext: true,
         })
       : null;
     const commission = gpsPenalty?.chargedCommissionMru ?? baselineCommission;
@@ -1410,6 +1483,19 @@ export async function cancelRide(input: CancelInput) {
          VALUES ($1, $2)
          ON CONFLICT (ride_id, captain_id) DO NOTHING`,
         [ride.id, input.userId],
+      );
+      await client.query(
+        `INSERT INTO captain_cancel_events (captain_id, ride_id, cancel_dropoff)
+         VALUES (
+           $1,
+           $2,
+           CASE
+             WHEN $3::float8 IS NULL OR $4::float8 IS NULL THEN NULL
+             ELSE ST_SetSRID(ST_MakePoint($3, $4), 4326)::geography
+           END
+         )
+         ON CONFLICT (ride_id) DO NOTHING`,
+        [input.userId, ride.id, ride.dropoff_lng, ride.dropoff_lat],
       );
 
       // Re-broadcast to every other eligible captain, after the tx commits

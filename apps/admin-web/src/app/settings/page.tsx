@@ -35,10 +35,15 @@ interface PricingSettings {
   openPerKmMru: number;
   openPerMinuteMru: number;
   openMinFareMru: number;
+  nightPricingEnabled: boolean;
+  nightPriceMultiplier: number;
+  nightPriceStartHour: number;
+  nightPriceEndHour: number;
   showDemoButtons: boolean;
   captainAlertSoundMode: CaptainAlertSoundMode;
   captainAlertRepeatIntervalS: number;
   captainAlertSoundUrl: string | null;
+  gpsFraudSevereMode: boolean;
   updatedAt: string;
   updatedBy: string | null;
 }
@@ -65,10 +70,15 @@ interface FormState {
   openPerKmMru: string;
   openPerMinuteMru: string;
   openMinFareMru: string;
+  nightPricingEnabled: boolean;
+  nightPriceMultiplier: string;
+  nightPriceStartHour: string;
+  nightPriceEndHour: string;
   showDemoButtons: boolean;
   captainAlertSoundMode: CaptainAlertSoundMode;
   captainAlertRepeatIntervalS: string;
   captainAlertSoundUrl: string;
+  gpsFraudSevereMode: boolean;
 }
 
 const EMPTY_FORM: FormState = {
@@ -93,10 +103,15 @@ const EMPTY_FORM: FormState = {
   openPerKmMru: '',
   openPerMinuteMru: '',
   openMinFareMru: '',
+  nightPricingEnabled: true,
+  nightPriceMultiplier: '2',
+  nightPriceStartHour: '0',
+  nightPriceEndHour: '5',
   showDemoButtons: false,
-  captainAlertSoundMode: 'critical',
+  captainAlertSoundMode: 'standard',
   captainAlertRepeatIntervalS: '2',
   captainAlertSoundUrl: '',
+  gpsFraudSevereMode: false,
 };
 
 function settingsToForm(s: PricingSettings): FormState {
@@ -122,10 +137,15 @@ function settingsToForm(s: PricingSettings): FormState {
     openPerKmMru: String(s.openPerKmMru),
     openPerMinuteMru: String(s.openPerMinuteMru),
     openMinFareMru: String(s.openMinFareMru),
+    nightPricingEnabled: s.nightPricingEnabled,
+    nightPriceMultiplier: String(s.nightPriceMultiplier),
+    nightPriceStartHour: String(s.nightPriceStartHour),
+    nightPriceEndHour: String(s.nightPriceEndHour),
     showDemoButtons: s.showDemoButtons,
     captainAlertSoundMode: s.captainAlertSoundMode,
     captainAlertRepeatIntervalS: String(s.captainAlertRepeatIntervalS),
     captainAlertSoundUrl: s.captainAlertSoundUrl ?? '',
+    gpsFraudSevereMode: s.gpsFraudSevereMode,
   };
 }
 
@@ -172,12 +192,17 @@ export default function SettingsPage() {
         openPerKmMru: parseInt(form.openPerKmMru, 10),
         openPerMinuteMru: parseInt(form.openPerMinuteMru, 10),
         openMinFareMru: parseInt(form.openMinFareMru, 10),
+        nightPricingEnabled: form.nightPricingEnabled,
+        nightPriceMultiplier: parseFloat(form.nightPriceMultiplier),
+        nightPriceStartHour: parseInt(form.nightPriceStartHour, 10),
+        nightPriceEndHour: parseInt(form.nightPriceEndHour, 10),
         showDemoButtons: form.showDemoButtons,
         captainAlertSoundMode: form.captainAlertSoundMode,
         captainAlertRepeatIntervalS: parseInt(form.captainAlertRepeatIntervalS, 10),
         captainAlertSoundUrl: form.captainAlertSoundUrl.trim() === ''
           ? null
           : form.captainAlertSoundUrl.trim(),
+        gpsFraudSevereMode: form.gpsFraudSevereMode,
       };
       const r = await api.put<PricingSettings>('/admin/settings', payload);
       return r.data;
@@ -408,6 +433,51 @@ export default function SettingsPage() {
 
             <section className="card p-5 mb-4">
               <div className="flex items-start justify-between mb-1">
+                <h2 className="font-semibold text-slate-900">Majoration de nuit</h2>
+                <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.nightPricingEnabled}
+                    onChange={(e) => setForm({ ...form, nightPricingEnabled: e.target.checked })}
+                    className="w-4 h-4 accent-indigo-600"
+                  />
+                  <span className={form.nightPricingEnabled ? 'text-indigo-700 font-medium' : 'text-slate-500'}>
+                    {form.nightPricingEnabled ? 'Activée' : 'Désactivée'}
+                  </span>
+                </label>
+              </div>
+              <p className="text-xs text-slate-500 mb-4">
+                Applique un multiplicateur sur les prix entre l&apos;heure de début (incluse)
+                et l&apos;heure de fin (exclue), selon l&apos;heure locale du serveur.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <Field
+                  label="Multiplicateur"
+                  suffix="x"
+                  value={form.nightPriceMultiplier}
+                  onChange={(v) => setForm({ ...form, nightPriceMultiplier: v })}
+                  step="0.1"
+                />
+                <Field
+                  label="Début"
+                  suffix="h"
+                  value={form.nightPriceStartHour}
+                  onChange={(v) => setForm({ ...form, nightPriceStartHour: v })}
+                  step="1"
+                />
+                <Field
+                  label="Fin"
+                  suffix="h"
+                  value={form.nightPriceEndHour}
+                  onChange={(v) => setForm({ ...form, nightPriceEndHour: v })}
+                  step="1"
+                />
+              </div>
+            </section>
+
+            <section className="card p-5 mb-4">
+              <div className="flex items-start justify-between mb-1">
                 <h2 className="font-semibold text-slate-900">Bonus chauffeur</h2>
                 <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
                   <input
@@ -525,6 +595,27 @@ export default function SettingsPage() {
                   Si vide ou inaccessible, l&apos;app retombe automatiquement sur la sonnerie par defaut.
                 </p>
               </label>
+            </section>
+
+            <section className="card p-5 mb-4 border-2 border-dashed border-red-300 bg-red-50">
+              <div className="flex items-start justify-between mb-1">
+                <h2 className="font-semibold text-slate-900">Politique GPS severe</h2>
+                <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.gpsFraudSevereMode}
+                    onChange={(e) => setForm({ ...form, gpsFraudSevereMode: e.target.checked })}
+                    className="w-4 h-4 accent-red-600"
+                  />
+                  <span className={form.gpsFraudSevereMode ? 'text-red-700 font-medium' : 'text-slate-500'}>
+                    {form.gpsFraudSevereMode ? 'Active' : 'Desactivee'}
+                  </span>
+                </label>
+              </div>
+              <p className="text-xs text-slate-600">
+                Mode strict de sanction GPS. Desactive par defaut au lancement.
+                Activez-le uniquement quand vous etes pret a appliquer les avertissements/penalites.
+              </p>
             </section>
 
             <section className="card p-5 mb-4 border-2 border-dashed border-amber-300 bg-amber-50">
@@ -664,6 +755,13 @@ function isFormValid(f: FormState): boolean {
   if (openInts.some((n) => Number.isNaN(n) || n < 0 || n > 10_000)) return false;
   const openPerMin = parseInt(f.openPerMinuteMru, 10);
   if (Number.isNaN(openPerMin) || openPerMin < 0 || openPerMin > 1_000) return false;
+  const nightMultiplier = parseFloat(f.nightPriceMultiplier);
+  if (Number.isNaN(nightMultiplier) || nightMultiplier < 1 || nightMultiplier > 10) return false;
+  const nightStart = parseInt(f.nightPriceStartHour, 10);
+  const nightEnd = parseInt(f.nightPriceEndHour, 10);
+  if (Number.isNaN(nightStart) || Number.isNaN(nightEnd)) return false;
+  if (nightStart < 0 || nightStart > 23 || nightEnd < 0 || nightEnd > 23) return false;
+  if (nightStart === nightEnd) return false;
   const alertRepeat = parseInt(f.captainAlertRepeatIntervalS, 10);
   if (Number.isNaN(alertRepeat) || alertRepeat < 1 || alertRepeat > 15) return false;
   const url = f.captainAlertSoundUrl.trim();
