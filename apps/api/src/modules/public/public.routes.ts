@@ -33,6 +33,34 @@ publicRouter.get('/config', async (_req, res) => {
   });
 });
 
+/**
+ * GET /public/captain-alert-sound
+ *
+ * Streams the currently configured captain alert sound through our own API
+ * domain. This avoids iOS/ATS playback issues against some third-party hosts.
+ */
+publicRouter.get('/captain-alert-sound', async (_req, res) => {
+  const s = await getPricingSettings();
+  const url = s.captainAlertSoundUrl?.trim();
+  if (!url || (!url.startsWith('http://') && !url.startsWith('https://'))) {
+    return res.status(404).json({ error: { code: 'alert_sound_not_configured' } });
+  }
+
+  try {
+    const upstream = await fetch(url, { redirect: 'follow' });
+    if (!upstream.ok) {
+      return res.status(502).json({ error: { code: 'alert_sound_upstream_error' } });
+    }
+    const contentType = upstream.headers.get('content-type') ?? 'audio/mpeg';
+    const body = Buffer.from(await upstream.arrayBuffer());
+    res.setHeader('content-type', contentType);
+    res.setHeader('cache-control', 'public, max-age=300');
+    return res.status(200).send(body);
+  } catch {
+    return res.status(502).json({ error: { code: 'alert_sound_fetch_failed' } });
+  }
+});
+
 const confirmBody = z.object({
   code: z.string().regex(/^\d{4}$/),
 });
