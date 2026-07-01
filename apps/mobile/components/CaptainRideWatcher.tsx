@@ -13,6 +13,7 @@ import { Audio } from 'expo-av';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from '@/lib/api';
+import { API_URL } from '@/lib/env';
 import { useAppConfig } from '@/lib/appConfig';
 import { formatMru } from '@/lib/format';
 import { useAuth } from '@/lib/auth';
@@ -206,8 +207,11 @@ export function CaptainRideWatcher() {
   const customRingtoneUrl = (() => {
     const url = appConfig.captainAlertSoundUrl?.trim();
     if (!url) return null;
-    if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    return null;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) return null;
+    const base = API_URL.replace(/\/$/, '');
+    // Always stream through our API domain to avoid iOS ATS/cipher issues
+    // against third-party hosts while keeping admin-configurable URLs.
+    return `${base}/public/captain-alert-sound?v=${encodeURIComponent(url)}`;
   })();
 
   // Configure audio + request notification permission on mount.
@@ -279,9 +283,10 @@ export function CaptainRideWatcher() {
       try {
         const created = await Audio.Sound.createAsync(
           { uri: customRingtoneUrl },
-          { shouldPlay: true, isLooping: true, volume: 1 },
+          { shouldPlay: false, isLooping: true, volume: 1 },
         );
         soundRef.current = created.sound;
+        await soundRef.current.playAsync();
         // Keep one local notification ping so iOS can still show a heads-up
         // style alert while the custom ringtone loops in-app.
         void fireOneBeep(ride);
