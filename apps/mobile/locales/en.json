@@ -239,7 +239,13 @@
         "favoriteFallbackName": "this driver",
         "favoriteHint": "Your favourites get priority (for 30 s) on your next rides.",
         "favoriteAdd": "Add to favourites"
-      }
+      },
+      "openDestination": "Destination",
+      "openDestinationValue": "Décidée en route",
+      "openMeterDistance": "Distance",
+      "openMeterDuration": "Durée",
+      "openMeterLive": "Compteur",
+      "openMeterTariffSummary": "{{base}} départ + {{perKm}}/km + {{perMin}}/min"
     },
     "favorites": {
       "title": "My drivers",
@@ -295,7 +301,17 @@
       "submit": "Place ride",
       "estimate": "Estimate",
       "submitting": "Sending…",
-      "missingPoints": "Set pickup and destination."
+      "missingPoints": "Set pickup and destination.",
+      "meterBase": "Départ",
+      "meterMin": "Course minimum {{min}}",
+      "meterPerKm": "/ km",
+      "meterPerMin": "/ min",
+      "openFareLabel": "Tarif",
+      "openFareMeter": "Au compteur",
+      "openMeterLabel": "Tarif au compteur",
+      "openRideHint": "Pas de destination — le compteur démarre à bord",
+      "openRideTitle": "Course ouverte",
+      "submitOpen": "Commander un taxi (compteur)"
     },
     "voiceRide": {
       "headline": "Voice order",
@@ -428,7 +444,15 @@
       "startDelivery": "Start delivery",
       "deliveryConfirmTitle": "Delivery code (4 digits)",
       "deliveryConfirmSub": "Ask the recipient for the code received by SMS.",
-      "confirmDelivery": "Confirm delivery"
+      "confirmDelivery": "Confirm delivery",
+      "endOpenRide": "Terminer la course (compteur)",
+      "meterShort": "Au compteur",
+      "meterTariffLabel": "Tarif au compteur",
+      "openBadge": "Course ouverte",
+      "openDestinationShort": "Décidée en route",
+      "openMeterDistance": "Distance",
+      "openMeterDuration": "Durée",
+      "openMeterLive": "Compteur en direct"
     },
     "wallet": {
       "title": "Wallet",
@@ -683,7 +707,8 @@
       "longDistanceHint": "Inter-city rides (Nouakchott — Nouadhibou, etc.).",
       "motoPassengerBlockedHint": "Motorbikes do not receive passenger rides.",
       "save": "Save",
-      "saveError": "Could not save."
+      "saveError": "Could not save.",
+      "seatsCount": "{{count}} places"
     },
     "docs": {
       "title": "Documents",
@@ -781,6 +806,7 @@
     "fr": "Français",
     "ar": "العربية",
     "en": "English",
+    "hs": "Hassaniya",
     "ff": "Pulaar",
     "wo": "Wolof",
     "snk": "Sooninkanxanne"

@@ -29,7 +29,8 @@
     "sending": "Mu ngi yonneeku…",
     "notSent": "Yonneewul",
     "tapToReplace": "Laal ngir wuutal",
-    "holdToDelete": "Téye ngir far"
+    "holdToDelete": "Téye ngir far",
+    "confirm": "Wóoral"
   },
   "errors": {
     "server": "Mënul jot serveur bi.",
@@ -209,7 +210,13 @@
         "favoriteFallbackName": "chauffeur bii",
         "favoriteHint": "Sa favoris ñoo jëkk (30 s) ci sa course yu dëgg.",
         "favoriteAdd": "Yokk ci favoris"
-      }
+      },
+      "openDestination": "Jëmukaay",
+      "openDestinationValue": "Dinañu ko dogal ci yoon wi",
+      "openMeterDistance": "Distance",
+      "openMeterDuration": "Diir",
+      "openMeterLive": "Compteur",
+      "openMeterTariffSummary": "{{base}} tàmbali + {{perKm}}/km + {{perMin}}/min"
     },
     "favorites": {
       "title": "Sama chauffeurs",
@@ -265,7 +272,17 @@
       "submit": "Sànni course",
       "estimate": "Estimation",
       "submitting": "Mu ngi yonneeku…",
-      "missingPoints": "Bind tambali ak bérab."
+      "missingPoints": "Bind tambali ak bérab.",
+      "meterBase": "Tàmbali",
+      "meterMin": "Yoon wu gëna néew {{min}}",
+      "meterPerKm": "/ km",
+      "meterPerMin": "/ min",
+      "openFareLabel": "Tarif",
+      "openFareMeter": "Compteur",
+      "openMeterLabel": "Tarif compteur",
+      "openRideHint": "Jëmukaay amul - compteur bi dina tàmbali bu ngeen duggee",
+      "openRideTitle": "Yoon ubbiku",
+      "submitOpen": "Woo taksi (compteur)"
     },
     "voiceRide": {
       "headline": "Sànni ak baat",
@@ -398,7 +415,15 @@
       "startDelivery": "Door livraison",
       "deliveryConfirmTitle": "Code livraison (4 limu)",
       "deliveryConfirmSub": "Laaj ku ko jot code bi ci SMS.",
-      "confirmDelivery": "Confirmer livraison"
+      "confirmDelivery": "Confirmer livraison",
+      "endOpenRide": "Jeexal yoon wi (compteur)",
+      "meterShort": "Compteur",
+      "meterTariffLabel": "Tarif compteur",
+      "openBadge": "Yoon ubbiku",
+      "openDestinationShort": "Dinañu ko dogal ci yoon wi",
+      "openMeterDistance": "Distance",
+      "openMeterDuration": "Diir",
+      "openMeterLive": "Compteur ci jamono"
     },
     "wallet": {
       "title": "Portefeuille",
@@ -467,7 +492,10 @@
       "errorBody": "Sif bérab bi (mis. \"jegeel jamaa Saudique\").",
       "locationRequiredBody": "{{app}} war na saytu né nga ngi fa.",
       "savedTitle": "Kër denc nañu ko",
-      "savedBody": "Taxaw ba {{date}}."
+      "savedBody": "Taxaw ba {{date}}.",
+      "mapInstruction": "Bësal ci kaart bi ngir tënk sa kër.",
+      "mapNoPin": "Amul bérab bu ñu tànn - bësal ci kaart bi",
+      "pinHint": "Fàww nga nekk fa (200 m bu ëppul)"
     },
     "recurring": {
       "title": "Course yu ñu fexee",
@@ -612,7 +640,9 @@
       "emergencyNamePlaceholder": "Fatimetou (jabar)",
       "emergencyPhone": "Contact urgence — telefon",
       "saveError": "Mënul denc.",
-      "save": "Denc"
+      "save": "Denc",
+      "dobMinAgeHelper": "Fàww nga am 18 at ak lool.",
+      "dobTapToPick": "Laal ngir tànn bés bi"
     },
     "vehicle": {
       "title": "Oto",
@@ -636,7 +666,18 @@
       "longDistanceTitle": "Yoon yu sori",
       "longDistanceHint": "Course inter-villes (Nouakchott — Nouadhibou, etc.).",
       "save": "Denc",
-      "saveError": "Mënul denc."
+      "saveError": "Mënul denc.",
+      "brandSearchPlaceholder": "Seet marque…",
+      "brandTapToPick": "Laal ngir tànn marque bi",
+      "colorTapToPick": "Laal ngir tànn melo mi",
+      "motoForcedColisHint": "Ci mode moto, dinga jot rekk yooni colis.",
+      "motoPassengerBlockedHint": "Moto duñu jël yooni passager.",
+      "seatsCount": "{{count}} toogukaay",
+      "typeCar": "Woto",
+      "typeMoto": "Moto",
+      "vehicleTypeHint": "Tànn bii mooy tënku xeetu yoon yi ngay jot.",
+      "vehicleTypeLabel": "Xeetu woto",
+      "yearTapToPick": "Laal ngir tànn at mi"
     },
     "docs": {
       "title": "Documents",
@@ -661,7 +702,9 @@
       "expiresPrefix": "sotti {{date}}",
       "tapToAdd": "Laal ngir yokk",
       "notSent": "Yonneewul",
-      "replaceHint": "Laal ngir wuutal · Téye ngir far"
+      "replaceHint": "Laal ngir wuutal · Téye ngir far",
+      "expiryHintPicker": "{{label}} — tànnal bésu jeexital bi.",
+      "expiryTapToPick": "Laal ngir tànn bés bi"
     },
     "documents": {
       "selfie": "Selfie",
@@ -732,6 +775,7 @@
     "fr": "Français",
     "ar": "العربية",
     "en": "English",
+    "hs": "Hassaniya",
     "ff": "Pulaar",
     "wo": "Wolof",
     "snk": "Sooninkanxanne"
@@ -827,5 +871,19 @@
     "message": "Bataaxal",
     "stack": "Stack",
     "hint": "(Jël nataal bi te yonnee ko.)"
-  }
+  },
+  "months": [
+    "Janvier",
+    "Février",
+    "Mars",
+    "Avril",
+    "Mai",
+    "Juin",
+    "Juillet",
+    "Août",
+    "Septembre",
+    "Octobre",
+    "Novembre",
+    "Décembre"
+  ]
 }

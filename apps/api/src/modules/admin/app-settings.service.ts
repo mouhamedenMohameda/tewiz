@@ -67,6 +67,7 @@ export interface PricingSettings {
   showDemoButtons: boolean;
   captainAlertSoundMode: CaptainAlertSoundMode;
   captainAlertRepeatIntervalS: number;
+  captainAlertSoundUrl: string | null;
   updatedAt: string;
   updatedBy: string | null;
 }
@@ -109,6 +110,7 @@ interface Row {
   show_demo_buttons: boolean;
   captain_alert_sound_mode: CaptainAlertSoundMode;
   captain_alert_repeat_interval_s: number;
+  captain_alert_sound_url: string | null;
   updated_at: Date;
   updated_by: string | null;
 }
@@ -149,6 +151,7 @@ function toSettings(r: Row): PricingSettings {
     showDemoButtons: r.show_demo_buttons,
     captainAlertSoundMode: r.captain_alert_sound_mode,
     captainAlertRepeatIntervalS: r.captain_alert_repeat_interval_s,
+    captainAlertSoundUrl: r.captain_alert_sound_url,
     updatedAt: r.updated_at.toISOString(),
     updatedBy: r.updated_by,
   };
@@ -181,6 +184,7 @@ export async function getPricingSettings(): Promise<PricingSettings> {
             open_per_minute_mru, open_min_fare_mru,
             show_demo_buttons,
               captain_alert_sound_mode, captain_alert_repeat_interval_s,
+              captain_alert_sound_url,
             updated_at, updated_by
        FROM app_settings WHERE id = 1`,
   );
@@ -229,6 +233,7 @@ export interface PricingSettingsPatch {
   showDemoButtons?: boolean;
   captainAlertSoundMode?: CaptainAlertSoundMode;
   captainAlertRepeatIntervalS?: number;
+  captainAlertSoundUrl?: string | null;
 }
 
 export async function updatePricingSettings(
@@ -271,6 +276,7 @@ export async function updatePricingSettings(
           show_demo_buttons                 = COALESCE($33, show_demo_buttons),
           captain_alert_sound_mode          = COALESCE($34, captain_alert_sound_mode),
           captain_alert_repeat_interval_s   = COALESCE($35, captain_alert_repeat_interval_s),
+          captain_alert_sound_url           = COALESCE($36, captain_alert_sound_url),
             updated_at                        = now(),
           updated_by                        = $32
       WHERE id = 1
@@ -296,6 +302,7 @@ export async function updatePricingSettings(
                 open_per_minute_mru, open_min_fare_mru,
                 show_demo_buttons,
                 captain_alert_sound_mode, captain_alert_repeat_interval_s,
+                captain_alert_sound_url,
                 updated_at, updated_by`,
     [
       patch.baseFareMru ?? null,
@@ -333,6 +340,7 @@ export async function updatePricingSettings(
       patch.showDemoButtons ?? null,
       patch.captainAlertSoundMode ?? null,
       patch.captainAlertRepeatIntervalS ?? null,
+      patch.captainAlertSoundUrl ?? null,
     ],
   );
   cache = null;

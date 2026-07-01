@@ -707,7 +707,8 @@
       "longDistanceHint": "Courses inter-villes (Nouakchott — Nouadhibou, etc.).",
       "motoPassengerBlockedHint": "Les motos ne reçoivent pas de courses passagers.",
       "save": "Enregistrer",
-      "saveError": "Impossible d'enregistrer."
+      "saveError": "Impossible d'enregistrer.",
+      "seatsCount": "{{count}} places"
     },
     "docs": {
       "title": "Documents",
@@ -805,6 +806,7 @@
     "fr": "Français",
     "ar": "العربية",
     "en": "English",
+    "hs": "Hassaniya",
     "ff": "Pulaar",
     "wo": "Wolof",
     "snk": "Sooninkanxanne"

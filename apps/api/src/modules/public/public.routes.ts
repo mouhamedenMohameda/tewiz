@@ -29,6 +29,7 @@ publicRouter.get('/config', async (_req, res) => {
     showDemoButtons: s.showDemoButtons,
     captainAlertSoundMode: s.captainAlertSoundMode,
     captainAlertRepeatIntervalS: s.captainAlertRepeatIntervalS,
+    captainAlertSoundUrl: s.captainAlertSoundUrl,
   });
 });
 

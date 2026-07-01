@@ -37,6 +37,7 @@ interface MapboxDirectionsResponse {
 
 type RideKind = 'self' | 'other' | 'colis';
 type PricingMode = 'solo' | 'shared';
+const SOLO_PRICING_MODE: PricingMode = 'solo';
 
 /** Parse a Point from a (lat, lng, label) triple that came from query params. */
 function parsePoint(
@@ -116,8 +117,6 @@ export default function NewRideScreen() {
   const [recipientName, setRecipientName] = useState('');
   const [recipientPhone, setRecipientPhone] = useState('+222');
   const [packageDescription, setPackageDescription] = useState('');
-  const [pricingMode, setPricingMode] = useState<PricingMode>('solo');
-  const [sharedSeats, setSharedSeats] = useState(12);
 
   const { reports, refresh: refreshReports } = useRoadReports();
 
@@ -164,12 +163,6 @@ export default function NewRideScreen() {
   // Course ouverte is only meaningful for passenger rides (no destination →
   // no parcel handover). Auto-disable when the user picks colis.
   useEffect(() => { if (kind === 'colis' && isOpen) setIsOpen(false); }, [kind, isOpen]);
-  useEffect(() => {
-    if (kind === 'colis' || isOpen) {
-      setPricingMode('solo');
-    }
-  }, [kind, isOpen]);
-
   // Recompute estimate whenever both ends are set — closed rides only.
   useEffect(() => {
     if (isOpen) { setEstimate(null); return; }
@@ -187,13 +180,13 @@ export default function NewRideScreen() {
       pickup: { lat: pickup.lat, lng: pickup.lng },
       dropoff: { lat: dropoff.lat, lng: dropoff.lng },
       rideType: kind === 'colis' ? 'colis' : 'passenger',
-      ...(kind !== 'colis' ? { pricingMode, sharedSeats } : {}),
+      ...(kind !== 'colis' ? { pricingMode: SOLO_PRICING_MODE } : {}),
     })
       .then((r) => { if (!cancelled) setEstimate(r.data); })
       .catch(() => { if (!cancelled) setEstimate(null); })
       .finally(() => { if (!cancelled) setEstimating(false); });
     return () => { cancelled = true; };
-  }, [pickup, dropoff, kind, isOpen, pricingMode, sharedSeats]);
+  }, [pickup, dropoff, kind, isOpen]);
 
   const onMapPress = useCallback((lngLat: [number, number]) => {
     const p: Point = { lat: lngLat[1], lng: lngLat[0] };
@@ -322,7 +315,7 @@ export default function NewRideScreen() {
         pickup,
         rideType: kind === 'colis' ? 'colis' : 'passenger',
         paymentMethod: 'cash',
-        ...(kind !== 'colis' && !isOpen ? { pricingMode, sharedSeats } : {}),
+        ...(kind !== 'colis' && !isOpen ? { pricingMode: SOLO_PRICING_MODE } : {}),
       };
       if (isOpen) {
         body.isOpen = true;
@@ -398,15 +391,6 @@ export default function NewRideScreen() {
         ) : null}
 
         <KindSelector value={kind} onChange={setKind} />
-
-        {kind !== 'colis' && !isOpen ? (
-          <SharedModeSelector
-            value={pricingMode}
-            seats={sharedSeats}
-            onModeChange={setPricingMode}
-            onSeatsChange={setSharedSeats}
-          />
-        ) : null}
 
         {kind === 'other' ? (
           <View style={{ gap: 6, marginTop: 4 }}>
@@ -527,12 +511,7 @@ export default function NewRideScreen() {
         {!isOpen && estimate?.isIntercityPricing ? (
           <View style={{ marginBottom: 10 }}>
             <Text style={{ fontSize: 12, color: '#64748b' }}>
-              {estimate.pricingMode === 'shared'
-                ? `Inter-ville partage · ${estimate.sharedSeats ?? sharedSeats} places`
-                : 'Inter-ville solo'}
-              {estimate.soloFareMru != null && estimate.pricingMode === 'shared'
-                ? ` · Solo: ${formatMru(estimate.soloFareMru)}`
-                : ''}
+              Inter-ville solo
             </Text>
           </View>
         ) : null}
@@ -748,72 +727,6 @@ function KindSelector({
           </Pressable>
         );
       })}
-    </View>
-  );
-}
-
-function SharedModeSelector({
-  value,
-  seats,
-  onModeChange,
-  onSeatsChange,
-}: {
-  value: PricingMode;
-  seats: number;
-  onModeChange: (m: PricingMode) => void;
-  onSeatsChange: (n: number) => void;
-}) {
-  const clampedSeats = Math.max(2, Math.min(20, seats));
-  return (
-    <View style={{ marginTop: 4, gap: 8 }}>
-      <View style={{ flexDirection: 'row', gap: 6 }}>
-        {(['solo', 'shared'] as const).map((mode) => {
-          const active = value === mode;
-          return (
-            <Pressable
-              key={mode}
-              onPress={() => onModeChange(mode)}
-              style={({ pressed }) => ({
-                flex: 1,
-                borderRadius: 10,
-                paddingVertical: 10,
-                alignItems: 'center',
-                backgroundColor: active ? '#0f172a' : (pressed ? '#e2e8f0' : '#f1f5f9'),
-              })}
-            >
-              <Text style={{ fontSize: 12, fontWeight: '700', color: active ? '#fff' : '#475569' }}>
-                {mode === 'solo' ? 'Solo' : 'Partage'}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-      {value === 'shared' ? (
-        <View style={{
-          flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-          backgroundColor: '#f8fafc', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8,
-          borderWidth: 1, borderColor: '#e2e8f0',
-        }}>
-          <Text style={{ fontSize: 12, color: '#475569' }}>Nombre de places</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Pressable
-              onPress={() => onSeatsChange(Math.max(2, clampedSeats - 1))}
-              style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: '#e2e8f0', alignItems: 'center', justifyContent: 'center' }}
-            >
-              <Text style={{ fontSize: 18, color: '#0f172a', marginTop: -1 }}>-</Text>
-            </Pressable>
-            <Text style={{ minWidth: 22, textAlign: 'center', fontSize: 14, fontWeight: '700', color: '#0f172a' }}>
-              {clampedSeats}
-            </Text>
-            <Pressable
-              onPress={() => onSeatsChange(Math.min(20, clampedSeats + 1))}
-              style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: '#e2e8f0', alignItems: 'center', justifyContent: 'center' }}
-            >
-              <Text style={{ fontSize: 18, color: '#0f172a', marginTop: -1 }}>+</Text>
-            </Pressable>
-          </View>
-        </View>
-      ) : null}
     </View>
   );
 }

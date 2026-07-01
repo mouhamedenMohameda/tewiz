@@ -21,12 +21,14 @@ export interface AppConfig {
   showDemoButtons: boolean;
   captainAlertSoundMode: CaptainAlertSoundMode;
   captainAlertRepeatIntervalS: number;
+  captainAlertSoundUrl: string | null;
 }
 
 const DEFAULTS: AppConfig = {
   showDemoButtons: false,
   captainAlertSoundMode: 'critical',
   captainAlertRepeatIntervalS: 2,
+  captainAlertSoundUrl: null,
 };
 
 let memCache: AppConfig | null = null;

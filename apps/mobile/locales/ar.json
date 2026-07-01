@@ -239,7 +239,13 @@
         "favoriteFallbackName": "هذا السائق",
         "favoriteHint": "تُعرض مفضّلتك أولاً (لمدة 30 ثانية) في رحلاتك القادمة.",
         "favoriteAdd": "إضافة إلى المفضّلة"
-      }
+      },
+      "openDestination": "الوجهة",
+      "openDestinationValue": "تُحدَّد أثناء الطريق",
+      "openMeterDistance": "المسافة",
+      "openMeterDuration": "المدة",
+      "openMeterLive": "العداد",
+      "openMeterTariffSummary": "{{base}} انطلاق + {{perKm}}/كم + {{perMin}}/دقيقة"
     },
     "favorites": {
       "title": "سائقيّ",
@@ -295,7 +301,17 @@
       "submit": "طلب الرحلة",
       "estimate": "تقدير",
       "submitting": "جارٍ الإرسال…",
-      "missingPoints": "حدّد الانطلاق والوجهة."
+      "missingPoints": "حدّد الانطلاق والوجهة.",
+      "meterBase": "الانطلاق",
+      "meterMin": "الحد الأدنى للرحلة {{min}}",
+      "meterPerKm": "/ كم",
+      "meterPerMin": "/ دقيقة",
+      "openFareLabel": "التعرفة",
+      "openFareMeter": "بالعداد",
+      "openMeterLabel": "تعرفة العداد",
+      "openRideHint": "بدون وجهة - يبدأ العداد بعد الركوب",
+      "openRideTitle": "رحلة مفتوحة",
+      "submitOpen": "اطلب تاكسي (بالعداد)"
     },
     "voiceRide": {
       "headline": "الطلب الصوتي",
@@ -428,7 +444,15 @@
       "startDelivery": "بدء التسليم",
       "deliveryConfirmTitle": "رمز التسليم (4 أرقام)",
       "deliveryConfirmSub": "اطلب من المستقبِل الرمز عبر الرسائل القصيرة.",
-      "confirmDelivery": "تأكيد التسليم"
+      "confirmDelivery": "تأكيد التسليم",
+      "endOpenRide": "إنهاء الرحلة (بالعداد)",
+      "meterShort": "بالعداد",
+      "meterTariffLabel": "تعرفة العداد",
+      "openBadge": "رحلة مفتوحة",
+      "openDestinationShort": "تُحدَّد أثناء الطريق",
+      "openMeterDistance": "المسافة",
+      "openMeterDuration": "المدة",
+      "openMeterLive": "العداد المباشر"
     },
     "wallet": {
       "title": "المحفظة",
@@ -683,7 +707,8 @@
       "longDistanceHint": "رحلات بين المدن (نواكشوط — نواذيبو، إلخ.).",
       "motoPassengerBlockedHint": "الدراجات النارية لا تستقبل رحلات الركاب.",
       "save": "حفظ",
-      "saveError": "تعذّر الحفظ."
+      "saveError": "تعذّر الحفظ.",
+      "seatsCount": "{{count}} مقاعد"
     },
     "docs": {
       "title": "المستندات",
@@ -781,6 +806,7 @@
     "fr": "Français",
     "ar": "العربية",
     "en": "English",
+    "hs": "الحسانية",
     "ff": "Pulaar",
     "wo": "Wolof",
     "snk": "Sooninkanxanne"

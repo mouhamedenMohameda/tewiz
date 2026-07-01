@@ -38,6 +38,7 @@ interface PricingSettings {
   showDemoButtons: boolean;
   captainAlertSoundMode: CaptainAlertSoundMode;
   captainAlertRepeatIntervalS: number;
+  captainAlertSoundUrl: string | null;
   updatedAt: string;
   updatedBy: string | null;
 }
@@ -67,6 +68,7 @@ interface FormState {
   showDemoButtons: boolean;
   captainAlertSoundMode: CaptainAlertSoundMode;
   captainAlertRepeatIntervalS: string;
+  captainAlertSoundUrl: string;
 }
 
 const EMPTY_FORM: FormState = {
@@ -94,6 +96,7 @@ const EMPTY_FORM: FormState = {
   showDemoButtons: false,
   captainAlertSoundMode: 'critical',
   captainAlertRepeatIntervalS: '2',
+  captainAlertSoundUrl: '',
 };
 
 function settingsToForm(s: PricingSettings): FormState {
@@ -122,6 +125,7 @@ function settingsToForm(s: PricingSettings): FormState {
     showDemoButtons: s.showDemoButtons,
     captainAlertSoundMode: s.captainAlertSoundMode,
     captainAlertRepeatIntervalS: String(s.captainAlertRepeatIntervalS),
+    captainAlertSoundUrl: s.captainAlertSoundUrl ?? '',
   };
 }
 
@@ -171,6 +175,9 @@ export default function SettingsPage() {
         showDemoButtons: form.showDemoButtons,
         captainAlertSoundMode: form.captainAlertSoundMode,
         captainAlertRepeatIntervalS: parseInt(form.captainAlertRepeatIntervalS, 10),
+        captainAlertSoundUrl: form.captainAlertSoundUrl.trim() === ''
+          ? null
+          : form.captainAlertSoundUrl.trim(),
       };
       const r = await api.put<PricingSettings>('/admin/settings', payload);
       return r.data;
@@ -500,6 +507,24 @@ export default function SettingsPage() {
                   step="1"
                 />
               </div>
+
+              <label className="block mt-4">
+                <span className="block text-xs text-slate-600 mb-1">
+                  URL sonnerie personnalisee (optionnel)
+                </span>
+                <input
+                  type="url"
+                  inputMode="url"
+                  placeholder="https://.../new-ride-alert.mp3"
+                  value={form.captainAlertSoundUrl}
+                  onChange={(e) => setForm({ ...form, captainAlertSoundUrl: e.target.value })}
+                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg bg-white"
+                />
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Utilisee par l&apos;app chauffeur quand elle est ouverte (alerte modale).
+                  Si vide ou inaccessible, l&apos;app retombe automatiquement sur la sonnerie par defaut.
+                </p>
+              </label>
             </section>
 
             <section className="card p-5 mb-4 border-2 border-dashed border-amber-300 bg-amber-50">
@@ -641,5 +666,14 @@ function isFormValid(f: FormState): boolean {
   if (Number.isNaN(openPerMin) || openPerMin < 0 || openPerMin > 1_000) return false;
   const alertRepeat = parseInt(f.captainAlertRepeatIntervalS, 10);
   if (Number.isNaN(alertRepeat) || alertRepeat < 1 || alertRepeat > 15) return false;
+  const url = f.captainAlertSoundUrl.trim();
+  if (url) {
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
+    } catch {
+      return false;
+    }
+  }
   return true;
 }

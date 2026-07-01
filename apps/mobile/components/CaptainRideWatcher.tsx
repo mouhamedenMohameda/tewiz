@@ -203,6 +203,13 @@ export function CaptainRideWatcher() {
 
   const [, forceRerender] = useState(0);
 
+  const customRingtoneUrl = (() => {
+    const url = appConfig.captainAlertSoundUrl?.trim();
+    if (!url) return null;
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    return null;
+  })();
+
   // Configure audio + request notification permission on mount.
   // Also hydrate the persisted seen-rides set and pause timestamp.
   useEffect(() => {
@@ -267,10 +274,27 @@ export function CaptainRideWatcher() {
 
   const startRinging = useCallback(async (ride: InboxItem) => {
     await stopRinging();
+
+    if (customRingtoneUrl) {
+      try {
+        const created = await Audio.Sound.createAsync(
+          { uri: customRingtoneUrl },
+          { shouldPlay: true, isLooping: true, volume: 1 },
+        );
+        soundRef.current = created.sound;
+        // Keep one local notification ping so iOS can still show a heads-up
+        // style alert while the custom ringtone loops in-app.
+        void fireOneBeep(ride);
+        return;
+      } catch {
+        // URL unreachable/unsupported format: fall back to default beeps.
+      }
+    }
+
     void fireOneBeep(ride);
     const repeatMs = Math.max(1_000, appConfig.captainAlertRepeatIntervalS * 1000);
     ringIntervalRef.current = setInterval(() => { void fireOneBeep(ride); }, repeatMs);
-  }, [appConfig.captainAlertRepeatIntervalS, fireOneBeep, stopRinging]);
+  }, [appConfig.captainAlertRepeatIntervalS, customRingtoneUrl, fireOneBeep, stopRinging]);
 
   // The polling loop: only runs when in captain mode (and authenticated).
   useEffect(() => {
