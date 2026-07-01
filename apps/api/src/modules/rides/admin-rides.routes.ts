@@ -22,6 +22,8 @@ const createBody = z.object({
   dropoff: locationSchema.optional(),
   isOpen: z.boolean().optional(),
   rideType: z.enum(['passenger', 'colis']).default('passenger'),
+  pricingMode: z.enum(['solo', 'shared']).optional(),
+  sharedSeats: z.number().int().min(2).max(20).optional(),
   paymentMethod: z.enum(['cash', 'wallet']).default('cash'),
   // Passenger reached the operator by phone — they don't have an app.
   // We reuse the "course pour quelqu'un d'autre" flow: an SMS confirmation
@@ -113,6 +115,8 @@ const estimateBody = z.object({
   pickup: locationSchema,
   dropoff: locationSchema,
   rideType: z.enum(['passenger', 'colis']).default('passenger'),
+  pricingMode: z.enum(['solo', 'shared']).optional(),
+  sharedSeats: z.number().int().min(2).max(20).optional(),
 });
 
 adminRidesRouter.post('/estimate', async (req, res) => {
@@ -121,8 +125,18 @@ adminRidesRouter.post('/estimate', async (req, res) => {
     body.pickup.lat, body.pickup.lng,
     body.dropoff.lat, body.dropoff.lng,
   );
-  const { fareMru, distanceEstimateM } = await estimateFareMru(crow, body.rideType);
-  res.json({ fareMru, distanceM: distanceEstimateM });
+  const quote = await estimateFareMru(crow, body.rideType, {
+    pricingMode: body.pricingMode,
+    sharedSeats: body.sharedSeats,
+  });
+  res.json({
+    fareMru: quote.fareMru,
+    distanceM: quote.distanceEstimateM,
+    pricingMode: quote.pricingModeApplied,
+    sharedSeats: quote.sharedSeatsApplied,
+    soloFareMru: quote.soloFareMru,
+    isIntercityPricing: quote.isIntercityPricing,
+  });
 });
 
 /**
@@ -140,6 +154,8 @@ adminRidesRouter.post('/', async (req, res) => {
     dropoff: body.dropoff,
     isOpen: body.isOpen,
     rideType: body.rideType,
+    pricingMode: body.pricingMode,
+    sharedSeats: body.sharedSeats,
     paymentMethod: body.paymentMethod,
     passengerName: body.passengerName,
     passengerPhone: body.passengerPhone,

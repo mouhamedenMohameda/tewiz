@@ -9,6 +9,7 @@
 
 import { Router } from 'express';
 import { z } from 'zod';
+import { CAPTAIN_ALERT_SOUND_MODES } from '@tewiz/shared-types';
 import type { AuthedRequest } from '../../middleware/auth.js';
 import { audit } from './audit.js';
 import {
@@ -35,6 +36,16 @@ const patchBody = z.object({
   colisMinFareMru:                  z.number().int().min(0).max(10_000).optional(),
   defaultCommissionBps:             z.number().int().min(0).max(5_000).optional(),
   colisCommissionBps:               z.number().int().min(0).max(5_000).optional(),
+  intercityPricingEnabled:          z.boolean().optional(),
+  intercityBaseFareMru:             z.number().int().min(0).max(100_000).optional(),
+  intercityTier1LimitKm:            z.number().int().min(1).max(2_000).optional(),
+  intercityTier2LimitKm:            z.number().int().min(2).max(3_000).optional(),
+  intercityTier1PerKmMru:           z.number().int().min(0).max(10_000).optional(),
+  intercityTier2PerKmMru:           z.number().int().min(0).max(10_000).optional(),
+  intercityTier3PerKmMru:           z.number().int().min(0).max(10_000).optional(),
+  intercitySharedDefaultSeats:      z.number().int().min(2).max(20).optional(),
+  intercitySharedMinSeatFareMru:    z.number().int().min(0).max(10_000).optional(),
+  intercityCommissionBps:           z.number().int().min(0).max(5_000).optional(),
   // 1_000 m .. 1_000_000 m (1 km .. 1000 km). Stored as meters, edited as km
   // in the admin UI.
   longDistanceThresholdM:           z.number().int().min(1_000).max(1_000_000).optional(),
@@ -58,6 +69,8 @@ const patchBody = z.object({
   openMinFareMru:                   z.number().int().min(0).max(10_000).optional(),
   // Feature flag for the reviewer demo-login buttons (migration 0031).
   showDemoButtons:                  z.boolean().optional(),
+  captainAlertSoundMode:            z.enum(CAPTAIN_ALERT_SOUND_MODES).optional(),
+  captainAlertRepeatIntervalS:      z.number().int().min(1).max(15).optional(),
 }).refine(
   (b) => Object.values(b).some((v) => v !== undefined),
   { message: 'At least one field is required' },

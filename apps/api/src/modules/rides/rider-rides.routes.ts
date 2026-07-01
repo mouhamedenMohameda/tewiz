@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { RIDER_RIDE_CANCEL_REASONS, RIDE_CANCEL_REASON_LABEL_FR } from '@tewiz/shared-types';
 import { type AuthedRequest } from '../../middleware/auth.js';
 import { requirePhone } from '../../middleware/require-phone.js';
 import { HttpError } from '../../middleware/error.js';
@@ -25,6 +26,8 @@ const createBody = z.object({
   dropoff: locationSchema.optional(),
   isOpen: z.boolean().optional(),
   rideType: z.enum(['passenger', 'colis']).default('passenger'),
+  pricingMode: z.enum(['solo', 'shared']).optional(),
+  sharedSeats: z.number().int().min(2).max(20).optional(),
   paymentMethod: z.enum(['cash', 'wallet']).default('cash'),
   // For "course pour quelqu'un d'autre"
   passengerName: z.string().min(2).max(100).optional(),
@@ -46,6 +49,8 @@ const estimateBody = z.object({
   // Optional so older mobile builds (which don't send it) still work and get
   // the passenger tariff by default.
   rideType: z.enum(['passenger', 'colis']).default('passenger'),
+  pricingMode: z.enum(['solo', 'shared']).optional(),
+  sharedSeats: z.number().int().min(2).max(20).optional(),
 });
 
 riderRidesRouter.post('/estimate', async (req, res) => {
@@ -54,14 +59,23 @@ riderRidesRouter.post('/estimate', async (req, res) => {
     body.pickup.lat, body.pickup.lng,
     body.dropoff.lat, body.dropoff.lng,
   );
-  const { fareMru, distanceEstimateM } = await estimateFareMru(crow, body.rideType);
-  res.json({ fareMru, distanceM: distanceEstimateM });
+  const quote = await estimateFareMru(crow, body.rideType, {
+    pricingMode: body.pricingMode,
+    sharedSeats: body.sharedSeats,
+  });
+  res.json({
+    fareMru: quote.fareMru,
+    distanceM: quote.distanceEstimateM,
+    pricingMode: quote.pricingModeApplied,
+    sharedSeats: quote.sharedSeatsApplied,
+    soloFareMru: quote.soloFareMru,
+    isIntercityPricing: quote.isIntercityPricing,
+  });
 });
 
 /**
  * POST /rider/rides
- * Create a new ride request. Returns the ride with the verification code,
- * which the rider must read aloud to the captain before the ride starts.
+ * Create a new ride request.
  */
 riderRidesRouter.post('/', requirePhone, async (req, res) => {
   const userId = req.user!.id;
@@ -72,6 +86,8 @@ riderRidesRouter.post('/', requirePhone, async (req, res) => {
     dropoff: body.dropoff,
     isOpen: body.isOpen,
     rideType: body.rideType,
+    pricingMode: body.pricingMode,
+    sharedSeats: body.sharedSeats,
     paymentMethod: body.paymentMethod,
     passengerName: body.passengerName,
     passengerPhone: body.passengerPhone,
@@ -142,7 +158,13 @@ riderRidesRouter.post('/:id/rating', async (req, res) => {
   }));
 });
 
-const cancelBody = z.object({ reason: z.string().min(2).max(500) });
+const cancelBody = z.object({
+  reason: z.string().min(2).max(500).optional(),
+  reasonKey: z.enum(RIDER_RIDE_CANCEL_REASONS).optional(),
+}).refine(
+  (body) => !!(body.reason || body.reasonKey),
+  { message: 'A cancel reason is required' },
+);
 
 riderRidesRouter.post('/:id/cancel', async (req, res) => {
   const userId = req.user!.id;
@@ -151,6 +173,6 @@ riderRidesRouter.post('/:id/cancel', async (req, res) => {
     rideId: req.params.id!,
     userId,
     role: 'rider',
-    reason: body.reason,
+    reason: body.reasonKey ? RIDE_CANCEL_REASON_LABEL_FR[body.reasonKey] : body.reason!,
   }));
 });

@@ -1,4 +1,5 @@
 import { pool } from '../../db/pool.js';
+import { getPricingSettings } from '../admin/app-settings.service.js';
 
 /**
  * Minimal Expo Push HTTP API client.
@@ -72,6 +73,7 @@ export async function notifyCaptainsNewRide(
 ): Promise<void> {
   const tokens = await getPushTokensForUsers(captainUserIds);
   if (tokens.length === 0) return;
+  const settings = await getPricingSettings();
 
   // The custom `ride-alert` sound must be bundled with the standalone build
   // (Android: notification channel; iOS: a sound file in the app bundle).
@@ -86,7 +88,9 @@ export async function notifyCaptainsNewRide(
     const batch = tokens.slice(i, i + 100);
     await sendPush({
       to: batch,
-      sound: { name: 'ride-alert', critical: true, volume: 1 },
+      sound: settings.captainAlertSoundMode === 'critical'
+        ? { name: 'default', critical: true, volume: 1 }
+        : 'default',
       title,
       body,
       data: { type: 'ride_alert', rideId: ride.id },

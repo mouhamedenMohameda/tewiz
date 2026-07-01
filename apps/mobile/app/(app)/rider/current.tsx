@@ -7,7 +7,9 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '@/lib/api';
+import { RideCancelReasonSheet } from '@/components/RideCancelReasonSheet';
 import { formatMru } from '@/lib/format';
+import { RIDER_RIDE_CANCEL_REASONS, RIDE_CANCEL_REASON_LABEL_FR } from '@/lib/rideCancelReasons';
 import { usePolling } from '@/lib/usePolling';
 import { APP_NAME } from '@/lib/brand';
 
@@ -35,7 +37,6 @@ interface Ride {
   fareEstimateMru: number | null;
   fareFinalMru: number | null;
   paymentMethod: 'cash' | 'wallet';
-  verificationCode?: string;
   captain: Captain | null;
   // Open ride / metered fare.
   isOpen: boolean;
@@ -72,6 +73,7 @@ export default function CurrentRideScreen() {
   const [ride, setRide] = useState<Ride | null>(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
+  const [cancelSheetVisible, setCancelSheetVisible] = useState(false);
 
   const goToRiderHome = useCallback(() => {
     router.replace('/(app)/rider');
@@ -94,33 +96,22 @@ export default function CurrentRideScreen() {
   const liveMeterActive = ride?.isOpen && ride?.status === 'in_progress';
   usePolling(load, liveMeterActive ? 3_000 : 5_000);
 
-  async function cancel() {
+  async function cancel(reasonKey: string) {
     if (!ride) return;
     // Open ride after captain accepted: the captain is the only one who can
     // end the trip (rider is in the car, meter is running). Showing the
     // cancel button at all would mislead the user, so we silently skip.
     if (ride.isOpen && ride.status !== 'searching') return;
-    Alert.alert(
-      t('rider.current.cancelTitle'),
-      t('rider.current.cancelBody'),
-      [
-        { text: t('common.no'), style: 'cancel' },
-        {
-          text: t('common.cancel'), style: 'destructive',
-          onPress: async () => {
-            setCancelling(true);
-            try {
-              await api.post(`/rider/rides/${ride.id}/cancel`, { reason: 'rider_cancel' });
-              goToRiderHome();
-            } catch (e: any) {
-              Alert.alert(t('common.impossible'), e.response?.data?.error?.message ?? t('errors.generic'));
-            } finally {
-              setCancelling(false);
-            }
-          },
-        },
-      ],
-    );
+    setCancelling(true);
+    try {
+      await api.post(`/rider/rides/${ride.id}/cancel`, { reasonKey });
+      setCancelSheetVisible(false);
+      goToRiderHome();
+    } catch (e: any) {
+      Alert.alert(t('common.impossible'), e.response?.data?.error?.message ?? t('errors.generic'));
+    } finally {
+      setCancelling(false);
+    }
   }
 
   if (loading) {
@@ -183,7 +174,7 @@ export default function CurrentRideScreen() {
         <StatusBanner status={ride.status} />
 
         {ride.captain ? (
-          <CaptainCard captain={ride.captain} verificationCode={ride.verificationCode} />
+          <CaptainCard captain={ride.captain} />
         ) : null}
 
         {ride.isOpen && ride.status === 'in_progress' ? (
@@ -195,7 +186,7 @@ export default function CurrentRideScreen() {
         {canRiderCancel ? (
           <Pressable
             disabled={cancelling}
-            onPress={cancel}
+            onPress={() => setCancelSheetVisible(true)}
             style={({ pressed }) => ({
               marginTop: 24, padding: 14, borderRadius: 12,
               backgroundColor: pressed ? '#fee2e2' : '#fff',
@@ -210,6 +201,16 @@ export default function CurrentRideScreen() {
           </Pressable>
         ) : null}
       </ScrollView>
+
+      <RideCancelReasonSheet
+        visible={cancelSheetVisible}
+        title={t('rider.current.cancelTitle')}
+        body={t('rider.current.cancelBody')}
+        busy={cancelling}
+        options={RIDER_RIDE_CANCEL_REASONS.map((key) => ({ key, label: RIDE_CANCEL_REASON_LABEL_FR[key] }))}
+        onClose={() => { if (!cancelling) setCancelSheetVisible(false); }}
+        onSelect={cancel}
+      />
 
       <RatingSheet
         visible={needsRating}
@@ -407,7 +408,7 @@ function StatusBanner({ status }: { status: RideStatus }) {
   );
 }
 
-function CaptainCard({ captain, verificationCode }: { captain: Captain; verificationCode?: string }) {
+function CaptainCard({ captain }: { captain: Captain }) {
   const { t } = useTranslation();
   return (
     <View style={{ marginTop: 16, backgroundColor: '#fff', borderRadius: 14, padding: 16 }}>
@@ -455,22 +456,6 @@ function CaptainCard({ captain, verificationCode }: { captain: Captain; verifica
             fontSize: 13, fontWeight: '700', letterSpacing: 1,
           }}>
             {captain.vehicle.plate}
-          </Text>
-        </View>
-      ) : null}
-
-      {verificationCode ? (
-        <View style={{
-          marginTop: 12, backgroundColor: '#fef3c7', borderRadius: 10, padding: 12,
-        }}>
-          <Text style={{ fontSize: 11, fontWeight: '700', color: '#92400e', letterSpacing: 0.5 }}>
-            {t('rider.current.codeForDriver')}
-          </Text>
-          <Text style={{
-            fontSize: 32, fontWeight: '800', color: '#7c2d12',
-            letterSpacing: 8, marginTop: 4, textAlign: 'center',
-          }}>
-            {verificationCode}
           </Text>
         </View>
       ) : null}

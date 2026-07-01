@@ -16,6 +16,8 @@ export const publicRouter = Router();
  * showDemoButtons — controlled via PUT /admin/settings { showDemoButtons: bool }.
  *   true  → show the one-tap reviewer demo-login buttons (set before a store review).
  *   false → hide them (set after the build is approved so real users never see them).
+ * captainAlert* — captain alert intensity knobs controlled from the same
+ *   admin settings screen.
  *
  * Values are cached server-side for 30 s (same TTL as app_settings). The
  * mobile app additionally caches in AsyncStorage so first paint is instant even
@@ -23,7 +25,11 @@ export const publicRouter = Router();
  */
 publicRouter.get('/config', async (_req, res) => {
   const s = await getPricingSettings();
-  res.json({ showDemoButtons: s.showDemoButtons });
+  res.json({
+    showDemoButtons: s.showDemoButtons,
+    captainAlertSoundMode: s.captainAlertSoundMode,
+    captainAlertRepeatIntervalS: s.captainAlertRepeatIntervalS,
+  });
 });
 
 const confirmBody = z.object({

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator, Alert, Animated, Linking, Pressable, Text, TextInput, View,
 } from 'react-native';
@@ -6,7 +6,9 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import * as Location from 'expo-location';
 import { api } from '@/lib/api';
+import { RideCancelReasonSheet } from '@/components/RideCancelReasonSheet';
 import { formatMru } from '@/lib/format';
+import { CAPTAIN_RIDE_CANCEL_REASONS, RIDE_CANCEL_REASON_LABEL_FR } from '@/lib/rideCancelReasons';
 import { usePolling } from '@/lib/usePolling';
 import {
   AppText, Button, Card, Icon, PressableScale, Screen, ScreenHeader, type IconName,
@@ -56,31 +58,35 @@ interface Ride {
   fareEstimateMru: number | null;
   fareFinalMru: number | null;
   commissionMru: number | null;
+  distanceM: number | null;
+  durationS: number | null;
   paymentMethod: 'cash' | 'wallet';
   isOpen: boolean;
+  requestedAt: string;
   openTariff: {
     baseFareMru: number;
     perKmMru: number;
     perMinuteMru: number;
     minFareMru: number;
   } | null;
-  liveMeter: { distanceM: number; durationS: number; fareMru: number } | null;
+  liveMeter?: { distanceM: number; durationS: number; fareMru: number } | null;
+  completedAt?: string | null;
 }
 
 /**
- * Captain-side GPS pinger for open rides. While the captain has an open
+ * Captain-side GPS pinger for every active ride. While the captain has a
  * ride in_progress, watch position and POST every accepted sample to
  * `/captain/rides/:id/location`. The server rejects teleports / bad-accuracy
  * fixes — those are kept silent because the next sample will succeed.
  *
  * Throttles to one push every ~5 s on top of the OS-level distanceInterval.
- * This is what makes the rider's live meter "fiable": the captain device
- * never computes the fare locally, it just streams coordinates.
+ * For open rides this feeds the trusted meter. For closed rides this provides
+ * anti-fraud telemetry so GPS tampering can be detected at completion.
  */
 function useOpenRideMeterPinger(ride: Ride | null) {
   const lastPushRef = useRef(0);
   useEffect(() => {
-    if (!ride || !ride.isOpen || ride.status !== 'in_progress') return;
+    if (!ride || ride.status !== 'in_progress') return;
 
     let cancelled = false;
     let sub: Location.LocationSubscription | null = null;
@@ -130,13 +136,18 @@ export default function RidesScreen() {
   const { t } = useTranslation();
   const [current, setCurrent] = useState<Ride | null>(null);
   const [inbox, setInbox] = useState<InboxItem[]>([]);
+  const [history, setHistory] = useState<Ride[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     try {
-      const curRes = await api.get<Ride>('/captain/rides/current', {
-        validateStatus: (s) => s === 200 || s === 204,
-      });
+      const [curRes, historyRes] = await Promise.all([
+        api.get<Ride>('/captain/rides/current', {
+          validateStatus: (s) => s === 200 || s === 204,
+        }),
+        api.get<Ride[]>('/captain/rides/history'),
+      ]);
+      setHistory(historyRes.data);
       if (curRes.status === 204) {
         setCurrent(null);
         try {
@@ -177,7 +188,260 @@ export default function RidesScreen() {
       ) : (
         <InboxList items={inbox} onAccepted={load} />
       )}
+      <HistorySection items={history} />
     </Screen>
+  );
+}
+
+function HistorySection({ items }: { items: Ride[] }) {
+  const { t, i18n } = useTranslation();
+  const completedOpen = items.find((it) => it.status === 'completed' && it.isOpen);
+  const recent = items.slice(0, 5);
+
+  return (
+    <View style={{ marginTop: spacing.xl }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <View>
+          <AppText variant="h1">{t('captain.rides.historyTitle')}</AppText>
+          <AppText variant="caption" color={colors.ink2} style={{ marginTop: spacing.xs }}>
+            {t('captain.rides.historyHint')}
+          </AppText>
+        </View>
+        {recent.length > 0 ? (
+          <View style={{
+            borderRadius: radius.pill,
+            backgroundColor: colors.surfaceAlt,
+            paddingHorizontal: spacing.sm,
+            paddingVertical: 6,
+          }}>
+            <AppText variant="overline" color={colors.ink2}>{recent.length}</AppText>
+          </View>
+        ) : null}
+      </View>
+
+      {completedOpen ? (
+        <AnimatedEntry index={0}>
+          <Card
+            padding={0}
+            style={{
+              marginTop: spacing.base,
+              overflow: 'hidden',
+              borderWidth: 1,
+              borderColor: '#f0dfb2',
+            }}
+          >
+            <View style={{ flexDirection: 'row' }}>
+              <View style={{ width: 5, backgroundColor: colors.warning }} />
+              <View style={{ flex: 1, padding: spacing.lg }}>
+                <AppText variant="overline" color={colors.warning}>
+                  {t('captain.rides.lastCompletedOpenRide')}
+                </AppText>
+                <View style={{ marginTop: spacing.xs, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.base }}>
+                  <View style={{ flex: 1 }}>
+                    <AppText variant="h2" numberOfLines={1}>
+                      {completedOpen.rider?.fullName ?? completedOpen.passengerName ?? t('captain.rides.passengerFallback')}
+                    </AppText>
+                    <AppText variant="caption" color={colors.ink2} style={{ marginTop: 4 }} numberOfLines={1}>
+                      {completedOpen.pickup.label ?? t('captain.rides.pickupFallback')} → {completedOpen.dropoff?.label ?? t('captain.rides.openDestinationShort')}
+                    </AppText>
+                  </View>
+                  <View style={{
+                    backgroundColor: '#fff6dd',
+                    borderRadius: radius.md,
+                    borderWidth: 1,
+                    borderColor: '#f0dfb2',
+                    paddingHorizontal: spacing.sm,
+                    paddingVertical: spacing.xs,
+                  }}>
+                    <AppText variant="overline" color={colors.warning}>{t('captain.rides.amountToCollect')}</AppText>
+                    <AppText variant="bodyStrong" style={{ marginTop: 2 }}>
+                      {formatMru(completedOpen.fareFinalMru ?? completedOpen.fareEstimateMru ?? 0)}
+                    </AppText>
+                  </View>
+                </View>
+
+                <AppText variant="overline" color={colors.ink2} style={{ marginTop: spacing.base }}>
+                  {t('captain.rides.detailsTitle')}
+                </AppText>
+                <View style={{ marginTop: spacing.sm, gap: spacing.sm }}>
+                  <HistoryMetricTile label={t('captain.rides.passengerPhone')} value={completedOpen.rider?.phone ?? completedOpen.passengerPhone ?? '—'} />
+                  <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                    <HistoryMetricTile label={t('captain.rides.completedAt')} value={fmtDate(completedOpen.completedAt ?? completedOpen.requestedAt, i18n.language)} flex={1} />
+                    <HistoryMetricTile label={t('captain.rides.grossAmount')} value={formatMru(rideAmount(completedOpen))} flex={1} />
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                    <HistoryMetricTile label={t('captain.rides.commissionAmount')} value={formatMru(completedOpen.commissionMru ?? 0)} flex={1} />
+                    <HistoryMetricTile label={t('captain.rides.netEarning')} value={formatMru(rideNet(completedOpen))} flex={1} />
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                    <HistoryMetricTile
+                      label={t('captain.rides.distance')}
+                      value={completedOpen.distanceM != null ? `${(completedOpen.distanceM / 1000).toFixed(1)} ${t('common.kmShort')}` : '—'}
+                      flex={1}
+                    />
+                    <HistoryMetricTile
+                      label={t('captain.rides.duration')}
+                      value={completedOpen.durationS != null ? formatRideDuration(completedOpen.durationS) : '—'}
+                      flex={1}
+                    />
+                  </View>
+                </View>
+              </View>
+            </View>
+          </Card>
+        </AnimatedEntry>
+      ) : null}
+
+      {recent.length > 0 ? (
+        <View style={{ marginTop: spacing.base, gap: spacing.sm }}>
+          {recent.map((item, index) => (
+            <AnimatedEntry key={item.id} index={index + 1}>
+              <Card
+                padding={0}
+                style={{
+                  overflow: 'hidden',
+                  borderWidth: 1,
+                  borderColor: '#eef1f5',
+                }}
+              >
+                <View style={{ flexDirection: 'row' }}>
+                  <View style={{ width: 4, backgroundColor: item.paymentMethod === 'cash' ? colors.success : colors.ember }} />
+                  <View style={{ flex: 1, padding: spacing.base }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.base }}>
+                      <View style={{ flex: 1 }}>
+                        <AppText variant="bodyStrong" numberOfLines={1}>
+                          {item.rider?.fullName ?? item.passengerName ?? t('captain.rides.passengerFallback')}
+                        </AppText>
+                        <AppText variant="caption" color={colors.ink2} style={{ marginTop: 2 }} numberOfLines={1}>
+                          {item.pickup.label ?? t('captain.rides.pickupFallback')} · {item.dropoff?.label ?? t('captain.rides.dropoffFallback')}
+                        </AppText>
+                      </View>
+                      <View style={{ alignItems: 'flex-end' }}>
+                        <AppText variant="bodyStrong">
+                          {formatMru(rideAmount(item))}
+                        </AppText>
+                        <AppText variant="caption" color={colors.ink2} style={{ marginTop: 2 }}>
+                          {fmtDate(item.completedAt ?? item.requestedAt, i18n.language)}
+                        </AppText>
+                      </View>
+                    </View>
+
+                    <View style={{ marginTop: spacing.base, gap: spacing.sm }}>
+                      <AppText variant="overline" color={colors.ink2}>{t('captain.rides.detailsTitle')}</AppText>
+                      <HistoryMetricTile label={t('captain.rides.passengerPhone')} value={item.rider?.phone ?? item.passengerPhone ?? '—'} />
+                      <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                        <HistoryMetricTile
+                          label={t('captain.rides.grossAmount')}
+                          value={formatMru(rideAmount(item))}
+                          flex={1}
+                        />
+                        <HistoryMetricTile
+                          label={t('captain.rides.commissionAmount')}
+                          value={formatMru(item.commissionMru ?? 0)}
+                          flex={1}
+                        />
+                      </View>
+                      <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                        <HistoryMetricTile
+                          label={t('captain.rides.netEarning')}
+                          value={formatMru(rideNet(item))}
+                          flex={1}
+                        />
+                        <HistoryMetricTile
+                          label={t('captain.rides.distance')}
+                          value={item.distanceM != null ? `${(item.distanceM / 1000).toFixed(1)} ${t('common.kmShort')}` : '—'}
+                          flex={1}
+                        />
+                      </View>
+                      <HistoryMetricTile
+                        label={t('captain.rides.duration')}
+                        value={item.durationS != null ? formatRideDuration(item.durationS) : '—'}
+                      />
+                    </View>
+                  </View>
+                </View>
+              </Card>
+            </AnimatedEntry>
+          ))}
+        </View>
+      ) : (
+        <Card background={colors.surfaceAlt} padding={spacing.lg} style={{ marginTop: spacing.base }}>
+          <AppText variant="body" color={colors.muted}>{t('captain.rides.historyEmpty')}</AppText>
+        </Card>
+      )}
+    </View>
+  );
+}
+
+function fmtDate(iso: string, locale: string) {
+  return new Date(iso).toLocaleString(locale, {
+    day: '2-digit', month: 'short',
+    hour: '2-digit', minute: '2-digit',
+  });
+}
+
+function formatRideDuration(seconds: number) {
+  if (seconds < 60) return `${Math.max(1, Math.round(seconds))} s`;
+  const minutes = Math.round(seconds / 60);
+  return `${minutes} min`;
+}
+
+function rideAmount(ride: Ride) {
+  return ride.fareFinalMru ?? ride.fareEstimateMru ?? 0;
+}
+
+function rideNet(ride: Ride) {
+  return Math.max(0, rideAmount(ride) - (ride.commissionMru ?? 0));
+}
+
+function AnimatedEntry({ index = 0, children }: { index?: number; children: ReactNode }) {
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(10)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 220,
+        delay: index * 70,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: 240,
+        delay: index * 70,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [index, opacity, translateY]);
+
+  return (
+    <Animated.View style={{ opacity, transform: [{ translateY }] }}>
+      {children}
+    </Animated.View>
+  );
+}
+
+function HistoryMetricTile({
+  label, value, flex,
+}: {
+  label: string;
+  value: string;
+  flex?: number;
+}) {
+  return (
+    <View style={{
+      flex: flex ?? undefined,
+      backgroundColor: colors.surfaceAlt,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+    }}>
+      <AppText variant="caption" color={colors.ink2}>{label}</AppText>
+      <AppText variant="bodyStrong" style={{ marginTop: 2 }} numberOfLines={1}>
+        {value}
+      </AppText>
+    </View>
   );
 }
 
@@ -282,6 +546,7 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
   const { t } = useTranslation();
   const [busy, setBusy] = useState<string | null>(null);
   const [code, setCode] = useState('');
+  const [cancelSheetVisible, setCancelSheetVisible] = useState(false);
 
   async function action(label: string, fn: () => Promise<void>) {
     setBusy(label);
@@ -298,13 +563,8 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
   }
 
   function start() {
-    if (!/^\d{4}$/.test(code)) {
-      Alert.alert(t('captain.rides.codeRequiredTitle'), t('captain.rides.codeRequiredBody'));
-      return Promise.resolve();
-    }
     return action('start', async () => {
-      await api.post(`/captain/rides/${ride.id}/start`, { code });
-      setCode('');
+      await api.post(`/captain/rides/${ride.id}/start`);
     });
   }
 
@@ -318,25 +578,42 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
       body.dropOtp = code;
     }
     return action('complete', async () => {
-      await api.post(`/captain/rides/${ride.id}/complete`, body);
+      const res = await api.post<{
+        gpsCompliance?: {
+          offenseNumber: number;
+          action: 'warning_1' | 'warning_2' | 'double_commission' | 'recovery_suspend';
+          recoveryDebitMru: number;
+          suspended: boolean;
+        } | null;
+      }>(`/captain/rides/${ride.id}/complete`, body);
+      const gps = res.data?.gpsCompliance;
+      if (gps) {
+        if (gps.action === 'warning_1' || gps.action === 'warning_2') {
+          Alert.alert(
+            'Avertissement GPS',
+            `Telemetrie GPS insuffisante detectee. Avertissement ${gps.offenseNumber}/2. Gardez le GPS actif pendant toute la course.`,
+          );
+        } else if (gps.action === 'double_commission') {
+          Alert.alert(
+            'Penalite GPS',
+            'Telemetrie GPS insuffisante: la commission de cette course a ete doublee.',
+          );
+        } else if (gps.action === 'recovery_suspend') {
+          Alert.alert(
+            'Compte suspendu',
+            `Recidive GPS detectee. Votre compte chauffeur a ete suspendu.${gps.recoveryDebitMru > 0 ? ` Recuperation appliquee: ${formatMru(gps.recoveryDebitMru)}.` : ''}`,
+          );
+        }
+      }
       setCode('');
     });
   }
 
-  async function cancel() {
-    Alert.alert(
-      t('captain.rides.cancelTitle'),
-      t('captain.rides.cancelBody'),
-      [
-        { text: t('common.no'), style: 'cancel' },
-        {
-          text: t('common.cancel'), style: 'destructive',
-          onPress: () => action('cancel', async () => {
-            await api.post(`/captain/rides/${ride.id}/cancel`, { reason: 'captain_cancel' });
-          }),
-        },
-      ],
-    );
+  async function cancel(reasonKey: string) {
+    await action('cancel', async () => {
+      await api.post(`/captain/rides/${ride.id}/cancel`, { reasonKey });
+      setCancelSheetVisible(false);
+    });
   }
 
   return (
@@ -417,16 +694,12 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
       ) : null}
 
       {ride.status === 'arrived' ? (
-        <CodeBox
-          title={ride.rideType === 'colis' ? t('captain.rides.codeSenderTitle') : t('captain.rides.codePassengerTitle')}
-          subtitle={ride.rideType === 'colis'
-            ? t('captain.rides.codeSenderSub')
-            : t('captain.rides.codePassengerSub')}
-          code={code}
-          onChange={setCode}
-          actionLabel={ride.rideType === 'colis' ? t('captain.rides.startDelivery') : t('captain.rides.startRide')}
-          onAction={start}
+        <Button
+          title={ride.rideType === 'colis' ? t('captain.rides.startDelivery') : t('captain.rides.startRide')}
+          icon="check"
+          onPress={start}
           busy={busy === 'start'}
+          style={{ marginTop: spacing.base }}
         />
       ) : null}
 
@@ -455,8 +728,18 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
       <Button
         title={t('captain.rides.cancelRide')}
         variant="danger"
-        onPress={cancel}
+        onPress={() => setCancelSheetVisible(true)}
         style={{ marginTop: spacing.md }}
+      />
+
+      <RideCancelReasonSheet
+        visible={cancelSheetVisible}
+        title={t('captain.rides.cancelTitle')}
+        body={t('captain.rides.cancelBody')}
+        busy={busy === 'cancel'}
+        options={CAPTAIN_RIDE_CANCEL_REASONS.map((key) => ({ key, label: RIDE_CANCEL_REASON_LABEL_FR[key] }))}
+        onClose={() => { if (busy !== 'cancel') setCancelSheetVisible(false); }}
+        onSelect={cancel}
       />
     </View>
   );

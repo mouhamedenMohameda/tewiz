@@ -13,6 +13,7 @@ import { Audio } from 'expo-av';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from '@/lib/api';
+import { useAppConfig } from '@/lib/appConfig';
 import { formatMru } from '@/lib/format';
 import { useAuth } from '@/lib/auth';
 import { i18n } from '@/lib/i18n';
@@ -183,6 +184,7 @@ export function CaptainRideWatcher() {
   const { t } = useTranslation();
   const user = useAuth((s) => s.user);
   const activeMode = useAuth((s) => s.activeMode);
+  const appConfig = useAppConfig();
 
   const [alertRide, setAlertRide] = useState<InboxItem | null>(null);
   const [accepting, setAccepting] = useState(false);
@@ -240,12 +242,17 @@ export function CaptainRideWatcher() {
             fare: ride.fareEstimateMru ? formatMru(ride.fareEstimateMru) : tt('captainAlert.fareUnknown'),
           }),
           sound: 'default',
+          interruptionLevel: appConfig.captainAlertSoundMode === 'critical' ? 'critical' : 'active',
+          vibrate: appConfig.captainAlertSoundMode === 'critical'
+            ? [0, 250, 180, 250, 180, 250]
+            : [0, 220, 220, 220],
+          priority: 'max',
           data: { rideId: ride.id },
         },
         trigger: null,
       });
     } catch {}
-  }, []);
+  }, [appConfig.captainAlertSoundMode]);
 
   const stopRinging = useCallback(async () => {
     if (ringIntervalRef.current) {
@@ -261,8 +268,9 @@ export function CaptainRideWatcher() {
   const startRinging = useCallback(async (ride: InboxItem) => {
     await stopRinging();
     void fireOneBeep(ride);
-    ringIntervalRef.current = setInterval(() => { void fireOneBeep(ride); }, 2000);
-  }, [fireOneBeep, stopRinging]);
+    const repeatMs = Math.max(1_000, appConfig.captainAlertRepeatIntervalS * 1000);
+    ringIntervalRef.current = setInterval(() => { void fireOneBeep(ride); }, repeatMs);
+  }, [appConfig.captainAlertRepeatIntervalS, fireOneBeep, stopRinging]);
 
   // The polling loop: only runs when in captain mode (and authenticated).
   useEffect(() => {
@@ -541,8 +549,10 @@ export function CaptainRideWatcher() {
                 />
               </Card>
 
-              {/* Destination demand card */}
-              <DestinationCard insights={insights} loading={insightsLoading} error={insightsError} t={t} />
+              {/* Destination demand is only meaningful for closed rides. */}
+              {!alertRide.isOpen ? (
+                <DestinationCard insights={insights} loading={insightsLoading} error={insightsError} t={t} />
+              ) : null}
 
               {/* Rider profile card */}
               <RiderCard insights={insights} loading={insightsLoading} error={insightsError} t={t} />

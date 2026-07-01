@@ -29,7 +29,6 @@ interface Ride {
   fareFinalMru: number | null;
   commissionMru: number | null;
   paymentMethod: 'cash' | 'wallet';
-  verificationCode?: string;
   requestedAt: string;
   acceptedAt: string | null;
   arrivedAt: string | null;
@@ -249,17 +248,6 @@ export default function RideDetailPage({ params }: { params: Promise<{ id: strin
                 )}
               </div>
             </div>
-            {ride.verificationCode ? (
-              <div className="mt-4 p-3 rounded-lg bg-yellow-50 border border-yellow-200">
-                <div className="text-xs font-semibold text-yellow-800">Code vérification</div>
-                <div className="text-2xl font-bold tracking-widest text-yellow-900 mt-1">
-                  {ride.verificationCode}
-                </div>
-                <div className="text-xs text-yellow-700 mt-1">
-                  À communiquer au passager pour qu'il puisse confirmer son identité au chauffeur.
-                </div>
-              </div>
-            ) : null}
           </div>
         </div>
 

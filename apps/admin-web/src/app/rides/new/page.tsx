@@ -24,6 +24,7 @@ interface GeoResult {
 interface Place { lat: number; lng: number; label?: string }
 
 type Field = 'pickup' | 'dropoff';
+type PricingMode = 'solo' | 'shared';
 
 export default function NewRidePage() {
   const router = useRouter();
@@ -40,6 +41,8 @@ export default function NewRidePage() {
   const [passengerName, setPassengerName] = useState('');
   const [passengerPhone, setPassengerPhone] = useState('');
   const [rideType, setRideType] = useState<'passenger' | 'colis'>('passenger');
+  const [pricingMode, setPricingMode] = useState<PricingMode>('solo');
+  const [sharedSeats, setSharedSeats] = useState(12);
   const [recipientName, setRecipientName] = useState('');
   const [recipientPhone, setRecipientPhone] = useState('');
   const [packageDescription, setPackageDescription] = useState('');
@@ -75,6 +78,9 @@ export default function NewRidePage() {
   // Auto-disable when the operator picks colis — open metered rides are
   // passenger-only.
   useEffect(() => { if (rideType === 'colis' && isOpen) setIsOpen(false); }, [rideType, isOpen]);
+  useEffect(() => {
+    if (rideType === 'colis' || isOpen) setPricingMode('solo');
+  }, [rideType, isOpen]);
   // Clear the dropoff marker when switching ON so the map doesn't lie.
   useEffect(() => {
     if (!isOpen) return;
@@ -146,11 +152,19 @@ export default function NewRidePage() {
   // 3. Fare estimate — fetched from the backend so the colis tariff is honored.
   const [estimateMru, setEstimateMru] = useState<number | null>(null);
   const [estimateKm, setEstimateKm] = useState<number | null>(null);
+  const [estimateSoloMru, setEstimateSoloMru] = useState<number | null>(null);
+  const [estimateIsIntercity, setEstimateIsIntercity] = useState(false);
+  const [estimateMode, setEstimateMode] = useState<PricingMode>('solo');
+  const [estimateSeats, setEstimateSeats] = useState<number | null>(null);
   const [estimating, setEstimating] = useState(false);
   useEffect(() => {
     if (isOpen || !pickup || !dropoff) {
       setEstimateMru(null);
       setEstimateKm(null);
+      setEstimateSoloMru(null);
+      setEstimateIsIntercity(false);
+      setEstimateMode('solo');
+      setEstimateSeats(null);
       return;
     }
     let cancelled = false;
@@ -161,16 +175,25 @@ export default function NewRidePage() {
           pickup: { lat: pickup.lat, lng: pickup.lng, label: pickup.label },
           dropoff: { lat: dropoff.lat, lng: dropoff.lng, label: dropoff.label },
           rideType,
+          ...(rideType !== 'colis' ? { pricingMode, sharedSeats } : {}),
         });
         if (cancelled) return;
         setEstimateMru(r.data?.fareMru ?? null);
         setEstimateKm(
           typeof r.data?.distanceM === 'number' ? r.data.distanceM / 1000 : null,
         );
+        setEstimateSoloMru(typeof r.data?.soloFareMru === 'number' ? r.data.soloFareMru : null);
+        setEstimateIsIntercity(!!r.data?.isIntercityPricing);
+        setEstimateMode((r.data?.pricingMode === 'shared' ? 'shared' : 'solo'));
+        setEstimateSeats(typeof r.data?.sharedSeats === 'number' ? r.data.sharedSeats : null);
       } catch {
         if (cancelled) return;
         setEstimateMru(null);
         setEstimateKm(null);
+        setEstimateSoloMru(null);
+        setEstimateIsIntercity(false);
+        setEstimateMode('solo');
+        setEstimateSeats(null);
       } finally {
         if (!cancelled) setEstimating(false);
       }
@@ -179,7 +202,7 @@ export default function NewRidePage() {
       cancelled = true;
       clearTimeout(handle);
     };
-  }, [pickup?.lat, pickup?.lng, dropoff?.lat, dropoff?.lng, rideType, isOpen]);
+  }, [pickup?.lat, pickup?.lng, dropoff?.lat, dropoff?.lng, rideType, isOpen, pricingMode, sharedSeats]);
 
   async function submit() {
     if (!pickup) {
@@ -209,6 +232,7 @@ export default function NewRidePage() {
           ? { isOpen: true }
           : { dropoff: { lat: dropoff!.lat, lng: dropoff!.lng, label: dropoff!.label } }),
         rideType,
+        ...(rideType !== 'colis' && !isOpen ? { pricingMode, sharedSeats } : {}),
         passengerName: passengerName.trim(),
         passengerPhone: passengerPhone.trim(),
         ...(rideType === 'colis' && {
@@ -354,6 +378,50 @@ export default function NewRidePage() {
               </div>
             </div>
 
+            {rideType !== 'colis' && !isOpen && (
+              <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <div className="text-xs font-medium text-slate-600">Mode inter-ville</div>
+                <div className="flex gap-2">
+                  {(['solo', 'shared'] as const).map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => setPricingMode(m)}
+                      className={clsx(
+                        'flex-1 px-3 py-2 rounded-lg text-sm border',
+                        pricingMode === m
+                          ? 'border-brand-600 bg-brand-50 text-brand-700 font-medium'
+                          : 'border-slate-300 text-slate-700 hover:bg-slate-100',
+                      )}
+                    >
+                      {m === 'solo' ? 'Solo' : 'Partage'}
+                    </button>
+                  ))}
+                </div>
+                {pricingMode === 'shared' && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-600">Places</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSharedSeats((s) => Math.max(2, s - 1))}
+                        className="w-7 h-7 rounded-full bg-slate-200 text-slate-800"
+                      >
+                        -
+                      </button>
+                      <span className="w-6 text-center text-sm font-semibold text-slate-900">{sharedSeats}</span>
+                      <button
+                        type="button"
+                        onClick={() => setSharedSeats((s) => Math.min(20, s + 1))}
+                        className="w-7 h-7 rounded-full bg-slate-200 text-slate-800"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {rideType === 'colis' && (
               <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
                 <div className="text-xs font-medium text-slate-600">
@@ -417,6 +485,16 @@ export default function NewRidePage() {
                 <div className="text-2xl font-bold text-slate-900">
                   {estimating || estimateMru == null ? '…' : `${estimateMru} MRU`}
                 </div>
+                {estimateIsIntercity && (
+                  <div className="text-xs text-slate-600 mt-1">
+                    {estimateMode === 'shared'
+                      ? `Inter-ville partage${estimateSeats ? ` · ${estimateSeats} places` : ''}`
+                      : 'Inter-ville solo'}
+                    {estimateMode === 'shared' && estimateSoloMru != null
+                      ? ` · Solo: ${estimateSoloMru} MRU`
+                      : ''}
+                  </div>
+                )}
               </div>
             )}
 

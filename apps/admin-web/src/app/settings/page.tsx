@@ -9,6 +9,7 @@
 
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { CAPTAIN_ALERT_SOUND_MODES, type CaptainAlertSoundMode } from '@tewiz/shared-types';
 import { AppShell } from '@/components/AppShell';
 import { api } from '@/lib/api';
 
@@ -35,6 +36,8 @@ interface PricingSettings {
   openPerMinuteMru: number;
   openMinFareMru: number;
   showDemoButtons: boolean;
+  captainAlertSoundMode: CaptainAlertSoundMode;
+  captainAlertRepeatIntervalS: number;
   updatedAt: string;
   updatedBy: string | null;
 }
@@ -62,6 +65,8 @@ interface FormState {
   openPerMinuteMru: string;
   openMinFareMru: string;
   showDemoButtons: boolean;
+  captainAlertSoundMode: CaptainAlertSoundMode;
+  captainAlertRepeatIntervalS: string;
 }
 
 const EMPTY_FORM: FormState = {
@@ -87,6 +92,8 @@ const EMPTY_FORM: FormState = {
   openPerMinuteMru: '',
   openMinFareMru: '',
   showDemoButtons: false,
+  captainAlertSoundMode: 'critical',
+  captainAlertRepeatIntervalS: '2',
 };
 
 function settingsToForm(s: PricingSettings): FormState {
@@ -113,6 +120,8 @@ function settingsToForm(s: PricingSettings): FormState {
     openPerMinuteMru: String(s.openPerMinuteMru),
     openMinFareMru: String(s.openMinFareMru),
     showDemoButtons: s.showDemoButtons,
+    captainAlertSoundMode: s.captainAlertSoundMode,
+    captainAlertRepeatIntervalS: String(s.captainAlertRepeatIntervalS),
   };
 }
 
@@ -160,6 +169,8 @@ export default function SettingsPage() {
         openPerMinuteMru: parseInt(form.openPerMinuteMru, 10),
         openMinFareMru: parseInt(form.openMinFareMru, 10),
         showDemoButtons: form.showDemoButtons,
+        captainAlertSoundMode: form.captainAlertSoundMode,
+        captainAlertRepeatIntervalS: parseInt(form.captainAlertRepeatIntervalS, 10),
       };
       const r = await api.put<PricingSettings>('/admin/settings', payload);
       return r.data;
@@ -456,6 +467,42 @@ export default function SettingsPage() {
             </section>
 
             <section className="card p-5 mb-4 border-2 border-dashed border-amber-300 bg-amber-50">
+              <h2 className="font-semibold text-slate-900 mb-1">Alerte nouvelle course</h2>
+              <p className="text-xs text-slate-600 mb-4">
+                Reglez l&apos;intensite de la sonnerie cote chauffeur. Le mode critique
+                rend l&apos;alerte iPhone plus agressive; la repetition controle tous les
+                combien de secondes l&apos;app relance l&apos;alerte tant que la course n&apos;est pas vue.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <label className="block">
+                  <span className="block text-xs text-slate-600 mb-1">Mode sonore</span>
+                  <select
+                    value={form.captainAlertSoundMode}
+                    onChange={(e) => setForm({
+                      ...form,
+                      captainAlertSoundMode: e.target.value as CaptainAlertSoundMode,
+                    })}
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg bg-white"
+                  >
+                    {CAPTAIN_ALERT_SOUND_MODES.map((mode) => (
+                      <option key={mode} value={mode}>
+                        {mode === 'critical' ? 'Critique (plus agressif)' : 'Standard'}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <Field
+                  label="Rappel toutes les"
+                  suffix="sec"
+                  value={form.captainAlertRepeatIntervalS}
+                  onChange={(v) => setForm({ ...form, captainAlertRepeatIntervalS: v })}
+                  step="1"
+                />
+              </div>
+            </section>
+
+            <section className="card p-5 mb-4 border-2 border-dashed border-amber-300 bg-amber-50">
               <div className="flex items-start justify-between mb-1">
                 <h2 className="font-semibold text-slate-900">Boutons démo (App Store / Google Play)</h2>
                 <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
@@ -592,5 +639,7 @@ function isFormValid(f: FormState): boolean {
   if (openInts.some((n) => Number.isNaN(n) || n < 0 || n > 10_000)) return false;
   const openPerMin = parseInt(f.openPerMinuteMru, 10);
   if (Number.isNaN(openPerMin) || openPerMin < 0 || openPerMin > 1_000) return false;
+  const alertRepeat = parseInt(f.captainAlertRepeatIntervalS, 10);
+  if (Number.isNaN(alertRepeat) || alertRepeat < 1 || alertRepeat > 15) return false;
   return true;
 }

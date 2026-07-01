@@ -229,7 +229,6 @@ export async function processOccurrences() {
         if (recheck.rows[0]?.status !== 'scheduled') return;
 
         // Create the ride directly assigned to the locked captain.
-        const code = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
         const ride = await client.query<{ id: string }>(
           `INSERT INTO rides (
              booker_id, passenger_user_id, ride_type, status,
@@ -252,7 +251,7 @@ export async function processOccurrences() {
             occ.pickup_lng, occ.pickup_lat, occ.pickup_label,
             occ.dropoff_lng, occ.dropoff_lat, occ.dropoff_label,
             Number(occ.locked_fare_mru), settings.defaultCommissionBps,
-            code, occ.captain_id, occ.recurring_ride_id,
+            null, occ.captain_id, occ.recurring_ride_id,
           ],
         );
 

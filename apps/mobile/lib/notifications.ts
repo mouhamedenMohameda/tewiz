@@ -4,6 +4,7 @@ import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from './api';
+import { getAppConfig } from './appConfig';
 
 const DEVICE_ID_KEY = '@tewiz/device-id';
 const PERMISSION_ASKED_KEY = '@tewiz/notif-permission-asked';
@@ -39,13 +40,17 @@ Notifications.setNotificationHandler({
  */
 async function ensureAndroidChannel() {
   if (Platform.OS !== 'android') return;
+  const config = getAppConfig();
   await Notifications.setNotificationChannelAsync('ride-alerts', {
     name: 'Nouvelles courses',
     importance: Notifications.AndroidImportance.HIGH,
-    vibrationPattern: [0, 500, 250, 500],
+    vibrationPattern: config.captainAlertSoundMode === 'critical'
+      ? [0, 500, 250, 500, 250, 500]
+      : [0, 400, 250, 400],
     lightColor: '#10a35e',
     enableVibrate: true,
     lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+    sound: 'default',
   });
 }
 
