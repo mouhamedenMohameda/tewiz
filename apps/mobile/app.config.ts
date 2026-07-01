@@ -14,7 +14,7 @@ const BUNDLE_ID = brand.bundleId;
 const config: ExpoConfig = {
   name: APP_NAME,
   slug: APP_SLUG,
-  version: '1.0.5',
+  version: '1.1.0',
   orientation: 'portrait',
   userInterfaceStyle: 'light',
   icon: './assets/icon.png',
@@ -119,10 +119,11 @@ const config: ExpoConfig = {
   experiments: {
     typedRoutes: true,
   },
+  owner: 'usernamem',
   extra: {
     router: {},
     eas: {
-      projectId: '42ccba7d-6c36-4a61-ae6e-dd8731400f60',
+      projectId: '5888957f-74bd-4a38-9dce-77f46a124cc7',
     },
   },
 };

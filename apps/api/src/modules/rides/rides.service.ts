@@ -4,6 +4,7 @@ import { pool, withTx } from '../../db/pool.js';
 import { HttpError } from '../../middleware/error.js';
 import { env } from '../../config/env.js';
 import { estimateFareMru, commissionMru, openFareMru, type OpenTariff } from './pricing.js';
+import type { FarePricingMode } from './pricing.js';
 import { getPricingSettings } from '../admin/app-settings.service.js';
 import { distanceMeters, eligibleCaptainsForRide } from './dispatch.service.js';
 import { computeDistanceM, lastTrailPoint, readLiveMeter } from './meter.service.js';
@@ -71,6 +72,10 @@ export interface CreateRideInput {
   // mobile app). Set to 'operator' when an admin books on behalf of a
   // passenger who called by phone — this picks a dedicated commission rate.
   source?: RideSource;
+  // Inter-city pricing mode. Solo keeps the full vehicle fare; shared divides
+  // the same inter-city fare per seat.
+  pricingMode?: FarePricingMode;
+  sharedSeats?: number;
 }
 
 interface RideRow {
@@ -84,6 +89,8 @@ interface RideRow {
   captain_id: string | null;
   ride_type: RideType;
   source: RideSource;
+  pricing_mode: FarePricingMode;
+  shared_seats: number | null;
   status: RideStatus;
   pickup_lat: number;
   pickup_lng: number;
@@ -119,7 +126,8 @@ interface RideRow {
 
 const RIDE_COLUMNS = `
   id, booker_id, passenger_user_id, passenger_name, passenger_phone,
-  is_for_other, passenger_confirmed_at, captain_id, ride_type, source, status,
+  is_for_other, passenger_confirmed_at, captain_id, ride_type, source,
+  pricing_mode, shared_seats, status,
   ST_Y(pickup_location::geometry)  AS pickup_lat,
   ST_X(pickup_location::geometry)  AS pickup_lng,
   pickup_label,
@@ -135,11 +143,6 @@ const RIDE_COLUMNS = `
   open_per_minute_mru, open_min_fare_mru
 `;
 
-function generateVerificationCode(): string {
-  // 4-digit (with leading zero)
-  return crypto.randomInt(0, 10_000).toString().padStart(4, '0');
-}
-
 function shape(r: RideRow, opts: { revealCode: boolean } = { revealCode: false }) {
   return {
     id: r.id,
@@ -152,6 +155,8 @@ function shape(r: RideRow, opts: { revealCode: boolean } = { revealCode: false }
     captainId: r.captain_id,
     rideType: r.ride_type,
     source: r.source,
+    pricingMode: r.pricing_mode,
+    sharedSeats: r.shared_seats,
     status: r.status,
     pickup: { lat: r.pickup_lat, lng: r.pickup_lng, label: r.pickup_label },
     // Open rides start with dropoff=null; once completed the captain's last
@@ -166,7 +171,6 @@ function shape(r: RideRow, opts: { revealCode: boolean } = { revealCode: false }
     paymentMethod: r.payment_method,
     distanceM: r.distance_m,
     durationS: r.duration_s,
-    verificationCode: opts.revealCode ? r.verification_code : undefined,
     requestedAt: r.requested_at,
     acceptedAt: r.accepted_at,
     arrivedAt: r.arrived_at,
@@ -218,6 +222,7 @@ export async function createRide(input: CreateRideInput) {
   const isOpen = !!input.isOpen;
   const settings = await getPricingSettings();
   const source: RideSource = input.source ?? 'app';
+  const requestedPricingMode: FarePricingMode = input.pricingMode ?? 'solo';
 
   if (isOpen) {
     if (!settings.allowOpenRides) {
@@ -240,7 +245,14 @@ export async function createRide(input: CreateRideInput) {
   // Pricing — different paths for fixed vs metered.
   let fareEstimateMru: number | null;
   let distanceEstimateM: number | null;
+  let isIntercityPricing = false;
+  let pricingModeForRow: FarePricingMode = 'solo';
+  let sharedSeatsForRow: number | null = null;
   if (isOpen) {
+    if (input.pricingMode === 'shared') {
+      throw new HttpError(400, 'shared_open_not_supported',
+        'Shared mode is not supported for open rides');
+    }
     fareEstimateMru = null;
     distanceEstimateM = null;
   } else {
@@ -252,18 +264,31 @@ export async function createRide(input: CreateRideInput) {
       throw new HttpError(400, 'distance_too_short',
         'Pickup and dropoff are too close (<50 m)');
     }
-    const est = await estimateFareMru(dStraight, rideType);
+    const est = await estimateFareMru(dStraight, rideType, {
+      pricingMode: input.pricingMode,
+      sharedSeats: input.sharedSeats,
+    });
     fareEstimateMru = est.fareMru;
     distanceEstimateM = est.distanceEstimateM;
+    isIntercityPricing = est.isIntercityPricing;
+    pricingModeForRow = est.pricingModeApplied;
+    sharedSeatsForRow = est.sharedSeatsApplied;
+
+    if (requestedPricingMode === 'shared' && !est.isIntercityPricing) {
+      throw new HttpError(400, 'shared_not_available',
+        'Shared mode is available only for inter-city rides');
+    }
   }
 
   const commissionBps = source === 'operator'
     ? (rideType === 'colis'
         ? settings.operatorColisCommissionBps
         : settings.operatorPassengerCommissionBps)
-    : (rideType === 'colis'
-        ? settings.colisCommissionBps
-        : settings.defaultCommissionBps);
+    : (isIntercityPricing
+        ? settings.intercityCommissionBps
+        : rideType === 'colis'
+          ? settings.colisCommissionBps
+          : settings.defaultCommissionBps);
 
   // Validate colis-specific inputs
   if (rideType === 'colis') {
@@ -289,7 +314,6 @@ export async function createRide(input: CreateRideInput) {
     ? normalizeMrPhone(input.passengerPhone)
     : null;
 
-  const verificationCode = generateVerificationCode();
   // "course pour quelqu'un d'autre" normally waits for SMS confirmation.
   // Two reasons to bypass that loop:
   //   1. the caller asked for it (admin operator booking a phone-in passenger
@@ -332,6 +356,7 @@ export async function createRide(input: CreateRideInput) {
          dropoff_location, dropoff_label,
          fare_estimate_mru, commission_rate_bps,
          distance_m, payment_method, verification_code, source,
+         pricing_mode, shared_seats,
          is_open,
          open_base_fare_mru, open_per_km_mru,
          open_per_minute_mru, open_min_fare_mru
@@ -345,8 +370,9 @@ export async function createRide(input: CreateRideInput) {
          END,
          $8,
          $9, $10, $11, $12, $18, $19,
-         $20,
-         $21, $22, $23, $24
+         $20, $21,
+         $22,
+         $23, $24, $25, $26
        )
        RETURNING ${RIDE_COLUMNS}`,
       [
@@ -360,8 +386,10 @@ export async function createRide(input: CreateRideInput) {
         input.passengerName ?? null,
         normalizedPassengerPhone,
         initialStatus,
-        verificationCode,
+        null,
         source,
+        pricingModeForRow,
+        sharedSeatsForRow,
         isOpen,
         openTariff?.base ?? null,
         openTariff?.perKm ?? null,
@@ -806,7 +834,7 @@ export async function listCaptainHistory(captainId: string, limit = 30) {
       ORDER BY requested_at DESC LIMIT $2`,
     [captainId, limit],
   );
-  return r.rows.map((row) => shape(row));
+  return Promise.all(r.rows.map(async (row) => enrichWithBooker(shape(row))));
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -939,18 +967,24 @@ export async function arriveRide(rideId: string, captainId: string) {
       throw new HttpError(409, 'wrong_status',
         `Ride is ${ride.status}, cannot mark arrived`);
     }
+    const nextStatus: RideStatus = ride.is_open ? 'in_progress' : 'arrived';
     const upd = await client.query<RideRow>(
       `UPDATE rides
-          SET status = 'arrived', arrived_at = now()
+          SET status = $2,
+              arrived_at = now(),
+              started_at = CASE
+                WHEN $2 = 'in_progress' THEN now()
+                ELSE started_at
+              END
         WHERE id = $1
       RETURNING ${RIDE_COLUMNS}`,
-      [rideId],
+      [rideId, nextStatus],
     );
     return shape(upd.rows[0]!, { revealCode: true });
   });
 }
 
-export async function startRide(rideId: string, captainId: string, code: string) {
+export async function startRide(rideId: string, captainId: string) {
   return withTx(async (client) => {
     const ride = await lockRide(client, rideId);
     if (ride.captain_id !== captainId) {
@@ -959,10 +993,6 @@ export async function startRide(rideId: string, captainId: string, code: string)
     if (ride.status !== 'arrived') {
       throw new HttpError(409, 'wrong_status',
         `Captain must mark arrived first (current: ${ride.status})`);
-    }
-    if (!ride.verification_code || ride.verification_code !== code) {
-      throw new HttpError(400, 'invalid_code',
-        'Verification code does not match');
     }
     const upd = await client.query<RideRow>(
       `UPDATE rides
@@ -983,6 +1013,116 @@ interface CompleteInput {
   // For colis: the 4-digit code from the recipient
   dropOtp?: string;
 }
+
+type GpsPenaltyAction = 'warning_1' | 'warning_2' | 'double_commission' | 'recovery_suspend';
+
+interface GpsPenaltyResult {
+  violation: boolean;
+  offenseNumber: number;
+  action: GpsPenaltyAction;
+  chargedCommissionMru: number;
+  recoveryDebitMru: number;
+  suspendCaptain: boolean;
+}
+
+async function evaluateClosedRideGpsViolation(input: {
+  client: pg.PoolClient;
+  rideId: string;
+  startedAt: Date;
+  captainId: string;
+  baseCommissionMru: number;
+}): Promise<GpsPenaltyResult | null> {
+  const { client, rideId, startedAt, captainId, baseCommissionMru } = input;
+
+  const gps = await client.query<{ samples: string; last_recorded: Date | null }>(
+    `SELECT COUNT(*)::text AS samples,
+            MAX(recorded_at) AS last_recorded
+       FROM ride_locations
+      WHERE ride_id = $1
+        AND recorded_at >= $2 - interval '10 seconds'`,
+    [rideId, startedAt],
+  );
+  const samples = Number(gps.rows[0]?.samples ?? 0);
+  const lastRecorded = gps.rows[0]?.last_recorded ?? null;
+  const durationS = Math.max(0, Math.round((Date.now() - startedAt.getTime()) / 1000));
+  const lastAgeS = lastRecorded
+    ? Math.max(0, Math.round((Date.now() - lastRecorded.getTime()) / 1000))
+    : Number.POSITIVE_INFINITY;
+
+  // Non-open rides should still stream GPS while in_progress. If telemetry is
+  // missing/sparse/stale, treat it as a potential GPS tampering attempt.
+  const missingTelemetry = samples === 0
+    || (durationS >= 180 && samples < 2)
+    || (durationS >= 300 && lastAgeS > 180);
+  if (!missingTelemetry) return null;
+
+  const countRes = await client.query<{ n: string }>(
+    `SELECT COUNT(*)::text AS n
+       FROM captain_gps_violations
+      WHERE captain_id = $1`,
+    [captainId],
+  );
+  const offenseNumber = Number(countRes.rows[0]?.n ?? 0) + 1;
+
+  let action: GpsPenaltyAction;
+  let chargedCommissionMru = baseCommissionMru;
+  let recoveryDebitMru = 0;
+  let suspendCaptain = false;
+
+  if (offenseNumber === 1) {
+    action = 'warning_1';
+  } else if (offenseNumber === 2) {
+    action = 'warning_2';
+  } else if (offenseNumber === 3) {
+    action = 'double_commission';
+    chargedCommissionMru = baseCommissionMru * 2;
+  } else {
+    action = 'recovery_suspend';
+    suspendCaptain = true;
+
+    const firstThree = await client.query<{ id: string; base_commission_mru: number }>(
+      `SELECT id, base_commission_mru
+         FROM captain_gps_violations
+        WHERE captain_id = $1
+          AND recovered_at IS NULL
+        ORDER BY created_at ASC
+        LIMIT 3
+        FOR UPDATE`,
+      [captainId],
+    );
+    recoveryDebitMru = firstThree.rows
+      .reduce((sum, row) => sum + Number(row.base_commission_mru ?? 0), 0);
+
+    if (firstThree.rows.length > 0) {
+      await client.query(
+        `UPDATE captain_gps_violations
+            SET recovered_at = now()
+          WHERE id = ANY($1::bigint[])`,
+        [firstThree.rows.map((r) => Number(r.id))],
+      );
+    }
+  }
+
+  await client.query(
+    `INSERT INTO captain_gps_violations
+       (captain_id, ride_id, base_commission_mru, charged_commission_mru, action)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [captainId, rideId, baseCommissionMru, chargedCommissionMru, action],
+  );
+
+  return {
+    violation: true,
+    offenseNumber,
+    action,
+    chargedCommissionMru,
+    recoveryDebitMru,
+    suspendCaptain,
+  };
+}
+
+export const __test__ = {
+  evaluateClosedRideGpsViolation,
+};
 
 export async function completeRide(input: CompleteInput) {
   return withTx(async (client) => {
@@ -1062,7 +1202,17 @@ export async function completeRide(input: CompleteInput) {
     // bonus, halve the commission; otherwise accumulate towards the threshold.
     // Runs inside the same tx so the wallet debit and bonus state stay aligned.
     const bonus = await applyBonusOnCompletion(client, input.captainId, baseCommission);
-    const commission = bonus.effectiveCommissionMru;
+    const baselineCommission = bonus.effectiveCommissionMru;
+    const gpsPenalty = !ride.is_open && ride.started_at
+      ? await evaluateClosedRideGpsViolation({
+          client,
+          rideId: ride.id,
+          startedAt: ride.started_at,
+          captainId: input.captainId,
+          baseCommissionMru: baselineCommission,
+        })
+      : null;
+    const commission = gpsPenalty?.chargedCommissionMru ?? baselineCommission;
 
     // Debit the captain wallet for the commission (atomically inside this tx).
     // When commission is 0 (e.g. admin set rate to 0%), there's nothing to debit;
@@ -1073,7 +1223,9 @@ export async function completeRide(input: CompleteInput) {
           amountMru: commission,
           type: 'commission',
           rideId: ride.id,
-          reason: bonus.bonusApplied
+          reason: gpsPenalty?.action === 'double_commission'
+            ? `GPS off/tampering penalty: double commission on ride ${ride.id}`
+            : bonus.bonusApplied
             ? `Commission ${(ride.commission_rate_bps / 100).toFixed(2)}% ÷2 (bonus) on ride ${ride.id}`
             : `Commission ${(ride.commission_rate_bps / 100).toFixed(2)}% on ride ${ride.id}`,
         }, client)
@@ -1084,6 +1236,19 @@ export async function completeRide(input: CompleteInput) {
           );
           return r.rows[0] ? Number(r.rows[0].balance_mru) : 0;
         })() };
+
+    let balanceAfter = debit.balanceAfter;
+
+    if ((gpsPenalty?.recoveryDebitMru ?? 0) > 0) {
+      const recovery = await debitWallet({
+        captainId: input.captainId,
+        amountMru: gpsPenalty!.recoveryDebitMru,
+        type: 'manual_adjustment',
+        rideId: ride.id,
+        reason: `GPS fraud recovery after repeated violation (ride ${ride.id})`,
+      }, client);
+      balanceAfter = recovery.balanceAfter;
+    }
 
     const upd = await client.query<RideRow>(
       `UPDATE rides
@@ -1118,12 +1283,28 @@ export async function completeRide(input: CompleteInput) {
       ],
     );
 
-    // Captain goes back to "online".
-    await client.query(
-      `UPDATE captain_state SET presence = 'online', updated_at = now()
-        WHERE captain_id = $1`,
-      [input.captainId],
-    );
+    if (gpsPenalty?.suspendCaptain) {
+      await client.query(
+        `UPDATE captains
+            SET status = 'suspended',
+                suspended_reason = 'Fraude GPS repetee (course non ouverte)',
+                suspended_until = NULL
+          WHERE user_id = $1`,
+        [input.captainId],
+      );
+      await client.query(
+        `UPDATE captain_state SET presence = 'offline', updated_at = now()
+          WHERE captain_id = $1`,
+        [input.captainId],
+      );
+    } else {
+      // Captain goes back to "online".
+      await client.query(
+        `UPDATE captain_state SET presence = 'online', updated_at = now()
+          WHERE captain_id = $1`,
+        [input.captainId],
+      );
+    }
 
     // Fire-and-forget notification when the captain just earned the bonus.
     // Outside the wallet write so a notification hiccup never rolls back
@@ -1135,7 +1316,15 @@ export async function completeRide(input: CompleteInput) {
     return {
       ride: shape(upd.rows[0]!, { revealCode: true }),
       commissionMru: commission,
-      captainBalanceAfter: debit.balanceAfter,
+      captainBalanceAfter: balanceAfter,
+      gpsCompliance: gpsPenalty
+        ? {
+            offenseNumber: gpsPenalty.offenseNumber,
+            action: gpsPenalty.action,
+            recoveryDebitMru: gpsPenalty.recoveryDebitMru,
+            suspended: gpsPenalty.suspendCaptain,
+          }
+        : null,
     };
   });
 }

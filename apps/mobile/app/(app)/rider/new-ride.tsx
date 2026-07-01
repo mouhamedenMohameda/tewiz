@@ -9,7 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { api } from '@/lib/api';
 import { formatMru } from '@/lib/format';
-import { getMapbox } from '@/lib/mapbox';
+import { getMapbox, MAPBOX_TOKEN } from '@/lib/mapbox';
 import { MapShell } from '@/components/MapShell';
 import {
   RoadReportButton, RoadReportMarkers, useRoadReports,
@@ -24,8 +24,19 @@ const DEFAULT_ZOOM = 12;
 
 interface Point { lat: number; lng: number; label?: string }
 interface GeoResult { id: string; label: string; name: string; lat: number; lng: number }
+interface MapboxDirectionsResponse {
+  routes?: Array<{
+    distance?: number;
+    duration?: number;
+    geometry?: {
+      type: 'LineString';
+      coordinates: [number, number][];
+    };
+  }>;
+}
 
 type RideKind = 'self' | 'other' | 'colis';
+type PricingMode = 'solo' | 'shared';
 
 /** Parse a Point from a (lat, lng, label) triple that came from query params. */
 function parsePoint(
@@ -70,9 +81,18 @@ export default function NewRideScreen() {
   const [pickup, setPickup] = useState<Point | null>(prefilledPickup);
   const [dropoff, setDropoff] = useState<Point | null>(prefilledDropoff);
   const [active, setActive] = useState<'pickup' | 'dropoff' | null>(null);
-  const [estimate, setEstimate] = useState<{ fareMru: number; distanceM: number } | null>(null);
+  const [estimate, setEstimate] = useState<{
+    fareMru: number;
+    distanceM: number;
+    pricingMode: PricingMode;
+    sharedSeats: number | null;
+    soloFareMru: number | null;
+    isIntercityPricing: boolean;
+  } | null>(null);
   const [estimating, setEstimating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [routeCoordinates, setRouteCoordinates] = useState<[number, number][] | null>(null);
+  const [routeMetrics, setRouteMetrics] = useState<{ distanceM: number; durationS: number } | null>(null);
   // Course ouverte — taxi à la course, sans destination fixée. Toggle visible
   // only for passenger rides (open metered fare is meaningless for colis).
   // openQuote=null while loading; openQuote.enabled=false → admin disabled the
@@ -96,6 +116,8 @@ export default function NewRideScreen() {
   const [recipientName, setRecipientName] = useState('');
   const [recipientPhone, setRecipientPhone] = useState('+222');
   const [packageDescription, setPackageDescription] = useState('');
+  const [pricingMode, setPricingMode] = useState<PricingMode>('solo');
+  const [sharedSeats, setSharedSeats] = useState(12);
 
   const { reports, refresh: refreshReports } = useRoadReports();
 
@@ -142,6 +164,11 @@ export default function NewRideScreen() {
   // Course ouverte is only meaningful for passenger rides (no destination →
   // no parcel handover). Auto-disable when the user picks colis.
   useEffect(() => { if (kind === 'colis' && isOpen) setIsOpen(false); }, [kind, isOpen]);
+  useEffect(() => {
+    if (kind === 'colis' || isOpen) {
+      setPricingMode('solo');
+    }
+  }, [kind, isOpen]);
 
   // Recompute estimate whenever both ends are set — closed rides only.
   useEffect(() => {
@@ -149,18 +176,24 @@ export default function NewRideScreen() {
     if (!pickup || !dropoff) { setEstimate(null); return; }
     let cancelled = false;
     setEstimating(true);
-    api.post<{ fareMru: number; distanceM: number }>('/rider/rides/estimate', {
+    api.post<{
+      fareMru: number;
+      distanceM: number;
+      pricingMode: PricingMode;
+      sharedSeats: number | null;
+      soloFareMru: number | null;
+      isIntercityPricing: boolean;
+    }>('/rider/rides/estimate', {
       pickup: { lat: pickup.lat, lng: pickup.lng },
       dropoff: { lat: dropoff.lat, lng: dropoff.lng },
-      // Colis runs use a different (cheaper) tariff — make sure the price
-      // shown matches what will actually be charged at booking time.
       rideType: kind === 'colis' ? 'colis' : 'passenger',
+      ...(kind !== 'colis' ? { pricingMode, sharedSeats } : {}),
     })
       .then((r) => { if (!cancelled) setEstimate(r.data); })
       .catch(() => { if (!cancelled) setEstimate(null); })
       .finally(() => { if (!cancelled) setEstimating(false); });
     return () => { cancelled = true; };
-  }, [pickup, dropoff, kind, isOpen]);
+  }, [pickup, dropoff, kind, isOpen, pricingMode, sharedSeats]);
 
   const onMapPress = useCallback((lngLat: [number, number]) => {
     const p: Point = { lat: lngLat[1], lng: lngLat[0] };
@@ -179,6 +212,92 @@ export default function NewRideScreen() {
       animationDuration: 400,
     });
   }, [active]);
+
+  useEffect(() => {
+    if (!pickup || !dropoff) {
+      setRouteCoordinates(null);
+      setRouteMetrics(null);
+      return;
+    }
+    if (!MAPBOX_TOKEN) {
+      setRouteCoordinates([
+        [pickup.lng, pickup.lat],
+        [dropoff.lng, dropoff.lat],
+      ]);
+      setRouteMetrics(null);
+      return;
+    }
+
+    const from = `${pickup.lng},${pickup.lat}`;
+    const to = `${dropoff.lng},${dropoff.lat}`;
+    const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${from};${to}`
+      + `?overview=full&geometries=geojson&access_token=${encodeURIComponent(MAPBOX_TOKEN)}`;
+
+    let cancelled = false;
+    fetch(url)
+      .then(async (r) => {
+        if (!r.ok) throw new Error(`directions_${r.status}`);
+        const data = (await r.json()) as MapboxDirectionsResponse;
+        const route = data.routes?.[0];
+        const coords = route?.geometry?.coordinates;
+        if (!cancelled) {
+          setRouteCoordinates(
+            coords && coords.length >= 2
+              ? coords
+              : [[pickup.lng, pickup.lat], [dropoff.lng, dropoff.lat]],
+          );
+          setRouteMetrics(
+            route?.distance && route?.duration
+              ? { distanceM: route.distance, durationS: route.duration }
+              : null,
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setRouteCoordinates([[pickup.lng, pickup.lat], [dropoff.lng, dropoff.lat]]);
+          setRouteMetrics(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pickup, dropoff]);
+
+  useEffect(() => {
+    if (!routeCoordinates || routeCoordinates.length < 2) return;
+    const lngs = routeCoordinates.map((c) => c[0]);
+    const lats = routeCoordinates.map((c) => c[1]);
+    const minLng = Math.min(...lngs);
+    const maxLng = Math.max(...lngs);
+    const minLat = Math.min(...lats);
+    const maxLat = Math.max(...lats);
+    cameraRef.current?.fitBounds(
+      [maxLng, maxLat],
+      [minLng, minLat],
+      [60, 60, 140, 60],
+      600,
+    );
+  }, [routeCoordinates]);
+
+  const routeGeoJson = useMemo<GeoJSON.FeatureCollection | null>(() => {
+    if (!routeCoordinates || routeCoordinates.length < 2) return null;
+    return {
+      type: 'FeatureCollection',
+      features: [{
+        type: 'Feature',
+        geometry: {
+          type: 'LineString',
+          coordinates: routeCoordinates,
+        },
+        properties: {},
+      }],
+    };
+  }, [routeCoordinates]);
+
+  const routeDistanceKm = routeMetrics ? (routeMetrics.distanceM / 1000).toFixed(1) : null;
+  const routeDurationMin = routeMetrics ? Math.max(1, Math.round(routeMetrics.durationS / 60)) : null;
 
   function isReady(): { ok: true } | { ok: false; reason: string } {
     if (!pickup) return { ok: false, reason: t('rider.newRide.missingPoints') };
@@ -203,6 +322,7 @@ export default function NewRideScreen() {
         pickup,
         rideType: kind === 'colis' ? 'colis' : 'passenger',
         paymentMethod: 'cash',
+        ...(kind !== 'colis' && !isOpen ? { pricingMode, sharedSeats } : {}),
       };
       if (isOpen) {
         body.isOpen = true;
@@ -279,6 +399,15 @@ export default function NewRideScreen() {
 
         <KindSelector value={kind} onChange={setKind} />
 
+        {kind !== 'colis' && !isOpen ? (
+          <SharedModeSelector
+            value={pricingMode}
+            seats={sharedSeats}
+            onModeChange={setPricingMode}
+            onSeatsChange={setSharedSeats}
+          />
+        ) : null}
+
         {kind === 'other' ? (
           <View style={{ gap: 6, marginTop: 4 }}>
             <Text style={{ fontSize: 11, color: '#64748b' }}>
@@ -341,6 +470,18 @@ export default function NewRideScreen() {
           onPress={onMapPress}
           showsUserLocation
         >
+          {M && routeGeoJson ? (
+            <M.ShapeSource id="ride-route" shape={routeGeoJson}>
+              <M.LineLayer
+                id="ride-route-line"
+                style={{
+                  lineColor: '#2563eb',
+                  lineWidth: 4,
+                  lineOpacity: 0.75,
+                }}
+              />
+            </M.ShapeSource>
+          ) : null}
           {M && pickup ? (
             <M.PointAnnotation
               id="pickup"
@@ -383,6 +524,30 @@ export default function NewRideScreen() {
               : (estimating ? '…' : estimate ? formatMru(estimate.fareMru) : '—')}
           </Text>
         </View>
+        {!isOpen && estimate?.isIntercityPricing ? (
+          <View style={{ marginBottom: 10 }}>
+            <Text style={{ fontSize: 12, color: '#64748b' }}>
+              {estimate.pricingMode === 'shared'
+                ? `Inter-ville partage · ${estimate.sharedSeats ?? sharedSeats} places`
+                : 'Inter-ville solo'}
+              {estimate.soloFareMru != null && estimate.pricingMode === 'shared'
+                ? ` · Solo: ${formatMru(estimate.soloFareMru)}`
+                : ''}
+            </Text>
+          </View>
+        ) : null}
+        {!isOpen ? (
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <Text style={{ fontSize: 13, color: '#64748b' }}>
+              Distance / Durée
+            </Text>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: '#0f172a' }}>
+              {routeDistanceKm && routeDurationMin
+                ? `${routeDistanceKm} ${t('common.kmShort')} · ${routeDurationMin} min`
+                : '—'}
+            </Text>
+          </View>
+        ) : null}
         <Pressable
           disabled={!pickup || (!isOpen && !dropoff) || submitting}
           onPress={confirm}
@@ -583,6 +748,72 @@ function KindSelector({
           </Pressable>
         );
       })}
+    </View>
+  );
+}
+
+function SharedModeSelector({
+  value,
+  seats,
+  onModeChange,
+  onSeatsChange,
+}: {
+  value: PricingMode;
+  seats: number;
+  onModeChange: (m: PricingMode) => void;
+  onSeatsChange: (n: number) => void;
+}) {
+  const clampedSeats = Math.max(2, Math.min(20, seats));
+  return (
+    <View style={{ marginTop: 4, gap: 8 }}>
+      <View style={{ flexDirection: 'row', gap: 6 }}>
+        {(['solo', 'shared'] as const).map((mode) => {
+          const active = value === mode;
+          return (
+            <Pressable
+              key={mode}
+              onPress={() => onModeChange(mode)}
+              style={({ pressed }) => ({
+                flex: 1,
+                borderRadius: 10,
+                paddingVertical: 10,
+                alignItems: 'center',
+                backgroundColor: active ? '#0f172a' : (pressed ? '#e2e8f0' : '#f1f5f9'),
+              })}
+            >
+              <Text style={{ fontSize: 12, fontWeight: '700', color: active ? '#fff' : '#475569' }}>
+                {mode === 'solo' ? 'Solo' : 'Partage'}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+      {value === 'shared' ? (
+        <View style={{
+          flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+          backgroundColor: '#f8fafc', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8,
+          borderWidth: 1, borderColor: '#e2e8f0',
+        }}>
+          <Text style={{ fontSize: 12, color: '#475569' }}>Nombre de places</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Pressable
+              onPress={() => onSeatsChange(Math.max(2, clampedSeats - 1))}
+              style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: '#e2e8f0', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Text style={{ fontSize: 18, color: '#0f172a', marginTop: -1 }}>-</Text>
+            </Pressable>
+            <Text style={{ minWidth: 22, textAlign: 'center', fontSize: 14, fontWeight: '700', color: '#0f172a' }}>
+              {clampedSeats}
+            </Text>
+            <Pressable
+              onPress={() => onSeatsChange(Math.min(20, clampedSeats + 1))}
+              style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: '#e2e8f0', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Text style={{ fontSize: 18, color: '#0f172a', marginTop: -1 }}>+</Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 }

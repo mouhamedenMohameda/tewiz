@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { CAPTAIN_RIDE_CANCEL_REASONS, RIDE_CANCEL_REASON_LABEL_FR } from '@tewiz/shared-types';
 import { pool, withTx } from '../../db/pool.js';
 import { type AuthedRequest } from '../../middleware/auth.js';
 import { HttpError } from '../../middleware/error.js';
@@ -128,11 +129,9 @@ captainRidesRouter.post('/:id/arrive', async (req, res) => {
   res.json(await rides.arriveRide(req.params.id!, userId));
 });
 
-const startBody = z.object({ code: z.string().regex(/^\d{4}$/) });
 captainRidesRouter.post('/:id/start', async (req, res) => {
   const userId = req.user!.id;
-  const body = startBody.parse(req.body);
-  res.json(await rides.startRide(req.params.id!, userId, body.code));
+  res.json(await rides.startRide(req.params.id!, userId));
 });
 
 const completeBody = z.object({
@@ -158,8 +157,8 @@ captainRidesRouter.post('/:id/complete', async (req, res) => {
  *   { lat, lng, accuracyM?, speedMps?, recordedAt? (ms epoch) }
  * The captain app should fire this every ~5 s. The server validates the
  * sample (rejects teleports and bad-accuracy fixes) and returns the current
- * meter state regardless — that way the app gets fresh distance + duration
- * even when a sample is dropped.
+ * meter state regardless — that way the app gets fresh telemetry even when
+ * a sample is dropped.
  */
 const locationBody = z.object({
   lat: z.number().min(-90).max(90),
@@ -174,17 +173,15 @@ captainRidesRouter.post('/:id/location', async (req, res) => {
   const body = locationBody.parse(req.body);
 
   // Auth: only the assigned captain of an in_progress ride may ping.
-  const r = await pool.query<{ captain_id: string | null; status: string; is_open: boolean }>(
-    `SELECT captain_id, status, is_open FROM rides WHERE id = $1`,
+  const r = await pool.query<{ captain_id: string | null; status: string }>(
+    `SELECT captain_id, status FROM rides WHERE id = $1`,
     [rideId],
   );
   const row = r.rows[0];
   if (!row) throw new HttpError(404, 'not_found', 'Ride not found');
   if (row.captain_id !== userId) throw new HttpError(403, 'forbidden', 'Not your ride');
-  if (!row.is_open) throw new HttpError(400, 'not_open',
-    'Location pings are only used for open rides');
   if (row.status !== 'in_progress') throw new HttpError(409, 'wrong_status',
-    `Ride is ${row.status}, meter only runs while in_progress`);
+    `Ride is ${row.status}, location telemetry only runs while in_progress`);
 
   const result = await withTx((client) => ingestLocation(client, rideId, {
     lat: body.lat,
@@ -196,7 +193,13 @@ captainRidesRouter.post('/:id/location', async (req, res) => {
   res.json(result);
 });
 
-const cancelBody = z.object({ reason: z.string().min(2).max(500) });
+const cancelBody = z.object({
+  reason: z.string().min(2).max(500).optional(),
+  reasonKey: z.enum(CAPTAIN_RIDE_CANCEL_REASONS).optional(),
+}).refine(
+  (body) => !!(body.reason || body.reasonKey),
+  { message: 'A cancel reason is required' },
+);
 captainRidesRouter.post('/:id/cancel', async (req, res) => {
   const userId = req.user!.id;
   const body = cancelBody.parse(req.body);
@@ -204,6 +207,6 @@ captainRidesRouter.post('/:id/cancel', async (req, res) => {
     rideId: req.params.id!,
     userId,
     role: 'captain',
-    reason: body.reason,
+    reason: body.reasonKey ? RIDE_CANCEL_REASON_LABEL_FR[body.reasonKey] : body.reason!,
   }));
 });

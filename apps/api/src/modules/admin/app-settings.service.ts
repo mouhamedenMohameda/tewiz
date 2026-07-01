@@ -9,6 +9,7 @@
  * Returned values are always integers (MRU) or basis points (commission).
  */
 
+import type { CaptainAlertSoundMode } from '@tewiz/shared-types';
 import { pool } from '../../db/pool.js';
 
 export interface PricingSettings {
@@ -23,6 +24,18 @@ export interface PricingSettings {
   colisMinFareMru: number;
   defaultCommissionBps: number;
   colisCommissionBps: number;
+  // Inter-city pricing (migration 0034). Above longDistanceThresholdM, use a
+  // dedicated tiered passenger tariff and optional shared-seat mode.
+  intercityPricingEnabled: boolean;
+  intercityBaseFareMru: number;
+  intercityTier1LimitKm: number;
+  intercityTier2LimitKm: number;
+  intercityTier1PerKmMru: number;
+  intercityTier2PerKmMru: number;
+  intercityTier3PerKmMru: number;
+  intercitySharedDefaultSeats: number;
+  intercitySharedMinSeatFareMru: number;
+  intercityCommissionBps: number;
   // Migration 0022. Threshold above which a ride is considered long-distance
   // and only dispatched to captains who opted in (captains.accepts_long_distance).
   longDistanceThresholdM: number;
@@ -52,6 +65,8 @@ export interface PricingSettings {
   // and login screens. Flip to true before an App Store / Play submission,
   // back to false once the build is approved.
   showDemoButtons: boolean;
+  captainAlertSoundMode: CaptainAlertSoundMode;
+  captainAlertRepeatIntervalS: number;
   updatedAt: string;
   updatedBy: string | null;
 }
@@ -68,6 +83,16 @@ interface Row {
   colis_min_fare_mru: number;
   default_commission_bps: number;
   colis_commission_bps: number;
+  intercity_pricing_enabled: boolean;
+  intercity_base_fare_mru: number;
+  intercity_tier1_limit_km: number;
+  intercity_tier2_limit_km: number;
+  intercity_tier1_per_km_mru: number;
+  intercity_tier2_per_km_mru: number;
+  intercity_tier3_per_km_mru: number;
+  intercity_shared_default_seats: number;
+  intercity_shared_min_seat_fare_mru: number;
+  intercity_commission_bps: number;
   long_distance_threshold_m: number;
   operator_passenger_commission_bps: number;
   operator_colis_commission_bps: number;
@@ -82,6 +107,8 @@ interface Row {
   open_per_minute_mru: number;
   open_min_fare_mru: number;
   show_demo_buttons: boolean;
+  captain_alert_sound_mode: CaptainAlertSoundMode;
+  captain_alert_repeat_interval_s: number;
   updated_at: Date;
   updated_by: string | null;
 }
@@ -96,6 +123,16 @@ function toSettings(r: Row): PricingSettings {
     colisMinFareMru: r.colis_min_fare_mru,
     defaultCommissionBps: r.default_commission_bps,
     colisCommissionBps: r.colis_commission_bps,
+    intercityPricingEnabled: r.intercity_pricing_enabled,
+    intercityBaseFareMru: r.intercity_base_fare_mru,
+    intercityTier1LimitKm: r.intercity_tier1_limit_km,
+    intercityTier2LimitKm: r.intercity_tier2_limit_km,
+    intercityTier1PerKmMru: r.intercity_tier1_per_km_mru,
+    intercityTier2PerKmMru: r.intercity_tier2_per_km_mru,
+    intercityTier3PerKmMru: r.intercity_tier3_per_km_mru,
+    intercitySharedDefaultSeats: r.intercity_shared_default_seats,
+    intercitySharedMinSeatFareMru: r.intercity_shared_min_seat_fare_mru,
+    intercityCommissionBps: r.intercity_commission_bps,
     longDistanceThresholdM: r.long_distance_threshold_m,
     operatorPassengerCommissionBps: r.operator_passenger_commission_bps,
     operatorColisCommissionBps: r.operator_colis_commission_bps,
@@ -110,6 +147,8 @@ function toSettings(r: Row): PricingSettings {
     openPerMinuteMru: r.open_per_minute_mru,
     openMinFareMru: r.open_min_fare_mru,
     showDemoButtons: r.show_demo_buttons,
+    captainAlertSoundMode: r.captain_alert_sound_mode,
+    captainAlertRepeatIntervalS: r.captain_alert_repeat_interval_s,
     updatedAt: r.updated_at.toISOString(),
     updatedBy: r.updated_by,
   };
@@ -123,6 +162,16 @@ export async function getPricingSettings(): Promise<PricingSettings> {
     `SELECT base_fare_mru, per_km_mru, min_fare_mru,
             colis_base_fare_mru, colis_per_km_mru, colis_min_fare_mru,
             default_commission_bps, colis_commission_bps,
+          intercity_pricing_enabled,
+          intercity_base_fare_mru,
+          intercity_tier1_limit_km,
+          intercity_tier2_limit_km,
+          intercity_tier1_per_km_mru,
+          intercity_tier2_per_km_mru,
+          intercity_tier3_per_km_mru,
+          intercity_shared_default_seats,
+          intercity_shared_min_seat_fare_mru,
+          intercity_commission_bps,
             long_distance_threshold_m,
             operator_passenger_commission_bps, operator_colis_commission_bps,
             searching_timeout_s,
@@ -131,6 +180,7 @@ export async function getPricingSettings(): Promise<PricingSettings> {
             allow_open_rides, open_base_fare_mru, open_per_km_mru,
             open_per_minute_mru, open_min_fare_mru,
             show_demo_buttons,
+              captain_alert_sound_mode, captain_alert_repeat_interval_s,
             updated_at, updated_by
        FROM app_settings WHERE id = 1`,
   );
@@ -153,6 +203,16 @@ export interface PricingSettingsPatch {
   colisMinFareMru?: number;
   defaultCommissionBps?: number;
   colisCommissionBps?: number;
+  intercityPricingEnabled?: boolean;
+  intercityBaseFareMru?: number;
+  intercityTier1LimitKm?: number;
+  intercityTier2LimitKm?: number;
+  intercityTier1PerKmMru?: number;
+  intercityTier2PerKmMru?: number;
+  intercityTier3PerKmMru?: number;
+  intercitySharedDefaultSeats?: number;
+  intercitySharedMinSeatFareMru?: number;
+  intercityCommissionBps?: number;
   longDistanceThresholdM?: number;
   operatorPassengerCommissionBps?: number;
   operatorColisCommissionBps?: number;
@@ -167,6 +227,8 @@ export interface PricingSettingsPatch {
   openPerMinuteMru?: number;
   openMinFareMru?: number;
   showDemoButtons?: boolean;
+  captainAlertSoundMode?: CaptainAlertSoundMode;
+  captainAlertRepeatIntervalS?: number;
 }
 
 export async function updatePricingSettings(
@@ -183,26 +245,48 @@ export async function updatePricingSettings(
             colis_min_fare_mru                = COALESCE($6, colis_min_fare_mru),
             default_commission_bps            = COALESCE($7, default_commission_bps),
             colis_commission_bps              = COALESCE($8, colis_commission_bps),
-            long_distance_threshold_m         = COALESCE($9, long_distance_threshold_m),
-            operator_passenger_commission_bps = COALESCE($10, operator_passenger_commission_bps),
-            operator_colis_commission_bps     = COALESCE($11, operator_colis_commission_bps),
-            searching_timeout_s               = COALESCE($12, searching_timeout_s),
-            commission_bonus_enabled          = COALESCE($13, commission_bonus_enabled),
-            commission_bonus_threshold_mru    = COALESCE($14, commission_bonus_threshold_mru),
-            commission_bonus_window_days      = COALESCE($15, commission_bonus_window_days),
-            commission_bonus_reward_days      = COALESCE($16, commission_bonus_reward_days),
-            allow_open_rides                  = COALESCE($17, allow_open_rides),
-            open_base_fare_mru                = COALESCE($18, open_base_fare_mru),
-            open_per_km_mru                   = COALESCE($19, open_per_km_mru),
-            open_per_minute_mru               = COALESCE($20, open_per_minute_mru),
-            open_min_fare_mru                 = COALESCE($21, open_min_fare_mru),
-            show_demo_buttons                 = COALESCE($23, show_demo_buttons),
+          intercity_pricing_enabled         = COALESCE($9, intercity_pricing_enabled),
+          intercity_base_fare_mru           = COALESCE($10, intercity_base_fare_mru),
+          intercity_tier1_limit_km          = COALESCE($11, intercity_tier1_limit_km),
+          intercity_tier2_limit_km          = COALESCE($12, intercity_tier2_limit_km),
+          intercity_tier1_per_km_mru        = COALESCE($13, intercity_tier1_per_km_mru),
+          intercity_tier2_per_km_mru        = COALESCE($14, intercity_tier2_per_km_mru),
+          intercity_tier3_per_km_mru        = COALESCE($15, intercity_tier3_per_km_mru),
+          intercity_shared_default_seats    = COALESCE($16, intercity_shared_default_seats),
+          intercity_shared_min_seat_fare_mru = COALESCE($17, intercity_shared_min_seat_fare_mru),
+          intercity_commission_bps          = COALESCE($18, intercity_commission_bps),
+          long_distance_threshold_m         = COALESCE($19, long_distance_threshold_m),
+          operator_passenger_commission_bps = COALESCE($20, operator_passenger_commission_bps),
+          operator_colis_commission_bps     = COALESCE($21, operator_colis_commission_bps),
+          searching_timeout_s               = COALESCE($22, searching_timeout_s),
+          commission_bonus_enabled          = COALESCE($23, commission_bonus_enabled),
+          commission_bonus_threshold_mru    = COALESCE($24, commission_bonus_threshold_mru),
+          commission_bonus_window_days      = COALESCE($25, commission_bonus_window_days),
+          commission_bonus_reward_days      = COALESCE($26, commission_bonus_reward_days),
+          allow_open_rides                  = COALESCE($27, allow_open_rides),
+          open_base_fare_mru                = COALESCE($28, open_base_fare_mru),
+          open_per_km_mru                   = COALESCE($29, open_per_km_mru),
+          open_per_minute_mru               = COALESCE($30, open_per_minute_mru),
+          open_min_fare_mru                 = COALESCE($31, open_min_fare_mru),
+          show_demo_buttons                 = COALESCE($33, show_demo_buttons),
+          captain_alert_sound_mode          = COALESCE($34, captain_alert_sound_mode),
+          captain_alert_repeat_interval_s   = COALESCE($35, captain_alert_repeat_interval_s),
             updated_at                        = now(),
-            updated_by                        = $22
+          updated_by                        = $32
       WHERE id = 1
       RETURNING base_fare_mru, per_km_mru, min_fare_mru,
                 colis_base_fare_mru, colis_per_km_mru, colis_min_fare_mru,
                 default_commission_bps, colis_commission_bps,
+            intercity_pricing_enabled,
+            intercity_base_fare_mru,
+            intercity_tier1_limit_km,
+            intercity_tier2_limit_km,
+            intercity_tier1_per_km_mru,
+            intercity_tier2_per_km_mru,
+            intercity_tier3_per_km_mru,
+            intercity_shared_default_seats,
+            intercity_shared_min_seat_fare_mru,
+            intercity_commission_bps,
                 long_distance_threshold_m,
                 operator_passenger_commission_bps, operator_colis_commission_bps,
                 searching_timeout_s,
@@ -211,6 +295,7 @@ export async function updatePricingSettings(
                 allow_open_rides, open_base_fare_mru, open_per_km_mru,
                 open_per_minute_mru, open_min_fare_mru,
                 show_demo_buttons,
+                captain_alert_sound_mode, captain_alert_repeat_interval_s,
                 updated_at, updated_by`,
     [
       patch.baseFareMru ?? null,
@@ -221,6 +306,16 @@ export async function updatePricingSettings(
       patch.colisMinFareMru ?? null,
       patch.defaultCommissionBps ?? null,
       patch.colisCommissionBps ?? null,
+      patch.intercityPricingEnabled ?? null,
+      patch.intercityBaseFareMru ?? null,
+      patch.intercityTier1LimitKm ?? null,
+      patch.intercityTier2LimitKm ?? null,
+      patch.intercityTier1PerKmMru ?? null,
+      patch.intercityTier2PerKmMru ?? null,
+      patch.intercityTier3PerKmMru ?? null,
+      patch.intercitySharedDefaultSeats ?? null,
+      patch.intercitySharedMinSeatFareMru ?? null,
+      patch.intercityCommissionBps ?? null,
       patch.longDistanceThresholdM ?? null,
       patch.operatorPassengerCommissionBps ?? null,
       patch.operatorColisCommissionBps ?? null,
@@ -236,6 +331,8 @@ export async function updatePricingSettings(
       patch.openMinFareMru ?? null,
       adminId,
       patch.showDemoButtons ?? null,
+      patch.captainAlertSoundMode ?? null,
+      patch.captainAlertRepeatIntervalS ?? null,
     ],
   );
   cache = null;

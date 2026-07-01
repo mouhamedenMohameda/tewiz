@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { commissionMru, openFareMru } from '../src/modules/rides/pricing.js';
+import {
+  commissionMru,
+  intercityFareMru,
+  openFareMru,
+} from '../src/modules/rides/pricing.js';
 
 describe('pricing', () => {
   it('commissionMru floors the commission amount', () => {
@@ -36,5 +40,41 @@ describe('pricing', () => {
     );
 
     expect(fare).toBe(50);
+  });
+
+  it('intercityFareMru targets around 20k for a 1200 km solo estimate', () => {
+    const quote = intercityFareMru(1_200_000, {
+      baseFareMru: 100,
+      tier1LimitKm: 80,
+      tier2LimitKm: 300,
+      tier1PerKmMru: 30,
+      tier2PerKmMru: 18,
+      tier3PerKmMru: 16,
+      sharedDefaultSeats: 12,
+      sharedMinSeatFareMru: 300,
+      minFareMru: 40,
+    }, { pricingMode: 'solo' });
+
+    expect(quote.fareMru).toBe(20860);
+    expect(quote.pricingModeApplied).toBe('solo');
+  });
+
+  it('intercityFareMru computes per-seat shared price and floors seats', () => {
+    const quote = intercityFareMru(1_200_000, {
+      baseFareMru: 100,
+      tier1LimitKm: 80,
+      tier2LimitKm: 300,
+      tier1PerKmMru: 30,
+      tier2PerKmMru: 18,
+      tier3PerKmMru: 16,
+      sharedDefaultSeats: 12,
+      sharedMinSeatFareMru: 300,
+      minFareMru: 40,
+    }, { pricingMode: 'shared', sharedSeats: 15 });
+
+    expect(quote.soloFareMru).toBe(20860);
+    expect(quote.fareMru).toBe(1395);
+    expect(quote.sharedSeatsApplied).toBe(15);
+    expect(quote.pricingModeApplied).toBe('shared');
   });
 });
