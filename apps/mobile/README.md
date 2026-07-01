@@ -12,11 +12,18 @@ can toggle between **rider mode** (request rides) and **captain mode**
 ```bash
 # from repo root
 pnpm install
-pnpm --filter @tewiz/mobile start
+pnpm mobile:start
+
+# dev client (clears cache)
+pnpm mobile:start:dev-client
 
 # point the app at a non-default API
-EXPO_PUBLIC_API_URL=http://192.168.1.10:3000 pnpm --filter @tewiz/mobile start
+EXPO_PUBLIC_API_URL=http://192.168.1.10:3000 pnpm --dir apps/mobile expo start
 ```
+
+Important: do not run `npx expo start` from the monorepo root (`/course`).
+Run mobile commands through `pnpm mobile:*` (root scripts) or from
+`apps/mobile` directly.
 
 The API URL defaults to `http://localhost:3000` (works for the iOS simulator
 and Expo web). For a physical device on the same Wi-Fi, set

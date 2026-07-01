@@ -11,6 +11,10 @@
   },
   "scripts": {
     "dev": "pnpm --filter @tewiz/api dev",
+    "mobile:start": "pnpm -C apps/mobile exec expo start",
+    "mobile:start:dev-client": "pnpm -C apps/mobile exec expo start --dev-client --clear",
+    "mobile:ios": "pnpm -C apps/mobile exec expo start --ios",
+    "mobile:android": "pnpm -C apps/mobile exec expo start --android",
     "db:migrate": "pnpm --filter @tewiz/api migrate",
     "db:migrate:down": "pnpm --filter @tewiz/api migrate:down",
     "tunnel": "ssh -L 5432:localhost:5432 -L 6379:localhost:6379 root@5.189.153.144",

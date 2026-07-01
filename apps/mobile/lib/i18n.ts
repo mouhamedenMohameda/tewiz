@@ -17,6 +17,7 @@ import { initReactI18next } from 'react-i18next';
 import fr from '@/locales/fr.json';
 import ar from '@/locales/ar.json';
 import en from '@/locales/en.json';
+import hs from '@/locales/hs.json';
 import ff from '@/locales/ff.json';
 import wo from '@/locales/wo.json';
 import snk from '@/locales/snk.json';
@@ -33,8 +34,8 @@ import snk from '@/locales/snk.json';
  * Adding a new language: drop a `locales/<code>.json` file mirroring fr.json,
  * import it above and add the code to SUPPORTED_LANGUAGES + LANGUAGE_RESOURCES.
  */
-export type AppLanguage = 'fr' | 'ar' | 'en' | 'ff' | 'wo' | 'snk';
-export const SUPPORTED_LANGUAGES: AppLanguage[] = ['fr', 'ar', 'en', 'ff', 'wo', 'snk'];
+export type AppLanguage = 'fr' | 'ar' | 'en' | 'hs' | 'ff' | 'wo' | 'snk';
+export const SUPPORTED_LANGUAGES: AppLanguage[] = ['fr', 'ar', 'en', 'hs', 'ff', 'wo', 'snk'];
 export const DEFAULT_LANGUAGE: AppLanguage = 'fr';
 
 type Resource = Record<string, unknown>;
@@ -42,13 +43,14 @@ const LANGUAGE_RESOURCES: Record<AppLanguage, Resource> = {
   fr: fr as Resource,
   ar: ar as Resource,
   en: en as Resource,
+  hs: hs as Resource,
   ff: ff as Resource,
   wo: wo as Resource,
   snk: snk as Resource,
 };
 
 const STORAGE_KEY = '@tewiz/language';
-const RTL_LANGUAGES = new Set<AppLanguage>(['ar']);
+const RTL_LANGUAGES = new Set<AppLanguage>(['ar', 'hs']);
 
 function detectDeviceLanguage(): AppLanguage {
   try {

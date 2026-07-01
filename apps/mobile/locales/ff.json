@@ -29,7 +29,8 @@
     "sending": "Ina nelɗee…",
     "notSent": "Neldaaka",
     "tapToReplace": "Memto ngam waylu",
-    "holdToDelete": "Jogo ngam momtu"
+    "holdToDelete": "Jogo ngam momtu",
+    "confirm": "Tabbitin"
   },
   "errors": {
     "server": "Ronkii heɓtude serveur o.",
@@ -209,7 +210,13 @@
         "favoriteFallbackName": "doggoowo on",
         "favoriteHint": "Favori maa ena tabbita gadiiɗo (30 s) e course garooje.",
         "favoriteAdd": "Beydu e favori"
-      }
+      },
+      "openDestination": "Ɓettoore",
+      "openDestinationValue": "Doggitaama e laawol",
+      "openMeterDistance": "Njuutal",
+      "openMeterDuration": "Neeɓam",
+      "openMeterLive": "Compteur",
+      "openMeterTariffSummary": "{{base}} fuɗɗorde + {{perKm}}/km + {{perMin}}/min"
     },
     "favorites": {
       "title": "Doggooɓe-am",
@@ -265,7 +272,17 @@
       "submit": "Ƴamtu course",
       "estimate": "Estimation",
       "submitting": "Ina nelɗee…",
-      "missingPoints": "Tiiɗno fuɗɗoode e destination."
+      "missingPoints": "Tiiɗno fuɗɗoode e destination.",
+      "meterBase": "Fuɗɗorde",
+      "meterMin": "Course famɗi {{min}}",
+      "meterPerKm": "/ km",
+      "meterPerMin": "/ min",
+      "openFareLabel": "Tarif",
+      "openFareMeter": "Compteur",
+      "openMeterLabel": "Tarif compteur",
+      "openRideHint": "Walaa ɓettoore - compteur fuɗɗata so on nattii",
+      "openRideTitle": "Course udditaande",
+      "submitOpen": "Noddu taxi (compteur)"
     },
     "voiceRide": {
       "headline": "Ƴamre haala",
@@ -398,7 +415,15 @@
       "startDelivery": "Fuɗɗo livraison",
       "deliveryConfirmTitle": "Code livraison (4 lamɗe)",
       "deliveryConfirmSub": "Ƴamto jaɓɓoowo o code mo o heɓi e SMS.",
-      "confirmDelivery": "Confirmer livraison"
+      "confirmDelivery": "Confirmer livraison",
+      "endOpenRide": "Gasin course (compteur)",
+      "meterShort": "Compteur",
+      "meterTariffLabel": "Tarif compteur",
+      "openBadge": "Course udditaande",
+      "openDestinationShort": "Doggitaama e laawol",
+      "openMeterDistance": "Njuutal",
+      "openMeterDuration": "Neeɓam",
+      "openMeterLive": "Compteur e jamirooje"
     },
     "wallet": {
       "title": "Portefeuille",
@@ -467,7 +492,10 @@
       "errorBody": "Sifo nokku o (mis. \"ɓadii misiide Saudique\").",
       "locationRequiredBody": "{{app}} ena yiɗi yuurnude ko aɗa e nokku.",
       "savedTitle": "Galle reenaama",
-      "savedBody": "Tabbitaa haa {{date}}."
+      "savedBody": "Tabbitaa haa {{date}}.",
+      "mapInstruction": "Memto e dow carte ngam waasde wuro maa no feewi.",
+      "mapNoPin": "Walaa nokkuure suɓaande - memto e dow carte",
+      "pinHint": "Alaa foti wonaa e nokkuure ndee (max 200 m)"
     },
     "recurring": {
       "title": "Course yowitiiɗe",
@@ -612,7 +640,9 @@
       "emergencyNamePlaceholder": "Fatimetou (debbo)",
       "emergencyPhone": "Contact urgence — telefon",
       "saveError": "Ronkii reende.",
-      "save": "Reenu"
+      "save": "Reenu",
+      "dobMinAgeHelper": "Aɗa foti waɗde duuɓi 18 e soodoo.",
+      "dobTapToPick": "Memto ngam suɓo ñalnde"
     },
     "vehicle": {
       "title": "Otoo",
@@ -636,7 +666,18 @@
       "longDistanceTitle": "Yaajngo woɗɗungo",
       "longDistanceHint": "Course hakkunde gure (Nouakchott — Nouadhibou, ekn.).",
       "save": "Reenu",
-      "saveError": "Ronkii reende."
+      "saveError": "Ronkii reende.",
+      "brandSearchPlaceholder": "Yiilo marque…",
+      "brandTapToPick": "Memto ngam suɓo marque",
+      "colorTapToPick": "Memto ngam suɓo noone",
+      "motoForcedColisHint": "E nder mode moto, a heɓata tan courses colis.",
+      "motoPassengerBlockedHint": "Motos mbaawaa heɓde courses passagers.",
+      "seatsCount": "{{count}} jooɗorgal",
+      "typeCar": "Lototo",
+      "typeMoto": "Moto",
+      "vehicleTypeHint": "Suɓaare ndee wonnude iri courses ɗe nden heɓata.",
+      "vehicleTypeLabel": "Iri lototo",
+      "yearTapToPick": "Memto ngam suɓo hitaande"
     },
     "docs": {
       "title": "Documents",
@@ -661,7 +702,9 @@
       "expiresPrefix": "gasa {{date}}",
       "tapToAdd": "Memto ngam beydu",
       "notSent": "Neldaaka",
-      "replaceHint": "Memto ngam waylu · Jogo ngam momtu"
+      "replaceHint": "Memto ngam waylu · Jogo ngam momtu",
+      "expiryHintPicker": "{{label}} — suɓo ñalnde gasirde.",
+      "expiryTapToPick": "Memto ngam suɓo ñalnde"
     },
     "documents": {
       "selfie": "Selfie",
@@ -732,6 +775,7 @@
     "fr": "Français",
     "ar": "العربية",
     "en": "English",
+    "hs": "Hassaniya",
     "ff": "Pulaar",
     "wo": "Wolof",
     "snk": "Sooninkanxanne"
@@ -827,5 +871,19 @@
     "message": "Nelal",
     "stack": "Stack",
     "hint": "(Naatnu nataal ngo neldaa.)"
-  }
+  },
+  "months": [
+    "Janvier",
+    "Février",
+    "Mars",
+    "Avril",
+    "Mai",
+    "Juin",
+    "Juillet",
+    "Août",
+    "Septembre",
+    "Octobre",
+    "Novembre",
+    "Décembre"
+  ]
 }

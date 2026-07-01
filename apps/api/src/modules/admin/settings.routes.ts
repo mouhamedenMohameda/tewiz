@@ -71,6 +71,7 @@ const patchBody = z.object({
   showDemoButtons:                  z.boolean().optional(),
   captainAlertSoundMode:            z.enum(CAPTAIN_ALERT_SOUND_MODES).optional(),
   captainAlertRepeatIntervalS:      z.number().int().min(1).max(15).optional(),
+  captainAlertSoundUrl:             z.string().trim().url().max(500).nullable().optional(),
 }).refine(
   (b) => Object.values(b).some((v) => v !== undefined),
   { message: 'At least one field is required' },

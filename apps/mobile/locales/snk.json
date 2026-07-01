@@ -29,7 +29,8 @@
     "sending": "A faabini…",
     "notSent": "A nta faabu",
     "tapToReplace": "Maaga ka yindi",
-    "holdToDelete": "Jiga ka toxo"
+    "holdToDelete": "Jiga ka toxo",
+    "confirm": "Tabbitu"
   },
   "errors": {
     "server": "A nta serveur ya soxu.",
@@ -209,7 +210,13 @@
         "favoriteFallbackName": "doogu",
         "favoriteHint": "An favoris kasa 30 s do an course gabani do.",
         "favoriteAdd": "Favoris do bira"
-      }
+      },
+      "openDestination": "Naxa",
+      "openDestinationValue": "Laada do naxan",
+      "openMeterDistance": "Janya",
+      "openMeterDuration": "Waati",
+      "openMeterLive": "Compteur",
+      "openMeterTariffSummary": "{{base}} damina + {{perKm}}/km + {{perMin}}/min"
     },
     "favorites": {
       "title": "An doogu",
@@ -265,7 +272,17 @@
       "submit": "Course soxu",
       "estimate": "Estimation",
       "submitting": "A faabini…",
-      "missingPoints": "Sigi do destination bira."
+      "missingPoints": "Sigi do destination bira.",
+      "meterBase": "Damina",
+      "meterMin": "Course xunna {{min}}",
+      "meterPerKm": "/ km",
+      "meterPerMin": "/ min",
+      "openFareLabel": "Tarif",
+      "openFareMeter": "Compteur",
+      "openMeterLabel": "Tarif compteur",
+      "openRideHint": "Naxa nta - compteur ga damina ga an don",
+      "openRideTitle": "Course yelle",
+      "submitOpen": "Taxi xara (compteur)"
     },
     "voiceRide": {
       "headline": "Sefe soxu",
@@ -398,7 +415,15 @@
       "startDelivery": "Livraison don",
       "deliveryConfirmTitle": "Code livraison (4 nimero)",
       "deliveryConfirmSub": "Kanunte na code SMS do jiru.",
-      "confirmDelivery": "Livraison confirmer"
+      "confirmDelivery": "Livraison confirmer",
+      "endOpenRide": "Course banba (compteur)",
+      "meterShort": "Compteur",
+      "meterTariffLabel": "Tarif compteur",
+      "openBadge": "Course yelle",
+      "openDestinationShort": "Laada do naxan",
+      "openMeterDistance": "Janya",
+      "openMeterDuration": "Waati",
+      "openMeterLive": "Compteur jiya"
     },
     "wallet": {
       "title": "Portefeuille",
@@ -467,7 +492,10 @@
       "errorBody": "Yere bira (mis. \"jamaa Saudique kasa\").",
       "locationRequiredBody": "{{app}} an yere do xolli.",
       "savedTitle": "Ka maxana",
-      "savedBody": "Maxana da {{date}}."
+      "savedBody": "Maxana da {{date}}.",
+      "mapInstruction": "Carte do maga ka an wuro sigi.",
+      "mapNoPin": "Sigi nta suxuna - carte do maga",
+      "pinHint": "An ga sigi do (max 200 m)"
     },
     "recurring": {
       "title": "Course a gabani",
@@ -612,7 +640,9 @@
       "emergencyNamePlaceholder": "Fatimetou (yaxare)",
       "emergencyPhone": "Contact urgence — telefon",
       "saveError": "A nta maxa.",
-      "save": "Maxa"
+      "save": "Maxa",
+      "dobMinAgeHelper": "An ga wa 18 siise kamme.",
+      "dobTapToPick": "Maaga ka date suxe"
     },
     "vehicle": {
       "title": "Oto",
@@ -636,7 +666,18 @@
       "longDistanceTitle": "Yoon a gaba",
       "longDistanceHint": "Course gure (Nouakchott — Nouadhibou, etc.).",
       "save": "Maxa",
-      "saveError": "A nta maxa."
+      "saveError": "A nta maxa.",
+      "brandSearchPlaceholder": "Marque ya ñini…",
+      "brandTapToPick": "Maaga ka marque suxe",
+      "colorTapToPick": "Maaga ka noxo suxe",
+      "motoForcedColisHint": "Mode moto do, an ga courses colis tan kanu.",
+      "motoPassengerBlockedHint": "Motos nta courses passagers kanu.",
+      "seatsCount": "{{count}} sigira",
+      "typeCar": "Woto",
+      "typeMoto": "Moto",
+      "vehicleTypeHint": "Suxe ya courses iri a kanu ti xawa.",
+      "vehicleTypeLabel": "Véhicule iri",
+      "yearTapToPick": "Maaga ka siise suxe"
     },
     "docs": {
       "title": "Documents",
@@ -661,7 +702,9 @@
       "expiresPrefix": "koota {{date}}",
       "tapToAdd": "Maaga ka bira",
       "notSent": "A nta faabu",
-      "replaceHint": "Maaga ka yindi · Jiga ka toxo"
+      "replaceHint": "Maaga ka yindi · Jiga ka toxo",
+      "expiryHintPicker": "{{label}} — ñiini date ya gasi.",
+      "expiryTapToPick": "Maaga ka date suxe"
     },
     "documents": {
       "selfie": "Selfie",
@@ -732,6 +775,7 @@
     "fr": "Français",
     "ar": "العربية",
     "en": "English",
+    "hs": "Hassaniya",
     "ff": "Pulaar",
     "wo": "Wolof",
     "snk": "Sooninkanxanne"
@@ -827,5 +871,19 @@
     "message": "Bataaxal",
     "stack": "Stack",
     "hint": "(Nataal jiga faabu.)"
-  }
+  },
+  "months": [
+    "Janvier",
+    "Février",
+    "Mars",
+    "Avril",
+    "Mai",
+    "Juin",
+    "Juillet",
+    "Août",
+    "Septembre",
+    "Octobre",
+    "Novembre",
+    "Décembre"
+  ]
 }
