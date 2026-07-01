@@ -21,6 +21,13 @@ export interface IntercityTariff {
   minFareMru: number;
 }
 
+export interface NightPricingConfig {
+  enabled: boolean;
+  multiplier: number;
+  startHour: number;
+  endHour: number;
+}
+
 /** Arrondit au multiple de 5 supérieur (ex: 312 → 315, 315 → 315, 316 → 320). */
 function roundUpToNearest5(n: number): number {
   return Math.ceil(n / 5) * 5;
@@ -28,6 +35,20 @@ function roundUpToNearest5(n: number): number {
 
 function clampInt(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, Math.round(n)));
+}
+
+function isNightPricingWindow(now: Date, cfg: NightPricingConfig): boolean {
+  if (!cfg.enabled) return false;
+  const hour = now.getHours();
+  if (cfg.startHour < cfg.endHour) {
+    return hour >= cfg.startHour && hour < cfg.endHour;
+  }
+  return hour >= cfg.startHour || hour < cfg.endHour;
+}
+
+function applyNightPricing(fareMru: number, now: Date, cfg: NightPricingConfig): number {
+  if (!isNightPricingWindow(now, cfg)) return fareMru;
+  return roundUpToNearest5(Math.max(0, fareMru * cfg.multiplier));
 }
 
 function intercityDistanceChargeMru(km: number, cfg: {
@@ -107,6 +128,7 @@ export async function estimateFareMru(
   distanceMetersStraightLine: number,
   rideType: RideType = 'passenger',
   options: FareEstimateOptions = {},
+  now: Date = new Date(),
 ): Promise<{
   fareMru: number;
   distanceEstimateM: number;
@@ -118,6 +140,12 @@ export async function estimateFareMru(
   const s = await getPricingSettings();
   const distanceEstimateM = Math.round(distanceMetersStraightLine * env.ROUTE_MULTIPLIER);
   const requestedMode: FarePricingMode = options.pricingMode ?? 'solo';
+  const nightPricing: NightPricingConfig = {
+    enabled: s.nightPricingEnabled,
+    multiplier: s.nightPriceMultiplier,
+    startHour: s.nightPriceStartHour,
+    endHour: s.nightPriceEndHour,
+  };
 
   const isIntercity =
     rideType === 'passenger' &&
@@ -141,11 +169,11 @@ export async function estimateFareMru(
     });
 
     return {
-      fareMru: quote.fareMru,
+      fareMru: applyNightPricing(quote.fareMru, now, nightPricing),
       distanceEstimateM,
       pricingModeApplied: quote.pricingModeApplied,
       sharedSeatsApplied: quote.sharedSeatsApplied,
-      soloFareMru: quote.soloFareMru,
+      soloFareMru: applyNightPricing(quote.soloFareMru, now, nightPricing),
       isIntercityPricing: true,
     };
   }
@@ -154,7 +182,7 @@ export async function estimateFareMru(
     ? { base: s.colisBaseFareMru, perKm: s.colisPerKmMru, min: s.colisMinFareMru }
     : { base: s.baseFareMru,      perKm: s.perKmMru,      min: s.minFareMru      };
   const raw = tariff.base + (distanceEstimateM / 1000) * tariff.perKm;
-  const fareMru = roundUpToNearest5(Math.max(tariff.min, raw));
+  const fareMru = applyNightPricing(roundUpToNearest5(Math.max(tariff.min, raw)), now, nightPricing);
   return {
     fareMru,
     distanceEstimateM,
@@ -199,9 +227,11 @@ export function openFareMru(
   tariff: OpenTariff,
   distanceM: number,
   durationS: number,
+  nightPricing: NightPricingConfig,
+  now: Date = new Date(),
 ): number {
   const km = Math.max(0, distanceM) / 1000;
   const min = Math.max(0, durationS) / 60;
   const raw = tariff.baseFareMru + km * tariff.perKmMru + min * tariff.perMinuteMru;
-  return roundUpToNearest5(Math.max(tariff.minFareMru, raw));
+  return applyNightPricing(roundUpToNearest5(Math.max(tariff.minFareMru, raw)), now, nightPricing);
 }

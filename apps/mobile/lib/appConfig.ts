@@ -26,7 +26,7 @@ export interface AppConfig {
 
 const DEFAULTS: AppConfig = {
   showDemoButtons: false,
-  captainAlertSoundMode: 'critical',
+  captainAlertSoundMode: 'standard',
   captainAlertRepeatIntervalS: 2,
   captainAlertSoundUrl: null,
 };

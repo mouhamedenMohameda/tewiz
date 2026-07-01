@@ -17,6 +17,7 @@ import type pg from 'pg';
 import { pool } from '../../db/pool.js';
 import { HttpError } from '../../middleware/error.js';
 import { openFareMru, type OpenTariff } from './pricing.js';
+import { getPricingSettings } from '../admin/app-settings.service.js';
 
 // Hard caps on a single sample-to-sample segment:
 // - 60 m/s ≈ 216 km/h. Anything faster is a GPS spike (urban road taxi).
@@ -190,12 +191,18 @@ export async function readLiveMeter(input: {
   endAt?: Date;
 }): Promise<{ distanceM: number; durationS: number; fareMru: number }> {
   const distanceM = await computeDistanceM(pool, input.rideId);
+  const settings = await getPricingSettings();
   // For the live meter we use wall-clock time while the ride is running.
   // GPS uploads can be delayed/intermittent; tying duration to last_recorded
   // freezes the price for the rider even though time is passing.
   const end = input.endAt ?? new Date();
   const durationS = Math.max(0, Math.round((end.getTime() - input.startedAt.getTime()) / 1000));
-  const fareMru = openFareMru(input.tariff, distanceM, durationS);
+  const fareMru = openFareMru(input.tariff, distanceM, durationS, {
+    enabled: settings.nightPricingEnabled,
+    multiplier: settings.nightPriceMultiplier,
+    startHour: settings.nightPriceStartHour,
+    endHour: settings.nightPriceEndHour,
+  }, end);
   return { distanceM, durationS, fareMru };
 }
 

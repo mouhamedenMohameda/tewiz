@@ -67,12 +67,24 @@ const patchBody = z.object({
   openPerKmMru:                     z.number().int().min(0).max(10_000).optional(),
   openPerMinuteMru:                 z.number().int().min(0).max(1_000).optional(),
   openMinFareMru:                   z.number().int().min(0).max(10_000).optional(),
+  // Night pricing window (local server hour).
+  nightPricingEnabled:              z.boolean().optional(),
+  nightPriceMultiplier:             z.number().min(1).max(10).optional(),
+  nightPriceStartHour:              z.number().int().min(0).max(23).optional(),
+  nightPriceEndHour:                z.number().int().min(0).max(23).optional(),
   // Feature flag for the reviewer demo-login buttons (migration 0031).
   showDemoButtons:                  z.boolean().optional(),
   captainAlertSoundMode:            z.enum(CAPTAIN_ALERT_SOUND_MODES).optional(),
   captainAlertRepeatIntervalS:      z.number().int().min(1).max(15).optional(),
   captainAlertSoundUrl:             z.string().trim().url().max(500).nullable().optional(),
+  gpsFraudSevereMode:               z.boolean().optional(),
 }).refine(
+  (b) =>
+    b.nightPriceStartHour === undefined ||
+    b.nightPriceEndHour === undefined ||
+    b.nightPriceStartHour !== b.nightPriceEndHour,
+  { message: 'nightPriceStartHour and nightPriceEndHour must be different' },
+).refine(
   (b) => Object.values(b).some((v) => v !== undefined),
   { message: 'At least one field is required' },
 );

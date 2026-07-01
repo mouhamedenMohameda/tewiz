@@ -2,8 +2,18 @@ import { describe, expect, it } from 'vitest';
 import {
   commissionMru,
   intercityFareMru,
+  type NightPricingConfig,
   openFareMru,
 } from '../src/modules/rides/pricing.js';
+
+const DAYTIME = new Date('2026-07-01T12:00:00Z');
+const NIGHT = new Date('2026-07-01T02:00:00Z');
+const NIGHT_CFG: NightPricingConfig = {
+  enabled: true,
+  multiplier: 2,
+  startHour: 0,
+  endHour: 5,
+};
 
 describe('pricing', () => {
   it('commissionMru floors the commission amount', () => {
@@ -21,6 +31,8 @@ describe('pricing', () => {
       },
       2_200,
       600,
+      NIGHT_CFG,
+      DAYTIME,
     );
 
     // raw = 30 + 22 + 60 = 112 -> rounded up to 115
@@ -37,9 +49,29 @@ describe('pricing', () => {
       },
       -10,
       -20,
+      NIGHT_CFG,
+      DAYTIME,
     );
 
     expect(fare).toBe(50);
+  });
+
+  it('openFareMru doubles the fare between 00:00 and 04:59', () => {
+    const fare = openFareMru(
+      {
+        baseFareMru: 30,
+        perKmMru: 10,
+        perMinuteMru: 6,
+        minFareMru: 60,
+      },
+      2_200,
+      600,
+      NIGHT_CFG,
+      NIGHT,
+    );
+
+    // day fare is 115, night fare is doubled.
+    expect(fare).toBe(230);
   });
 
   it('intercityFareMru targets around 20k for a 1200 km solo estimate', () => {
