@@ -981,10 +981,10 @@ export async function arriveRide(rideId: string, captainId: string) {
     const nextStatus: RideStatus = ride.is_open ? 'in_progress' : 'arrived';
     const upd = await client.query<RideRow>(
       `UPDATE rides
-          SET status = $2,
+          SET status = $2::ride_status,
               arrived_at = now(),
               started_at = CASE
-                WHEN $2 = 'in_progress' THEN now()
+                WHEN $2::ride_status = 'in_progress'::ride_status THEN now()
                 ELSE started_at
               END
         WHERE id = $1
