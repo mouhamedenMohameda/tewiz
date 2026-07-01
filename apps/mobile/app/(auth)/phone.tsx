@@ -61,7 +61,11 @@ export default function LoginScreen() {
 
   async function submit() {
     const normalizedPhone = normalizePhone(phone);
-    const pwd = password;
+    // Trim the password: pasting the demo password from App Store Connect can
+    // append a trailing space/newline on iOS, which produced a 401 for the
+    // reviewer even though the credentials were correct. Real passwords are
+    // alphanumeric (no leading/trailing spaces), so trimming is always safe.
+    const pwd = password.trim();
 
     if (normalizedPhone.replace(/\D/g, '').length < 11) {
       Alert.alert(t('auth.login.invalidPhoneTitle'), t('auth.login.invalidPhoneBody'));

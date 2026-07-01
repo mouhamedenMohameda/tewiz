@@ -82,7 +82,19 @@ authRouter.post('/login', async (req, res) => {
 
   const ok = await verifyPassword(password, userRow!.password_hash);
   if (!ok) {
-    await failAuth('Numéro ou mot de passe incorrect');
+    // Fallback: some clients (notably iOS when the reviewer PASTES the demo
+    // password from App Store Connect) append a trailing space/newline, which
+    // caused a spurious 401. Retry once with the trimmed value. This never
+    // weakens security for real passwords — the admin-generated alphabet has
+    // no surrounding whitespace — and we only try the trimmed form if it
+    // actually differs from what was submitted.
+    const trimmed = password.trim();
+    const okTrimmed = trimmed !== password
+      ? await verifyPassword(trimmed, userRow!.password_hash)
+      : false;
+    if (!okTrimmed) {
+      await failAuth('Numéro ou mot de passe incorrect');
+    }
   }
 
   // 3. Role guard — same logic as the legacy OTP verify.
