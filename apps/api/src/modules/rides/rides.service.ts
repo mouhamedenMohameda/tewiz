@@ -1050,7 +1050,7 @@ async function evaluateClosedRideGpsViolation(input: {
             MAX(recorded_at) AS last_recorded
        FROM ride_locations
       WHERE ride_id = $1
-        AND recorded_at >= $2 - interval '10 seconds'`,
+        AND recorded_at >= ($2::timestamptz - interval '10 seconds')`,
     [rideId, startedAt],
   );
   const samples = Number(gps.rows[0]?.samples ?? 0);
