@@ -206,12 +206,23 @@ async function enrichWithLiveMeter<T extends {
   if (!ride.isOpen || !ride.startedAt || !ride.openTariff || ride.status !== 'in_progress') {
     return { ...ride, liveMeter: null };
   }
-  const liveMeter = await readLiveMeter({
-    rideId: ride.id,
-    startedAt: ride.startedAt,
-    tariff: ride.openTariff,
-  });
-  return { ...ride, liveMeter };
+  try {
+    const liveMeter = await readLiveMeter({
+      rideId: ride.id,
+      startedAt: ride.startedAt,
+      tariff: ride.openTariff,
+    });
+    return { ...ride, liveMeter };
+  } catch (e: any) {
+    // Never fail the ride/current payload because of optional meter telemetry.
+    // This keeps captain state transitions usable even if meter storage is
+    // temporarily unavailable (e.g. migration drift in one environment).
+    console.warn('[rides] live meter unavailable', {
+      rideId: ride.id,
+      error: e?.message ?? String(e),
+    });
+    return { ...ride, liveMeter: null };
+  }
 }
 
 // ────────────────────────────────────────────────────────────────────────────
