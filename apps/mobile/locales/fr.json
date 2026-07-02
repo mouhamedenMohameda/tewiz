@@ -670,6 +670,8 @@
       "emergencyName": "Contact d'urgence — nom",
       "emergencyNamePlaceholder": "Fatimetou (épouse)",
       "emergencyPhone": "Contact d'urgence — téléphone",
+      "agencyCode": "Code agence (optionnel)",
+      "agencyCodeHelper": "Recruté par une agence de livraison partenaire ? Saisissez son code (ex : AGX-4F7K).",
       "saveError": "Impossible d'enregistrer.",
       "save": "Enregistrer"
     },
@@ -765,7 +767,37 @@
     "confirm2Title": "Confirmer la suppression",
     "confirm2Body": "Êtes-vous vraiment sûr ? Cette action ne peut pas être annulée.",
     "confirm2Action": "Supprimer définitivement",
-    "deleteError": "Impossible de supprimer le compte. Vérifiez votre connexion et réessayez."
+    "deleteError": "Impossible de supprimer le compte. Vérifiez votre connexion et réessayez.",
+    "partnerEarnings": "Mes gains partenaire"
+  },
+  "partner": {
+    "title": "Mes gains partenaire",
+    "loadError": "Impossible de charger vos gains.",
+    "code": "Code",
+    "share": "Part de commission",
+    "statusActive": "Actif",
+    "statusSuspended": "Suspendu",
+    "statusEnded": "Terminé",
+    "pending": "En attente",
+    "onHold": "Gelé",
+    "settled": "Réglé",
+    "quotaTitle": "Mon quota",
+    "quotaProgress": "{{used}}/{{max}} courses · jusqu'au {{date}}",
+    "windowsTitle": "Mes livreurs",
+    "windowOpen": "Ouverte",
+    "windowClosed": "Fermée",
+    "windowProgress": "{{count}}/{{max}} courses · expire le {{date}}",
+    "earningsTitle": "Gains récents",
+    "empty": "Aucun gain pour l'instant. Vos gains apparaissent dès qu'une course attribuée est terminée.",
+    "roles": {
+      "ride_creator": "Course créée",
+      "captain_provider": "Livreur affilié",
+      "closure_bonus": "Prime de clôture",
+      "conversion_bonus": "Prime de conversion"
+    },
+    "settlementsTitle": "Règlements mensuels",
+    "settlementPaid": "Payé le {{date}}",
+    "settlementDraft": "En préparation"
   },
   "settings": {
     "title": "Réglages",

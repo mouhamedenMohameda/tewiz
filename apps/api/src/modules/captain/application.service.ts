@@ -10,6 +10,10 @@ import {
   getRequiredDocumentTypes,
 } from '../admin/document-requirements.service.js';
 import type { DocumentType, ApplicationStatus } from '@tewiz/shared-types';
+import {
+  findPartnerByCode,
+  assertCaptainNeverLinked,
+} from '../partners/partners.service.js';
 
 const DOCS_WITH_EXPIRY: DocumentType[] = ['assurance', 'vignette', 'visite_technique'];
 
@@ -35,6 +39,7 @@ interface ApplicationRow {
   vehicle_type: 'car' | 'moto';
   accepts_colis: boolean;
   accepts_long_distance: boolean;
+  agency_code: string | null;
   submitted_at: Date | null;
   reviewed_at: Date | null;
   rejection_reason: string | null;
@@ -108,6 +113,7 @@ const PATCH_COLUMNS: Record<string, string> = {
   vehicleType: 'vehicle_type',
   acceptsColis: 'accepts_colis',
   acceptsLongDistance: 'accepts_long_distance',
+  agencyCode: 'agency_code',
 };
 
 export async function updateMyApplication(
@@ -115,6 +121,24 @@ export async function updateMyApplication(
   patch: Record<string, unknown>,
 ) {
   const app = await getEditableApplication(userId);
+
+  // Agency code (partner program, migration 0041): validated the moment the
+  // applicant types it so the refusal is explicit — an unknown code and a
+  // courier who already consumed his one-per-life agency window are both
+  // rejected here, not silently dropped at approval.
+  if (typeof patch.agencyCode === 'string' && patch.agencyCode.trim() !== '') {
+    const code = patch.agencyCode.trim();
+    const agency = await findPartnerByCode(code);
+    if (!agency || agency.type !== 'agency' || agency.status !== 'active') {
+      throw new HttpError(400, 'invalid_agency_code',
+        `Code agence invalide ou inactif: ${code}`);
+    }
+    await assertCaptainNeverLinked(userId);
+    patch.agencyCode = code;
+  } else if (patch.agencyCode === '') {
+    patch.agencyCode = null;
+  }
+
   const fields: string[] = [];
   const values: unknown[] = [];
   for (const [k, v] of Object.entries(patch)) {
@@ -326,6 +350,7 @@ async function withDocuments(app: ApplicationRow, client?: pg.PoolClient) {
     vehicleType: app.vehicle_type,
     acceptsColis: app.accepts_colis,
     acceptsLongDistance: app.accepts_long_distance,
+    agencyCode: app.agency_code,
     submittedAt: app.submitted_at,
     rejectionReason: app.rejection_reason,
     correctionNotes: app.correction_notes,

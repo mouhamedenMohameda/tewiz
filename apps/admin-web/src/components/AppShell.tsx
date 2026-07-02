@@ -26,6 +26,7 @@ const NAV = [
   { href: '/rides',          label: 'Courses',     icon: '🛣️' },
   { href: '/rides/new',      label: 'Nouvelle course', icon: '🗺️' },
   { href: '/restaurants',    label: 'Restaurants', icon: '🍽️' },
+  { href: '/partners',       label: 'Partenaires', icon: '🤝' },
   { href: '/stats',          label: 'Statistiques', icon: '📊' },
   { href: '/notifications',  label: 'Notifications', icon: '🔔' },
   { href: '/settings',       label: 'Paramètres',  icon: '⚙️' },

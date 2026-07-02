@@ -13,6 +13,7 @@ import { authRouter } from './modules/auth/auth.routes.js';
 import { captainRouter } from './modules/captain/captain.routes.js';
 import { riderRouter } from './modules/rider/rider.routes.js';
 import { adminRouter } from './modules/admin/admin.routes.js';
+import { partnerRouter } from './modules/partners/partner.routes.js';
 import { publicRouter } from './modules/public/public.routes.js';
 import { roadReportsRouter } from './modules/reports/road-reports.routes.js';
 import { geocodeRouter } from './modules/geocode/geocode.routes.js';
@@ -110,6 +111,9 @@ app.use('/public', publicRouter);
 app.use('/captain', captainRouter);
 app.use('/rider', riderRouter);
 app.use('/admin', adminRouter);
+// Partner dashboard (agencies / restaurants / individual members) — the
+// near-real-time earnings view that keeps the program dispute-free.
+app.use('/partner', partnerRouter);
 // Shared by riders and captains
 app.use('/road-reports', roadReportsRouter);
 // Shared geocoding proxy (auth required) — used by rider app and admin web

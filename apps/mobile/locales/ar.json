@@ -670,6 +670,8 @@
       "emergencyName": "جهة الطوارئ — الاسم",
       "emergencyNamePlaceholder": "فاطمتو (زوجة)",
       "emergencyPhone": "جهة الطوارئ — الهاتف",
+      "agencyCode": "رمز الوكالة (اختياري)",
+      "agencyCodeHelper": "هل جنّدتك وكالة توصيل شريكة؟ أدخل رمزها (مثال: AGX-4F7K).",
       "saveError": "تعذّر الحفظ.",
       "save": "حفظ"
     },
@@ -765,7 +767,37 @@
     "confirm2Title": "تأكيد الحذف",
     "confirm2Body": "هل أنت متأكّد فعلاً؟ لا يمكن التراجع عن هذا.",
     "confirm2Action": "حذف نهائي",
-    "deleteError": "تعذّر حذف الحساب. تحقّق من اتصالك وحاول مرّة أخرى."
+    "deleteError": "تعذّر حذف الحساب. تحقّق من اتصالك وحاول مرّة أخرى.",
+    "partnerEarnings": "أرباحي كشريك"
+  },
+  "partner": {
+    "title": "أرباحي كشريك",
+    "loadError": "تعذّر تحميل أرباحك.",
+    "code": "الرمز",
+    "share": "نسبة العمولة",
+    "statusActive": "نشط",
+    "statusSuspended": "موقوف",
+    "statusEnded": "منتهٍ",
+    "pending": "قيد الانتظار",
+    "onHold": "مجمّد",
+    "settled": "مدفوع",
+    "quotaTitle": "حصتي",
+    "quotaProgress": "{{used}}/{{max}} رحلة · حتى {{date}}",
+    "windowsTitle": "سائقيّ",
+    "windowOpen": "مفتوحة",
+    "windowClosed": "مغلقة",
+    "windowProgress": "{{count}}/{{max}} رحلة · تنتهي في {{date}}",
+    "earningsTitle": "الأرباح الأخيرة",
+    "empty": "لا أرباح بعد. تظهر الأرباح فور اكتمال رحلة منسوبة إليك.",
+    "roles": {
+      "ride_creator": "رحلة أنشأتها",
+      "captain_provider": "سائق تابع",
+      "closure_bonus": "مكافأة الإغلاق",
+      "conversion_bonus": "مكافأة التحويل"
+    },
+    "settlementsTitle": "التسويات الشهرية",
+    "settlementPaid": "دُفع في {{date}}",
+    "settlementDraft": "قيد التحضير"
   },
   "settings": {
     "title": "الإعدادات",

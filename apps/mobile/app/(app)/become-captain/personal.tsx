@@ -22,6 +22,7 @@ export default function PersonalScreen() {
   const [address, setAddress] = useState('');
   const [emergencyName, setEmergencyName] = useState('');
   const [emergencyPhone, setEmergencyPhone] = useState('');
+  const [agencyCode, setAgencyCode] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -34,6 +35,7 @@ export default function PersonalScreen() {
           setAddress(r.data.addressLabel ?? '');
           setEmergencyName(r.data.emergencyContactName ?? '');
           setEmergencyPhone(r.data.emergencyContactPhone ?? '');
+          setAgencyCode(r.data.agencyCode ?? '');
         }
       } finally {
         setLoading(false);
@@ -69,6 +71,9 @@ export default function PersonalScreen() {
         addressLabel: address.trim(),
         emergencyContactName: emergencyName.trim() || undefined,
         emergencyContactPhone: emergencyPhone.trim(),
+        // Empty string clears the code server-side; the API validates the
+        // code (unknown agency / window already used → explicit error).
+        agencyCode: agencyCode.trim().toUpperCase(),
       });
       router.back();
     } catch (e: any) {
@@ -126,6 +131,10 @@ export default function PersonalScreen() {
           <Field label={t('becomeCaptain.personal.emergencyPhone')} value={emergencyPhone}
             onChangeText={(v) => setEmergencyPhone(v.replace(/[^\d+]/g, ''))}
             placeholder="+22245XXXXXXX" keyboardType="phone-pad" />
+          <Field label={t('becomeCaptain.personal.agencyCode')} value={agencyCode}
+            onChangeText={(v) => setAgencyCode(v.toUpperCase())}
+            placeholder="AGX-4F7K" autoCapitalize="characters" maxLength={20}
+            helper={t('becomeCaptain.personal.agencyCodeHelper')} />
 
           <PrimaryButton title={t('becomeCaptain.personal.save')} onPress={save} busy={saving} />
         </ScrollView>
