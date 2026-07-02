@@ -1,0 +1,13 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Gold/Amber background -->
+  <rect width="100" height="100" fill="#D4A574" rx="20"/>
+
+  <!-- Checkmark shield -->
+  <path d="M 50 20 L 35 28 L 35 50 C 35 68 50 80 50 80 C 50 80 65 68 65 50 L 65 28 Z" fill="white" opacity="0.95"/>
+
+  <!-- Large checkmark inside -->
+  <path d="M 42 50 L 48 58 L 62 42" stroke="white" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.8"/>
+
+  <!-- Accent circle -->
+  <circle cx="50" cy="35" r="3" fill="white" opacity="0.6"/>
+</svg>

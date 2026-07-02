@@ -88,7 +88,7 @@ export const DOCUMENTS_WITH_EXPIRY: DocumentType[] = [
 ];
 
 // --- Wallet ---
-export type TopupProvider = 'bankily' | 'masrivi' | 'sedad' | 'cash_office';
+export type TopupProvider = 'bankily' | 'masrvi' | 'sedad' | 'cash_office';
 export type TopupStatus = 'pending' | 'approved' | 'partial' | 'rejected' | 'duplicate';
 export type WalletTxType =
   | 'topup'

@@ -57,7 +57,7 @@ export interface ApplicationDetail {
 }
 
 export type TopupStatus = 'pending' | 'approved' | 'partial' | 'rejected' | 'duplicate';
-export type TopupProvider = 'bankily' | 'masrivi' | 'sedad' | 'cash_office';
+export type TopupProvider = 'bankily' | 'masrvi' | 'sedad' | 'cash_office';
 
 export interface TopupListItem {
   id: string;
