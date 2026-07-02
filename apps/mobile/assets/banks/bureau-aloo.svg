@@ -1,0 +1,25 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Orange background -->
+  <rect width="100" height="100" fill="#FF8C3A" rx="20"/>
+
+  <!-- Building/Office icon -->
+  <g fill="white" opacity="0.95">
+    <!-- Main building -->
+    <rect x="28" y="35" width="44" height="45" fill="none" stroke="white" stroke-width="2.5"/>
+
+    <!-- Door -->
+    <rect x="42" y="60" width="16" height="20" fill="none" stroke="white" stroke-width="1.5"/>
+    <circle cx="57" cy="70" r="1.5" fill="white"/>
+
+    <!-- Windows -->
+    <rect x="32" y="40" width="8" height="8" fill="white" opacity="0.6"/>
+    <rect x="46" y="40" width="8" height="8" fill="white" opacity="0.6"/>
+    <rect x="60" y="40" width="8" height="8" fill="white" opacity="0.6"/>
+
+    <rect x="32" y="52" width="8" height="8" fill="white" opacity="0.6"/>
+    <rect x="60" y="52" width="8" height="8" fill="white" opacity="0.6"/>
+  </g>
+
+  <!-- Roof accent -->
+  <polygon points="28,35 50,20 72,35" fill="white" opacity="0.3"/>
+</svg>

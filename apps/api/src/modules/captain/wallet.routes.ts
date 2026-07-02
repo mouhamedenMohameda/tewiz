@@ -36,7 +36,7 @@ captainWalletRouter.get('/transactions', async (req, res) => {
  * Multipart: file (screenshot), provider, claimedAmountMru, providerRefNumber?
  */
 const createTopupBody = z.object({
-  provider: z.enum(['bankily', 'masrivi', 'sedad', 'cash_office']),
+  provider: z.enum(['bankily', 'masrvi', 'sedad', 'cash_office']),
   claimedAmountMru: z.coerce.number().int().min(1).max(10_000_000),
   providerRefNumber: z.string().min(2).max(100).optional(),
 });

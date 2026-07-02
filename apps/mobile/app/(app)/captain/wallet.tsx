@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator, Alert, Modal, Pressable, ScrollView, View,
+  ActivityIndicator, Alert, Modal, Pressable, ScrollView, View, Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -16,7 +16,7 @@ import {
 import { colors, gradients, radius, spacing } from '@/theme';
 import { APP_NAME } from '@/lib/brand';
 
-type Provider = 'bankily' | 'masrivi' | 'sedad' | 'cash_office';
+type Provider = 'bankily' | 'masrvi' | 'sedad' | 'cash_office';
 type TopupStatus = 'pending' | 'approved' | 'partial' | 'rejected' | 'duplicate';
 type TxType = 'topup' | 'commission' | 'commission_refund' | 'manual_adjustment' | 'bonus';
 
@@ -48,9 +48,16 @@ interface Topup {
 
 const PROVIDER_LABELS: Record<Provider, string> = {
   bankily: 'Bankily',
-  masrivi: 'Masrivi',
+  masrvi: 'Masrvi',
   sedad: 'Sedad',
   cash_office: `Bureau ${APP_NAME}`,
+};
+
+const PROVIDER_LOGOS: Record<Provider, any> = {
+  bankily: require('@/assets/banks/bankily.svg'),
+  masrvi: require('@/assets/banks/masrvi.svg'),
+  sedad: require('@/assets/banks/sedad.svg'),
+  cash_office: require('@/assets/banks/bureau-aloo.svg'),
 };
 
 // Numéros officiels où le chauffeur doit envoyer la recharge. Affichés
@@ -58,7 +65,7 @@ const PROVIDER_LABELS: Record<Provider, string> = {
 const PROVIDER_PHONES: Partial<Record<Provider, string>> = {
   bankily: '42986738',
   sedad: '32164356',
-  masrivi: '36863516',
+  masrvi: '36863516',
 };
 
 export default function WalletScreen() {
@@ -322,7 +329,7 @@ function TopupModal({
           <AppText variant="label" color={colors.ink2} style={{ marginTop: spacing.xl, marginBottom: spacing.sm }}>
             {t('captain.wallet.topupModal.providerLabel')}
           </AppText>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md }}>
             {(Object.keys(PROVIDER_LABELS) as Provider[]).map((p) => {
               const active = provider === p;
               return (
@@ -330,12 +337,18 @@ function TopupModal({
                   key={p}
                   onPress={() => setProvider(p)}
                   style={{
-                    paddingHorizontal: 16, paddingVertical: 10, borderRadius: radius.pill,
+                    paddingHorizontal: 12, paddingVertical: 12, borderRadius: radius.lg,
                     backgroundColor: active ? colors.ember : colors.surface,
-                    borderWidth: 1.5, borderColor: active ? colors.ember : colors.line,
+                    borderWidth: 2, borderColor: active ? colors.ember : colors.line,
+                    alignItems: 'center', gap: spacing.xs, minWidth: '45%',
                   }}
                 >
-                  <AppText variant="label" color={active ? colors.onEmber : colors.ink}>
+                  <Image
+                    source={PROVIDER_LOGOS[p]}
+                    style={{ width: 40, height: 40 }}
+                    resizeMode="contain"
+                  />
+                  <AppText variant="label" color={active ? colors.onEmber : colors.ink} style={{ marginTop: 4 }}>
                     {PROVIDER_LABELS[p]}
                   </AppText>
                 </Pressable>
