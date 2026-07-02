@@ -148,7 +148,7 @@ adminRouter.get('/captains', requireAdminRole(
   const r = await pool.query(
     `SELECT
         u.id                                    AS id,
-        u.full_name,
+        u.full_name                             AS "fullName",
         u.phone,
         COALESCE(c.status::text, 'pending')     AS status,
         c.rating_avg,
