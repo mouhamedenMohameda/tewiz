@@ -37,7 +37,7 @@ export function Screen({
   padded = true,
 }: ScreenProps) {
   const pad: StyleProp<ViewStyle> = padded
-    ? { paddingHorizontal: spacing.lg }
+    ? { paddingHorizontal: spacing.lg, paddingTop: spacing.lg }
     : null;
 
   return (
