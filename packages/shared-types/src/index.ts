@@ -105,7 +105,80 @@ export type VehicleType = 'car' | 'moto';
 // --- Rides ---
 export type RideType = 'passenger' | 'colis';
 
-export type RideSource = 'app' | 'operator';
+// 'restaurant' = booked by a restaurant partner account for a phone-in
+// customer; 'partner' = booked by an individual member. Both carry
+// rides.origin_partner_id for commission sharing (migration 0041).
+export type RideSource = 'app' | 'operator' | 'restaurant' | 'partner';
+
+// --- Partners (migration 0041) ---
+// Partners bring us supply (agencies register couriers) or demand
+// (restaurants/members create rides) and earn a share of OUR platform
+// commission — in basis points, never of the fare. Amounts in integer MRU.
+export type PartnerType = 'agency' | 'restaurant' | 'individual';
+export type PartnerStatus = 'active' | 'suspended' | 'ended';
+export type PartnerEarningRole =
+  | 'ride_creator'      // creation side: restaurant/member who booked the ride
+  | 'captain_provider'  // captain side: agency of the courier, inside his window
+  | 'closure_bonus'     // one-shot when a courier window closes in good standing
+  | 'conversion_bonus'; // one-shot when a member's customer self-orders
+export type PartnerEarningStatus = 'pending' | 'on_hold' | 'settled' | 'cancelled';
+export type PartnerSettlementStatus = 'draft' | 'paid';
+
+export interface Partner {
+  id: string;
+  type: PartnerType;
+  name: string;
+  phone: string | null;
+  code: string;
+  userId: string | null;
+  restaurantId: string | null;
+  status: PartnerStatus;
+  shareBps: number;
+  windowMonths: number;
+  windowMaxCourses: number;
+  closureBonusMru: Mru;
+  quotaCourses: number;
+  quotaMonths: number;
+  conversionBonusMru: Mru;
+  createdAt: string;
+}
+
+export interface CaptainPartnerLink {
+  captainId: string;
+  partnerId: string;
+  attachedAt: string;
+  expiresAt: string;
+  coursesCounted: number;
+  closedAt: string | null;
+  closureBonusPaid: boolean;
+}
+
+export interface PartnerEarning {
+  id: string;
+  partnerId: string;
+  rideId: string;
+  role: PartnerEarningRole;
+  baseCommissionMru: Mru;
+  shareBps: number;
+  amountMru: Mru;
+  status: PartnerEarningStatus;
+  holdReason: string | null;
+  settlementId: string | null;
+  createdAt: string;
+}
+
+export interface PartnerSettlement {
+  id: string;
+  partnerId: string;
+  periodStart: string;
+  periodEnd: string;
+  totalMru: Mru;
+  status: PartnerSettlementStatus;
+  paidAt: string | null;
+  paidBy: string | null;
+  note: string | null;
+  createdAt: string;
+}
 
 export const RIDER_RIDE_CANCEL_REASONS = [
   'change_of_plans',

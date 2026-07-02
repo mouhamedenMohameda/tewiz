@@ -13,7 +13,9 @@ import { sms } from '../auth/sms.js';
 import { notifyCaptainsNewRide } from '../push/expo-push.js';
 import { applyBonusOnCompletion } from './commission-bonus.service.js';
 import { notifyCaptainBonusEarned } from '../notifications/notifications.service.js';
-import type { RideStatus, RideType, PaymentMethod } from '@tewiz/shared-types';
+import type { RideStatus, RideType, PaymentMethod, RideSource } from '@tewiz/shared-types';
+import { findPartnerByUserId } from '../partners/partners.service.js';
+import { applyPartnerAttributionOnCompletion } from '../partners/attribution.service.js';
 
 // Normalize MR phones (same logic as auth/phone.ts but inline for the service).
 function normalizeMrPhone(raw: string): string {
@@ -43,7 +45,7 @@ function sanitizeLocationLabel(label: string | null | undefined): string | null 
 // ────────────────────────────────────────────────────────────────────────────
 // Public types
 
-export type RideSource = 'app' | 'operator';
+export type { RideSource } from '@tewiz/shared-types';
 
 export interface CreateRideInput {
   bookerId: string;
@@ -89,6 +91,7 @@ interface RideRow {
   captain_id: string | null;
   ride_type: RideType;
   source: RideSource;
+  origin_partner_id: string | null;
   pricing_mode: FarePricingMode;
   shared_seats: number | null;
   status: RideStatus;
@@ -127,6 +130,7 @@ interface RideRow {
 const RIDE_COLUMNS = `
   id, booker_id, passenger_user_id, passenger_name, passenger_phone,
   is_for_other, passenger_confirmed_at, captain_id, ride_type, source,
+  origin_partner_id,
   pricing_mode, shared_seats, status,
   ST_Y(pickup_location::geometry)  AS pickup_lat,
   ST_X(pickup_location::geometry)  AS pickup_lng,
@@ -155,6 +159,7 @@ function shape(r: RideRow, opts: { revealCode: boolean } = { revealCode: false }
     captainId: r.captain_id,
     rideType: r.ride_type,
     source: r.source,
+    originPartnerId: r.origin_partner_id,
     pricingMode: r.pricing_mode,
     sharedSeats: r.shared_seats,
     status: r.status,
@@ -232,8 +237,24 @@ export async function createRide(input: CreateRideInput) {
   const rideType = input.rideType ?? 'passenger';
   const isOpen = !!input.isOpen;
   const settings = await getPricingSettings();
-  const source: RideSource = input.source ?? 'app';
+  let source: RideSource = input.source ?? 'app';
   const requestedPricingMode: FarePricingMode = input.pricingMode ?? 'solo';
+
+  // Partner attribution (migration 0041). When the BOOKER account belongs to
+  // an active restaurant/member partner, the ride is theirs regardless of
+  // which client they used — the server stamps source + origin_partner_id so
+  // the commission share can never be lost to a client-side omission.
+  let originPartnerId: string | null = null;
+  let originPartnerType: 'restaurant' | 'individual' | null = null;
+  if (source === 'app') {
+    const partner = await findPartnerByUserId(input.bookerId);
+    if (partner && partner.status === 'active'
+        && (partner.type === 'restaurant' || partner.type === 'individual')) {
+      originPartnerId = partner.id;
+      originPartnerType = partner.type;
+      source = partner.type === 'restaurant' ? 'restaurant' : 'partner';
+    }
+  }
 
   if (isOpen) {
     if (!settings.allowOpenRides) {
@@ -295,6 +316,14 @@ export async function createRide(input: CreateRideInput) {
     ? (rideType === 'colis'
         ? settings.operatorColisCommissionBps
         : settings.operatorPassengerCommissionBps)
+    : source === 'restaurant'
+    ? (rideType === 'colis'
+        ? settings.restaurantColisCommissionBps
+        : settings.restaurantPassengerCommissionBps)
+    : source === 'partner'
+    ? (rideType === 'colis'
+        ? settings.partnerColisCommissionBps
+        : settings.partnerPassengerCommissionBps)
     : (isIntercityPricing
         ? settings.intercityCommissionBps
         : rideType === 'colis'
@@ -367,6 +396,7 @@ export async function createRide(input: CreateRideInput) {
          dropoff_location, dropoff_label,
          fare_estimate_mru, commission_rate_bps,
          distance_m, payment_method, verification_code, source,
+         origin_partner_id,
          pricing_mode, shared_seats,
          is_open,
          open_base_fare_mru, open_per_km_mru,
@@ -381,6 +411,7 @@ export async function createRide(input: CreateRideInput) {
          END,
          $8,
          $9, $10, $11, $12, $18, $19,
+         $27::uuid,
          $20, $21,
          $22,
          $23, $24, $25, $26
@@ -406,9 +437,22 @@ export async function createRide(input: CreateRideInput) {
         openTariff?.perKm ?? null,
         openTariff?.perMin ?? null,
         openTariff?.min ?? null,
+        originPartnerId,
       ],
     );
     const ride = r.rows[0]!;
+
+    // Strategy 2: the end customer served by an individual member is recorded
+    // as HIS beneficiary — first member serving a phone owns it (conversion
+    // bonus goes to him when that customer later self-orders from the app).
+    if (originPartnerType === 'individual' && normalizedPassengerPhone) {
+      await client.query(
+        `INSERT INTO partner_beneficiaries (partner_id, phone)
+         VALUES ($1, $2)
+         ON CONFLICT (phone) DO NOTHING`,
+        [originPartnerId, normalizedPassengerPhone],
+      );
+    }
 
     // Colis details
     if (rideType === 'colis') {
@@ -1201,7 +1245,7 @@ export const __test__ = {
 };
 
 export async function completeRide(input: CompleteInput) {
-  return withTx(async (client) => {
+  const result = await withTx(async (client) => {
     const settings = await getPricingSettings();
     const ride = await lockRide(client, input.rideId);
     if (ride.captain_id !== input.captainId) {
@@ -1411,6 +1455,21 @@ export async function completeRide(input: CompleteInput) {
         : null,
     };
   });
+
+  // Partner commission sharing (migration 0041) — strictly best-effort and
+  // AFTER the completion committed: the captain's payment can never be
+  // blocked by an attribution problem. The earnings ledger is idempotent
+  // (UNIQUE ride/partner/role), so a failed attempt can be replayed safely.
+  try {
+    await applyPartnerAttributionOnCompletion(result.ride.id);
+  } catch (e: any) {
+    console.warn('[partners] attribution failed after ride completion', {
+      rideId: result.ride.id,
+      error: e?.message ?? String(e),
+    });
+  }
+
+  return result;
 }
 
 interface CancelInput {

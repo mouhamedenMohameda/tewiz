@@ -670,6 +670,8 @@
       "emergencyName": "Emergency contact — name",
       "emergencyNamePlaceholder": "Fatimetou (spouse)",
       "emergencyPhone": "Emergency contact — phone",
+      "agencyCode": "Agency code (optional)",
+      "agencyCodeHelper": "Recruited by a partner delivery agency? Enter its code (e.g. AGX-4F7K).",
       "saveError": "Could not save.",
       "save": "Save"
     },
@@ -765,7 +767,37 @@
     "confirm2Title": "Confirm deletion",
     "confirm2Body": "Are you really sure? This cannot be undone.",
     "confirm2Action": "Delete permanently",
-    "deleteError": "Could not delete the account. Check your connection and try again."
+    "deleteError": "Could not delete the account. Check your connection and try again.",
+    "partnerEarnings": "My partner earnings"
+  },
+  "partner": {
+    "title": "My partner earnings",
+    "loadError": "Could not load your earnings.",
+    "code": "Code",
+    "share": "Commission share",
+    "statusActive": "Active",
+    "statusSuspended": "Suspended",
+    "statusEnded": "Ended",
+    "pending": "Pending",
+    "onHold": "On hold",
+    "settled": "Settled",
+    "quotaTitle": "My quota",
+    "quotaProgress": "{{used}}/{{max}} rides · until {{date}}",
+    "windowsTitle": "My couriers",
+    "windowOpen": "Open",
+    "windowClosed": "Closed",
+    "windowProgress": "{{count}}/{{max}} rides · expires {{date}}",
+    "earningsTitle": "Recent earnings",
+    "empty": "No earnings yet. They appear as soon as an attributed ride is completed.",
+    "roles": {
+      "ride_creator": "Ride created",
+      "captain_provider": "Affiliated courier",
+      "closure_bonus": "Closure bonus",
+      "conversion_bonus": "Conversion bonus"
+    },
+    "settlementsTitle": "Monthly settlements",
+    "settlementPaid": "Paid on {{date}}",
+    "settlementDraft": "In preparation"
   },
   "settings": {
     "title": "Settings",

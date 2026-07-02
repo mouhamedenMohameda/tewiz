@@ -24,6 +24,8 @@ import { adminStatsRouter } from './stats.routes.js';
 import { adminVoiceRidesRouter } from '../voice-rides/admin-voice-rides.routes.js';
 import { adminRestaurantsRouter } from '../restaurants/admin-restaurants.routes.js';
 import { adminNotificationsRouter } from '../notifications/admin.routes.js';
+import { adminPartnersRouter } from '../partners/admin-partners.routes.js';
+import { attachCaptainToAgency } from '../partners/partners.service.js';
 import * as roadReports from '../reports/road-reports.service.js';
 import type { ApplicationStatus } from '@tewiz/shared-types';
 
@@ -104,6 +106,16 @@ adminRouter.use(
   '/notifications',
   requireAdminRole('ops_manager'),
   adminNotificationsRouter,
+);
+// Partner program (agencies / restaurants / individual members) — finance
+// and ops act (contracts, settlements, fraud moderation), support can look.
+adminRouter.use(
+  '/partners',
+  requireAdminRoleByMethod(
+    ['ops_manager', 'finance', 'support'],
+    ['ops_manager', 'finance'],
+  ),
+  adminPartnersRouter,
 );
 
 // Admin can also drop abusive road reports — ops + super.
@@ -466,6 +478,21 @@ adminRouter.post('/applications/:id/approve', async (req, res) => {
           vehicleType,
         ],
       );
+    }
+
+    // Partner program: open the courier's one-per-life agency earning window
+    // when the application carries a validated agency code. Best-effort — an
+    // agency that got suspended between application and approval must not
+    // block the captain's approval (the window is simply not opened).
+    if (app.agency_code) {
+      try {
+        await attachCaptainToAgency(client, app.user_id, app.agency_code);
+      } catch (e: any) {
+        req.log?.warn?.(
+          { applicationId: app.id, agencyCode: app.agency_code, err: e?.message },
+          'agency link skipped at approval',
+        );
+      }
     }
 
     // Wallet at 0 + offline state

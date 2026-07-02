@@ -8,7 +8,7 @@
  * firing because it is irreversible from the user's side.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -24,6 +24,17 @@ export default function AccountScreen() {
   const user = useAuth((s) => s.user);
   const clear = useAuth((s) => s.clear);
   const [busy, setBusy] = useState(false);
+  // Partner program: the entry point only shows when this account is a
+  // partner login (GET /partner/me → 200; everyone else gets 403).
+  const [isPartner, setIsPartner] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.get('/partner/me')
+      .then(() => { if (!cancelled) setIsPartner(true); })
+      .catch(() => { /* not a partner — keep hidden */ });
+    return () => { cancelled = true; };
+  }, []);
 
   async function logout() {
     await clear();
@@ -109,6 +120,14 @@ export default function AccountScreen() {
 
       {/* Actions */}
       <View style={{ marginTop: spacing.xl, gap: spacing.md }}>
+        {isPartner && (
+          <Button
+            title={t('account.partnerEarnings')}
+            variant="secondary"
+            icon="wallet"
+            onPress={() => router.push('/(app)/partner-earnings')}
+          />
+        )}
         <Button title={t('account.logout')} variant="secondary" icon="logout" onPress={logout} />
         <Button
           title={t('account.delete')}

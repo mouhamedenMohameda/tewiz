@@ -75,6 +75,17 @@ export interface PricingSettings {
   captainAlertRepeatIntervalS: number;
   captainAlertSoundUrl: string | null;
   gpsFraudSevereMode: boolean;
+  // Migration 0041. Partner program: cap on the SUM of commission shares paid
+  // on a single ride, dedicated commission rates for partner-created rides
+  // (same model as operator_*), and fraud-scan thresholds.
+  partnerTotalShareCapBps: number;
+  restaurantPassengerCommissionBps: number;
+  restaurantColisCommissionBps: number;
+  partnerPassengerCommissionBps: number;
+  partnerColisCommissionBps: number;
+  partnerFraudPairMaxRides7d: number;
+  partnerFraudMinDistanceM: number;
+  partnerFraudMaxCreationsPerHour: number;
   updatedAt: string;
   updatedBy: string | null;
 }
@@ -123,6 +134,14 @@ interface Row {
   captain_alert_repeat_interval_s: number;
   captain_alert_sound_url: string | null;
   gps_fraud_severe_mode: boolean;
+  partner_total_share_cap_bps: number;
+  restaurant_passenger_commission_bps: number;
+  restaurant_colis_commission_bps: number;
+  partner_passenger_commission_bps: number;
+  partner_colis_commission_bps: number;
+  partner_fraud_pair_max_rides_7d: number;
+  partner_fraud_min_distance_m: number;
+  partner_fraud_max_creations_per_hour: number;
   updated_at: Date;
   updated_by: string | null;
 }
@@ -169,6 +188,14 @@ function toSettings(r: Row): PricingSettings {
     captainAlertRepeatIntervalS: r.captain_alert_repeat_interval_s,
     captainAlertSoundUrl: r.captain_alert_sound_url,
     gpsFraudSevereMode: r.gps_fraud_severe_mode,
+    partnerTotalShareCapBps: r.partner_total_share_cap_bps,
+    restaurantPassengerCommissionBps: r.restaurant_passenger_commission_bps,
+    restaurantColisCommissionBps: r.restaurant_colis_commission_bps,
+    partnerPassengerCommissionBps: r.partner_passenger_commission_bps,
+    partnerColisCommissionBps: r.partner_colis_commission_bps,
+    partnerFraudPairMaxRides7d: r.partner_fraud_pair_max_rides_7d,
+    partnerFraudMinDistanceM: r.partner_fraud_min_distance_m,
+    partnerFraudMaxCreationsPerHour: r.partner_fraud_max_creations_per_hour,
     updatedAt: r.updated_at.toISOString(),
     updatedBy: r.updated_by,
   };
@@ -205,6 +232,11 @@ export async function getPricingSettings(): Promise<PricingSettings> {
               captain_alert_sound_mode, captain_alert_repeat_interval_s,
               captain_alert_sound_url,
                   gps_fraud_severe_mode,
+            partner_total_share_cap_bps,
+            restaurant_passenger_commission_bps, restaurant_colis_commission_bps,
+            partner_passenger_commission_bps, partner_colis_commission_bps,
+            partner_fraud_pair_max_rides_7d, partner_fraud_min_distance_m,
+            partner_fraud_max_creations_per_hour,
             updated_at, updated_by
        FROM app_settings WHERE id = 1`,
   );
@@ -259,6 +291,14 @@ export interface PricingSettingsPatch {
   captainAlertRepeatIntervalS?: number;
   captainAlertSoundUrl?: string | null;
   gpsFraudSevereMode?: boolean;
+  partnerTotalShareCapBps?: number;
+  restaurantPassengerCommissionBps?: number;
+  restaurantColisCommissionBps?: number;
+  partnerPassengerCommissionBps?: number;
+  partnerColisCommissionBps?: number;
+  partnerFraudPairMaxRides7d?: number;
+  partnerFraudMinDistanceM?: number;
+  partnerFraudMaxCreationsPerHour?: number;
 }
 
 export async function updatePricingSettings(
@@ -307,6 +347,14 @@ export async function updatePricingSettings(
           captain_alert_repeat_interval_s   = COALESCE($39, captain_alert_repeat_interval_s),
           captain_alert_sound_url           = COALESCE($40, captain_alert_sound_url),
           gps_fraud_severe_mode             = COALESCE($41, gps_fraud_severe_mode),
+          partner_total_share_cap_bps       = COALESCE($42, partner_total_share_cap_bps),
+          restaurant_passenger_commission_bps = COALESCE($43, restaurant_passenger_commission_bps),
+          restaurant_colis_commission_bps   = COALESCE($44, restaurant_colis_commission_bps),
+          partner_passenger_commission_bps  = COALESCE($45, partner_passenger_commission_bps),
+          partner_colis_commission_bps      = COALESCE($46, partner_colis_commission_bps),
+          partner_fraud_pair_max_rides_7d   = COALESCE($47, partner_fraud_pair_max_rides_7d),
+          partner_fraud_min_distance_m      = COALESCE($48, partner_fraud_min_distance_m),
+          partner_fraud_max_creations_per_hour = COALESCE($49, partner_fraud_max_creations_per_hour),
             updated_at                        = now(),
           updated_by                        = $36
       WHERE id = 1
@@ -336,6 +384,11 @@ export async function updatePricingSettings(
                 captain_alert_sound_mode, captain_alert_repeat_interval_s,
                 captain_alert_sound_url,
                 gps_fraud_severe_mode,
+                partner_total_share_cap_bps,
+                restaurant_passenger_commission_bps, restaurant_colis_commission_bps,
+                partner_passenger_commission_bps, partner_colis_commission_bps,
+                partner_fraud_pair_max_rides_7d, partner_fraud_min_distance_m,
+                partner_fraud_max_creations_per_hour,
                 updated_at, updated_by`,
     [
       patch.baseFareMru ?? null,
@@ -379,6 +432,14 @@ export async function updatePricingSettings(
       patch.captainAlertRepeatIntervalS ?? null,
       patch.captainAlertSoundUrl ?? null,
       patch.gpsFraudSevereMode ?? null,
+      patch.partnerTotalShareCapBps ?? null,
+      patch.restaurantPassengerCommissionBps ?? null,
+      patch.restaurantColisCommissionBps ?? null,
+      patch.partnerPassengerCommissionBps ?? null,
+      patch.partnerColisCommissionBps ?? null,
+      patch.partnerFraudPairMaxRides7d ?? null,
+      patch.partnerFraudMinDistanceM ?? null,
+      patch.partnerFraudMaxCreationsPerHour ?? null,
     ],
   );
   cache = null;

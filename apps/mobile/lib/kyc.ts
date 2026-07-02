@@ -72,6 +72,7 @@ export interface ApplicationDto {
   vehicleType: VehicleType;
   acceptsColis: boolean;
   acceptsLongDistance: boolean;
+  agencyCode?: string | null;
   rejectReason?: string | null;
   correctionNotes?: string | null;
   documents: AppDoc[];
