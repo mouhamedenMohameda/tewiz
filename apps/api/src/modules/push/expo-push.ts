@@ -38,10 +38,33 @@ export async function getPushTokensForUsers(userIds: string[]): Promise<string[]
 }
 
 /**
+ * Extracts token groups from a PUSH_TOO_MANY_EXPERIENCE_IDS error body.
+ * Expo rejects a request mixing tokens from different projects (happens when
+ * the DB holds tokens registered by builds of another Expo account) and its
+ * error `details` maps each project to its tokens — we use that to resend
+ * per group. Returns null when the body is any other error.
+ */
+function parseExperienceGroups(body: string): string[][] | null {
+  try {
+    const parsed = JSON.parse(body) as {
+      errors?: { code?: string; details?: Record<string, unknown> }[];
+    };
+    const details = parsed.errors?.find((e) => e.code === 'PUSH_TOO_MANY_EXPERIENCE_IDS')?.details;
+    if (!details) return null;
+    const groups = Object.values(details).filter(
+      (v): v is string[] => Array.isArray(v) && v.every((t) => typeof t === 'string'),
+    );
+    return groups.length > 1 ? groups : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Sends one push message (which may target many tokens via `to`).
  * Fire-and-forget. Errors are logged, never thrown.
  */
-export async function sendPush(message: PushMessage): Promise<void> {
+export async function sendPush(message: PushMessage, isRetry = false): Promise<void> {
   try {
     const res = await fetch(EXPO_PUSH_URL, {
       method: 'POST',
@@ -53,8 +76,16 @@ export async function sendPush(message: PushMessage): Promise<void> {
       body: JSON.stringify(message),
     });
     if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      const groups = isRetry ? null : parseExperienceGroups(text);
+      if (groups) {
+        for (const tokens of groups) {
+          await sendPush({ ...message, to: tokens }, true);
+        }
+        return;
+      }
       // eslint-disable-next-line no-console
-      console.warn('[push] expo push API responded', res.status, await res.text().catch(() => ''));
+      console.warn('[push] expo push API responded', res.status, text);
     }
   } catch (err) {
     // eslint-disable-next-line no-console

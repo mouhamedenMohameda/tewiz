@@ -167,6 +167,9 @@ importers:
 
   apps/mobile:
     dependencies:
+      '@expo-google-fonts/noto-kufi-arabic':
+        specifier: ^0.4.3
+        version: 0.4.3
       '@expo-google-fonts/plus-jakarta-sans':
         specifier: ^0.4.2
         version: 0.4.2
@@ -1053,6 +1056,9 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@expo-google-fonts/noto-kufi-arabic@0.4.3':
+    resolution: {integrity: sha512-6rcatVgSElgvvDJWSuedvlIc2rfwj3PJIbtDJojRSXdXPWXJ3ANcRcpYJ+MQMNpQyH3YNC6jVDi8FlvUezl5gA==}
 
   '@expo-google-fonts/plus-jakarta-sans@0.4.2':
     resolution: {integrity: sha512-6LYVmVGwjQvH+uzzWlVc9+oMj4lkNQ41aymVDjO+x8aFk8kCye20wOyLomYMZaMezA++Uf1mZRCw3W3Fy/hxEA==}
@@ -6481,6 +6487,8 @@ snapshots:
 
   '@esbuild/win32-x64@0.28.0':
     optional: true
+
+  '@expo-google-fonts/noto-kufi-arabic@0.4.3': {}
 
   '@expo-google-fonts/plus-jakarta-sans@0.4.2': {}
 

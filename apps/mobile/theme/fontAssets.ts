@@ -11,12 +11,12 @@ import {
   Sora_800ExtraBold,
 } from '@expo-google-fonts/sora';
 import {
-  PlusJakartaSans_400Regular,
-  PlusJakartaSans_500Medium,
-  PlusJakartaSans_600SemiBold,
-  PlusJakartaSans_700Bold,
-  PlusJakartaSans_800ExtraBold,
-} from '@expo-google-fonts/plus-jakarta-sans';
+  NotoKufiArabic_400Regular,
+  NotoKufiArabic_500Medium,
+  NotoKufiArabic_600SemiBold,
+  NotoKufiArabic_700Bold,
+  NotoKufiArabic_800ExtraBold,
+} from '@expo-google-fonts/noto-kufi-arabic';
 
 const fontAssets = {
   Sora_400Regular,
@@ -24,11 +24,11 @@ const fontAssets = {
   Sora_600SemiBold,
   Sora_700Bold,
   Sora_800ExtraBold,
-  PlusJakartaSans_400Regular,
-  PlusJakartaSans_500Medium,
-  PlusJakartaSans_600SemiBold,
-  PlusJakartaSans_700Bold,
-  PlusJakartaSans_800ExtraBold,
+  NotoKufiArabic_400Regular,
+  NotoKufiArabic_500Medium,
+  NotoKufiArabic_600SemiBold,
+  NotoKufiArabic_700Bold,
+  NotoKufiArabic_800ExtraBold,
 };
 
 export default fontAssets;
