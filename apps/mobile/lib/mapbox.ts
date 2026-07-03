@@ -45,6 +45,22 @@ export function initMapbox(): boolean {
   // Telemetry is opt-out by default on iOS, opt-in on Android. Disable
   // both for predictability — we don't need Mapbox analytics.
   M.setTelemetryEnabled(false);
+
+  // rnmapbox logs a benign `console.error` on iOS —
+  //   "PointAnnotation supports max 1 subview other than a callout"
+  // — while it reconciles the offscreen snapshot of a view annotation, even
+  // when the annotation has a single child (all of ours do). It doesn't affect
+  // rendering; it just spams the dev console (e.g. when landing on /new-ride
+  // from a restaurant). Swallow that one message (and the analogous Image
+  // variant); every other Mapbox log falls through to default handling.
+  M.Logger?.setLogCallback?.((log) => {
+    const msg = log?.message ?? '';
+    return (
+      msg.includes('PointAnnotation supports max 1 subview') ||
+      msg.includes('Image supports max 1 subview')
+    );
+  });
+
   initialized = true;
   return true;
 }

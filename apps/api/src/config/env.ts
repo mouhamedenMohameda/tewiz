@@ -33,7 +33,7 @@ const EnvSchema = z.object({
   COLIS_COMMISSION_BPS: z.coerce.number().default(1000),
   // Wallet thresholds in MRU. Defaults preserve old behavior (100 khoums
   // ≈ 20 MRU, -250 khoums ≈ -50 MRU).
-  MIN_BALANCE_TO_GO_ONLINE_MRU: z.coerce.number().default(20),
+  MIN_BALANCE_TO_GO_ONLINE_MRU: z.coerce.number().default(-10),
   NEGATIVE_BALANCE_FLOOR_MRU: z.coerce.number().default(-50),
 
   HOME_LOCK_DAYS: z.coerce.number().default(30),

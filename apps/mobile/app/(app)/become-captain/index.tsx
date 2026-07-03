@@ -6,6 +6,7 @@ import {
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AppText, ScreenHeader } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import {
@@ -104,16 +105,11 @@ export default function BecomeCaptainHome() {
         contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
         refreshControl={<RefreshControl refreshing={false} onRefresh={load} />}
       >
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Pressable onPress={() => router.back()}>
-            <Text style={{ color: '#0f172a', fontSize: 15, fontWeight: '600' }}>‹ {t('common.back')}</Text>
-          </Pressable>
-          <Text style={{ fontSize: 13, color: '#64748b' }}>{user?.phone}</Text>
-        </View>
-
-        <Text style={{ fontSize: 28, fontWeight: '700', color: '#0f172a', marginTop: 24 }}>
-          {t('becomeCaptain.title', { app: APP_NAME })}
-        </Text>
+        <ScreenHeader
+          title={t('becomeCaptain.title', { app: APP_NAME })}
+          subtitle={user?.phone ?? undefined}
+          onBack={() => router.back()}
+        />
 
         {!app
           ? <NoApplication onStart={startApplication} busy={creating} />

@@ -12,6 +12,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { HttpError } from '../../middleware/error.js';
+import { defaultStorage } from '../storage/local-disk.js';
 import { getRestaurant, listRestaurants } from './restaurants.service.js';
 
 export const riderRestaurantsRouter = Router();
@@ -32,6 +33,18 @@ riderRestaurantsRouter.get('/', async (req, res) => {
     offset: q.offset,
   });
   res.json({ items, total, limit: q.limit, offset: q.offset });
+});
+
+riderRestaurantsRouter.get('/photos/:filename', async (req, res) => {
+  const key = `restaurants/${req.params.filename}`;
+  try {
+    const buf = await defaultStorage.get(key);
+    res.setHeader('Content-Type', 'image/webp');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.send(buf);
+  } catch {
+    throw new HttpError(404, 'not_found', 'Photo not found');
+  }
 });
 
 riderRestaurantsRouter.get('/:id', async (req, res) => {

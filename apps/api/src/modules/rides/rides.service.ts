@@ -8,7 +8,7 @@ import type { FarePricingMode } from './pricing.js';
 import { getPricingSettings } from '../admin/app-settings.service.js';
 import { distanceMeters, eligibleCaptainsForRide } from './dispatch.service.js';
 import { computeDistanceM, lastTrailPoint, readLiveMeter } from './meter.service.js';
-import { debitWallet } from '../wallet/wallet.service.js';
+import { debitWallet, getBalance } from '../wallet/wallet.service.js';
 import { sms } from '../auth/sms.js';
 import { notifyCaptainsNewRide } from '../push/expo-push.js';
 import { applyBonusOnCompletion } from './commission-bonus.service.js';
@@ -938,6 +938,14 @@ export async function acceptRide(rideId: string, captainId: string) {
     if (ride.status !== 'searching') {
       throw new HttpError(409, 'not_searching',
         `Ride is ${ride.status}, cannot accept`);
+    }
+
+    // Balance gate: captain cannot accept rides below the minimum threshold.
+    const balance = await getBalance(captainId);
+    if (balance < env.MIN_BALANCE_TO_GO_ONLINE_MRU) {
+      throw new HttpError(402, 'balance_too_low',
+        `Solde insuffisant pour accepter une course (min ${env.MIN_BALANCE_TO_GO_ONLINE_MRU} MRU, actuel ${balance} MRU)`,
+        { balance, minRequired: env.MIN_BALANCE_TO_GO_ONLINE_MRU });
     }
 
     // Captain must not have another active ride.

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator, Alert, FlatList, Linking, Pressable,
+  ActivityIndicator, Alert, FlatList, Pressable,
   RefreshControl, Text, View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ScreenHeader } from '@/components/ui';
 import { api } from '@/lib/api';
 
 interface Favorite {
@@ -60,12 +61,7 @@ export default function FavoritesScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
       <View style={{ padding: 20 }}>
-        <Pressable onPress={() => router.back()}>
-          <Text style={{ color: '#64748b', fontSize: 14 }}>‹ {t('common.back')}</Text>
-        </Pressable>
-        <Text style={{ fontSize: 22, fontWeight: '700', color: '#0f172a', marginTop: 8 }}>
-          {t('rider.favorites.title')}
-        </Text>
+        <ScreenHeader title={t('rider.favorites.title')} onBack={() => router.back()} />
         <Text style={{ fontSize: 13, color: '#64748b', marginTop: 4, lineHeight: 18 }}>
           {t('rider.favorites.intro')}
         </Text>
@@ -116,15 +112,6 @@ export default function FavoritesScreen() {
                     ⭐ {t('rider.favorites.ratingCount', { rating: ratingDisplay, count: item.totalRides })}
                   </Text>
                 </View>
-                <Pressable
-                  onPress={() => Linking.openURL(`tel:${item.captainPhone}`)}
-                  style={({ pressed }) => ({
-                    backgroundColor: pressed ? '#0a7a45' : '#10a35e',
-                    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999,
-                  })}
-                >
-                  <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>📞</Text>
-                </Pressable>
               </View>
               <Pressable
                 onPress={() => remove(item.captainId, name)}

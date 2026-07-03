@@ -8,7 +8,7 @@ import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useFonts } from 'expo-font';
+import { useFonts, loadAsync } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -16,11 +16,12 @@ import { api } from '@/lib/api';
 import { type AuthUser, useAuth } from '@/lib/auth';
 import { registerForPushNotifications } from '@/lib/notifications';
 import { readAndClearCrash } from '@/lib/crash-reporter';
-import { initI18n } from '@/lib/i18n';
+import { currentLanguage, initI18n } from '@/lib/i18n';
 import { loadAppConfig } from '@/lib/appConfig';
 import { CrashBoundary } from '@/components/CrashBoundary';
 import { NotificationTapHandler } from '@/components/NotificationTapHandler';
-import { colors, fontAssets } from '@/theme';
+import { SplashGate } from '@/components/SplashGate';
+import { colors, latinFontAssets, arabicFontAssets } from '@/theme';
 
 // Hold the native splash until our custom fonts are ready, so the UI never
 // flashes the system font and re-flows.
@@ -29,12 +30,31 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 export default function RootLayout() {
   const hydrate = useAuth((s) => s.hydrate);
   const [crashShown, setCrashShown] = useState(false);
-  const [fontsLoaded, fontError] = useFonts(fontAssets);
+  // Only the Latin (Sora) fonts are on the cold-start critical path. The
+  // Arabic (Tajawal) files are loaded lazily and gate the splash ONLY when
+  // the app actually boots in an Arabic-script language — see below.
+  const [fontsLoaded, fontError] = useFonts(latinFontAssets);
   const [i18nReady, setI18nReady] = useState(false);
+  const [needsArabic, setNeedsArabic] = useState(false);
+  const [arabicReady, setArabicReady] = useState(false);
 
   useEffect(() => {
     let mounted = true;
-    initI18n().finally(() => { if (mounted) setI18nReady(true); });
+    initI18n().finally(() => {
+      if (!mounted) return;
+      // We now know the boot language. Arabic/Hassaniya render in Noto Kufi, so
+      // those fonts must be present before the first paint (else the Arabic UI
+      // flashes the system font and reflows). Latin languages never touch them.
+      const lang = currentLanguage();
+      const arabic = lang === 'ar' || lang === 'hs';
+      setNeedsArabic(arabic);
+      if (arabic) {
+        loadAsync(arabicFontAssets)
+          .catch(() => {}) // fall back to the system Arabic font rather than hang
+          .finally(() => { if (mounted) setArabicReady(true); });
+      }
+      setI18nReady(true);
+    });
     // Fire-and-forget: populate the in-memory + AsyncStorage config cache.
     // The auth screens read it synchronously via getAppConfig() once i18n is ready.
     void loadAppConfig();
@@ -92,7 +112,9 @@ export default function RootLayout() {
   // Don't render the app shell until fonts resolve (or fail) — avoids a
   // flash-of-system-font. On font error we still proceed (system fallback).
   // Also gate on i18n so the first paint already has translations.
-  const ready = (fontsLoaded || !!fontError) && i18nReady;
+  // Latin fonts + i18n are always required; Arabic fonts only when booting RTL.
+  const ready =
+    (fontsLoaded || !!fontError) && i18nReady && (!needsArabic || arabicReady);
   useEffect(() => {
     if (ready) SplashScreen.hideAsync().catch(() => {});
   }, [ready]);
@@ -103,18 +125,20 @@ export default function RootLayout() {
     <CrashBoundary>
       <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.canvas }}>
         <SafeAreaProvider>
-          <StatusBar style="dark" />
-          <NotificationTapHandler />
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: colors.canvas },
-            }}
-          >
-            <Stack.Screen name="index" />
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen name="(app)" />
-          </Stack>
+          <SplashGate>
+            <StatusBar style="dark" />
+            <NotificationTapHandler />
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: colors.canvas },
+              }}
+            >
+              <Stack.Screen name="index" />
+              <Stack.Screen name="(auth)" />
+              <Stack.Screen name="(app)" />
+            </Stack>
+          </SplashGate>
         </SafeAreaProvider>
       </GestureHandlerRootView>
     </CrashBoundary>

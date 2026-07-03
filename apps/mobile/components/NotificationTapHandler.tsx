@@ -11,6 +11,7 @@
  */
 
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { useRootNavigationState, useRouter } from 'expo-router';
 
@@ -29,17 +30,14 @@ export function NotificationTapHandler() {
   const navigationReady = !!rootNavState?.key;
 
   useEffect(() => {
-    if (!navigationReady) return;
+    if (!navigationReady || Platform.OS === 'web') return;
 
     const openInbox = () => {
-      // Pushing on the next frame avoids dispatching navigation updates while
-      // the root container is still finalizing its initial render.
       requestAnimationFrame(() => {
         router.push('/(app)/notifications');
       });
     };
 
-    // Cold start: user tapped a push while the app was killed.
     (async () => {
       const last = await Notifications.getLastNotificationResponseAsync();
       const type = last?.notification.request.content.data?.type;

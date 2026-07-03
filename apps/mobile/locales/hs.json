@@ -277,6 +277,47 @@
         "ended": "انتهت"
       }
     },
+    "restaurants": {
+      "title": "المطاعم",
+      "subtitle": "انواكشوط",
+      "searchPlaceholder": "دوّر على مطعم ولا ماكلة…",
+      "heroOverline": "بالعافية",
+      "heroTitle": "أحسن مطاعم انواكشوط",
+      "heroLoading": "انحان نحملولك القائمة…",
+      "heroCount": "{{count}} مطعم مختار — قوائم الطعام قريب إن شاء الله.",
+      "loading": "انحان نحمل…",
+      "resultCount_one": "{{count}} عنوان",
+      "resultCount_other": "{{count}} عناوين",
+      "sortedBy": "مرتّبة على حسب الشعبية",
+      "errorTitle": "صار خطأ",
+      "loadError": "ماگدرنا نحملو المطاعم.",
+      "emptyTitle": "مافم نتيجة",
+      "emptyBody": "جرّب كلمة أخرى ولا بدّل الفئة.",
+      "resetFilters": "رجّع الفلاتر",
+      "notFound": "المطعم ماهو موجود",
+      "error": "خطأ",
+      "loadDetailError": "ماگدرنا نحملو هذا المطعم.",
+      "goToRestaurant": "مشي لهذا المطعم",
+      "deliverFromHere": "وصّل طرد من هنا",
+      "viewMenu": "شوف قائمة الأطباق",
+      "menuAlertTitle": "قائمة المطعم",
+      "menuAlertBody": "قائمة أطباق {{name}} قريب إن شاء الله تكون متاحة. ابقَ معانا!",
+      "etaLabel": "الوقت",
+      "zoneLabel": "الگزرة",
+      "about": "على",
+      "address": "العنوان",
+      "cuisine": {
+        "all": "الكل",
+        "mauritanien": "موريتاني",
+        "pizza": "بيتزا",
+        "burger": "برغر",
+        "libanais": "لبناني",
+        "asiatique": "آسيوي",
+        "grillades": "مشوي",
+        "cafe": "قهوة",
+        "patisserie": "حلويات"
+      }
+    },
     "newRide": {
       "title": "رحلة جديدة",
       "pickupLabel": "الانطلاق",
@@ -366,6 +407,8 @@
       "errorOnline": "حدث خطأ أثناء الاتّصال.",
       "errorOffline": "حدث خطأ أثناء قطع الاتّصال.",
       "errorGoingHome": "خطأ في وضع \"أعود إلى منزلي\".",
+      "goingHomeCooldownTitle": "استعملته اليوم",
+      "goingHomeCooldownBody": "فعّلت وضع \"أعود إلى منزلي\" في آخر 24 ساعة. راه يرجع قريب.",
       "errorTitle": "مايصح"
     },
     "nav": {

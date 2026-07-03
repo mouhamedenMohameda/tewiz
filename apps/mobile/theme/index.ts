@@ -164,13 +164,15 @@ export const fonts = {
     bold: 'Sora_700Bold',
     extrabold: 'Sora_800ExtraBold',
   },
-  // Arabic display & text — Noto Kufi Arabic (inspired by Al Jazeera style).
+  // Arabic display & text — Louguiya (Mauritanian, bundled local TTFs).
+  // Louguiya ships only Regular + Bold, so the mid/heavy weights collapse onto
+  // them: 400/500 → Regular, 600/700/800 → Bold.
   arabic: {
-    regular: 'NotoKufiArabic_400Regular',
-    medium: 'NotoKufiArabic_500Medium',
-    semibold: 'NotoKufiArabic_600SemiBold',
-    bold: 'NotoKufiArabic_700Bold',
-    extrabold: 'NotoKufiArabic_800ExtraBold',
+    regular: 'Louguiya_400Regular',
+    medium: 'Louguiya_400Regular',
+    semibold: 'Louguiya_700Bold',
+    bold: 'Louguiya_700Bold',
+    extrabold: 'Louguiya_700Bold',
   },
   mono: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
 } as const;
@@ -271,8 +273,9 @@ export const motion = {
   pressScale: 0.96,
 } as const;
 
-/* Font assets to feed `useFonts` in the root layout. */
-export { default as fontAssets } from './fontAssets';
+/* Font assets to feed `useFonts` in the root layout. Split by script so the
+ * boot only waits on the fonts the boot language needs (see ./fontAssets). */
+export { default as fontAssets, latinFontAssets, arabicFontAssets } from './fontAssets';
 
 export const theme = { colors, gradients, spacing, radius, shadow, type, fonts, motion } as const;
 export type Theme = typeof theme;

@@ -164,7 +164,7 @@ export default function RiderHome() {
             ...shadow.card,
           }}
         >
-          <Icon name="person" size={22} color={colors.ink} />
+          <Icon name="tune" size={22} color={colors.ink} />
         </Pressable>
       </View>
 

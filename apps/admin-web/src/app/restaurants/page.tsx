@@ -12,11 +12,12 @@
 
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AppShell } from '@/components/AppShell';
 import { ResponsiveTable, type Column } from '@/components/ResponsiveTable';
 import { api } from '@/lib/api';
+import { API_URL } from '@/lib/env';
 
 type PriceLevel = '$' | '$$' | '$$$';
 
@@ -340,6 +341,42 @@ export default function RestaurantsPage() {
 
 /* ------------------------------------------------------------------ */
 
+/** Extract lat, lng and optional name from a Google Maps URL. */
+function parseGoogleMapsUrl(url: string): { lat: string; lng: string; name?: string } | null {
+  try {
+    // Format: https://maps.google.com/?q=18.0862,-15.9753
+    // Format: https://www.google.com/maps/place/Restaurant+Name/@18.0862,-15.9753,17z
+    // Format: https://www.google.com/maps/@18.0862,-15.9753,17z
+    // Format: https://maps.app.goo.gl/... (short link — can't parse without fetch)
+    const coordsRegex = /@(-?\d+\.\d+),(-?\d+\.\d+)/;
+    const qRegex = /[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/;
+    const placeRegex = /\/place\/([^/@]+)\//;
+
+    let lat: string | undefined;
+    let lng: string | undefined;
+    let name: string | undefined;
+
+    const cm = url.match(coordsRegex);
+    if (cm) { lat = cm[1]; lng = cm[2]; }
+
+    if (!lat) {
+      const qm = url.match(qRegex);
+      if (qm) { lat = qm[1]; lng = qm[2]; }
+    }
+
+    if (!lat) return null;
+
+    const pm = url.match(placeRegex);
+    if (pm) {
+      name = decodeURIComponent(pm[1]!.replace(/\+/g, ' '));
+    }
+
+    return { lat: lat!, lng: lng!, name };
+  } catch {
+    return null;
+  }
+}
+
 function RestaurantForm({
   initial, onClose, onSaved,
 }: {
@@ -365,6 +402,67 @@ function RestaurantForm({
   const [lng, setLng] = useState(initial?.lng?.toString() ?? '');
   const [popularity, setPopularity] = useState(initial?.popularity?.toString() ?? '50');
   const [err, setErr] = useState<string | null>(null);
+
+  // Photo upload
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(initial?.photo ?? null);
+
+  const handlePhotoUpload = useCallback(async (file: File) => {
+    setUploading(true);
+    setErr(null);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const r = await api.post('/admin/restaurants/upload-photo', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const url = r.data.url as string;
+      setPhoto(url);
+      setPhotoPreview(`${API_URL}${url}`);
+    } catch (e: any) {
+      setErr(e?.response?.data?.error?.message ?? 'Erreur lors de l\'upload de la photo.');
+    } finally {
+      setUploading(false);
+    }
+  }, []);
+
+  // GPS position
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const handleGps = useCallback(() => {
+    if (!navigator.geolocation) {
+      setErr('La géolocalisation n\'est pas supportée par ce navigateur.');
+      return;
+    }
+    setGpsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLat(pos.coords.latitude.toFixed(6));
+        setLng(pos.coords.longitude.toFixed(6));
+        setGpsLoading(false);
+      },
+      (e) => {
+        setErr(`Erreur GPS : ${e.message}`);
+        setGpsLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  }, []);
+
+  // Google Maps import
+  const [mapsUrl, setMapsUrl] = useState('');
+  const handleMapsImport = useCallback(() => {
+    const parsed = parseGoogleMapsUrl(mapsUrl);
+    if (!parsed) {
+      setErr('Lien Google Maps invalide. Copie un lien contenant des coordonnées (@lat,lng).');
+      return;
+    }
+    setLat(parsed.lat);
+    setLng(parsed.lng);
+    if (parsed.name && !name) setName(parsed.name);
+    setMapsUrl('');
+    setErr(null);
+  }, [mapsUrl, name]);
 
   const submit = useMutation({
     mutationFn: async () => {
@@ -401,8 +499,39 @@ function RestaurantForm({
     },
   });
 
+  const photoSrc = photoPreview
+    || (photo && photo.startsWith('/') ? `${API_URL}${photo}` : photo)
+    || null;
+
   return (
     <Modal title={isEdit ? `Modifier — ${initial!.name}` : 'Nouveau restaurant'} onClose={onClose}>
+      {/* Google Maps import bar */}
+      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <label className="text-xs font-medium text-blue-800 block mb-1.5">
+          📍 Importer depuis Google Maps
+        </label>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={mapsUrl}
+            onChange={(e) => setMapsUrl(e.target.value)}
+            placeholder="Coller un lien Google Maps ici…"
+            className="flex-1 border border-blue-300 rounded-lg px-3 py-1.5 text-sm bg-white"
+          />
+          <button
+            type="button"
+            onClick={handleMapsImport}
+            disabled={!mapsUrl.trim()}
+            className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-lg font-medium whitespace-nowrap"
+          >
+            Importer
+          </button>
+        </div>
+        <p className="text-[11px] text-blue-600 mt-1">
+          Remplit automatiquement les coordonnées et le nom du restaurant.
+        </p>
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Nom *" value={name} onChange={setName} />
         <Field label="Nom (français)" value={nameFr} onChange={setNameFr} />
@@ -432,13 +561,79 @@ function RestaurantForm({
           </select>
         </div>
         <Field label="Tags (séparés par virgule)" value={tagsStr} onChange={setTagsStr} placeholder="Pizza, Italien, À emporter" className="col-span-2" />
-        <Field label="Latitude *" value={lat} onChange={setLat} type="number" />
-        <Field label="Longitude *" value={lng} onChange={setLng} type="number" />
+
+        {/* Lat/Lng with GPS button */}
+        <div className="col-span-2">
+          <div className="flex items-end gap-2">
+            <Field label="Latitude *" value={lat} onChange={setLat} type="number" className="flex-1" />
+            <Field label="Longitude *" value={lng} onChange={setLng} type="number" className="flex-1" />
+            <button
+              type="button"
+              onClick={handleGps}
+              disabled={gpsLoading}
+              className="mb-[1px] px-3 py-2 text-sm bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg font-medium whitespace-nowrap disabled:opacity-50"
+            >
+              {gpsLoading ? '⏳' : '📍'} Ma position
+            </button>
+          </div>
+        </div>
+
         <Field label="Note (0-5)" value={rating} onChange={setRating} type="number" />
         <Field label="Popularité" value={popularity} onChange={setPopularity} type="number" />
         <Field label="Délai min (min)" value={etaMin} onChange={setEtaMin} type="number" />
         <Field label="Délai max (min)" value={etaMax} onChange={setEtaMax} type="number" />
-        <Field label="Photo (URL https://…)" value={photo} onChange={setPhoto} className="col-span-2" />
+
+        {/* Photo upload */}
+        <div className="col-span-2">
+          <label className="text-xs text-slate-600 block mb-1">Photo</label>
+          <div className="flex items-start gap-3">
+            {photoSrc ? (
+              <div className="relative shrink-0">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={photoSrc} alt="" className="w-20 h-20 rounded-lg object-cover bg-slate-100" />
+                <button
+                  type="button"
+                  onClick={() => { setPhoto(''); setPhotoPreview(null); }}
+                  className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-600"
+                >
+                  ×
+                </button>
+              </div>
+            ) : null}
+            <div className="flex-1">
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void handlePhotoUpload(f);
+                  e.target.value = '';
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                disabled={uploading}
+                className="w-full px-4 py-3 text-sm border-2 border-dashed border-slate-300 rounded-lg text-slate-500 hover:border-emerald-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+              >
+                {uploading ? 'Upload en cours…' : photoSrc ? 'Changer la photo' : '📷 Uploader une photo'}
+              </button>
+              <input
+                type="text"
+                value={photo}
+                onChange={(e) => {
+                  setPhoto(e.target.value);
+                  setPhotoPreview(e.target.value || null);
+                }}
+                placeholder="…ou coller une URL https://…"
+                className="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-500 mt-2"
+              />
+            </div>
+          </div>
+        </div>
+
         <Field label="Adresse" value={address} onChange={setAddress} className="col-span-2" />
         <div className="col-span-2">
           <label className="text-xs text-slate-600 block mb-1">Description</label>

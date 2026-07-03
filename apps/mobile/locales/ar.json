@@ -277,6 +277,47 @@
         "ended": "انتهت"
       }
     },
+    "restaurants": {
+      "title": "المطاعم",
+      "subtitle": "نواكشوط",
+      "searchPlaceholder": "ابحث عن مطعم أو طبق…",
+      "heroOverline": "بالعافية",
+      "heroTitle": "أفضل مطاعم نواكشوط",
+      "heroLoading": "جارٍ تحميل القائمة…",
+      "heroCount": "{{count}} مطعم مختار بعناية — قوائم الطعام قريباً.",
+      "loading": "جارٍ التحميل…",
+      "resultCount_one": "{{count}} عنوان",
+      "resultCount_other": "{{count}} عناوين",
+      "sortedBy": "مرتّبة حسب الشعبية",
+      "errorTitle": "حدث خطأ",
+      "loadError": "تعذّر تحميل المطاعم.",
+      "emptyTitle": "لا نتائج",
+      "emptyBody": "جرّب كلمة أخرى أو غيّر الفئة.",
+      "resetFilters": "إعادة ضبط الفلاتر",
+      "notFound": "المطعم غير موجود",
+      "error": "خطأ",
+      "loadDetailError": "تعذّر تحميل هذا المطعم.",
+      "goToRestaurant": "الذهاب إلى هذا المطعم",
+      "deliverFromHere": "توصيل طرد من هنا",
+      "viewMenu": "عرض قائمة الأطباق",
+      "menuAlertTitle": "قائمة المطعم",
+      "menuAlertBody": "قائمة أطباق {{name}} ستتوفّر قريباً جداً. ابقَ على اطّلاع!",
+      "etaLabel": "الوقت المتوقّع",
+      "zoneLabel": "الحي",
+      "about": "حول",
+      "address": "العنوان",
+      "cuisine": {
+        "all": "الكل",
+        "mauritanien": "موريتاني",
+        "pizza": "بيتزا",
+        "burger": "برغر",
+        "libanais": "لبناني",
+        "asiatique": "آسيوي",
+        "grillades": "مشويات",
+        "cafe": "مقهى",
+        "patisserie": "حلويات"
+      }
+    },
     "newRide": {
       "title": "رحلة جديدة",
       "pickupLabel": "الانطلاق",
@@ -366,6 +407,8 @@
       "errorOnline": "حدث خطأ أثناء الاتّصال.",
       "errorOffline": "حدث خطأ أثناء قطع الاتّصال.",
       "errorGoingHome": "خطأ في وضع \"أعود إلى منزلي\".",
+      "goingHomeCooldownTitle": "تم استخدامه اليوم",
+      "goingHomeCooldownBody": "لقد فعّلت وضع \"أعود إلى منزلي\" خلال آخر 24 ساعة. سيكون متاحاً مجدداً قريباً.",
       "errorTitle": "غير ممكن"
     },
     "nav": {

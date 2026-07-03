@@ -1,19 +1,24 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   AppText, FadeInView, Icon, PressableScale, Screen, ScreenHeader, TextField,
 } from '@/components/ui';
 import { colors, gradients, radius, shadow, spacing } from '@/theme';
 import { CUISINE_CATEGORIES, fetchRestaurants, type Restaurant } from '@/lib/restaurants';
+import { cuisineCounts, filterRestaurants } from '@/lib/restaurantFilter';
 import { resolveRestaurantPhoto } from '@/lib/restaurantPhotos';
 
 type CuisineKey = (typeof CUISINE_CATEGORIES)[number]['key'];
 
 export default function RestaurantsScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
+
   const [cuisine, setCuisine] = useState<CuisineKey>('all');
   const [items, setItems] = useState<Restaurant[] | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -27,7 +32,7 @@ export default function RestaurantsScreen() {
       const data = await fetchRestaurants();
       setItems(data);
     } catch (e: any) {
-      setError(e?.response?.data?.error?.message ?? 'Impossible de charger les restaurants.');
+      setError(e?.response?.data?.error?.message ?? t('rider.restaurants.loadError'));
       setItems([]);
     }
   }, []);
@@ -42,59 +47,44 @@ export default function RestaurantsScreen() {
 
   // Filtering happens client-side so chip + search are instant. Search and
   // cuisine are also accepted by the API for the rare case of paging through
-  // a very large dataset — not relevant yet.
-  // Chip counts — only counts entries matching the current search, so the
-  // numbers actually reflect what'll show after a tap. Calculated once and
-  // reused for both the chip badges and the visible list.
-  const matchesSearch = useCallback((r: Restaurant) => {
-    const q = query.trim().toLowerCase();
-    if (!q) return true;
-    const hay = `${r.name} ${r.nameFr ?? ''} ${r.nameAr ?? ''} ${r.zone ?? ''} ${r.tags.join(' ')}`.toLowerCase();
-    return hay.includes(q);
-  }, [query]);
+  // a very large dataset — not relevant yet. The pure logic lives in
+  // `@/lib/restaurantFilter` so it stays unit-tested and identical whether the
+  // list renders through a ScrollView or a FlatList.
+  //
+  // Chip counts only count entries matching the current search, so the numbers
+  // reflect what'll show after a tap.
+  const counts = useMemo(() => cuisineCounts(items, query), [items, query]);
 
-  const counts = useMemo(() => {
-    const m: Record<string, number> = { all: 0 };
-    for (const r of items ?? []) {
-      if (!matchesSearch(r)) continue;
-      m['all'] = (m['all'] ?? 0) + 1;
-      if (r.cuisine) m[r.cuisine] = (m[r.cuisine] ?? 0) + 1;
-    }
-    return m;
-  }, [items, matchesSearch]);
+  const filtered = useMemo(() => filterRestaurants(items, cuisine, query), [items, cuisine, query]);
 
-  const filtered = useMemo(() => {
-    if (!items) return [];
-    return items.filter((r) => {
-      if (cuisine !== 'all' && r.cuisine !== cuisine) return false;
-      return matchesSearch(r);
-    });
-  }, [items, cuisine, matchesSearch]);
+  // Loading / error / empty all share the FlatList's empty slot: the header
+  // (hero + search + chips) stays mounted above so the user can still search
+  // while the first page loads.
+  const listEmpty = items === null
+    ? <LoadingList />
+    : error
+      ? <ErrorState message={error} onRetry={load} />
+      : <EmptyState onReset={() => { setQuery(''); setCuisine('all'); }} />;
 
+  // A FlatList (not ScrollView + map) so only the visible + windowed rows —
+  // and therefore only their photos — mount. Opening the screen no longer
+  // fires ~100 image requests at once.
   return (
-    <Screen scroll onRefresh={onRefresh} refreshing={refreshing}>
-      <ScreenHeader
-        title="Restaurants"
-        subtitle="Nouakchott"
-        onBack={() => router.back()}
-      />
-
-      <FadeInView>
-        <HeroBanner count={items?.length ?? null} />
-      </FadeInView>
-
-      <FadeInView delay={60} style={{ marginTop: spacing.lg }}>
+    <Screen padded={false}>
+      {/* Fixed top bar: back button + search + chips stay visible when keyboard opens */}
+      <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.xxl }}>
+        <ScreenHeader title={t('rider.restaurants.title')} subtitle={t('rider.restaurants.subtitle')} onBack={() => router.back()} />
         <TextField
           icon="search"
-          placeholder="Rechercher un restaurant, un plat…"
+          placeholder={t('rider.restaurants.searchPlaceholder')}
           value={query}
           onChangeText={setQuery}
           autoCorrect={false}
           autoCapitalize="none"
         />
-      </FadeInView>
+      </View>
 
-      <FadeInView delay={120} style={{ marginTop: spacing.base, marginHorizontal: -spacing.lg }}>
+      <View style={{ marginTop: spacing.base }}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -105,7 +95,7 @@ export default function RestaurantsScreen() {
             return (
               <CategoryChip
                 key={c.key}
-                label={c.label}
+                label={t(`rider.restaurants.cuisine.${c.key}`, c.label)}
                 icon={c.icon}
                 count={count}
                 disabled={count === 0 && c.key !== 'all'}
@@ -115,6 +105,74 @@ export default function RestaurantsScreen() {
             );
           })}
         </ScrollView>
+      </View>
+
+      <FlatList
+        style={{ flex: 1 }}
+        data={filtered}
+        keyExtractor={(r) => r.id}
+        renderItem={({ item, index }) => (
+          <FadeInView delay={Math.min(60 + index * 30, 400)}>
+            <RestaurantCard
+              restaurant={item}
+              onPress={() => router.push(`/(app)/rider/restaurant/${item.id}`)}
+            />
+          </FadeInView>
+        )}
+        ListHeaderComponent={
+          <RestaurantsListHeader
+            total={items?.length ?? null}
+            visibleCount={filtered.length}
+            loading={items === null}
+          />
+        }
+        ListEmptyComponent={listEmpty}
+        ItemSeparatorComponent={CardSeparator}
+        contentContainerStyle={{
+          paddingHorizontal: spacing.lg,
+          paddingTop: spacing.base,
+          paddingBottom: spacing.huge,
+        }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        initialNumToRender={6}
+        maxToRenderPerBatch={8}
+        windowSize={7}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.ember}
+            colors={[colors.ember]}
+          />
+        }
+      />
+    </Screen>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+
+const CardSeparator = () => <View style={{ height: spacing.lg }} />;
+
+/**
+ * The list header — hero, search box and cuisine chips. Kept at module scope
+ * (not an inline closure) so its element type is stable across renders and the
+ * search TextField never loses focus while the user is typing.
+ */
+function RestaurantsListHeader({
+  total, visibleCount, loading,
+}: {
+  total: number | null;
+  visibleCount: number;
+  loading: boolean;
+}) {
+  const { t } = useTranslation();
+  return (
+    <>
+      <FadeInView>
+        <HeroBanner count={total} />
       </FadeInView>
 
       <View style={{
@@ -122,38 +180,18 @@ export default function RestaurantsScreen() {
         marginTop: spacing.xl, marginBottom: spacing.md,
       }}>
         <AppText variant="overline" color={colors.muted}>
-          {items === null
-            ? 'Chargement…'
-            : `${filtered.length} ${filtered.length > 1 ? 'adresses' : 'adresse'}`}
+          {loading ? t('rider.restaurants.loading') : t('rider.restaurants.resultCount', { count: visibleCount })}
         </AppText>
-        <AppText variant="caption" color={colors.muted}>Triés par popularité</AppText>
+        <AppText variant="caption" color={colors.muted}>{t('rider.restaurants.sortedBy')}</AppText>
       </View>
-
-      {items === null ? (
-        <LoadingList />
-      ) : error ? (
-        <ErrorState message={error} onRetry={load} />
-      ) : filtered.length === 0 ? (
-        <EmptyState onReset={() => { setQuery(''); setCuisine('all'); }} />
-      ) : (
-        <View style={{ gap: spacing.lg }}>
-          {filtered.map((r, i) => (
-            <FadeInView key={r.id} delay={Math.min(60 + i * 30, 400)}>
-              <RestaurantCard
-                restaurant={r}
-                onPress={() => router.push(`/(app)/rider/restaurant/${r.id}`)}
-              />
-            </FadeInView>
-          ))}
-        </View>
-      )}
-    </Screen>
+    </>
   );
 }
 
 /* ------------------------------------------------------------------ */
 
 function HeroBanner({ count }: { count: number | null }) {
+  const { t } = useTranslation();
   return (
     <LinearGradient
       colors={gradients.sunrise}
@@ -169,15 +207,15 @@ function HeroBanner({ count }: { count: number | null }) {
         }}>
           <Icon name="restaurant" size={22} color={colors.white} />
         </View>
-        <AppText variant="overline" color="#FFF1DD">À table</AppText>
+        <AppText variant="overline" color="#FFF1DD">{t('rider.restaurants.heroOverline')}</AppText>
       </View>
       <AppText variant="h1" color={colors.white} style={{ marginTop: spacing.md, maxWidth: 260 }}>
-        Les meilleures tables de Nouakchott
+        {t('rider.restaurants.heroTitle')}
       </AppText>
       <AppText variant="body" color="#FFF1DD" style={{ marginTop: spacing.xs, maxWidth: 280 }}>
         {count === null
-          ? 'On charge la sélection…'
-          : `${count} restaurants triés sur le volet — bientôt avec leurs cartes.`}
+          ? t('rider.restaurants.heroLoading')
+          : t('rider.restaurants.heroCount', { count })}
       </AppText>
     </LinearGradient>
   );
@@ -272,7 +310,9 @@ function RestaurantCard({ restaurant, onPress }: { restaurant: Restaurant; onPre
           <Image
             source={{ uri: photo }}
             style={{ width: '100%', height: '100%' }}
-            resizeMode="cover"
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            transition={200}
             onError={() => setImgFailed(true)}
           />
         )}
@@ -345,6 +385,7 @@ function LoadingList() {
 }
 
 function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+  const { t } = useTranslation();
   return (
     <View style={{ alignItems: 'center', paddingVertical: spacing.huge, gap: spacing.md }}>
       <View style={{
@@ -354,18 +395,19 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
       }}>
         <Icon name="alert" size={30} color={colors.danger} />
       </View>
-      <AppText variant="title">Une erreur est survenue</AppText>
+      <AppText variant="title">{t('rider.restaurants.errorTitle')}</AppText>
       <AppText variant="body" color={colors.ink2} style={{ textAlign: 'center', maxWidth: 280 }}>
         {message}
       </AppText>
       <Pressable onPress={onRetry} hitSlop={8}>
-        <AppText variant="bodyStrong" color={colors.ember}>Réessayer</AppText>
+        <AppText variant="bodyStrong" color={colors.ember}>{t('common.retry')}</AppText>
       </Pressable>
     </View>
   );
 }
 
 function EmptyState({ onReset }: { onReset: () => void }) {
+  const { t } = useTranslation();
   return (
     <View style={{
       alignItems: 'center', paddingVertical: spacing.huge, gap: spacing.md,
@@ -377,12 +419,12 @@ function EmptyState({ onReset }: { onReset: () => void }) {
       }}>
         <Icon name="search" size={30} color={colors.ember} />
       </View>
-      <AppText variant="title">Aucune adresse trouvée</AppText>
+      <AppText variant="title">{t('rider.restaurants.emptyTitle')}</AppText>
       <AppText variant="body" color={colors.ink2} style={{ textAlign: 'center', maxWidth: 280 }}>
-        Essayez un autre mot-clé ou changez de catégorie.
+        {t('rider.restaurants.emptyBody')}
       </AppText>
       <Pressable onPress={onReset} hitSlop={8}>
-        <AppText variant="bodyStrong" color={colors.ember}>Réinitialiser les filtres</AppText>
+        <AppText variant="bodyStrong" color={colors.ember}>{t('rider.restaurants.resetFilters')}</AppText>
       </Pressable>
     </View>
   );

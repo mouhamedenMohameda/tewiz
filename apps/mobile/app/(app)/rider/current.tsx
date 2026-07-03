@@ -11,6 +11,7 @@ import { RideCancelReasonSheet } from '@/components/RideCancelReasonSheet';
 import { formatMru } from '@/lib/format';
 import { RIDER_RIDE_CANCEL_REASONS, RIDE_CANCEL_REASON_LABEL_FR } from '@/lib/rideCancelReasons';
 import { usePolling } from '@/lib/usePolling';
+import { keepIfEqual } from '@/lib/sameData';
 import { APP_NAME } from '@/lib/brand';
 
 type RideStatus =
@@ -84,7 +85,9 @@ export default function CurrentRideScreen() {
       const r = await api.get<Ride>('/rider/rides/current', {
         validateStatus: (s) => s === 200 || s === 204,
       });
-      setRide(r.status === 200 ? r.data : null);
+      // Bail out of the re-render when the polled ride is unchanged (the usual
+      // case between real status changes) — see keepIfEqual.
+      setRide(keepIfEqual(r.status === 200 ? r.data : null));
     } finally {
       setLoading(false);
     }
