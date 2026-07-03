@@ -1,7 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { api, startTestApp, type TestAppHandle } from './helpers/app.js';
 
-const { svcMock, auditMock, txQueryMock } = vi.hoisted(() => ({
+const {
+  svcMock,
+  auditMock,
+  txQueryMock,
+  storageGetMock,
+  storagePutMock,
+  sharpMock,
+  sharpResizeMock,
+  sharpWebpMock,
+  sharpToBufferMock,
+} = vi.hoisted(() => ({
   svcMock: {
     listRestaurants: vi.fn(),
     getRestaurant: vi.fn(),
@@ -12,10 +22,32 @@ const { svcMock, auditMock, txQueryMock } = vi.hoisted(() => ({
   },
   auditMock: vi.fn(),
   txQueryMock: vi.fn(),
+  storageGetMock: vi.fn(),
+  storagePutMock: vi.fn(),
+  sharpMock: vi.fn(),
+  sharpResizeMock: vi.fn(),
+  sharpWebpMock: vi.fn(),
+  sharpToBufferMock: vi.fn(),
 }));
 
 vi.mock('../src/modules/restaurants/restaurants.service.js', () => svcMock);
 vi.mock('../src/modules/admin/audit.js', () => ({ audit: auditMock }));
+vi.mock('../src/modules/storage/local-disk.js', () => ({
+  defaultStorage: {
+    get: storageGetMock,
+    put: storagePutMock,
+  },
+}));
+vi.mock('../src/middleware/upload.js', () => ({
+  upload: {
+    single: () => (req: any, _res: any, next: () => void) => {
+      const b64 = req?.body?.mockFileB64;
+      req.file = b64 ? { buffer: Buffer.from(b64, 'base64') } : undefined;
+      next();
+    },
+  },
+}));
+vi.mock('sharp', () => ({ default: sharpMock }));
 vi.mock('../src/db/pool.js', () => ({
   pool: { query: vi.fn(), connect: vi.fn(), on: vi.fn() },
   withTx: async (fn: (client: { query: typeof txQueryMock }) => Promise<unknown>) =>
@@ -34,6 +66,16 @@ beforeEach(() => {
   for (const fn of Object.values(svcMock)) fn.mockReset();
   auditMock.mockReset();
   auditMock.mockResolvedValue(undefined);
+  storageGetMock.mockReset();
+  storagePutMock.mockReset();
+  sharpMock.mockReset();
+  sharpResizeMock.mockReset();
+  sharpWebpMock.mockReset();
+  sharpToBufferMock.mockReset();
+  sharpToBufferMock.mockResolvedValue(Buffer.from('optimized-webp'));
+  sharpWebpMock.mockReturnValue({ toBuffer: sharpToBufferMock });
+  sharpResizeMock.mockReturnValue({ webp: sharpWebpMock });
+  sharpMock.mockReturnValue({ resize: sharpResizeMock });
 });
 
 afterEach(async () => {
@@ -74,6 +116,24 @@ describe('rider restaurants', () => {
     const res = await api(baseUrl, 'GET', '/rider/restaurants/resto-1');
     expect(res.status).toBe(200);
     expect(res.body.name).toBe('Pizza Nktt');
+  });
+
+  it('GET /photos/:filename streams the stored webp photo', async () => {
+    storageGetMock.mockResolvedValue(Buffer.from('photo'));
+    const { baseUrl } = await start();
+    const res = await fetch(`${baseUrl}/rider/restaurants/photos/r1.webp`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toContain('image/webp');
+    expect(res.headers.get('cache-control')).toBe('public, max-age=86400');
+    expect(storageGetMock).toHaveBeenCalledWith('restaurants/r1.webp');
+  });
+
+  it('GET /photos/:filename returns 404 when the photo is missing', async () => {
+    storageGetMock.mockRejectedValue(new Error('missing'));
+    const { baseUrl } = await start();
+    const res = await api(baseUrl, 'GET', '/rider/restaurants/photos/missing.webp');
+    expect(res.status).toBe(404);
+    expect(res.body.error.code).toBe('not_found');
   });
 });
 
@@ -183,5 +243,50 @@ describe('admin restaurants', () => {
     });
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('no_valid_items');
+  });
+
+  it('POST /upload-photo returns 400 when no file was provided', async () => {
+    const { baseUrl } = await start();
+    const res = await api(baseUrl, 'POST', '/admin/restaurants/upload-photo', {});
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('no_file');
+  });
+
+  it('POST /upload-photo optimizes and stores the uploaded image', async () => {
+    const { baseUrl } = await start();
+    const raw = Buffer.from('raw-image-bytes');
+    const res = await api(baseUrl, 'POST', '/admin/restaurants/upload-photo', {
+      mockFileB64: raw.toString('base64'),
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.url).toMatch(/^\/admin\/restaurants\/photos\/[a-f0-9-]+\.webp$/i);
+    expect(sharpMock).toHaveBeenCalledWith(raw);
+    expect(sharpResizeMock).toHaveBeenCalledWith(800, 800, {
+      fit: 'cover',
+      withoutEnlargement: true,
+    });
+    expect(sharpWebpMock).toHaveBeenCalledWith({ quality: 80 });
+    expect(storagePutMock).toHaveBeenCalledWith(
+      expect.stringMatching(/^restaurants\/[a-f0-9-]+\.webp$/i),
+      Buffer.from('optimized-webp'),
+      'image/webp',
+    );
+  });
+
+  it('GET /photos/:filename streams the stored webp photo', async () => {
+    storageGetMock.mockResolvedValue(Buffer.from('admin-photo'));
+    const { baseUrl } = await start();
+    const res = await fetch(`${baseUrl}/admin/restaurants/photos/r2.webp`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toContain('image/webp');
+    expect(storageGetMock).toHaveBeenCalledWith('restaurants/r2.webp');
+  });
+
+  it('GET /photos/:filename returns 404 when missing', async () => {
+    storageGetMock.mockRejectedValue(new Error('missing'));
+    const { baseUrl } = await start();
+    const res = await api(baseUrl, 'GET', '/admin/restaurants/photos/missing.webp');
+    expect(res.status).toBe(404);
+    expect(res.body.error.code).toBe('not_found');
   });
 });
