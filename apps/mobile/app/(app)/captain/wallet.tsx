@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator, Alert, Modal, Pressable, ScrollView, View, Image,
+  ActivityIndicator, Alert, Modal, Pressable, ScrollView, View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -15,6 +15,52 @@ import {
 } from '@/components/ui';
 import { colors, gradients, radius, spacing } from '@/theme';
 import { APP_NAME } from '@/lib/brand';
+
+const BankLogo = ({ provider }: { provider: Provider }) => {
+  const logos: Record<Provider, React.ReactNode> = {
+    bankily: (
+      <View style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: '#1B7EC6', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
+        {/* Phone with cards */}
+        <View style={{ width: 18, height: 24, backgroundColor: 'white', borderRadius: 2, borderWidth: 1, borderColor: '#1B7EC6', position: 'absolute' }} />
+        <View style={{ width: 14, height: 14, backgroundColor: '#FFD700', borderRadius: 1, position: 'absolute', top: 10, left: 14 }} />
+        <View style={{ width: 14, height: 14, backgroundColor: '#FF6B35', borderRadius: 1, position: 'absolute', top: 16, left: 20 }} />
+      </View>
+    ),
+    masrvi: (
+      <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#1AC8A0', justifyContent: 'center', alignItems: 'center' }}>
+        <View style={{ position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
+          {/* S shape - two curves */}
+          <View style={{ width: 12, height: 3, backgroundColor: '#002855', borderRadius: 2, transform: [{ rotate: '45deg' }], marginBottom: 4 }} />
+          <View style={{ width: 3, height: 3, backgroundColor: '#002855', borderRadius: 2, marginBottom: 2 }} />
+          <View style={{ width: 3, height: 3, backgroundColor: '#002855', borderRadius: 2, marginBottom: 4 }} />
+          <View style={{ width: 12, height: 3, backgroundColor: '#002855', borderRadius: 2, transform: [{ rotate: '45deg' }] }} />
+        </View>
+      </View>
+    ),
+    sedad: (
+      <View style={{ width: 48, height: 48, borderRadius: 8, backgroundColor: '#C9A358', justifyContent: 'center', alignItems: 'center' }}>
+        {/* Shield with checkmark */}
+        <View style={{ width: 20, height: 24, backgroundColor: 'white', borderRadius: 2, borderBottomLeftRadius: 6, borderBottomRightRadius: 6, justifyContent: 'center', alignItems: 'center', opacity: 0.95 }}>
+          <AppText variant="label" color="#C9A358" style={{ fontSize: 14, fontWeight: 'bold' }}>✓</AppText>
+        </View>
+      </View>
+    ),
+    cash_office: (
+      <View style={{ width: 48, height: 48, borderRadius: 8, backgroundColor: '#FF8C3A', justifyContent: 'center', alignItems: 'center' }}>
+        {/* Building/money bag icon */}
+        <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+          <View style={{ width: 20, height: 16, borderWidth: 1.5, borderColor: 'white', borderRadius: 2, justifyContent: 'space-around', alignItems: 'center', flexDirection: 'row', paddingHorizontal: 2 }}>
+            <View style={{ width: 3, height: 4, backgroundColor: 'white', borderRadius: 1, opacity: 0.7 }} />
+            <View style={{ width: 3, height: 4, backgroundColor: 'white', borderRadius: 1, opacity: 0.7 }} />
+            <View style={{ width: 3, height: 4, backgroundColor: 'white', borderRadius: 1, opacity: 0.7 }} />
+          </View>
+          <View style={{ width: 14, height: 3, backgroundColor: 'white', marginTop: 3, borderRadius: 1, opacity: 0.8 }} />
+        </View>
+      </View>
+    ),
+  };
+  return <>{logos[provider]}</>;
+};
 
 type Provider = 'bankily' | 'masrvi' | 'sedad' | 'cash_office';
 type TopupStatus = 'pending' | 'approved' | 'partial' | 'rejected' | 'duplicate';
@@ -51,13 +97,6 @@ const PROVIDER_LABELS: Record<Provider, string> = {
   masrvi: 'Masrvi',
   sedad: 'Sedad',
   cash_office: `Bureau ${APP_NAME}`,
-};
-
-const PROVIDER_LOGOS: Record<Provider, any> = {
-  bankily: require('@/assets/banks/bankily.svg'),
-  masrvi: require('@/assets/banks/masrvi.svg'),
-  sedad: require('@/assets/banks/sedad.svg'),
-  cash_office: require('@/assets/banks/bureau-aloo.svg'),
 };
 
 // Numéros officiels où le chauffeur doit envoyer la recharge. Affichés
@@ -337,18 +376,14 @@ function TopupModal({
                   key={p}
                   onPress={() => setProvider(p)}
                   style={{
-                    paddingHorizontal: 12, paddingVertical: 12, borderRadius: radius.lg,
+                    flex: 1, minWidth: '45%', paddingHorizontal: 12, paddingVertical: 16, borderRadius: radius.lg,
                     backgroundColor: active ? colors.ember : colors.surface,
                     borderWidth: 2, borderColor: active ? colors.ember : colors.line,
-                    alignItems: 'center', gap: spacing.xs, minWidth: '45%',
+                    alignItems: 'center', gap: spacing.sm,
                   }}
                 >
-                  <Image
-                    source={PROVIDER_LOGOS[p]}
-                    style={{ width: 40, height: 40 }}
-                    resizeMode="contain"
-                  />
-                  <AppText variant="label" color={active ? colors.onEmber : colors.ink} style={{ marginTop: 4 }}>
+                  <BankLogo provider={p} />
+                  <AppText variant="label" color={active ? colors.onEmber : colors.ink} style={{ textAlign: 'center', marginTop: 2 }}>
                     {PROVIDER_LABELS[p]}
                   </AppText>
                 </Pressable>
