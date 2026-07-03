@@ -277,6 +277,47 @@
         "ended": "Ended"
       }
     },
+    "restaurants": {
+      "title": "Restaurants",
+      "subtitle": "Nouakchott",
+      "searchPlaceholder": "Search for a restaurant or dish…",
+      "heroOverline": "Bon appétit",
+      "heroTitle": "The best restaurants in Nouakchott",
+      "heroLoading": "Loading the selection…",
+      "heroCount": "{{count}} hand-picked restaurants — menus coming soon.",
+      "loading": "Loading…",
+      "resultCount_one": "{{count}} place",
+      "resultCount_other": "{{count}} places",
+      "sortedBy": "Sorted by popularity",
+      "errorTitle": "Something went wrong",
+      "loadError": "Could not load restaurants.",
+      "emptyTitle": "No results found",
+      "emptyBody": "Try another keyword or change the category.",
+      "resetFilters": "Reset filters",
+      "notFound": "Restaurant not found",
+      "error": "Error",
+      "loadDetailError": "Could not load this restaurant.",
+      "goToRestaurant": "Go to this restaurant",
+      "deliverFromHere": "Deliver a parcel from here",
+      "viewMenu": "View the menu",
+      "menuAlertTitle": "Restaurant menu",
+      "menuAlertBody": "The menu for {{name}} will be available very soon. Stay tuned!",
+      "etaLabel": "ETA",
+      "zoneLabel": "Area",
+      "about": "About",
+      "address": "Address",
+      "cuisine": {
+        "all": "All",
+        "mauritanien": "Mauritanian",
+        "pizza": "Pizza",
+        "burger": "Burger",
+        "libanais": "Lebanese",
+        "asiatique": "Asian",
+        "grillades": "Grilled",
+        "cafe": "Café",
+        "patisserie": "Pastry"
+      }
+    },
     "newRide": {
       "title": "New ride",
       "pickupLabel": "Pickup",
@@ -366,6 +407,8 @@
       "errorOnline": "Could not go online.",
       "errorOffline": "Could not go offline.",
       "errorGoingHome": "Could not toggle \"Heading home\".",
+      "goingHomeCooldownTitle": "Already active today",
+      "goingHomeCooldownBody": "You've already used \"Heading home\" in the last 24 hours. It will be available again soon.",
       "errorTitle": "Cannot do that"
     },
     "nav": {

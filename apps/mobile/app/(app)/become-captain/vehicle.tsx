@@ -6,10 +6,10 @@ import {
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ScreenHeader, SelectField, type SelectOption } from '@/components/ui';
 import { api } from '@/lib/api';
 import { type ApplicationDto, type VehicleType } from '@/lib/kyc';
 import { Field, PrimaryButton } from '@/lib/form';
-import { SelectField, type SelectOption } from '@/components/ui';
 import { VEHICLE_BRANDS, VEHICLE_COLORS } from '@/lib/vehicle-options';
 
 export default function VehicleScreen() {
@@ -144,12 +144,7 @@ export default function VehicleScreen() {
         style={{ flex: 1 }}
       >
         <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
-          <Pressable onPress={() => router.back()}>
-            <Text style={{ color: '#64748b', fontSize: 14 }}>‹ {t('common.back')}</Text>
-          </Pressable>
-          <Text style={{ fontSize: 24, fontWeight: '700', color: '#0f172a', marginTop: 12 }}>
-            {t('becomeCaptain.vehicle.title')}
-          </Text>
+          <ScreenHeader title={t('becomeCaptain.vehicle.title')} onBack={() => router.back()} />
 
           <View style={{ marginTop: 16 }}>
             <Text style={{ fontSize: 13, color: '#475569', marginBottom: 8 }}>

@@ -6,6 +6,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ScreenHeader } from '@/components/ui';
 import { api } from '@/lib/api';
 import { formatMru } from '@/lib/format';
 
@@ -85,12 +86,7 @@ export default function RecurringScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
       <View style={{ padding: 20 }}>
-        <Pressable onPress={() => router.back()}>
-          <Text style={{ color: '#64748b', fontSize: 14 }}>‹ {t('common.back')}</Text>
-        </Pressable>
-        <Text style={{ fontSize: 22, fontWeight: '700', color: '#0f172a', marginTop: 8 }}>
-          {t('rider.recurring.title')}
-        </Text>
+        <ScreenHeader title={t('rider.recurring.title')} onBack={() => router.back()} />
         <Text style={{ fontSize: 13, color: '#64748b', marginTop: 4, lineHeight: 18 }}>
           {t('rider.recurring.intro')}
         </Text>

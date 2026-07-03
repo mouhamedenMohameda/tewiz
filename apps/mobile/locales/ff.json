@@ -248,6 +248,47 @@
         "ended": "Gasii"
       }
     },
+    "restaurants": {
+      "title": "Restaurants",
+      "subtitle": "Nouakchott",
+      "searchPlaceholder": "Yiylo restaurant maa ñaamdu…",
+      "heroOverline": "Ñaamu jam",
+      "heroTitle": "Restaurants ɓurɗi moƴƴude Nouakchott",
+      "heroLoading": "Ina loowa…",
+      "heroCount": "{{count}} restaurants cuɓaaɗi — carte ñaamdu ina ara.",
+      "loading": "Ina loowa…",
+      "resultCount_one": "{{count}} adresse",
+      "resultCount_other": "{{count}} adresses",
+      "sortedBy": "Leelaa e daraja",
+      "errorTitle": "Juumre waɗii",
+      "loadError": "Horiima loowde restaurants.",
+      "emptyTitle": "Alaa ko yiytaa",
+      "emptyBody": "Eto helmere woɗnde walla waylu catégorie.",
+      "resetFilters": "Artir filtres",
+      "notFound": "Restaurant yiytaaka",
+      "error": "Juumre",
+      "loadDetailError": "Horiima loowde ndee restaurant.",
+      "goToRestaurant": "Yah e ndee restaurant",
+      "deliverFromHere": "Nawnu colis ɗoo",
+      "viewMenu": "Yiy carte ñaamdu",
+      "menuAlertTitle": "Carte restaurant",
+      "menuAlertBody": "Carte ñaamdu {{name}} ina ara jooni jooni. Caɓɓu!",
+      "etaLabel": "Sahaa",
+      "zoneLabel": "Quartier",
+      "about": "Baɗte",
+      "address": "Adresse",
+      "cuisine": {
+        "all": "Fof",
+        "mauritanien": "Moritani",
+        "pizza": "Pizza",
+        "burger": "Burger",
+        "libanais": "Libanais",
+        "asiatique": "Asiatique",
+        "grillades": "Grillades",
+        "cafe": "Café",
+        "patisserie": "Pâtisserie"
+      }
+    },
     "newRide": {
       "title": "Course hesso",
       "pickupLabel": "Fuɗɗoode",
@@ -337,6 +378,8 @@
       "errorOnline": "Juumre tuma naatugol e ligne.",
       "errorOffline": "Juumre tuma yaltugol e ligne.",
       "errorGoingHome": "Juumre e \"Ko mi ruttoo galle\".",
+      "goingHomeCooldownTitle": "A huutoraama hannde",
+      "goingHomeCooldownBody": "A huutorii \"Ko mi ruttoo galle\" e nder 24 waktuuji. Ɗum artat sakkitoo.",
       "errorTitle": "Wonataa"
     },
     "nav": {

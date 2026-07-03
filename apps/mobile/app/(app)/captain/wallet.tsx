@@ -13,7 +13,7 @@ import { formatMru } from '@/lib/format';
 import {
   AppText, Button, Card, Icon, Screen, ScreenHeader, TextField,
 } from '@/components/ui';
-import { colors, gradients, radius, spacing } from '@/theme';
+import { colors, gradients, radius, shadow, spacing } from '@/theme';
 import { APP_NAME } from '@/lib/brand';
 
 type Provider = 'bankily' | 'masrvi' | 'sedad' | 'cash_office';
@@ -54,7 +54,7 @@ const PROVIDER_LABELS: Record<Provider, string> = {
 };
 
 const PROVIDER_LOGOS: Record<Provider, any> = {
-  bankily: require('@/assets/banks/bankily.jpeg'),
+  bankily: require('@/assets/banks/bankily.png'),
   masrvi: require('@/assets/banks/masrvi.png'),
   sedad: require('@/assets/banks/sedad.jpeg'),
   cash_office: require('@/assets/icon.png'),
@@ -316,8 +316,17 @@ function TopupModal({
           <ScreenHeader
             title={t('captain.wallet.topupModal.title')}
             right={
-              <Pressable onPress={onClose} hitSlop={10}>
-                <Icon name="close" size={26} color={colors.ink2} />
+              <Pressable
+                onPress={onClose}
+                hitSlop={20}
+                style={{
+                  width: 44, height: 44, borderRadius: radius.pill,
+                  backgroundColor: colors.surface,
+                  alignItems: 'center', justifyContent: 'center',
+                  ...shadow.card,
+                }}
+              >
+                <Icon name="close" size={22} color={colors.ink2} />
               </Pressable>
             }
           />

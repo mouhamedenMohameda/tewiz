@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
-  Pressable, ScrollView, Text, View,
+  ScrollView, Text, View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { DateField, ScreenHeader } from '@/components/ui';
 import { api } from '@/lib/api';
 import { type ApplicationDto } from '@/lib/kyc';
 import { Field, PrimaryButton } from '@/lib/form';
-import { DateField } from '@/components/ui';
 
 export default function PersonalScreen() {
   const router = useRouter();
@@ -98,12 +98,7 @@ export default function PersonalScreen() {
         style={{ flex: 1 }}
       >
         <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
-          <Pressable onPress={() => router.back()}>
-            <Text style={{ color: '#64748b', fontSize: 14 }}>‹ {t('common.back')}</Text>
-          </Pressable>
-          <Text style={{ fontSize: 24, fontWeight: '700', color: '#0f172a', marginTop: 12 }}>
-            {t('becomeCaptain.personal.title')}
-          </Text>
+          <ScreenHeader title={t('becomeCaptain.personal.title')} onBack={() => router.back()} />
 
           <Field label={t('becomeCaptain.personal.fullName')} value={fullName} onChangeText={setFullName}
             placeholder={t('becomeCaptain.personal.fullNamePlaceholder')} autoCapitalize="words" />

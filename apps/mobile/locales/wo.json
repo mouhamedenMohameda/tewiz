@@ -248,6 +248,47 @@
         "ended": "Sotti"
       }
     },
+    "restaurants": {
+      "title": "Restaurants",
+      "subtitle": "Nouakchott",
+      "searchPlaceholder": "Seet restaurant walla lekk…",
+      "heroOverline": "Neexal lekk",
+      "heroTitle": "Restaurants yi gëna baax ci Nouakchott",
+      "heroLoading": "Mu ngi yóbbu…",
+      "heroCount": "{{count}} restaurants yu tànnees — carte lekk dina ñëw.",
+      "loading": "Mu ngi yóbbu…",
+      "resultCount_one": "{{count}} adresse",
+      "resultCount_other": "{{count}} adresses",
+      "sortedBy": "Ci daraja ñu",
+      "errorTitle": "Lenn jàpp",
+      "loadError": "Mënu ko yóbbu restaurants yi.",
+      "emptyTitle": "Dara gisul",
+      "emptyBody": "Jéemaat benn baat walla waxtu catégorie bi.",
+      "resetFilters": "Dellu filtres yi",
+      "notFound": "Restaurant bi gisul",
+      "error": "Njuumte",
+      "loadDetailError": "Mënu ko yóbbu bii restaurant.",
+      "goToRestaurant": "Dem ci bii restaurant",
+      "deliverFromHere": "Yónnee colis fii",
+      "viewMenu": "Xool carte lekk",
+      "menuAlertTitle": "Carte restaurant",
+      "menuAlertBody": "Carte lekk {{name}} dina am ci kanam. Taxawal!",
+      "etaLabel": "Waxtu",
+      "zoneLabel": "Quartier",
+      "about": "Ci kow",
+      "address": "Adresse",
+      "cuisine": {
+        "all": "Yépp",
+        "mauritanien": "Mauritanien",
+        "pizza": "Pizza",
+        "burger": "Burger",
+        "libanais": "Libanais",
+        "asiatique": "Asiatique",
+        "grillades": "Grillades",
+        "cafe": "Café",
+        "patisserie": "Pâtisserie"
+      }
+    },
     "newRide": {
       "title": "Course bu bees",
       "pickupLabel": "Tambali",
@@ -337,6 +378,8 @@
       "errorOnline": "Njumte ci dugal en ligne.",
       "errorOffline": "Njumte ci génne en ligne.",
       "errorGoingHome": "Njumte ci mode \"Dama dem sama kër\".",
+      "goingHomeCooldownTitle": "Jëfandikoo nañu ko tey",
+      "goingHomeCooldownBody": "Dinga jëfandikoo \"Dama dem sama kër\" ci biir 24 waxtu. Dina dellu ci kanam.",
       "errorTitle": "Mënul"
     },
     "nav": {

@@ -631,7 +631,7 @@ function SearchSheet({
         >
           <View style={{ padding: 16, gap: 12, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <Pressable onPress={onClose}>
+              <Pressable onPress={onClose} hitSlop={12} style={{ paddingVertical: 8, paddingHorizontal: 4 }}>
                 <Text style={{ color: '#0f172a', fontSize: 16, fontWeight: '600' }}>{t('common.cancel')}</Text>
               </Pressable>
               <Text style={{ fontSize: 17, fontWeight: '700', color: '#0f172a', flex: 1, textAlign: 'center' }}>

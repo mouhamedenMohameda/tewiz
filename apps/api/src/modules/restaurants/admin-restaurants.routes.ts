@@ -16,11 +16,15 @@
  */
 
 import { Router } from 'express';
+import { randomUUID } from 'node:crypto';
+import sharp from 'sharp';
 import { z } from 'zod';
 import { withTx } from '../../db/pool.js';
 import { HttpError } from '../../middleware/error.js';
+import { upload } from '../../middleware/upload.js';
 import type { AuthedRequest } from '../../middleware/auth.js';
 import { audit } from '../admin/audit.js';
+import { defaultStorage } from '../storage/local-disk.js';
 import {
   fromOsmSeed,
   getRestaurant,
@@ -238,4 +242,35 @@ adminRestaurantsRouter.post('/bulk-import', async (req, res) => {
     errors,
     items: result,
   });
+});
+
+// ---------------------------------------------------------------------------
+// Photo upload
+// ---------------------------------------------------------------------------
+
+adminRestaurantsRouter.post('/upload-photo', upload.single('file'), async (req, res) => {
+  const file = (req as any).file as Express.Multer.File | undefined;
+  if (!file) throw new HttpError(400, 'no_file', 'No image file provided');
+
+  const key = `restaurants/${randomUUID()}.webp`;
+  const optimized = await sharp(file.buffer)
+    .resize(800, 800, { fit: 'cover', withoutEnlargement: true })
+    .webp({ quality: 80 })
+    .toBuffer();
+
+  await defaultStorage.put(key, optimized, 'image/webp');
+
+  res.json({ url: `/admin/restaurants/photos/${key.replace('restaurants/', '')}` });
+});
+
+adminRestaurantsRouter.get('/photos/:filename', async (req, res) => {
+  const key = `restaurants/${req.params.filename}`;
+  try {
+    const buf = await defaultStorage.get(key);
+    res.setHeader('Content-Type', 'image/webp');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.send(buf);
+  } catch {
+    throw new HttpError(404, 'not_found', 'Photo not found');
+  }
 });

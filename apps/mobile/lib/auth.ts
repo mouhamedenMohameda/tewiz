@@ -47,7 +47,7 @@ async function persist(s: Persisted) {
 // A rider can only be in rider mode. Only a captain may switch to captain mode.
 function defaultMode(role: AuthUser['role'], stored?: ActiveMode): ActiveMode {
   if (role !== 'captain') return 'rider';
-  return stored ?? 'rider';
+  return stored ?? 'captain';
 }
 
 export const useAuth = create<AuthState>((set, get) => ({

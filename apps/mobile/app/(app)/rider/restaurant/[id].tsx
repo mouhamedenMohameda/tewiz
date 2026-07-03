@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Pressable, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   AppText, Button, FadeInView, Icon, PressableScale, Screen,
@@ -12,6 +13,7 @@ import { resolveRestaurantPhoto } from '@/lib/restaurantPhotos';
 export default function RestaurantDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { t } = useTranslation();
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,11 +29,11 @@ export default function RestaurantDetailScreen() {
     } catch (e: any) {
       const status = e?.response?.status;
       if (status === 404) setError('not_found');
-      else setError(e?.response?.data?.error?.message ?? 'Impossible de charger ce restaurant.');
+      else setError(e?.response?.data?.error?.message ?? t('rider.restaurants.loadDetailError'));
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, t]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -50,9 +52,9 @@ export default function RestaurantDetailScreen() {
       <Screen>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md }}>
           <Icon name="alert" size={48} color={colors.muted} />
-          <AppText variant="title">Restaurant introuvable</AppText>
+          <AppText variant="title">{t('rider.restaurants.notFound')}</AppText>
           <Pressable onPress={() => router.back()} hitSlop={8}>
-            <AppText variant="bodyStrong" color={colors.ember}>Retour</AppText>
+            <AppText variant="bodyStrong" color={colors.ember}>{t('common.back')}</AppText>
           </Pressable>
         </View>
       </Screen>
@@ -64,12 +66,12 @@ export default function RestaurantDetailScreen() {
       <Screen>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md }}>
           <Icon name="alert" size={48} color={colors.danger} />
-          <AppText variant="title">Erreur</AppText>
+          <AppText variant="title">{t('rider.restaurants.error')}</AppText>
           <AppText variant="body" color={colors.ink2} style={{ textAlign: 'center', maxWidth: 280 }}>
             {error}
           </AppText>
           <Pressable onPress={load} hitSlop={8}>
-            <AppText variant="bodyStrong" color={colors.ember}>Réessayer</AppText>
+            <AppText variant="bodyStrong" color={colors.ember}>{t('common.retry')}</AppText>
           </Pressable>
         </View>
       </Screen>
@@ -151,7 +153,7 @@ export default function RestaurantDetailScreen() {
             alignItems: 'center', justifyContent: 'center',
             ...shadow.card,
           }}
-          accessibilityLabel="Retour"
+          accessibilityLabel={t('common.back')}
         >
           <Icon name="chevronBack" size={22} color={colors.ink} />
         </Pressable>
@@ -222,14 +224,14 @@ export default function RestaurantDetailScreen() {
             flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg,
             paddingTop: spacing.lg, borderTopWidth: 1, borderTopColor: colors.line,
           }}>
-            {eta ? <InfoMetric icon="clock" label="Délai" value={eta} /> : null}
-            {restaurant.zone ? <InfoMetric icon="pin" label="Quartier" value={restaurant.zone} /> : null}
+            {eta ? <InfoMetric icon="clock" label={t('rider.restaurants.etaLabel')} value={eta} /> : null}
+            {restaurant.zone ? <InfoMetric icon="pin" label={t('rider.restaurants.zoneLabel')} value={restaurant.zone} /> : null}
           </FadeInView>
         ) : null}
 
         {restaurant.description ? (
           <FadeInView delay={140} style={{ marginTop: spacing.lg }}>
-            <AppText variant="overline" color={colors.muted}>À propos</AppText>
+            <AppText variant="overline" color={colors.muted}>{t('rider.restaurants.about')}</AppText>
             <AppText variant="body" color={colors.ink2} style={{ marginTop: spacing.sm }}>
               {restaurant.description}
             </AppText>
@@ -238,7 +240,7 @@ export default function RestaurantDetailScreen() {
 
         {restaurant.address ? (
           <FadeInView delay={200} style={{ marginTop: spacing.lg }}>
-            <AppText variant="overline" color={colors.muted}>Adresse</AppText>
+            <AppText variant="overline" color={colors.muted}>{t('rider.restaurants.address')}</AppText>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm }}>
               <View style={{
                 width: 36, height: 36, borderRadius: radius.sm,
@@ -270,7 +272,7 @@ export default function RestaurantDetailScreen() {
             }}
           >
             <Icon name="ride" size={22} color={colors.white} />
-            <AppText variant="title" color={colors.white}>Aller à ce restaurant</AppText>
+            <AppText variant="title" color={colors.white}>{t('rider.restaurants.goToRestaurant')}</AppText>
           </PressableScale>
         </FadeInView>
 
@@ -290,18 +292,18 @@ export default function RestaurantDetailScreen() {
             }}
           >
             <Icon name="parcel" size={22} color={colors.ember} />
-            <AppText variant="title" color={colors.ember}>Livrer un colis d'ici</AppText>
+            <AppText variant="title" color={colors.ember}>{t('rider.restaurants.deliverFromHere')}</AppText>
           </PressableScale>
         </FadeInView>
 
         <FadeInView delay={360}>
           <Button
             variant="ghost"
-            title="Voir la carte des plats"
+            title={t('rider.restaurants.viewMenu')}
             icon="menu"
             onPress={() => Alert.alert(
-              'Carte du restaurant',
-              `La carte des plats de ${restaurant.name} sera disponible très bientôt. Restez connecté !`,
+              t('rider.restaurants.menuAlertTitle'),
+              t('rider.restaurants.menuAlertBody', { name: restaurant.name }),
             )}
             style={{ marginTop: spacing.xs }}
           />

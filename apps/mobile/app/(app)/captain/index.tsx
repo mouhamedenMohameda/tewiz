@@ -128,8 +128,12 @@ export default function CaptainHome() {
         setGoingHome(null);
       }
     } catch (e: any) {
-      Alert.alert(t('captain.state.errorTitle'),
-        e.response?.data?.error?.message ?? t('captain.state.errorGoingHome'));
+      const msg: string = e.response?.data?.error?.message ?? '';
+      if (msg.toLowerCase().includes('going-home') && msg.includes('24')) {
+        Alert.alert(t('captain.state.goingHomeCooldownTitle'), t('captain.state.goingHomeCooldownBody'));
+      } else {
+        Alert.alert(t('captain.state.errorTitle'), msg || t('captain.state.errorGoingHome'));
+      }
     } finally {
       setTogglingGoingHome(false);
     }
@@ -188,7 +192,7 @@ export default function CaptainHome() {
             ...shadow.card,
           }}
         >
-          <Icon name="person" size={22} color={colors.ink} />
+          <Icon name="tune" size={22} color={colors.ink} />
         </Pressable>
       </View>
 
@@ -293,9 +297,6 @@ export default function CaptainHome() {
           <NavRow icon="recurring" tint="#E9EFE6" fg={colors.success}
             title={t('captain.nav.recurringTitle')} subtitle={t('captain.nav.recurringSubtitle')}
             onPress={() => router.push('/(app)/captain/recurring')} />
-          <NavRow icon="tune" tint={colors.surfaceAlt} fg={colors.ink}
-            title={t('captain.nav.preferencesTitle')} subtitle={t('captain.nav.preferencesSubtitle')}
-            onPress={() => router.push('/(app)/captain/preferences')} />
         </View>
       </FadeInView>
 
@@ -333,7 +334,7 @@ function StateCard({
         style={{ borderRadius: radius.xxl, padding: spacing.xl, ...(onRide ? shadow.raised : shadow.ember) }}
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <PulseDot color={onRide ? colors.saffron : colors.white} />
+          <PulseDot color={colors.success} />
           <AppText variant="overline" color={onRide ? colors.saffron : '#FFF1DD'}>{t('captain.state.youAre')}</AppText>
         </View>
         <AppText variant="display" color={colors.white} style={{ marginTop: spacing.xs }}>

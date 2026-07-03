@@ -6,13 +6,13 @@ import {
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { DateField, ScreenHeader } from '@/components/ui';
 import * as ImagePicker from 'expo-image-picker';
 import { api } from '@/lib/api';
 import {
   type AppDoc, type ApplicationDto, type DocumentType,
   DOCUMENTS_WITH_EXPIRY, DOCUMENT_ORDER, isDocRequired,
 } from '@/lib/kyc';
-import { DateField } from '@/components/ui';
 
 export default function DocumentsScreen() {
   const router = useRouter();
@@ -161,12 +161,7 @@ export default function DocumentsScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
-        <Pressable onPress={() => router.back()}>
-          <Text style={{ color: '#64748b', fontSize: 14 }}>‹ {t('common.back')}</Text>
-        </Pressable>
-        <Text style={{ fontSize: 24, fontWeight: '700', color: '#0f172a', marginTop: 12 }}>
-          {t('becomeCaptain.docs.title')}
-        </Text>
+        <ScreenHeader title={t('becomeCaptain.docs.title')} onBack={() => router.back()} />
         <Text style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>
           {t('becomeCaptain.docs.introV2')}
         </Text>

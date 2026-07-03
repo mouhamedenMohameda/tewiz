@@ -10,6 +10,7 @@ import { RideCancelReasonSheet } from '@/components/RideCancelReasonSheet';
 import { formatMru } from '@/lib/format';
 import { CAPTAIN_RIDE_CANCEL_REASONS, RIDE_CANCEL_REASON_LABEL_FR } from '@/lib/rideCancelReasons';
 import { usePolling } from '@/lib/usePolling';
+import { keepIfEqual } from '@/lib/sameData';
 import {
   AppText, Button, Card, Icon, PressableScale, Screen, ScreenHeader, type IconName,
 } from '@/components/ui';
@@ -147,22 +148,24 @@ export default function RidesScreen() {
         }),
         api.get<Ride[]>('/captain/rides/history'),
       ]);
-      setHistory(historyRes.data);
+      // keepIfEqual bails out of the re-render when the polled data matches the
+      // previous tick (the usual case at 3–8 s cadence between real changes).
+      setHistory(keepIfEqual(historyRes.data));
       if (curRes.status === 204) {
-        setCurrent(null);
+        setCurrent(keepIfEqual<Ride | null>(null));
         try {
           const inb = await api.get<InboxItem[]>('/captain/rides/inbox');
-          setInbox(inb.data);
+          setInbox(keepIfEqual(inb.data));
         } catch (e: any) {
           if (e.response?.status === 400) {
-            setInbox([]);
+            setInbox(keepIfEqual<InboxItem[]>([]));
           } else {
             throw e;
           }
         }
       } else {
-        setCurrent(curRes.data);
-        setInbox([]);
+        setCurrent(keepIfEqual<Ride | null>(curRes.data));
+        setInbox(keepIfEqual<InboxItem[]>([]));
       }
     } finally {
       setLoading(false);

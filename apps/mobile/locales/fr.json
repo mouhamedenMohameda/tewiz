@@ -277,6 +277,47 @@
         "ended": "Terminée"
       }
     },
+    "restaurants": {
+      "title": "Restaurants",
+      "subtitle": "Nouakchott",
+      "searchPlaceholder": "Rechercher un restaurant, un plat…",
+      "heroOverline": "À table",
+      "heroTitle": "Les meilleures tables de Nouakchott",
+      "heroLoading": "On charge la sélection…",
+      "heroCount": "{{count}} restaurants triés sur le volet — bientôt avec leurs cartes.",
+      "loading": "Chargement…",
+      "resultCount_one": "{{count}} adresse",
+      "resultCount_other": "{{count}} adresses",
+      "sortedBy": "Triés par popularité",
+      "errorTitle": "Une erreur est survenue",
+      "loadError": "Impossible de charger les restaurants.",
+      "emptyTitle": "Aucune adresse trouvée",
+      "emptyBody": "Essayez un autre mot-clé ou changez de catégorie.",
+      "resetFilters": "Réinitialiser les filtres",
+      "notFound": "Restaurant introuvable",
+      "error": "Erreur",
+      "loadDetailError": "Impossible de charger ce restaurant.",
+      "goToRestaurant": "Aller à ce restaurant",
+      "deliverFromHere": "Livrer un colis d'ici",
+      "viewMenu": "Voir la carte des plats",
+      "menuAlertTitle": "Carte du restaurant",
+      "menuAlertBody": "La carte des plats de {{name}} sera disponible très bientôt. Restez connecté !",
+      "etaLabel": "Délai",
+      "zoneLabel": "Quartier",
+      "about": "À propos",
+      "address": "Adresse",
+      "cuisine": {
+        "all": "Tout",
+        "mauritanien": "Mauritanien",
+        "pizza": "Pizza",
+        "burger": "Burger",
+        "libanais": "Libanais",
+        "asiatique": "Asiatique",
+        "grillades": "Grillades",
+        "cafe": "Café",
+        "patisserie": "Pâtisserie"
+      }
+    },
     "newRide": {
       "title": "Nouvelle course",
       "pickupLabel": "Départ",
@@ -366,6 +407,8 @@
       "errorOnline": "Erreur lors du passage en ligne.",
       "errorOffline": "Erreur lors du passage hors ligne.",
       "errorGoingHome": "Erreur sur le mode \"Je rentre chez moi\".",
+      "goingHomeCooldownTitle": "Déjà utilisé aujourd'hui",
+      "goingHomeCooldownBody": "Vous avez déjà activé \"Je rentre chez moi\" dans les dernières 24h. Ce sera bientôt disponible à nouveau.",
       "errorTitle": "Impossible"
     },
     "nav": {

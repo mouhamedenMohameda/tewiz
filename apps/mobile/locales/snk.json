@@ -248,6 +248,47 @@
         "ended": "Koota"
       }
     },
+    "restaurants": {
+      "title": "Restaurants",
+      "subtitle": "Nouakchott",
+      "searchPlaceholder": "Ŋa restaurant walla doome ñiiñe…",
+      "heroOverline": "Doome ñiiñe",
+      "heroTitle": "Restaurants sireye Nouakchott",
+      "heroLoading": "A kasa…",
+      "heroCount": "{{count}} restaurants — carte ñaamdu a kini baawo.",
+      "loading": "A kasa…",
+      "resultCount_one": "{{count}} adresse",
+      "resultCount_other": "{{count}} adresses",
+      "sortedBy": "Daraja kanma",
+      "errorTitle": "Taaxi do",
+      "loadError": "Restaurants ga kase.",
+      "emptyTitle": "Fo nda soro",
+      "emptyBody": "Helmere wure walla catégorie wure ñige.",
+      "resetFilters": "Filtres xullen",
+      "notFound": "Restaurant do soro",
+      "error": "Taaxi",
+      "loadDetailError": "Restaurant wo ga kase.",
+      "goToRestaurant": "Kini restaurant wo ya",
+      "deliverFromHere": "Colis safundu ŋa",
+      "viewMenu": "Carte ñaamdu xolle",
+      "menuAlertTitle": "Carte restaurant",
+      "menuAlertBody": "Carte ñaamdu {{name}} a kini baawo. Mungu!",
+      "etaLabel": "Waxati",
+      "zoneLabel": "Quartier",
+      "about": "Kanma",
+      "address": "Adresse",
+      "cuisine": {
+        "all": "Bere",
+        "mauritanien": "Mauritanien",
+        "pizza": "Pizza",
+        "burger": "Burger",
+        "libanais": "Libanais",
+        "asiatique": "Asiatique",
+        "grillades": "Grillades",
+        "cafe": "Café",
+        "patisserie": "Pâtisserie"
+      }
+    },
     "newRide": {
       "title": "Course kura",
       "pickupLabel": "Sigi",
@@ -337,6 +378,8 @@
       "errorOnline": "Doome ligne do don.",
       "errorOffline": "Doome ligne do bunu.",
       "errorGoingHome": "Doome mode \"N ga ka da\".",
+      "goingHomeCooldownTitle": "A ya ke baane bi",
+      "goingHomeCooldownBody": "A ya ke \"N ga ka da\" mode sege 24 wagatu gabe ya. A ga da nta giri.",
       "errorTitle": "A nta wari"
     },
     "nav": {

@@ -13,7 +13,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { Alert, Linking, Platform, Pressable, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Platform, Pressable, Switch, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import * as Application from 'expo-application';
@@ -29,7 +29,14 @@ import {
 import { colors, radius, shadow, spacing } from '@/theme';
 import { APP_NAME } from '@/lib/brand';
 
-const SUPPORT_WHATSAPP = '33656696974';
+const SUPPORT_WHATSAPP = '2223332277';
+
+interface CaptainPreferences {
+  acceptsColis: boolean;
+  acceptsLongDistance: boolean;
+}
+
+type CaptainPrefKey = keyof CaptainPreferences;
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -42,10 +49,25 @@ export default function SettingsScreen() {
   const [name, setName] = useState(user?.fullName ?? '');
   const [savingName, setSavingName] = useState(false);
   const [lang, setLang] = useState<AppLanguage>(currentLanguage());
+  const [captainPrefs, setCaptainPrefs] = useState<CaptainPreferences | null>(null);
+  const [loadingCaptainPrefs, setLoadingCaptainPrefs] = useState(false);
+  const [busyCaptainPref, setBusyCaptainPref] = useState<CaptainPrefKey | null>(null);
 
   useEffect(() => {
     setName(user?.fullName ?? '');
   }, [user?.fullName]);
+
+  useEffect(() => {
+    if (user?.role !== 'captain') {
+      setCaptainPrefs(null);
+      return;
+    }
+    setLoadingCaptainPrefs(true);
+    api.get<CaptainPreferences>('/captain/preferences')
+      .then((r) => setCaptainPrefs(r.data))
+      .catch(() => setCaptainPrefs(null))
+      .finally(() => setLoadingCaptainPrefs(false));
+  }, [user?.role]);
 
   async function saveName() {
     const trimmed = name.trim();
@@ -82,6 +104,25 @@ export default function SettingsScreen() {
     void api.patch('/auth/me', { language: next }).catch(() => undefined);
     if (needsRestart) {
       Alert.alert(t('settings.preferences.restartTitle'), t('settings.preferences.restartBody'));
+    }
+  }
+
+  async function toggleCaptainPref(key: CaptainPrefKey, next: boolean) {
+    if (!captainPrefs) return;
+    setBusyCaptainPref(key);
+    const prev = captainPrefs;
+    setCaptainPrefs({ ...captainPrefs, [key]: next });
+    try {
+      const r = await api.patch<CaptainPreferences>('/captain/preferences', { [key]: next });
+      setCaptainPrefs(r.data);
+    } catch (e: any) {
+      setCaptainPrefs(prev);
+      Alert.alert(
+        t('captain.preferences.saveError'),
+        e?.response?.data?.error?.message ?? '',
+      );
+    } finally {
+      setBusyCaptainPref(null);
     }
   }
 
@@ -156,6 +197,45 @@ export default function SettingsScreen() {
         </Card>
       </Section>
 
+      {user?.role === 'captain' ? (
+        <Section title={t('captain.preferences.title')}>
+          <Card padding={spacing.lg} style={{ gap: spacing.md }}>
+            <AppText variant="caption" color={colors.ink2} style={{ lineHeight: 18 }}>
+              {t('captain.preferences.intro')}
+            </AppText>
+            {loadingCaptainPrefs ? (
+              <View style={{ paddingVertical: spacing.sm }}>
+                <ActivityIndicator color={colors.ember} />
+              </View>
+            ) : null}
+            {captainPrefs ? (
+              <View style={{ gap: spacing.md }}>
+                <CaptainPrefRow
+                  icon="parcel"
+                  tint={colors.emberSoft}
+                  fg={colors.ember}
+                  title={t('captain.preferences.colis')}
+                  hint={t('captain.preferences.colisHint')}
+                  value={captainPrefs.acceptsColis}
+                  busy={busyCaptainPref === 'acceptsColis'}
+                  onChange={(v) => toggleCaptainPref('acceptsColis', v)}
+                />
+                <CaptainPrefRow
+                  icon="ride"
+                  tint={colors.saffronSoft}
+                  fg={colors.warning}
+                  title={t('captain.preferences.longDistance')}
+                  hint={t('captain.preferences.longDistanceHint')}
+                  value={captainPrefs.acceptsLongDistance}
+                  busy={busyCaptainPref === 'acceptsLongDistance'}
+                  onChange={(v) => toggleCaptainPref('acceptsLongDistance', v)}
+                />
+              </View>
+            ) : null}
+          </Card>
+        </Section>
+      ) : null}
+
       {/* Notifications */}
       <Section title={t('settings.notifications.section')}>
         <Card
@@ -218,6 +298,40 @@ export default function SettingsScreen() {
         </Card>
       </Section>
     </Screen>
+  );
+}
+
+function CaptainPrefRow({
+  icon, tint, fg, title, hint, value, busy, onChange,
+}: {
+  icon: 'parcel' | 'ride';
+  tint: string;
+  fg: string;
+  title: string;
+  hint: string;
+  value: boolean;
+  busy: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.base }}>
+      <RoundIcon name={icon} tint={tint} fg={fg} size={46} iconSize={24} />
+      <View style={{ flex: 1 }}>
+        <AppText variant="bodyStrong">{title}</AppText>
+        <AppText variant="caption" color={colors.ink2} style={{ marginTop: 2 }}>{hint}</AppText>
+      </View>
+      {busy ? (
+        <ActivityIndicator color={fg} />
+      ) : (
+        <Switch
+          value={value}
+          onValueChange={onChange}
+          trackColor={{ false: colors.lineStrong, true: fg }}
+          thumbColor={colors.white}
+          ios_backgroundColor={colors.lineStrong}
+        />
+      )}
+    </View>
   );
 }
 

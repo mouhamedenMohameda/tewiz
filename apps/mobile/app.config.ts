@@ -24,7 +24,7 @@ const HAS_GOOGLE_SERVICES = existsSync(GOOGLE_SERVICES_FILE);
 const config: ExpoConfig = {
   name: APP_NAME,
   slug: APP_SLUG,
-  version: '1.1.0',
+  version: '1.1.12',
   orientation: 'portrait',
   userInterfaceStyle: 'light',
   icon: './assets/icon.png',
