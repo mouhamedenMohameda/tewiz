@@ -156,13 +156,21 @@ export const fonts = {
     bold: 'Sora_700Bold',
     extrabold: 'Sora_800ExtraBold',
   },
-  // Text — Plus Jakarta Sans (humanist, warm) for UI & body.
+  // Text — Sora for Latin scripts.
   text: {
-    regular: 'PlusJakartaSans_400Regular',
-    medium: 'PlusJakartaSans_500Medium',
-    semibold: 'PlusJakartaSans_600SemiBold',
-    bold: 'PlusJakartaSans_700Bold',
-    extrabold: 'PlusJakartaSans_800ExtraBold',
+    regular: 'Sora_400Regular',
+    medium: 'Sora_500Medium',
+    semibold: 'Sora_600SemiBold',
+    bold: 'Sora_700Bold',
+    extrabold: 'Sora_800ExtraBold',
+  },
+  // Arabic display & text — Noto Kufi Arabic (inspired by Al Jazeera style).
+  arabic: {
+    regular: 'NotoKufiArabic_400Regular',
+    medium: 'NotoKufiArabic_500Medium',
+    semibold: 'NotoKufiArabic_600SemiBold',
+    bold: 'NotoKufiArabic_700Bold',
+    extrabold: 'NotoKufiArabic_800ExtraBold',
   },
   mono: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
 } as const;

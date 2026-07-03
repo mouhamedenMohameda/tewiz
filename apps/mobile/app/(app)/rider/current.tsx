@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert, Animated, Linking, Modal, Pressable, RefreshControl,
-  ScrollView, Text, TextInput, View,
+  ActivityIndicator, Alert, Animated, KeyboardAvoidingView, Linking, Modal, Platform,
+  Pressable, RefreshControl, ScrollView, Text, TextInput, View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -278,10 +278,13 @@ function RatingSheet({
 
   return (
     <Modal visible={visible} transparent animationType="fade">
-      <View style={{
-        flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.7)',
-        justifyContent: 'flex-end',
-      }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{
+          flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.7)',
+          justifyContent: 'flex-end',
+        }}
+      >
         <View style={{
           backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24,
           padding: 24, paddingBottom: 36, gap: 16,
@@ -390,7 +393,7 @@ function RatingSheet({
             </>
           )}
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

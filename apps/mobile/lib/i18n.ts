@@ -3,9 +3,11 @@
  *
  * Supported languages: French (default), Arabic (RTL), English.
  *
- * RTL note: React Native bakes the layout direction at the JS bridge boot, so
- * toggling Arabic flips `I18nManager.forceRTL(true)` then *requires an app
- * restart* before mirrored layouts kick in. Settings screen warns the user.
+ * RTL note: the native layout direction is applied ONLY at boot, inside
+ * initI18n() and before the first paint. Toggling to/from Arabic mid-session
+ * therefore *requires an app restart* before mirrored layouts kick in — the
+ * Settings screen warns the user. Never call forceRTL after the first render:
+ * it mirrors only the views that re-render, so the UI jumps around.
  */
 
 import 'intl-pluralrules';
@@ -88,6 +90,12 @@ export function isRTL(lang: AppLanguage): boolean {
  * Force the RN layout direction to match the active language. Returns true
  * iff the direction actually changed — caller should warn the user that
  * mirrored layouts only take effect after a full app restart.
+ *
+ * ONLY call this before the first paint (i.e. from initI18n, which the root
+ * layout awaits before rendering). Flipping `I18nManager.forceRTL` while
+ * views are already mounted re-resolves the direction only for nodes that
+ * happen to re-render, so the UI ends up half-mirrored — the home header and
+ * the hero title visibly jump between LTR and RTL. See tests/i18n.test.ts.
  */
 export function applyLayoutDirection(lang: AppLanguage): boolean {
   const wantRTL = isRTL(lang);
@@ -126,16 +134,26 @@ export function initI18n(): Promise<typeof i18n> {
 /**
  * Persist and apply a new language. Returns true if the app must be restarted
  * to fully apply the layout direction change (i.e. switched to/from Arabic).
+ *
+ * The native layout direction is deliberately NOT flipped here: forceRTL on a
+ * running app mirrors only the views that re-render next, leaving the rest in
+ * the old direction (header/hero "jumping" bug). The stored language drives
+ * applyLayoutDirection at the next boot, before anything is painted.
  */
 export async function setLanguage(lang: AppLanguage): Promise<{ needsRestart: boolean }> {
   await AsyncStorage.setItem(STORAGE_KEY, lang);
-  const directionChanged = applyLayoutDirection(lang);
+  const needsRestart = isRTL(lang) !== I18nManager.isRTL;
   await i18n.changeLanguage(lang);
-  return { needsRestart: directionChanged };
+  return { needsRestart };
 }
 
 export function currentLanguage(): AppLanguage {
-  return (i18n.language?.slice(0, 2) as AppLanguage) ?? DEFAULT_LANGUAGE;
+  const raw = i18n.language ?? '';
+  // Exact match first so 3-letter codes (snk) survive; then map regional
+  // variants (fr-FR → fr) to their base language.
+  if (SUPPORTED_LANGUAGES.includes(raw as AppLanguage)) return raw as AppLanguage;
+  const base = raw.slice(0, 2) as AppLanguage;
+  return SUPPORTED_LANGUAGES.includes(base) ? base : DEFAULT_LANGUAGE;
 }
 
 export { i18n };

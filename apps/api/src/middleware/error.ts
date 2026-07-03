@@ -20,10 +20,13 @@ export const notFound: RequestHandler = (req, res) => {
 
 export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   if (err instanceof ZodError) {
+    // Surface the first issue's message (e.g. "Numéro mauritanien invalide…")
+    // so clients can show something actionable instead of a generic error.
+    // The full issue list stays available for programmatic consumers.
     res.status(400).json({
       error: {
         code: 'validation_error',
-        message: 'Invalid request',
+        message: err.issues[0]?.message ?? 'Invalid request',
         issues: err.issues,
       },
     });
