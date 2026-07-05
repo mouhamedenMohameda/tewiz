@@ -96,7 +96,8 @@ export type WalletTxType =
   | 'commission_refund'
   | 'manual_adjustment'
   | 'bonus'
-  | 'carpooling_publication';
+  | 'carpooling_publication'
+  | 'listing_publication';
 
 // --- Captain state ---
 export type CaptainPresence = 'offline' | 'online' | 'on_ride' | 'paused';
