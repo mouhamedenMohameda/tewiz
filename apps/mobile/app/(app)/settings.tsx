@@ -28,6 +28,8 @@ import {
 } from '@/components/ui';
 import { colors, radius, shadow, spacing } from '@/theme';
 import { APP_NAME } from '@/lib/brand';
+import { APP_MODULES } from '@/lib/modules';
+import { useModulePreferences } from '@/lib/modulePreferences';
 
 const SUPPORT_WHATSAPP = '2223332277';
 
@@ -52,6 +54,7 @@ export default function SettingsScreen() {
   const [captainPrefs, setCaptainPrefs] = useState<CaptainPreferences | null>(null);
   const [loadingCaptainPrefs, setLoadingCaptainPrefs] = useState(false);
   const [busyCaptainPref, setBusyCaptainPref] = useState<CaptainPrefKey | null>(null);
+  const { isEnabled, toggle: toggleModule } = useModulePreferences();
 
   useEffect(() => {
     setName(user?.fullName ?? '');
@@ -194,6 +197,32 @@ export default function SettingsScreen() {
           <AppText variant="caption" color={colors.muted} style={{ lineHeight: 18 }}>
             {t('settings.preferences.languageHint')}
           </AppText>
+        </Card>
+      </Section>
+
+      {/* Home modules */}
+      <Section title={t('settings.modules.section')}>
+        <Card padding={spacing.lg} style={{ gap: spacing.md }}>
+          <AppText variant="caption" color={colors.ink2} style={{ lineHeight: 18 }}>
+            {t('settings.modules.hint')}
+          </AppText>
+          {APP_MODULES.map((m) => (
+            <View key={m.key} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.base }}>
+              <RoundIcon name={m.icon} tint={m.tint} fg={m.fg} size={46} iconSize={24} />
+              <View style={{ flex: 1 }}>
+                <AppText variant="bodyStrong">
+                  {m.label.startsWith('rider.') ? t(m.label as any) : m.label}
+                </AppText>
+              </View>
+              <Switch
+                value={isEnabled(m.key)}
+                onValueChange={(v) => toggleModule(m.key, v)}
+                trackColor={{ false: colors.lineStrong, true: colors.ember }}
+                thumbColor={colors.white}
+                ios_backgroundColor={colors.lineStrong}
+              />
+            </View>
+          ))}
         </Card>
       </Section>
 

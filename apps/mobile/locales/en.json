@@ -875,6 +875,10 @@
       "version": "Version",
       "support": "Contact support",
       "supportMessage": "Hello, I need help with the {{app}} app."
+    },
+    "modules": {
+      "section": "Displayed services",
+      "hint": "Choose which services appear on your home screen."
     }
   },
   "languages": {

@@ -875,6 +875,10 @@
       "version": "Version",
       "support": "Contacter le support",
       "supportMessage": "Bonjour, j'ai besoin d'aide avec l'application {{app}}."
+    },
+    "modules": {
+      "section": "Services affichés",
+      "hint": "Choisissez les services visibles sur votre écran d'accueil."
     }
   },
   "languages": {

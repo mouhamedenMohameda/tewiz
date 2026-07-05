@@ -812,6 +812,10 @@
       "version": "Version",
       "support": "Heɓto support",
       "supportMessage": "Mbaɗ-Allah, miɗo soklaa ballal e application {{app}}."
+    },
+    "modules": {
+      "section": "Services affichés",
+      "hint": "Choisissez les services visibles sur votre écran d'accueil."
     }
   },
   "languages": {

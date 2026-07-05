@@ -14,6 +14,7 @@ import {
 } from '@/components/ui';
 import { colors, gradients, radius, shadow, spacing } from '@/theme';
 import { APP_NAME } from '@/lib/brand';
+import { useModulePreferences } from '@/lib/modulePreferences';
 import type { ApplicationDto, ApplicationStatus } from '@/lib/kyc';
 
 type RideStatus =
@@ -42,6 +43,7 @@ export default function RiderHome() {
   // Phone gate: a guest must enter a number before booking a ride or applying
   // to be a captain (so the captain can reach them). We stash the intended
   // destination, prompt for the number, then continue.
+  const { enabledModules } = useModulePreferences();
   const [pending, setPending] = useState<Intent | null>(null);
   const [phoneInput, setPhoneInput] = useState('+222');
   const [savingPhone, setSavingPhone] = useState(false);
@@ -195,16 +197,16 @@ export default function RiderHome() {
           {t('rider.home.shortcuts')}
         </AppText>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md }}>
-          <QuickTile icon="history" label={t('rider.home.history')} tint={colors.emberSoft} fg={colors.ember}
-            onPress={() => router.push('/(app)/rider/history')} />
-          <QuickTile icon="drivers" label={t('rider.home.drivers')} tint={colors.saffronSoft} fg={colors.warning}
-            onPress={() => router.push('/(app)/rider/favorites')} />
-          <QuickTile icon="recurring" label={t('rider.home.recurring')} tint="#E9EFE6" fg={colors.success}
-            onPress={() => router.push('/(app)/rider/recurring')} />
-          <QuickTile icon="restaurant" label={t('rider.home.restaurants')} tint="#FDE2D7" fg={colors.emberDeep}
-            onPress={() => router.push('/(app)/rider/restaurants')} />
-          <QuickTile icon="car" label="Covoiturage inter-villes" tint="#E6F4EA" fg={colors.success}
-            onPress={() => router.push('/(app)/carpooling')} />
+          {enabledModules.map((m) => (
+            <QuickTile
+              key={m.key}
+              icon={m.icon}
+              label={m.label.startsWith('rider.') ? t(m.label as any) : m.label}
+              tint={m.tint}
+              fg={m.fg}
+              onPress={() => router.push(m.route as any)}
+            />
+          ))}
         </View>
       </FadeInView>
 
