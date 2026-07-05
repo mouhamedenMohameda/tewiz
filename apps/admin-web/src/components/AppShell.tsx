@@ -27,6 +27,7 @@ const NAV = [
   { href: '/rides/new',      label: 'Nouvelle course', icon: '🗺️' },
   { href: '/restaurants',    label: 'Restaurants', icon: '🍽️' },
   { href: '/partners',       label: 'Partenaires', icon: '🤝' },
+  { href: '/carpooling',     label: 'Covoiturage', icon: '🚗' },
   { href: '/stats',          label: 'Statistiques', icon: '📊' },
   { href: '/notifications',  label: 'Notifications', icon: '🔔' },
   { href: '/settings',       label: 'Paramètres',  icon: '⚙️' },

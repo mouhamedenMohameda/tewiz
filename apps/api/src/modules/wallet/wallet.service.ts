@@ -19,7 +19,7 @@ export interface CreditOptions {
 export interface DebitOptions {
   captainId: string;
   amountMru: number;             // POSITIVE integer; will be stored as negative
-  type: Extract<WalletTxType, 'commission' | 'manual_adjustment'>;
+  type: 'commission' | 'manual_adjustment' | 'carpooling_publication';
   rideId?: string | null;
   reason?: string | null;
   createdBy?: string | null;

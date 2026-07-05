@@ -203,6 +203,8 @@ export default function RiderHome() {
             onPress={() => router.push('/(app)/rider/recurring')} />
           <QuickTile icon="restaurant" label={t('rider.home.restaurants')} tint="#FDE2D7" fg={colors.emberDeep}
             onPress={() => router.push('/(app)/rider/restaurants')} />
+          <QuickTile icon="car" label="Covoiturage inter-villes" tint="#E6F4EA" fg={colors.success}
+            onPress={() => router.push('/(app)/carpooling')} />
         </View>
       </FadeInView>
 

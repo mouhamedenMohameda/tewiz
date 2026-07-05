@@ -15,7 +15,10 @@ export default function AppLayout() {
 
   return (
     <>
-      <Stack screenOptions={{ headerShown: false }} />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="carpooling/index" />
+        <Stack.Screen name="carpooling/publish" />
+      </Stack>
       <CaptainCredentialsGate />
     </>
   );

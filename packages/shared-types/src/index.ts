@@ -88,14 +88,15 @@ export const DOCUMENTS_WITH_EXPIRY: DocumentType[] = [
 ];
 
 // --- Wallet ---
-export type TopupProvider = 'bankily' | 'masrvi' | 'sedad' | 'cash_office';
+export type TopupProvider = 'bankily' | 'masrvi' | 'masrivi' | 'sedad' | 'cash_office';
 export type TopupStatus = 'pending' | 'approved' | 'partial' | 'rejected' | 'duplicate';
 export type WalletTxType =
   | 'topup'
   | 'commission'
   | 'commission_refund'
   | 'manual_adjustment'
-  | 'bonus';
+  | 'bonus'
+  | 'carpooling_publication';
 
 // --- Captain state ---
 export type CaptainPresence = 'offline' | 'online' | 'on_ride' | 'paused';

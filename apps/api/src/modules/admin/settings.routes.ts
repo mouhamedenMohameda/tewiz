@@ -72,6 +72,9 @@ const patchBody = z.object({
   nightPriceMultiplier:             z.number().min(1).max(10).optional(),
   nightPriceStartHour:              z.number().int().min(0).max(23).optional(),
   nightPriceEndHour:                z.number().int().min(0).max(23).optional(),
+  carpoolingEnabled:                z.boolean().optional(),
+  carpoolingPublicationFee:         z.number().int().min(0).max(10_000).optional(),
+  carpoolingBoostFee:               z.number().int().min(0).max(10_000).optional(),
   // Feature flag for the reviewer demo-login buttons (migration 0031).
   showDemoButtons:                  z.boolean().optional(),
   captainAlertSoundMode:            z.enum(CAPTAIN_ALERT_SOUND_MODES).optional(),
