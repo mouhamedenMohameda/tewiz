@@ -70,9 +70,14 @@ export async function captainInbox(input: {
                ST_Distance(r.dropoff_location, g.home_snapshot)
         END
         FROM (SELECT home_snapshot FROM gh) g
-      ) AS homeward_progress_m
+      ) AS homeward_progress_m,
+      pd.booked_duration_h,
+      cv.vehicle_plate,
+      cv.vehicle_description
     FROM rides r, me
     CROSS JOIN cap
+    LEFT JOIN private_driver_details pd ON pd.ride_id = r.id
+    LEFT JOIN convoyage_details cv ON cv.ride_id = r.id
     WHERE r.status = 'searching'
       AND ST_DWithin(r.pickup_location, me.pt, $3)
       AND (
@@ -142,6 +147,9 @@ export async function captainInbox(input: {
     isFavorite: row.is_favorite,
     homewardProgressM: row.homeward_progress_m === null ? null : Number(row.homeward_progress_m),
     isOpen: !!row.is_open,
+    bookedDurationH: row.booked_duration_h ?? null,
+    vehiclePlate: row.vehicle_plate ?? null,
+    vehicleDescription: row.vehicle_description ?? null,
   }));
 }
 

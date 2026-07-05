@@ -878,7 +878,8 @@
     },
     "modules": {
       "section": "Displayed services",
-      "hint": "Choose which services appear on your home screen."
+      "hint": "Choose which services appear on your home screen.",
+      "open": "Manage services"
     }
   },
   "languages": {

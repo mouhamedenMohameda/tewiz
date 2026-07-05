@@ -89,6 +89,34 @@ export interface PricingSettings {
   partnerFraudPairMaxRides7d: number;
   partnerFraudMinDistanceM: number;
   partnerFraudMaxCreationsPerHour: number;
+  privateDriverEnabled: boolean;
+  privateDriverHourlyRateMru: number;
+  privateDriverMinHours: number;
+  privateDriverCommissionBps: number;
+  convoyageEnabled: boolean;
+  convoyageBaseFareMru: number;
+  convoyagePerKmMru: number;
+  convoyageMinFareMru: number;
+  convoyageCommissionBps: number;
+  carRentalEnabled: boolean;
+  carRentalDailyRateMru: number;
+  carRentalCommissionBps: number;
+  roadsideAssistanceEnabled: boolean;
+  roadsideAssistanceBaseFareMru: number;
+  roadsideAssistanceCommissionBps: number;
+  lightMovingEnabled: boolean;
+  lightMovingBaseFareMru: number;
+  lightMovingPerKmMru: number;
+  lightMovingMinFareMru: number;
+  lightMovingCommissionBps: number;
+  intercityFreightEnabled: boolean;
+  intercityFreightBaseFareMru: number;
+  intercityFreightPerKmMru: number;
+  intercityFreightMinFareMru: number;
+  intercityFreightCommissionBps: number;
+  equipmentRentalEnabled: boolean;
+  equipmentRentalDailyRateMru: number;
+  equipmentRentalCommissionBps: number;
   updatedAt: string;
   updatedBy: string | null;
 }
@@ -148,6 +176,34 @@ interface Row {
   partner_fraud_pair_max_rides_7d: number;
   partner_fraud_min_distance_m: number;
   partner_fraud_max_creations_per_hour: number;
+  private_driver_enabled: boolean;
+  private_driver_hourly_rate_mru: number;
+  private_driver_min_hours: number;
+  private_driver_commission_bps: number;
+  convoyage_enabled: boolean;
+  convoyage_base_fare_mru: number;
+  convoyage_per_km_mru: number;
+  convoyage_min_fare_mru: number;
+  convoyage_commission_bps: number;
+  car_rental_enabled: boolean;
+  car_rental_daily_rate_mru: number;
+  car_rental_commission_bps: number;
+  roadside_assistance_enabled: boolean;
+  roadside_assistance_base_fare_mru: number;
+  roadside_assistance_commission_bps: number;
+  light_moving_enabled: boolean;
+  light_moving_base_fare_mru: number;
+  light_moving_per_km_mru: number;
+  light_moving_min_fare_mru: number;
+  light_moving_commission_bps: number;
+  intercity_freight_enabled: boolean;
+  intercity_freight_base_fare_mru: number;
+  intercity_freight_per_km_mru: number;
+  intercity_freight_min_fare_mru: number;
+  intercity_freight_commission_bps: number;
+  equipment_rental_enabled: boolean;
+  equipment_rental_daily_rate_mru: number;
+  equipment_rental_commission_bps: number;
   updated_at: Date;
   updated_by: string | null;
 }
@@ -205,6 +261,34 @@ function toSettings(r: Row): PricingSettings {
     partnerFraudPairMaxRides7d: r.partner_fraud_pair_max_rides_7d,
     partnerFraudMinDistanceM: r.partner_fraud_min_distance_m,
     partnerFraudMaxCreationsPerHour: r.partner_fraud_max_creations_per_hour,
+    privateDriverEnabled: r.private_driver_enabled,
+    privateDriverHourlyRateMru: r.private_driver_hourly_rate_mru,
+    privateDriverMinHours: r.private_driver_min_hours,
+    privateDriverCommissionBps: r.private_driver_commission_bps,
+    convoyageEnabled: r.convoyage_enabled,
+    convoyageBaseFareMru: r.convoyage_base_fare_mru,
+    convoyagePerKmMru: r.convoyage_per_km_mru,
+    convoyageMinFareMru: r.convoyage_min_fare_mru,
+    convoyageCommissionBps: r.convoyage_commission_bps,
+    carRentalEnabled: r.car_rental_enabled,
+    carRentalDailyRateMru: r.car_rental_daily_rate_mru,
+    carRentalCommissionBps: r.car_rental_commission_bps,
+    roadsideAssistanceEnabled: r.roadside_assistance_enabled,
+    roadsideAssistanceBaseFareMru: r.roadside_assistance_base_fare_mru,
+    roadsideAssistanceCommissionBps: r.roadside_assistance_commission_bps,
+    lightMovingEnabled: r.light_moving_enabled,
+    lightMovingBaseFareMru: r.light_moving_base_fare_mru,
+    lightMovingPerKmMru: r.light_moving_per_km_mru,
+    lightMovingMinFareMru: r.light_moving_min_fare_mru,
+    lightMovingCommissionBps: r.light_moving_commission_bps,
+    intercityFreightEnabled: r.intercity_freight_enabled,
+    intercityFreightBaseFareMru: r.intercity_freight_base_fare_mru,
+    intercityFreightPerKmMru: r.intercity_freight_per_km_mru,
+    intercityFreightMinFareMru: r.intercity_freight_min_fare_mru,
+    intercityFreightCommissionBps: r.intercity_freight_commission_bps,
+    equipmentRentalEnabled: r.equipment_rental_enabled,
+    equipmentRentalDailyRateMru: r.equipment_rental_daily_rate_mru,
+    equipmentRentalCommissionBps: r.equipment_rental_commission_bps,
     updatedAt: r.updated_at.toISOString(),
     updatedBy: r.updated_by,
   };
@@ -248,6 +332,23 @@ export async function getPricingSettings(): Promise<PricingSettings> {
             partner_passenger_commission_bps, partner_colis_commission_bps,
             partner_fraud_pair_max_rides_7d, partner_fraud_min_distance_m,
             partner_fraud_max_creations_per_hour,
+            private_driver_enabled, private_driver_hourly_rate_mru,
+            private_driver_min_hours, private_driver_commission_bps,
+            convoyage_enabled, convoyage_base_fare_mru,
+            convoyage_per_km_mru, convoyage_min_fare_mru,
+            convoyage_commission_bps,
+            car_rental_enabled, car_rental_daily_rate_mru,
+            car_rental_commission_bps,
+            roadside_assistance_enabled, roadside_assistance_base_fare_mru,
+            roadside_assistance_commission_bps,
+            light_moving_enabled, light_moving_base_fare_mru,
+            light_moving_per_km_mru, light_moving_min_fare_mru,
+            light_moving_commission_bps,
+            intercity_freight_enabled, intercity_freight_base_fare_mru,
+            intercity_freight_per_km_mru, intercity_freight_min_fare_mru,
+            intercity_freight_commission_bps,
+            equipment_rental_enabled, equipment_rental_daily_rate_mru,
+            equipment_rental_commission_bps,
             updated_at, updated_by
        FROM app_settings WHERE id = 1`,
   );
@@ -313,6 +414,34 @@ export interface PricingSettingsPatch {
   partnerFraudPairMaxRides7d?: number;
   partnerFraudMinDistanceM?: number;
   partnerFraudMaxCreationsPerHour?: number;
+  privateDriverEnabled?: boolean;
+  privateDriverHourlyRateMru?: number;
+  privateDriverMinHours?: number;
+  privateDriverCommissionBps?: number;
+  convoyageEnabled?: boolean;
+  convoyageBaseFareMru?: number;
+  convoyagePerKmMru?: number;
+  convoyageMinFareMru?: number;
+  convoyageCommissionBps?: number;
+  carRentalEnabled?: boolean;
+  carRentalDailyRateMru?: number;
+  carRentalCommissionBps?: number;
+  roadsideAssistanceEnabled?: boolean;
+  roadsideAssistanceBaseFareMru?: number;
+  roadsideAssistanceCommissionBps?: number;
+  lightMovingEnabled?: boolean;
+  lightMovingBaseFareMru?: number;
+  lightMovingPerKmMru?: number;
+  lightMovingMinFareMru?: number;
+  lightMovingCommissionBps?: number;
+  intercityFreightEnabled?: boolean;
+  intercityFreightBaseFareMru?: number;
+  intercityFreightPerKmMru?: number;
+  intercityFreightMinFareMru?: number;
+  intercityFreightCommissionBps?: number;
+  equipmentRentalEnabled?: boolean;
+  equipmentRentalDailyRateMru?: number;
+  equipmentRentalCommissionBps?: number;
 }
 
 export async function updatePricingSettings(
@@ -372,6 +501,34 @@ export async function updatePricingSettings(
           partner_fraud_pair_max_rides_7d   = COALESCE($47, partner_fraud_pair_max_rides_7d),
           partner_fraud_min_distance_m      = COALESCE($48, partner_fraud_min_distance_m),
           partner_fraud_max_creations_per_hour = COALESCE($49, partner_fraud_max_creations_per_hour),
+          private_driver_enabled             = COALESCE($53, private_driver_enabled),
+          private_driver_hourly_rate_mru     = COALESCE($54, private_driver_hourly_rate_mru),
+          private_driver_min_hours           = COALESCE($55, private_driver_min_hours),
+          private_driver_commission_bps      = COALESCE($56, private_driver_commission_bps),
+          convoyage_enabled                  = COALESCE($57, convoyage_enabled),
+          convoyage_base_fare_mru            = COALESCE($58, convoyage_base_fare_mru),
+          convoyage_per_km_mru               = COALESCE($59, convoyage_per_km_mru),
+          convoyage_min_fare_mru             = COALESCE($60, convoyage_min_fare_mru),
+          convoyage_commission_bps           = COALESCE($61, convoyage_commission_bps),
+          car_rental_enabled                 = COALESCE($62, car_rental_enabled),
+          car_rental_daily_rate_mru          = COALESCE($63, car_rental_daily_rate_mru),
+          car_rental_commission_bps          = COALESCE($64, car_rental_commission_bps),
+          roadside_assistance_enabled        = COALESCE($65, roadside_assistance_enabled),
+          roadside_assistance_base_fare_mru  = COALESCE($66, roadside_assistance_base_fare_mru),
+          roadside_assistance_commission_bps = COALESCE($67, roadside_assistance_commission_bps),
+          light_moving_enabled               = COALESCE($68, light_moving_enabled),
+          light_moving_base_fare_mru         = COALESCE($69, light_moving_base_fare_mru),
+          light_moving_per_km_mru            = COALESCE($70, light_moving_per_km_mru),
+          light_moving_min_fare_mru          = COALESCE($71, light_moving_min_fare_mru),
+          light_moving_commission_bps        = COALESCE($72, light_moving_commission_bps),
+          intercity_freight_enabled          = COALESCE($73, intercity_freight_enabled),
+          intercity_freight_base_fare_mru    = COALESCE($74, intercity_freight_base_fare_mru),
+          intercity_freight_per_km_mru       = COALESCE($75, intercity_freight_per_km_mru),
+          intercity_freight_min_fare_mru     = COALESCE($76, intercity_freight_min_fare_mru),
+          intercity_freight_commission_bps   = COALESCE($77, intercity_freight_commission_bps),
+          equipment_rental_enabled           = COALESCE($78, equipment_rental_enabled),
+          equipment_rental_daily_rate_mru    = COALESCE($79, equipment_rental_daily_rate_mru),
+          equipment_rental_commission_bps    = COALESCE($80, equipment_rental_commission_bps),
             updated_at                        = now(),
           updated_by                        = $36
       WHERE id = 1
@@ -408,6 +565,23 @@ export async function updatePricingSettings(
                 partner_passenger_commission_bps, partner_colis_commission_bps,
                 partner_fraud_pair_max_rides_7d, partner_fraud_min_distance_m,
                 partner_fraud_max_creations_per_hour,
+                private_driver_enabled, private_driver_hourly_rate_mru,
+                private_driver_min_hours, private_driver_commission_bps,
+                convoyage_enabled, convoyage_base_fare_mru,
+                convoyage_per_km_mru, convoyage_min_fare_mru,
+                convoyage_commission_bps,
+                car_rental_enabled, car_rental_daily_rate_mru,
+                car_rental_commission_bps,
+                roadside_assistance_enabled, roadside_assistance_base_fare_mru,
+                roadside_assistance_commission_bps,
+                light_moving_enabled, light_moving_base_fare_mru,
+                light_moving_per_km_mru, light_moving_min_fare_mru,
+                light_moving_commission_bps,
+                intercity_freight_enabled, intercity_freight_base_fare_mru,
+                intercity_freight_per_km_mru, intercity_freight_min_fare_mru,
+                intercity_freight_commission_bps,
+                equipment_rental_enabled, equipment_rental_daily_rate_mru,
+                equipment_rental_commission_bps,
                 updated_at, updated_by`,
     [
       patch.baseFareMru ?? null,
@@ -462,6 +636,34 @@ export async function updatePricingSettings(
       patch.carpoolingEnabled ?? null,
       patch.carpoolingPublicationFee ?? null,
       patch.carpoolingBoostFee ?? null,
+      patch.privateDriverEnabled ?? null,
+      patch.privateDriverHourlyRateMru ?? null,
+      patch.privateDriverMinHours ?? null,
+      patch.privateDriverCommissionBps ?? null,
+      patch.convoyageEnabled ?? null,
+      patch.convoyageBaseFareMru ?? null,
+      patch.convoyagePerKmMru ?? null,
+      patch.convoyageMinFareMru ?? null,
+      patch.convoyageCommissionBps ?? null,
+      patch.carRentalEnabled ?? null,
+      patch.carRentalDailyRateMru ?? null,
+      patch.carRentalCommissionBps ?? null,
+      patch.roadsideAssistanceEnabled ?? null,
+      patch.roadsideAssistanceBaseFareMru ?? null,
+      patch.roadsideAssistanceCommissionBps ?? null,
+      patch.lightMovingEnabled ?? null,
+      patch.lightMovingBaseFareMru ?? null,
+      patch.lightMovingPerKmMru ?? null,
+      patch.lightMovingMinFareMru ?? null,
+      patch.lightMovingCommissionBps ?? null,
+      patch.intercityFreightEnabled ?? null,
+      patch.intercityFreightBaseFareMru ?? null,
+      patch.intercityFreightPerKmMru ?? null,
+      patch.intercityFreightMinFareMru ?? null,
+      patch.intercityFreightCommissionBps ?? null,
+      patch.equipmentRentalEnabled ?? null,
+      patch.equipmentRentalDailyRateMru ?? null,
+      patch.equipmentRentalCommissionBps ?? null,
     ],
   );
   cache = null;

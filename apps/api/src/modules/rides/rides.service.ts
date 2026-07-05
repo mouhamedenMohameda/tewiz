@@ -3,7 +3,7 @@ import type pg from 'pg';
 import { pool, withTx } from '../../db/pool.js';
 import { HttpError } from '../../middleware/error.js';
 import { env } from '../../config/env.js';
-import { estimateFareMru, commissionMru, openFareMru, type OpenTariff } from './pricing.js';
+import { estimateFareMru, commissionMru, openFareMru, privateDriverFareMru, privateDriverFinalFareMru, type OpenTariff } from './pricing.js';
 import type { FarePricingMode } from './pricing.js';
 import { getPricingSettings } from '../admin/app-settings.service.js';
 import { distanceMeters, eligibleCaptainsForRide } from './dispatch.service.js';
@@ -78,6 +78,9 @@ export interface CreateRideInput {
   // the same inter-city fare per seat.
   pricingMode?: FarePricingMode;
   sharedSeats?: number;
+  privateDriverDurationH?: number;
+  vehiclePlate?: string;
+  vehicleDescription?: string;
 }
 
 interface RideRow {
@@ -234,7 +237,7 @@ async function enrichWithLiveMeter<T extends {
 // Create
 
 export async function createRide(input: CreateRideInput) {
-  const rideType = input.rideType ?? 'passenger';
+  const rideType: RideType = input.rideType ?? 'passenger';
   const isOpen = !!input.isOpen;
   const settings = await getPricingSettings();
   let source: RideSource = input.source ?? 'app';
@@ -269,6 +272,66 @@ export async function createRide(input: CreateRideInput) {
       throw new HttpError(400, 'open_has_dropoff',
         'Open rides must not carry a dropoff (the captain decides when to stop)');
     }
+  } else if (rideType === 'private_driver') {
+    if (!settings.privateDriverEnabled) {
+      throw new HttpError(403, 'private_driver_disabled',
+        'Le service Chauffeur Privé est désactivé');
+    }
+    if (!input.privateDriverDurationH ||
+        ![3, 6, 12, 24].includes(input.privateDriverDurationH)) {
+      throw new HttpError(400, 'invalid_duration',
+        'Durée invalide — choisissez 3h, 6h, 12h ou journée');
+    }
+    if (input.dropoff) {
+      throw new HttpError(400, 'private_driver_no_dropoff',
+        'Chauffeur Privé: pas de destination fixe');
+    }
+  } else if (rideType === 'convoyage') {
+    if (!settings.convoyageEnabled) {
+      throw new HttpError(403, 'convoyage_disabled',
+        'Le service Convoyage est désactivé');
+    }
+    if (!input.dropoff) {
+      throw new HttpError(400, 'convoyage_missing_dropoff',
+        'Le convoyage nécessite une destination (point B)');
+    }
+    if (!input.vehiclePlate) {
+      throw new HttpError(400, 'convoyage_missing_plate',
+        'Le convoyage nécessite le numéro de plaque du véhicule');
+    }
+  } else if (rideType === 'car_rental') {
+    if (!settings.carRentalEnabled) {
+      throw new HttpError(403, 'car_rental_disabled',
+        'Le service Location de Voiture est désactivé');
+    }
+  } else if (rideType === 'roadside_assistance') {
+    if (!settings.roadsideAssistanceEnabled) {
+      throw new HttpError(403, 'roadside_assistance_disabled',
+        'Le service Assistance Routière est désactivé');
+    }
+  } else if (rideType === 'light_moving') {
+    if (!settings.lightMovingEnabled) {
+      throw new HttpError(403, 'light_moving_disabled',
+        'Le service Déménagement Léger est désactivé');
+    }
+    if (!input.dropoff) {
+      throw new HttpError(400, 'light_moving_missing_dropoff',
+        'Le déménagement nécessite une destination (point B)');
+    }
+  } else if (rideType === 'intercity_freight') {
+    if (!settings.intercityFreightEnabled) {
+      throw new HttpError(403, 'intercity_freight_disabled',
+        'Le service Fret Intercité est désactivé');
+    }
+    if (!input.dropoff) {
+      throw new HttpError(400, 'intercity_freight_missing_dropoff',
+        'Le fret intercité nécessite une destination (point B)');
+    }
+  } else if (rideType === 'equipment_rental') {
+    if (!settings.equipmentRentalEnabled) {
+      throw new HttpError(403, 'equipment_rental_disabled',
+        'Le service Location d\'Équipement est désactivé');
+    }
   } else if (!input.dropoff) {
     throw new HttpError(400, 'missing_dropoff',
       'A dropoff is required for fixed-fare rides');
@@ -280,7 +343,21 @@ export async function createRide(input: CreateRideInput) {
   let isIntercityPricing = false;
   let pricingModeForRow: FarePricingMode = 'solo';
   let sharedSeatsForRow: number | null = null;
-  if (isOpen) {
+  if (rideType === 'private_driver') {
+    const nightPricing = {
+      enabled: settings.nightPricingEnabled,
+      multiplier: settings.nightPriceMultiplier,
+      startHour: settings.nightPriceStartHour,
+      endHour: settings.nightPriceEndHour,
+    };
+    const quote = privateDriverFareMru(
+      settings.privateDriverHourlyRateMru,
+      input.privateDriverDurationH!,
+      nightPricing,
+    );
+    fareEstimateMru = quote.fareMru;
+    distanceEstimateM = null;
+  } else if (isOpen) {
     if (input.pricingMode === 'shared') {
       throw new HttpError(400, 'shared_open_not_supported',
         'Shared mode is not supported for open rides');
@@ -324,6 +401,20 @@ export async function createRide(input: CreateRideInput) {
     ? (rideType === 'colis'
         ? settings.partnerColisCommissionBps
         : settings.partnerPassengerCommissionBps)
+    : rideType === 'private_driver'
+    ? settings.privateDriverCommissionBps
+    : rideType === 'convoyage'
+    ? settings.convoyageCommissionBps
+    : rideType === 'car_rental'
+    ? settings.carRentalCommissionBps
+    : rideType === 'roadside_assistance'
+    ? settings.roadsideAssistanceCommissionBps
+    : rideType === 'light_moving'
+    ? settings.lightMovingCommissionBps
+    : rideType === 'intercity_freight'
+    ? settings.intercityFreightCommissionBps
+    : rideType === 'equipment_rental'
+    ? settings.equipmentRentalCommissionBps
     : (isIntercityPricing
         ? settings.intercityCommissionBps
         : rideType === 'colis'
@@ -465,6 +556,69 @@ export async function createRide(input: CreateRideInput) {
           normalizeMrPhone(input.recipientPhone!),
           input.packageDescription ?? null,
         ],
+      );
+    }
+
+    // Private driver details
+    if (rideType === 'private_driver') {
+      await client.query(
+        `INSERT INTO private_driver_details (ride_id, booked_duration_h, hourly_rate_mru, booked_fare_mru)
+         VALUES ($1, $2, $3, $4)`,
+        [ride.id, input.privateDriverDurationH!, settings.privateDriverHourlyRateMru, fareEstimateMru],
+      );
+    }
+
+    // Convoyage details
+    if (rideType === 'convoyage') {
+      await client.query(
+        `INSERT INTO convoyage_details (ride_id, vehicle_plate, vehicle_description)
+         VALUES ($1, $2, $3)`,
+        [ride.id, input.vehiclePlate!, input.vehicleDescription ?? ''],
+      );
+    }
+
+    // Roadside assistance details
+    if (rideType === 'roadside_assistance') {
+      await client.query(
+        `INSERT INTO roadside_assistance_details (ride_id, assistance_type, vehicle_condition)
+         VALUES ($1, $2, $3)`,
+        [ride.id, input.packageDescription ?? 'assistance', null],
+      );
+    }
+
+    // Light moving details
+    if (rideType === 'light_moving') {
+      await client.query(
+        `INSERT INTO light_moving_details (ride_id, item_description, estimated_weight_kg)
+         VALUES ($1, $2, $3)`,
+        [ride.id, input.packageDescription ?? '', null],
+      );
+    }
+
+    // Intercity freight details
+    if (rideType === 'intercity_freight') {
+      await client.query(
+        `INSERT INTO intercity_freight_details (ride_id, cargo_description, estimated_weight_kg, special_handling)
+         VALUES ($1, $2, $3, $4)`,
+        [ride.id, input.packageDescription ?? '', null, false],
+      );
+    }
+
+    // Car rental details
+    if (rideType === 'car_rental') {
+      await client.query(
+        `INSERT INTO car_rental_details (ride_id, booked_days, daily_rate_mru, booked_fare_mru)
+         VALUES ($1, $2, $3, $4)`,
+        [ride.id, 1, settings.carRentalDailyRateMru, fareEstimateMru],
+      );
+    }
+
+    // Equipment rental details
+    if (rideType === 'equipment_rental') {
+      await client.query(
+        `INSERT INTO equipment_rental_details (ride_id, equipment_type, booked_days, daily_rate_mru, booked_fare_mru)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [ride.id, input.packageDescription ?? 'equipment', 1, settings.equipmentRentalDailyRateMru, fareEstimateMru],
       );
     }
 
@@ -615,13 +769,16 @@ export async function getRideForUser(
   // here (the admin console joins separately).
   if (role === 'captain' && ride.captain_id === userId) {
     const withBooker = await enrichWithBooker(shaped);
-    return enrichWithLiveMeter(withBooker);
+    const enriched = await enrichRideWithAllDetails(withBooker);
+    return enrichWithLiveMeter(enriched);
   }
   if (role === 'rider' && ride.booker_id === userId) {
     const withCaptain = await enrichWithCaptain(shaped);
-    return enrichWithLiveMeter(withCaptain);
+    const enriched = await enrichRideWithAllDetails(withCaptain);
+    return enrichWithLiveMeter(enriched);
   }
-  return enrichWithLiveMeter(shaped);
+  const enriched = await enrichRideWithAllDetails(shaped);
+  return enrichWithLiveMeter(enriched);
 }
 
 export async function getCurrentRideForRider(userId: string) {
@@ -646,7 +803,8 @@ export async function getCurrentRideForRider(userId: string) {
   if (!r.rows[0]) return null;
   const ride = shape(r.rows[0], { revealCode: true });
   const withCaptain = await enrichWithCaptain(ride);
-  return enrichWithLiveMeter(withCaptain);
+  const enriched = await enrichRideWithAllDetails(withCaptain);
+  return enrichWithLiveMeter(enriched);
 }
 
 /**
@@ -747,6 +905,157 @@ async function enrichWithBooker<
   };
 }
 
+async function enrichWithPrivateDriverDetails<T extends { id: string; rideType: string }>(
+  ride: T,
+): Promise<T & { privateDriverDetails: { bookedDurationH: number; hourlyRateMru: number; bookedFareMru: number } | null }> {
+  if (ride.rideType !== 'private_driver') return { ...ride, privateDriverDetails: null };
+  const r = await pool.query<{
+    booked_duration_h: number;
+    hourly_rate_mru: number;
+    booked_fare_mru: number;
+  }>(`SELECT booked_duration_h, hourly_rate_mru, booked_fare_mru FROM private_driver_details WHERE ride_id = $1`,
+    [ride.id]);
+  const row = r.rows[0];
+  return {
+    ...ride,
+    privateDriverDetails: row
+      ? { bookedDurationH: row.booked_duration_h, hourlyRateMru: row.hourly_rate_mru, bookedFareMru: row.booked_fare_mru }
+      : null,
+  };
+}
+
+async function enrichWithConvoyageDetails<T extends { id: string; rideType: string }>(
+  ride: T,
+): Promise<T & { convoyageDetails: { vehiclePlate: string; vehicleDescription: string } | null }> {
+  if (ride.rideType !== 'convoyage') return { ...ride, convoyageDetails: null };
+  const r = await pool.query<{
+    vehicle_plate: string;
+    vehicle_description: string;
+  }>(`SELECT vehicle_plate, vehicle_description FROM convoyage_details WHERE ride_id = $1`,
+    [ride.id]);
+  const row = r.rows[0];
+  return {
+    ...ride,
+    convoyageDetails: row
+      ? { vehiclePlate: row.vehicle_plate, vehicleDescription: row.vehicle_description }
+      : null,
+  };
+}
+
+async function enrichWithRoadsideAssistanceDetails<T extends { id: string; rideType: string }>(
+  ride: T,
+): Promise<T & { roadsideAssistanceDetails: { assistanceType: string; vehicleCondition: string | null } | null }> {
+  if (ride.rideType !== 'roadside_assistance') return { ...ride, roadsideAssistanceDetails: null };
+  const r = await pool.query<{
+    assistance_type: string;
+    vehicle_condition: string | null;
+  }>(`SELECT assistance_type, vehicle_condition FROM roadside_assistance_details WHERE ride_id = $1`,
+    [ride.id]);
+  const row = r.rows[0];
+  return {
+    ...ride,
+    roadsideAssistanceDetails: row
+      ? { assistanceType: row.assistance_type, vehicleCondition: row.vehicle_condition }
+      : null,
+  };
+}
+
+async function enrichWithLightMovingDetails<T extends { id: string; rideType: string }>(
+  ride: T,
+): Promise<T & { lightMovingDetails: { itemDescription: string | null; estimatedWeightKg: number | null } | null }> {
+  if (ride.rideType !== 'light_moving') return { ...ride, lightMovingDetails: null };
+  const r = await pool.query<{
+    item_description: string | null;
+    estimated_weight_kg: number | null;
+  }>(`SELECT item_description, estimated_weight_kg FROM light_moving_details WHERE ride_id = $1`,
+    [ride.id]);
+  const row = r.rows[0];
+  return {
+    ...ride,
+    lightMovingDetails: row
+      ? { itemDescription: row.item_description, estimatedWeightKg: row.estimated_weight_kg }
+      : null,
+  };
+}
+
+async function enrichWithIntercityFreightDetails<T extends { id: string; rideType: string }>(
+  ride: T,
+): Promise<T & { intercityFreightDetails: { cargoDescription: string | null; estimatedWeightKg: number | null; specialHandling: boolean } | null }> {
+  if (ride.rideType !== 'intercity_freight') return { ...ride, intercityFreightDetails: null };
+  const r = await pool.query<{
+    cargo_description: string | null;
+    estimated_weight_kg: number | null;
+    special_handling: boolean;
+  }>(`SELECT cargo_description, estimated_weight_kg, special_handling FROM intercity_freight_details WHERE ride_id = $1`,
+    [ride.id]);
+  const row = r.rows[0];
+  return {
+    ...ride,
+    intercityFreightDetails: row
+      ? { cargoDescription: row.cargo_description, estimatedWeightKg: row.estimated_weight_kg, specialHandling: row.special_handling }
+      : null,
+  };
+}
+
+async function enrichWithCarRentalDetails<T extends { id: string; rideType: string }>(
+  ride: T,
+): Promise<T & { carRentalDetails: { bookedDays: number; dailyRateMru: number; bookedFareMru: number } | null }> {
+  if (ride.rideType !== 'car_rental') return { ...ride, carRentalDetails: null };
+  const r = await pool.query<{
+    booked_days: number;
+    daily_rate_mru: number;
+    booked_fare_mru: number;
+  }>(`SELECT booked_days, daily_rate_mru, booked_fare_mru FROM car_rental_details WHERE ride_id = $1`,
+    [ride.id]);
+  const row = r.rows[0];
+  return {
+    ...ride,
+    carRentalDetails: row
+      ? { bookedDays: row.booked_days, dailyRateMru: row.daily_rate_mru, bookedFareMru: row.booked_fare_mru }
+      : null,
+  };
+}
+
+async function enrichWithEquipmentRentalDetails<T extends { id: string; rideType: string }>(
+  ride: T,
+): Promise<T & { equipmentRentalDetails: { equipmentType: string; bookedDays: number; dailyRateMru: number; bookedFareMru: number } | null }> {
+  if (ride.rideType !== 'equipment_rental') return { ...ride, equipmentRentalDetails: null };
+  const r = await pool.query<{
+    equipment_type: string;
+    booked_days: number;
+    daily_rate_mru: number;
+    booked_fare_mru: number;
+  }>(`SELECT equipment_type, booked_days, daily_rate_mru, booked_fare_mru FROM equipment_rental_details WHERE ride_id = $1`,
+    [ride.id]);
+  const row = r.rows[0];
+  return {
+    ...ride,
+    equipmentRentalDetails: row
+      ? { equipmentType: row.equipment_type, bookedDays: row.booked_days, dailyRateMru: row.daily_rate_mru, bookedFareMru: row.booked_fare_mru }
+      : null,
+  };
+}
+
+async function enrichRideWithAllDetails<T extends { id: string; rideType: string }>(
+  ride: T,
+): Promise<T & {
+  privateDriverDetails: any;
+  convoyageDetails: any;
+  roadsideAssistanceDetails: any;
+  lightMovingDetails: any;
+  intercityFreightDetails: any;
+  carRentalDetails: any;
+  equipmentRentalDetails: any;
+}> {
+  const withPd = await enrichWithPrivateDriverDetails(ride);
+  const withConv = await enrichWithConvoyageDetails(withPd);
+  const withRA = await enrichWithRoadsideAssistanceDetails(withConv);
+  const withLM = await enrichWithLightMovingDetails(withRA);
+  const withIF = await enrichWithIntercityFreightDetails(withLM);
+  const withCR = await enrichWithCarRentalDetails(withIF);
+  return enrichWithEquipmentRentalDetails(withCR);
+}
+
 export async function getCurrentRideForCaptain(captainId: string) {
   const r = await pool.query<RideRow>(
     `SELECT ${RIDE_COLUMNS} FROM rides
@@ -757,7 +1066,8 @@ export async function getCurrentRideForCaptain(captainId: string) {
   );
   if (!r.rows[0]) return null;
   const withBooker = await enrichWithBooker(shape(r.rows[0], { revealCode: true }));
-  return enrichWithLiveMeter(withBooker);
+  const enriched = await enrichRideWithAllDetails(withBooker);
+  return enrichWithLiveMeter(enriched);
 }
 
 /**
@@ -1030,7 +1340,7 @@ export async function arriveRide(rideId: string, captainId: string) {
       throw new HttpError(409, 'wrong_status',
         `Ride is ${ride.status}, cannot mark arrived`);
     }
-    const nextStatus: RideStatus = ride.is_open ? 'in_progress' : 'arrived';
+    const nextStatus: RideStatus = (ride.is_open || ride.ride_type === 'private_driver') ? 'in_progress' : 'arrived';
     const upd = await client.query<RideRow>(
       `UPDATE rides
           SET status = $2::ride_status,
@@ -1313,6 +1623,31 @@ export async function completeRide(input: CompleteInput) {
         endHour: settings.nightPriceEndHour,
       });
       finalDropoff = await lastTrailPoint(client, ride.id);
+    } else if (ride.ride_type === 'private_driver') {
+      if (!ride.started_at) {
+        throw new HttpError(409, 'not_started',
+          'Cannot complete a private driver ride that never started');
+      }
+      const pd = await client.query<{
+        booked_duration_h: number;
+        hourly_rate_mru: number;
+      }>(`SELECT booked_duration_h, hourly_rate_mru FROM private_driver_details WHERE ride_id = $1`,
+        [ride.id]);
+      if (!pd.rows[0]) throw new HttpError(500, 'missing_details', 'Private driver details missing');
+      const { booked_duration_h, hourly_rate_mru } = pd.rows[0];
+      finalDurationS = Math.max(0, Math.round((Date.now() - ride.started_at.getTime()) / 1000));
+      finalDistanceM = 0;
+      fareFinalMru = privateDriverFinalFareMru(
+        hourly_rate_mru,
+        booked_duration_h,
+        finalDurationS,
+        {
+          enabled: settings.nightPricingEnabled,
+          multiplier: settings.nightPriceMultiplier,
+          startHour: settings.nightPriceStartHour,
+          endHour: settings.nightPriceEndHour,
+        },
+      );
     } else {
       // Fixed-fare ride: keep the legacy behaviour. If the captain reports
       // an actual distance, recompute the fare; otherwise charge the upfront
@@ -1337,7 +1672,7 @@ export async function completeRide(input: CompleteInput) {
     // Runs inside the same tx so the wallet debit and bonus state stay aligned.
     const bonus = await applyBonusOnCompletion(client, input.captainId, baseCommission);
     const baselineCommission = bonus.effectiveCommissionMru;
-    const gpsPenalty = !ride.is_open && ride.started_at
+    const gpsPenalty = !ride.is_open && ride.ride_type !== 'private_driver' && ride.started_at
       ? await evaluateClosedRideGpsViolation({
           client,
           rideId: ride.id,
@@ -1504,11 +1839,11 @@ export async function cancelRide(input: CancelInput) {
     // rider can still cancel BEFORE a captain accepts (status='searching').
     if (
       input.role === 'rider'
-      && ride.is_open
+      && (ride.is_open || ride.ride_type === 'private_driver')
       && ride.status !== 'searching'
     ) {
       throw new HttpError(403, 'rider_cancel_open_forbidden',
-        'Une course ouverte ne peut être annulée que par le chauffeur');
+        'Cette course ne peut être annulée que par le chauffeur');
     }
 
     if (!['searching', 'accepted', 'arrived'].includes(ride.status)) {

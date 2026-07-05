@@ -26,7 +26,7 @@ type RideStatus =
   | 'completed' | 'cancelled_by_rider' | 'cancelled_by_captain'
   | 'cancelled_by_system' | 'no_show';
 
-type RideType = 'passenger' | 'colis';
+type RideType = 'passenger' | 'colis' | 'private_driver' | 'convoyage';
 
 type RideSource = 'app' | 'operator';
 
@@ -44,6 +44,9 @@ interface InboxItem {
   homewardProgressM: number | null;
   requestedAt: string;
   isOpen?: boolean;
+  bookedDurationH?: number | null;
+  vehiclePlate?: string | null;
+  vehicleDescription?: string | null;
 }
 
 interface Ride {
@@ -72,6 +75,16 @@ interface Ride {
   } | null;
   liveMeter?: { distanceM: number; durationS: number; fareMru: number } | null;
   completedAt?: string | null;
+  startedAt?: string | null;
+  privateDriverDetails?: {
+    bookedDurationH: number;
+    hourlyRateMru: number;
+    bookedFareMru: number;
+  } | null;
+  convoyageDetails?: {
+    vehiclePlate: string;
+    vehicleDescription: string;
+  } | null;
 }
 
 /**
@@ -491,7 +504,7 @@ function InboxList({ items, onAccepted }: { items: InboxItem[]; onAccepted: () =
           <AppText variant="body" color={colors.muted}>{t('captain.rides.emptyInbox')}</AppText>
         </Card>
       ) : items.map((it) => {
-        const accent = it.isFavorite ? colors.sun : (it.rideType === 'colis' ? colors.espresso : colors.ember);
+        const accent = it.isFavorite ? colors.sun : (it.rideType === 'colis' ? colors.espresso : it.rideType === 'private_driver' ? '#1e40af' : it.rideType === 'convoyage' ? '#7c3aed' : colors.ember);
         const isColis = it.rideType === 'colis';
         return (
           <Card key={it.id} padding={0} style={{ marginTop: spacing.md, overflow: 'hidden' }}>
@@ -500,9 +513,10 @@ function InboxList({ items, onAccepted }: { items: InboxItem[]; onAccepted: () =
               <View style={{ flex: 1, padding: spacing.base }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                    <Chip icon={isColis ? 'parcel' : 'ride'} label={isColis ? t('captain.rides.colis') : t('captain.rides.passenger')}
-                      bg={isColis ? colors.espresso : colors.emberSoft}
-                      fg={isColis ? colors.saffron : colors.ember} />
+                    <Chip icon={isColis ? 'parcel' : it.rideType === 'private_driver' ? 'clock' : it.rideType === 'convoyage' ? 'ride' : 'ride'}
+                      label={isColis ? t('captain.rides.colis') : it.rideType === 'private_driver' ? `Chauffeur · ${it.bookedDurationH}h` : it.rideType === 'convoyage' ? `Convoyage${it.vehiclePlate ? ` · ${it.vehiclePlate}` : ''}` : t('captain.rides.passenger')}
+                      bg={isColis ? colors.espresso : it.rideType === 'private_driver' ? '#dbeafe' : it.rideType === 'convoyage' ? '#ede9fe' : colors.emberSoft}
+                      fg={isColis ? colors.saffron : it.rideType === 'private_driver' ? '#1e40af' : it.rideType === 'convoyage' ? '#7c3aed' : colors.ember} />
                     {it.isFavorite ? <Chip icon="star" label={t('captain.rides.favorite')} bg={colors.saffronSoft} fg={colors.warning} /> : null}
                     {it.source === 'operator' ? <Chip icon="phone" label={t('captainAlert.callCenterBadge')} bg="#ede9fe" fg="#6d28d9" /> : null}
                     {it.isOpen ? <Chip icon="clock" label={t('captain.rides.openBadge')} bg="#dcfce7" fg="#166534" /> : null}
@@ -516,15 +530,17 @@ function InboxList({ items, onAccepted }: { items: InboxItem[]; onAccepted: () =
 
                 <Route
                   pickup={it.pickup.label}
-                  dropoff={it.isOpen ? t('captain.rides.openDestinationShort') : (it.dropoff?.label ?? null)}
+                  dropoff={it.rideType === 'private_driver' ? 'Pas de destination fixe' : it.isOpen ? t('captain.rides.openDestinationShort') : (it.dropoff?.label ?? null)}
                   style={{ marginTop: spacing.md }}
                 />
 
                 <View style={{ marginTop: spacing.base, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <AppText variant="h2">
-                    {it.isOpen
-                      ? t('captain.rides.meterShort')
-                      : (it.fareEstimateMru ? formatMru(it.fareEstimateMru) : '—')}
+                    {it.rideType === 'private_driver'
+                      ? `${formatMru(it.fareEstimateMru ?? 0)} · ${it.bookedDurationH}h`
+                      : it.isOpen
+                        ? t('captain.rides.meterShort')
+                        : (it.fareEstimateMru ? formatMru(it.fareEstimateMru) : '—')}
                   </AppText>
                   <Button
                     title={t('captain.rides.accept')}
@@ -651,11 +667,15 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
             : ride.status}
         </AppText>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm }}>
-          <Icon name={ride.rideType === 'colis' ? 'parcel' : 'person'} size={24} color={colors.onEspresso} />
+          <Icon name={ride.rideType === 'colis' ? 'parcel' : ride.rideType === 'private_driver' ? 'clock' : 'person'} size={24} color={colors.onEspresso} />
           <AppText variant="h1" color={colors.onEspresso}>
             {ride.rideType === 'colis'
               ? t('captain.rides.colis')
-              : (ride.rider?.fullName ?? ride.passengerName ?? t('captain.rides.passengerFallback'))}
+              : ride.rideType === 'private_driver'
+                ? `Chauffeur Privé · ${ride.privateDriverDetails?.bookedDurationH ?? '?'}h`
+                : ride.rideType === 'convoyage'
+                  ? 'Convoyage'
+                  : (ride.rider?.fullName ?? ride.passengerName ?? t('captain.rides.passengerFallback'))}
           </AppText>
         </View>
 
@@ -681,9 +701,19 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
           );
         })()}
 
+        {ride.rideType === 'convoyage' && ride.convoyageDetails ? (
+          <View style={{ marginTop: spacing.md, backgroundColor: '#1e293b', borderRadius: 8, padding: spacing.sm }}>
+            <AppText variant="overline" color="#94a3b8">VÉHICULE À CONVOYER</AppText>
+            <AppText variant="bodyStrong" color={colors.onEspresso} style={{ marginTop: 2 }}>
+              {ride.convoyageDetails.vehiclePlate}
+              {ride.convoyageDetails.vehicleDescription ? ` — ${ride.convoyageDetails.vehicleDescription}` : ''}
+            </AppText>
+          </View>
+        ) : null}
+
         <Route
           pickup={ride.pickup.label}
-          dropoff={ride.isOpen ? t('captain.rides.openDestinationShort') : (ride.dropoff?.label ?? null)}
+          dropoff={ride.rideType === 'private_driver' ? 'Pas de destination fixe' : ride.isOpen ? t('captain.rides.openDestinationShort') : (ride.dropoff?.label ?? null)}
           onDark
           style={{ marginTop: spacing.lg }}
         />
@@ -691,14 +721,16 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
         <View style={{ marginTop: spacing.lg, flexDirection: 'row', justifyContent: 'space-between' }}>
           <View>
             <AppText variant="caption" color={colors.onEspressoMuted}>
-              {ride.isOpen ? t('captain.rides.meterTariffLabel') : t('captain.rides.estimatedFare')}
+              {ride.rideType === 'private_driver' ? 'Tarif réservé' : ride.isOpen ? t('captain.rides.meterTariffLabel') : t('captain.rides.estimatedFare')}
             </AppText>
             <AppText variant="h2" color={colors.onEspresso} style={{ marginTop: 2 }}>
-              {ride.isOpen
-                ? (ride.openTariff
-                    ? `${ride.openTariff.perKmMru} / km · ${ride.openTariff.perMinuteMru} / min`
-                    : '—')
-                : (ride.fareEstimateMru ? formatMru(ride.fareEstimateMru) : '—')}
+              {ride.rideType === 'private_driver'
+                ? formatMru(ride.privateDriverDetails?.bookedFareMru ?? ride.fareEstimateMru ?? 0)
+                : ride.isOpen
+                  ? (ride.openTariff
+                      ? `${ride.openTariff.perKmMru} / km · ${ride.openTariff.perMinuteMru} / min`
+                      : '—')
+                  : (ride.fareEstimateMru ? formatMru(ride.fareEstimateMru) : '—')}
             </AppText>
           </View>
           <View>
@@ -712,6 +744,10 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
 
       {ride.isOpen && ride.status === 'in_progress' ? (
         <CaptainMeterCard ride={ride} />
+      ) : null}
+
+      {ride.rideType === 'private_driver' && ride.status === 'in_progress' ? (
+        <CaptainPrivateDriverCard ride={ride} />
       ) : null}
 
       {ride.status === 'accepted' ? (
@@ -729,9 +765,19 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
         />
       ) : null}
 
-      {ride.status === 'in_progress' && ride.rideType === 'passenger' ? (
+      {ride.status === 'in_progress' && ride.rideType === 'private_driver' ? (
         <Button
-          title={ride.isOpen ? t('captain.rides.endOpenRide') : t('captain.rides.completeRide')}
+          title="Terminer la prestation"
+          icon="check"
+          onPress={complete}
+          busy={busy === 'complete'}
+          style={{ marginTop: spacing.base }}
+        />
+      ) : null}
+
+      {ride.status === 'in_progress' && (ride.rideType === 'passenger' || ride.rideType === 'convoyage') ? (
+        <Button
+          title={ride.rideType === 'convoyage' ? 'Véhicule livré' : ride.isOpen ? t('captain.rides.endOpenRide') : t('captain.rides.completeRide')}
           icon="check"
           onPress={complete}
           busy={busy === 'complete'}
@@ -894,6 +940,70 @@ function CaptainMeterCard({ ride }: { ride: Ride }) {
             {minutes}:{String(seconds).padStart(2, '0')}
           </Text>
         </View>
+      </View>
+    </Card>
+  );
+}
+
+function CaptainPrivateDriverCard({ ride }: { ride: Ride }) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const pd = ride.privateDriverDetails;
+  if (!pd || !ride.startedAt) return null;
+
+  const elapsedS = Math.max(0, Math.floor((now - new Date(ride.startedAt).getTime()) / 1000));
+  const bookedS = pd.bookedDurationH * 3600;
+  const remainingS = bookedS - elapsedS;
+  const isOvertime = remainingS <= 0;
+
+  const absRemaining = Math.abs(remainingS);
+  const h = Math.floor(absRemaining / 3600);
+  const m = Math.floor((absRemaining % 3600) / 60);
+  const s = absRemaining % 60;
+  const timeStr = `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+
+  const elapsedH = Math.floor(elapsedS / 3600);
+  const elapsedM = Math.floor((elapsedS % 3600) / 60);
+
+  return (
+    <Card padding={spacing.lg} style={{ marginTop: spacing.base, backgroundColor: isOvertime ? '#450a0a' : '#0f172a' }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: isOvertime ? '#ef4444' : '#10a35e' }} />
+        <Text style={{ fontSize: 11, fontWeight: '700', color: isOvertime ? '#ef4444' : '#10a35e', letterSpacing: 0.6 }}>
+          {isOvertime ? 'DÉPASSEMENT' : 'CHAUFFEUR PRIVÉ EN COURS'}
+        </Text>
+      </View>
+      <Text style={{
+        fontSize: 36, fontWeight: '800', color: '#fff', letterSpacing: -1, marginTop: 10,
+      }}>
+        {isOvertime ? '+' : ''}{timeStr}
+      </Text>
+      <Text style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
+        {isOvertime ? 'Temps dépassé' : 'Temps restant'}
+      </Text>
+      <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+        <View style={{ flex: 1, backgroundColor: isOvertime ? '#7f1d1d' : '#1e293b', borderRadius: 10, padding: 12 }}>
+          <Text style={{ fontSize: 10, color: '#94a3b8', letterSpacing: 0.4 }}>DURÉE RÉSERVÉE</Text>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: '#fff', marginTop: 4 }}>
+            {pd.bookedDurationH}h
+          </Text>
+        </View>
+        <View style={{ flex: 1, backgroundColor: isOvertime ? '#7f1d1d' : '#1e293b', borderRadius: 10, padding: 12 }}>
+          <Text style={{ fontSize: 10, color: '#94a3b8', letterSpacing: 0.4 }}>TEMPS ÉCOULÉ</Text>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: '#fff', marginTop: 4 }}>
+            {elapsedH}h{String(elapsedM).padStart(2, '0')}
+          </Text>
+        </View>
+      </View>
+      <View style={{ backgroundColor: isOvertime ? '#7f1d1d' : '#1e293b', borderRadius: 10, padding: 12, marginTop: 10 }}>
+        <Text style={{ fontSize: 10, color: '#94a3b8', letterSpacing: 0.4 }}>TARIF</Text>
+        <Text style={{ fontSize: 18, fontWeight: '700', color: '#fff', marginTop: 4 }}>
+          {formatMru(pd.bookedFareMru)}
+        </Text>
       </View>
     </Card>
   );

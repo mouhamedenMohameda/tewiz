@@ -46,6 +46,34 @@ interface PricingSettings {
   captainAlertSoundMode: CaptainAlertSoundMode;
   captainAlertRepeatIntervalS: number;
   captainAlertSoundUrl: string | null;
+  privateDriverEnabled: boolean;
+  privateDriverHourlyRateMru: number;
+  privateDriverMinHours: number;
+  privateDriverCommissionBps: number;
+  convoyageEnabled: boolean;
+  convoyageBaseFareMru: number;
+  convoyagePerKmMru: number;
+  convoyageMinFareMru: number;
+  convoyageCommissionBps: number;
+  carRentalEnabled: boolean;
+  carRentalDailyRateMru: number;
+  carRentalCommissionBps: number;
+  roadsideAssistanceEnabled: boolean;
+  roadsideAssistanceBaseFareMru: number;
+  roadsideAssistanceCommissionBps: number;
+  lightMovingEnabled: boolean;
+  lightMovingBaseFareMru: number;
+  lightMovingPerKmMru: number;
+  lightMovingMinFareMru: number;
+  lightMovingCommissionBps: number;
+  intercityFreightEnabled: boolean;
+  intercityFreightBaseFareMru: number;
+  intercityFreightPerKmMru: number;
+  intercityFreightMinFareMru: number;
+  intercityFreightCommissionBps: number;
+  equipmentRentalEnabled: boolean;
+  equipmentRentalDailyRateMru: number;
+  equipmentRentalCommissionBps: number;
   gpsFraudSevereMode: boolean;
   updatedAt: string;
   updatedBy: string | null;
@@ -84,6 +112,34 @@ interface FormState {
   captainAlertSoundMode: CaptainAlertSoundMode;
   captainAlertRepeatIntervalS: string;
   captainAlertSoundUrl: string;
+  privateDriverEnabled: boolean;
+  privateDriverHourlyRateMru: string;
+  privateDriverMinHours: string;
+  privateDriverCommissionPct: string;
+  convoyageEnabled: boolean;
+  convoyageBaseFareMru: string;
+  convoyagePerKmMru: string;
+  convoyageMinFareMru: string;
+  convoyageCommissionPct: string;
+  carRentalEnabled: boolean;
+  carRentalDailyRateMru: string;
+  carRentalCommissionPct: string;
+  roadsideAssistanceEnabled: boolean;
+  roadsideAssistanceBaseFareMru: string;
+  roadsideAssistanceCommissionPct: string;
+  lightMovingEnabled: boolean;
+  lightMovingBaseFareMru: string;
+  lightMovingPerKmMru: string;
+  lightMovingMinFareMru: string;
+  lightMovingCommissionPct: string;
+  intercityFreightEnabled: boolean;
+  intercityFreightBaseFareMru: string;
+  intercityFreightPerKmMru: string;
+  intercityFreightMinFareMru: string;
+  intercityFreightCommissionPct: string;
+  equipmentRentalEnabled: boolean;
+  equipmentRentalDailyRateMru: string;
+  equipmentRentalCommissionPct: string;
   gpsFraudSevereMode: boolean;
 }
 
@@ -116,6 +172,34 @@ const EMPTY_FORM: FormState = {
   carpoolingEnabled: true,
   carpoolingPublicationFee: '100',
   carpoolingBoostFee: '200',
+  privateDriverEnabled: false,
+  privateDriverHourlyRateMru: '500',
+  privateDriverMinHours: '3',
+  privateDriverCommissionPct: '10',
+  convoyageEnabled: false,
+  convoyageBaseFareMru: '200',
+  convoyagePerKmMru: '60',
+  convoyageMinFareMru: '500',
+  convoyageCommissionPct: '15',
+  carRentalEnabled: false,
+  carRentalDailyRateMru: '5000',
+  carRentalCommissionPct: '10',
+  roadsideAssistanceEnabled: false,
+  roadsideAssistanceBaseFareMru: '1000',
+  roadsideAssistanceCommissionPct: '10',
+  lightMovingEnabled: false,
+  lightMovingBaseFareMru: '300',
+  lightMovingPerKmMru: '80',
+  lightMovingMinFareMru: '600',
+  lightMovingCommissionPct: '10',
+  intercityFreightEnabled: false,
+  intercityFreightBaseFareMru: '500',
+  intercityFreightPerKmMru: '100',
+  intercityFreightMinFareMru: '1000',
+  intercityFreightCommissionPct: '10',
+  equipmentRentalEnabled: false,
+  equipmentRentalDailyRateMru: '3000',
+  equipmentRentalCommissionPct: '10',
   showDemoButtons: false,
   captainAlertSoundMode: 'standard',
   captainAlertRepeatIntervalS: '2',
@@ -153,6 +237,34 @@ function settingsToForm(s: PricingSettings): FormState {
     carpoolingEnabled: s.carpoolingEnabled,
     carpoolingPublicationFee: String(s.carpoolingPublicationFee),
     carpoolingBoostFee: String(s.carpoolingBoostFee),
+    privateDriverEnabled: s.privateDriverEnabled,
+    privateDriverHourlyRateMru: String(s.privateDriverHourlyRateMru),
+    privateDriverMinHours: String(s.privateDriverMinHours),
+    privateDriverCommissionPct: (s.privateDriverCommissionBps / 100).toString(),
+    convoyageEnabled: s.convoyageEnabled,
+    convoyageBaseFareMru: String(s.convoyageBaseFareMru),
+    convoyagePerKmMru: String(s.convoyagePerKmMru),
+    convoyageMinFareMru: String(s.convoyageMinFareMru),
+    convoyageCommissionPct: (s.convoyageCommissionBps / 100).toString(),
+    carRentalEnabled: s.carRentalEnabled,
+    carRentalDailyRateMru: String(s.carRentalDailyRateMru),
+    carRentalCommissionPct: (s.carRentalCommissionBps / 100).toString(),
+    roadsideAssistanceEnabled: s.roadsideAssistanceEnabled,
+    roadsideAssistanceBaseFareMru: String(s.roadsideAssistanceBaseFareMru),
+    roadsideAssistanceCommissionPct: (s.roadsideAssistanceCommissionBps / 100).toString(),
+    lightMovingEnabled: s.lightMovingEnabled,
+    lightMovingBaseFareMru: String(s.lightMovingBaseFareMru),
+    lightMovingPerKmMru: String(s.lightMovingPerKmMru),
+    lightMovingMinFareMru: String(s.lightMovingMinFareMru),
+    lightMovingCommissionPct: (s.lightMovingCommissionBps / 100).toString(),
+    intercityFreightEnabled: s.intercityFreightEnabled,
+    intercityFreightBaseFareMru: String(s.intercityFreightBaseFareMru),
+    intercityFreightPerKmMru: String(s.intercityFreightPerKmMru),
+    intercityFreightMinFareMru: String(s.intercityFreightMinFareMru),
+    intercityFreightCommissionPct: (s.intercityFreightCommissionBps / 100).toString(),
+    equipmentRentalEnabled: s.equipmentRentalEnabled,
+    equipmentRentalDailyRateMru: String(s.equipmentRentalDailyRateMru),
+    equipmentRentalCommissionPct: (s.equipmentRentalCommissionBps / 100).toString(),
     showDemoButtons: s.showDemoButtons,
     captainAlertSoundMode: s.captainAlertSoundMode,
     captainAlertRepeatIntervalS: String(s.captainAlertRepeatIntervalS),
@@ -211,6 +323,34 @@ export default function SettingsPage() {
         carpoolingEnabled: form.carpoolingEnabled,
         carpoolingPublicationFee: parseInt(form.carpoolingPublicationFee, 10),
         carpoolingBoostFee: parseInt(form.carpoolingBoostFee, 10),
+        privateDriverEnabled: form.privateDriverEnabled,
+        privateDriverHourlyRateMru: parseInt(form.privateDriverHourlyRateMru, 10),
+        privateDriverMinHours: parseInt(form.privateDriverMinHours, 10),
+        privateDriverCommissionBps: Math.round(parseFloat(form.privateDriverCommissionPct) * 100),
+        convoyageEnabled: form.convoyageEnabled,
+        convoyageBaseFareMru: parseInt(form.convoyageBaseFareMru, 10),
+        convoyagePerKmMru: parseInt(form.convoyagePerKmMru, 10),
+        convoyageMinFareMru: parseInt(form.convoyageMinFareMru, 10),
+        convoyageCommissionBps: Math.round(parseFloat(form.convoyageCommissionPct) * 100),
+        carRentalEnabled: form.carRentalEnabled,
+        carRentalDailyRateMru: parseInt(form.carRentalDailyRateMru, 10),
+        carRentalCommissionBps: Math.round(parseFloat(form.carRentalCommissionPct) * 100),
+        roadsideAssistanceEnabled: form.roadsideAssistanceEnabled,
+        roadsideAssistanceBaseFareMru: parseInt(form.roadsideAssistanceBaseFareMru, 10),
+        roadsideAssistanceCommissionBps: Math.round(parseFloat(form.roadsideAssistanceCommissionPct) * 100),
+        lightMovingEnabled: form.lightMovingEnabled,
+        lightMovingBaseFareMru: parseInt(form.lightMovingBaseFareMru, 10),
+        lightMovingPerKmMru: parseInt(form.lightMovingPerKmMru, 10),
+        lightMovingMinFareMru: parseInt(form.lightMovingMinFareMru, 10),
+        lightMovingCommissionBps: Math.round(parseFloat(form.lightMovingCommissionPct) * 100),
+        intercityFreightEnabled: form.intercityFreightEnabled,
+        intercityFreightBaseFareMru: parseInt(form.intercityFreightBaseFareMru, 10),
+        intercityFreightPerKmMru: parseInt(form.intercityFreightPerKmMru, 10),
+        intercityFreightMinFareMru: parseInt(form.intercityFreightMinFareMru, 10),
+        intercityFreightCommissionBps: Math.round(parseFloat(form.intercityFreightCommissionPct) * 100),
+        equipmentRentalEnabled: form.equipmentRentalEnabled,
+        equipmentRentalDailyRateMru: parseInt(form.equipmentRentalDailyRateMru, 10),
+        equipmentRentalCommissionBps: Math.round(parseFloat(form.equipmentRentalCommissionPct) * 100),
         showDemoButtons: form.showDemoButtons,
         captainAlertSoundMode: form.captainAlertSoundMode,
         captainAlertRepeatIntervalS: parseInt(form.captainAlertRepeatIntervalS, 10),
@@ -442,6 +582,293 @@ export default function SettingsPage() {
                   suffix="MRU"
                   value={form.openMinFareMru}
                   onChange={(v) => setForm({ ...form, openMinFareMru: v })}
+                />
+              </div>
+            </section>
+
+            <section className="card p-5 mb-4 border border-blue-200 bg-blue-50/30">
+              <div className="flex items-start justify-between mb-1">
+                <h2 className="font-semibold text-slate-900">Chauffeur Privé</h2>
+                <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.privateDriverEnabled}
+                    onChange={(e) => setForm({ ...form, privateDriverEnabled: e.target.checked })}
+                    className="w-4 h-4 accent-blue-600"
+                  />
+                  <span className={form.privateDriverEnabled ? 'text-blue-700 font-medium' : 'text-slate-500'}>
+                    {form.privateDriverEnabled ? 'Activé' : 'Désactivé'}
+                  </span>
+                </label>
+              </div>
+              <p className="text-xs text-slate-500 mb-4">
+                Réservation d&apos;un chauffeur à l&apos;heure (3h, 6h, 12h, 24h).
+                Tarif forfaitaire sans destination fixe.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <Field
+                  label="Tarif horaire"
+                  suffix="MRU/h"
+                  value={form.privateDriverHourlyRateMru}
+                  onChange={(v) => setForm({ ...form, privateDriverHourlyRateMru: v })}
+                  step="10"
+                />
+                <Field
+                  label="Durée minimum"
+                  suffix="h"
+                  value={form.privateDriverMinHours}
+                  onChange={(v) => setForm({ ...form, privateDriverMinHours: v })}
+                  step="1"
+                />
+                <Field
+                  label="Commission"
+                  suffix="%"
+                  value={form.privateDriverCommissionPct}
+                  onChange={(v) => setForm({ ...form, privateDriverCommissionPct: v })}
+                  step="0.5"
+                />
+              </div>
+            </section>
+
+            <section className="card p-5 mb-4 border border-purple-200 bg-purple-50/30">
+              <div className="flex items-start justify-between mb-1">
+                <h2 className="font-semibold text-slate-900">Convoyage</h2>
+                <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.convoyageEnabled}
+                    onChange={(e) => setForm({ ...form, convoyageEnabled: e.target.checked })}
+                    className="w-4 h-4 accent-purple-600"
+                  />
+                  <span className={form.convoyageEnabled ? 'text-purple-700 font-medium' : 'text-slate-500'}>
+                    {form.convoyageEnabled ? 'Activé' : 'Désactivé'}
+                  </span>
+                </label>
+              </div>
+              <p className="text-xs text-slate-500 mb-4">
+                Un chauffeur conduit le véhicule du client de A vers B.
+                Tarification distance (base + km × prix/km, minimum garanti).
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field
+                  label="Frais de départ"
+                  suffix="MRU"
+                  value={form.convoyageBaseFareMru}
+                  onChange={(v) => setForm({ ...form, convoyageBaseFareMru: v })}
+                />
+                <Field
+                  label="Prix / km"
+                  suffix="MRU"
+                  value={form.convoyagePerKmMru}
+                  onChange={(v) => setForm({ ...form, convoyagePerKmMru: v })}
+                />
+                <Field
+                  label="Course minimum"
+                  suffix="MRU"
+                  value={form.convoyageMinFareMru}
+                  onChange={(v) => setForm({ ...form, convoyageMinFareMru: v })}
+                />
+                <Field
+                  label="Commission"
+                  suffix="%"
+                  value={form.convoyageCommissionPct}
+                  onChange={(v) => setForm({ ...form, convoyageCommissionPct: v })}
+                  step="0.5"
+                />
+              </div>
+            </section>
+
+            <section className="card p-5 mb-4 border border-amber-200 bg-amber-50/30">
+              <div className="flex items-start justify-between mb-1">
+                <h2 className="font-semibold text-slate-900">Location Auto</h2>
+                <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.carRentalEnabled}
+                    onChange={(e) => setForm({ ...form, carRentalEnabled: e.target.checked })}
+                    className="w-4 h-4 accent-amber-600"
+                  />
+                  <span className={form.carRentalEnabled ? 'text-amber-700 font-medium' : 'text-slate-500'}>
+                    {form.carRentalEnabled ? 'Activé' : 'Désactivé'}
+                  </span>
+                </label>
+              </div>
+              <p className="text-xs text-slate-500 mb-4">Location de voiture à la journée.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field
+                  label="Tarif journalier"
+                  suffix="MRU"
+                  value={form.carRentalDailyRateMru}
+                  onChange={(v) => setForm({ ...form, carRentalDailyRateMru: v })}
+                />
+                <Field
+                  label="Commission"
+                  suffix="%"
+                  value={form.carRentalCommissionPct}
+                  onChange={(v) => setForm({ ...form, carRentalCommissionPct: v })}
+                  step="0.5"
+                />
+              </div>
+            </section>
+
+            <section className="card p-5 mb-4 border border-red-200 bg-red-50/30">
+              <div className="flex items-start justify-between mb-1">
+                <h2 className="font-semibold text-slate-900">Assistance Routière</h2>
+                <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.roadsideAssistanceEnabled}
+                    onChange={(e) => setForm({ ...form, roadsideAssistanceEnabled: e.target.checked })}
+                    className="w-4 h-4 accent-red-600"
+                  />
+                  <span className={form.roadsideAssistanceEnabled ? 'text-red-700 font-medium' : 'text-slate-500'}>
+                    {form.roadsideAssistanceEnabled ? 'Activé' : 'Désactivé'}
+                  </span>
+                </label>
+              </div>
+              <p className="text-xs text-slate-500 mb-4">Assistance routière (dépannage, remorquage).</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field
+                  label="Frais de base"
+                  suffix="MRU"
+                  value={form.roadsideAssistanceBaseFareMru}
+                  onChange={(v) => setForm({ ...form, roadsideAssistanceBaseFareMru: v })}
+                />
+                <Field
+                  label="Commission"
+                  suffix="%"
+                  value={form.roadsideAssistanceCommissionPct}
+                  onChange={(v) => setForm({ ...form, roadsideAssistanceCommissionPct: v })}
+                  step="0.5"
+                />
+              </div>
+            </section>
+
+            <section className="card p-5 mb-4 border border-sky-200 bg-sky-50/30">
+              <div className="flex items-start justify-between mb-1">
+                <h2 className="font-semibold text-slate-900">Déménagement Léger</h2>
+                <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.lightMovingEnabled}
+                    onChange={(e) => setForm({ ...form, lightMovingEnabled: e.target.checked })}
+                    className="w-4 h-4 accent-sky-600"
+                  />
+                  <span className={form.lightMovingEnabled ? 'text-sky-700 font-medium' : 'text-slate-500'}>
+                    {form.lightMovingEnabled ? 'Activé' : 'Désactivé'}
+                  </span>
+                </label>
+              </div>
+              <p className="text-xs text-slate-500 mb-4">
+                Transport d&apos;objets / petit déménagement. Tarification distance.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field
+                  label="Frais de départ"
+                  suffix="MRU"
+                  value={form.lightMovingBaseFareMru}
+                  onChange={(v) => setForm({ ...form, lightMovingBaseFareMru: v })}
+                />
+                <Field
+                  label="Prix / km"
+                  suffix="MRU"
+                  value={form.lightMovingPerKmMru}
+                  onChange={(v) => setForm({ ...form, lightMovingPerKmMru: v })}
+                />
+                <Field
+                  label="Course minimum"
+                  suffix="MRU"
+                  value={form.lightMovingMinFareMru}
+                  onChange={(v) => setForm({ ...form, lightMovingMinFareMru: v })}
+                />
+                <Field
+                  label="Commission"
+                  suffix="%"
+                  value={form.lightMovingCommissionPct}
+                  onChange={(v) => setForm({ ...form, lightMovingCommissionPct: v })}
+                  step="0.5"
+                />
+              </div>
+            </section>
+
+            <section className="card p-5 mb-4 border border-violet-200 bg-violet-50/30">
+              <div className="flex items-start justify-between mb-1">
+                <h2 className="font-semibold text-slate-900">Fret Intercité</h2>
+                <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.intercityFreightEnabled}
+                    onChange={(e) => setForm({ ...form, intercityFreightEnabled: e.target.checked })}
+                    className="w-4 h-4 accent-violet-600"
+                  />
+                  <span className={form.intercityFreightEnabled ? 'text-violet-700 font-medium' : 'text-slate-500'}>
+                    {form.intercityFreightEnabled ? 'Activé' : 'Désactivé'}
+                  </span>
+                </label>
+              </div>
+              <p className="text-xs text-slate-500 mb-4">
+                Envoi de marchandises entre villes. Tarification distance.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field
+                  label="Frais de départ"
+                  suffix="MRU"
+                  value={form.intercityFreightBaseFareMru}
+                  onChange={(v) => setForm({ ...form, intercityFreightBaseFareMru: v })}
+                />
+                <Field
+                  label="Prix / km"
+                  suffix="MRU"
+                  value={form.intercityFreightPerKmMru}
+                  onChange={(v) => setForm({ ...form, intercityFreightPerKmMru: v })}
+                />
+                <Field
+                  label="Course minimum"
+                  suffix="MRU"
+                  value={form.intercityFreightMinFareMru}
+                  onChange={(v) => setForm({ ...form, intercityFreightMinFareMru: v })}
+                />
+                <Field
+                  label="Commission"
+                  suffix="%"
+                  value={form.intercityFreightCommissionPct}
+                  onChange={(v) => setForm({ ...form, intercityFreightCommissionPct: v })}
+                  step="0.5"
+                />
+              </div>
+            </section>
+
+            <section className="card p-5 mb-4 border border-indigo-200 bg-indigo-50/30">
+              <div className="flex items-start justify-between mb-1">
+                <h2 className="font-semibold text-slate-900">Location Équipement</h2>
+                <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.equipmentRentalEnabled}
+                    onChange={(e) => setForm({ ...form, equipmentRentalEnabled: e.target.checked })}
+                    className="w-4 h-4 accent-indigo-600"
+                  />
+                  <span className={form.equipmentRentalEnabled ? 'text-indigo-700 font-medium' : 'text-slate-500'}>
+                    {form.equipmentRentalEnabled ? 'Activé' : 'Désactivé'}
+                  </span>
+                </label>
+              </div>
+              <p className="text-xs text-slate-500 mb-4">Location d&apos;équipement à la journée.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field
+                  label="Tarif journalier"
+                  suffix="MRU"
+                  value={form.equipmentRentalDailyRateMru}
+                  onChange={(v) => setForm({ ...form, equipmentRentalDailyRateMru: v })}
+                />
+                <Field
+                  label="Commission"
+                  suffix="%"
+                  value={form.equipmentRentalCommissionPct}
+                  onChange={(v) => setForm({ ...form, equipmentRentalCommissionPct: v })}
+                  step="0.5"
                 />
               </div>
             </section>
@@ -820,6 +1247,20 @@ function isFormValid(f: FormState): boolean {
     parseInt(f.carpoolingBoostFee, 10),
   ];
   if (carpoolFees.some((n) => Number.isNaN(n) || n < 0 || n > 10_000)) return false;
+  const pdRate = parseInt(f.privateDriverHourlyRateMru, 10);
+  if (Number.isNaN(pdRate) || pdRate < 0 || pdRate > 50_000) return false;
+  const pdMinH = parseInt(f.privateDriverMinHours, 10);
+  if (Number.isNaN(pdMinH) || pdMinH < 1 || pdMinH > 24) return false;
+  const pdComm = parseFloat(f.privateDriverCommissionPct);
+  if (Number.isNaN(pdComm) || pdComm < 0 || pdComm > 50) return false;
+  const cvInts = [
+    parseInt(f.convoyageBaseFareMru, 10),
+    parseInt(f.convoyagePerKmMru, 10),
+    parseInt(f.convoyageMinFareMru, 10),
+  ];
+  if (cvInts.some((n) => Number.isNaN(n) || n < 0 || n > 10_000)) return false;
+  const cvComm = parseFloat(f.convoyageCommissionPct);
+  if (Number.isNaN(cvComm) || cvComm < 0 || cvComm > 50) return false;
   const url = f.captainAlertSoundUrl.trim();
   if (url) {
     try {

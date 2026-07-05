@@ -76,7 +76,7 @@ export default function NewRideScreen() {
   const prefilledDropoff = parsePoint(params.dropoffLat, params.dropoffLng, params.dropoffLabel);
   const prefilledKind: RideKind | null =
     params.kind === 'self' || params.kind === 'other' || params.kind === 'colis'
-      ? params.kind
+      ? (params.kind as RideKind)
       : null;
 
   const [pickup, setPickup] = useState<Point | null>(prefilledPickup);
@@ -162,7 +162,7 @@ export default function NewRideScreen() {
 
   // Course ouverte is only meaningful for passenger rides (no destination →
   // no parcel handover). Auto-disable when the user picks colis.
-  useEffect(() => { if (kind === 'colis' && isOpen) setIsOpen(false); }, [kind, isOpen]);
+  useEffect(() => { if ((kind === 'colis') && isOpen) setIsOpen(false); }, [kind, isOpen]);
   // Recompute estimate whenever both ends are set — closed rides only.
   useEffect(() => {
     if (isOpen) { setEstimate(null); return; }
@@ -311,9 +311,10 @@ export default function NewRideScreen() {
     if (!ready.ok) { Alert.alert(t('common.incomplete'), ready.reason); return; }
     setSubmitting(true);
     try {
+      const rideType = kind === 'colis' ? 'colis' : 'passenger';
       const body: Record<string, unknown> = {
         pickup,
-        rideType: kind === 'colis' ? 'colis' : 'passenger',
+        rideType,
         paymentMethod: 'cash',
         ...(kind !== 'colis' && !isOpen ? { pricingMode: SOLO_PRICING_MODE } : {}),
       };
@@ -383,7 +384,7 @@ export default function NewRideScreen() {
           />
         )}
 
-        {kind !== 'colis' && openQuote?.enabled ? (
+        {openQuote?.enabled ? (
           <OpenRideToggle
             value={isOpen}
             onChange={setIsOpen}
@@ -727,6 +728,46 @@ function KindSelector({
           </Pressable>
         );
       })}
+    </View>
+  );
+}
+
+function DurationPicker({
+  value, onChange, hourlyRate,
+}: { value: number; onChange: (h: number) => void; hourlyRate: number }) {
+  const durations = [
+    { h: 3, label: '3h' },
+    { h: 6, label: '6h' },
+    { h: 12, label: '12h' },
+    { h: 24, label: 'Journée' },
+  ];
+  return (
+    <View style={{ gap: 6 }}>
+      <Text style={{ fontSize: 11, color: '#64748b' }}>Durée de la réservation</Text>
+      <View style={{ flexDirection: 'row', gap: 6 }}>
+        {durations.map((d) => {
+          const active = d.h === value;
+          return (
+            <Pressable
+              key={d.h}
+              onPress={() => onChange(d.h)}
+              style={{
+                flex: 1,
+                backgroundColor: active ? '#0f172a' : '#f1f5f9',
+                paddingVertical: 10, borderRadius: 10,
+                alignItems: 'center', gap: 2,
+              }}
+            >
+              <Text style={{ fontSize: 14, fontWeight: '700', color: active ? '#fff' : '#0f172a' }}>
+                {d.label}
+              </Text>
+              <Text style={{ fontSize: 10, color: active ? '#94a3b8' : '#64748b' }}>
+                {formatMru(hourlyRate * d.h)}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 }

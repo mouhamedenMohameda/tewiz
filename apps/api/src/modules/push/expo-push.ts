@@ -100,7 +100,7 @@ export async function sendPush(message: PushMessage, isRetry = false): Promise<v
  */
 export async function notifyCaptainsNewRide(
   captainUserIds: string[],
-  ride: { id: string; rideType: 'passenger' | 'colis'; fareEstimateMru: number | null },
+  ride: { id: string; rideType: string; fareEstimateMru: number | null },
 ): Promise<void> {
   const tokens = await getPushTokensForUsers(captainUserIds);
   if (tokens.length === 0) return;
@@ -109,7 +109,15 @@ export async function notifyCaptainsNewRide(
   // The custom `ride-alert` sound must be bundled with the standalone build
   // (Android: notification channel; iOS: a sound file in the app bundle).
   // In Expo Go, the default system sound plays — that's acceptable for dev.
-  const title = ride.rideType === 'colis' ? '📦 Nouveau colis' : '🚖 Nouvelle course';
+  const title = ride.rideType === 'colis' ? '📦 Nouveau colis'
+    : ride.rideType === 'private_driver' ? '🕐 Chauffeur Privé'
+    : ride.rideType === 'convoyage' ? '🚗 Convoyage'
+    : ride.rideType === 'car_rental' ? '🚗 Location Auto'
+    : ride.rideType === 'roadside_assistance' ? '🛠️ Assistance Routière'
+    : ride.rideType === 'light_moving' ? '📦 Déménagement Léger'
+    : ride.rideType === 'intercity_freight' ? '🚛 Fret Intercité'
+    : ride.rideType === 'equipment_rental' ? '🔧 Location Équipement'
+    : '🚖 Nouvelle course';
   const body = ride.fareEstimateMru
     ? `Tarif estimé : ${ride.fareEstimateMru} MRU — accepter avant qu'un autre chauffeur ne prenne.`
     : 'Une nouvelle course est disponible près de vous.';

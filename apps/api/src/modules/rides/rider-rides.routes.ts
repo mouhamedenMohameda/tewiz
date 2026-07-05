@@ -25,9 +25,13 @@ const createBody = z.object({
   // from GPS once the ride starts. Closed rides require dropoff.
   dropoff: locationSchema.optional(),
   isOpen: z.boolean().optional(),
-  rideType: z.enum(['passenger', 'colis']).default('passenger'),
+  rideType: z.enum(['passenger', 'colis', 'private_driver', 'convoyage', 'car_rental', 'roadside_assistance', 'light_moving', 'intercity_freight', 'equipment_rental']).default('passenger'),
   pricingMode: z.enum(['solo', 'shared']).optional(),
   sharedSeats: z.number().int().min(2).max(20).optional(),
+  privateDriverDurationH: z.number().int().refine(
+    (v) => [3, 6, 12, 24].includes(v),
+    { message: 'Duration must be 3, 6, 12, or 24' },
+  ).optional(),
   paymentMethod: z.enum(['cash', 'wallet']).default('cash'),
   // For "course pour quelqu'un d'autre"
   passengerName: z.string().min(2).max(100).optional(),
@@ -36,6 +40,8 @@ const createBody = z.object({
   recipientName: z.string().min(2).max(100).optional(),
   recipientPhone: z.string().min(8).max(20).optional(),
   packageDescription: z.string().min(2).max(500).optional(),
+  vehiclePlate: z.string().min(2).max(20).optional(),
+  vehicleDescription: z.string().max(200).optional(),
 });
 
 /**
@@ -48,9 +54,13 @@ const estimateBody = z.object({
   dropoff: locationSchema,
   // Optional so older mobile builds (which don't send it) still work and get
   // the passenger tariff by default.
-  rideType: z.enum(['passenger', 'colis']).default('passenger'),
+  rideType: z.enum(['passenger', 'colis', 'private_driver', 'convoyage', 'car_rental', 'roadside_assistance', 'light_moving', 'intercity_freight', 'equipment_rental']).default('passenger'),
   pricingMode: z.enum(['solo', 'shared']).optional(),
   sharedSeats: z.number().int().min(2).max(20).optional(),
+  privateDriverDurationH: z.number().int().refine(
+    (v) => [3, 6, 12, 24].includes(v),
+    { message: 'Duration must be 3, 6, 12, or 24' },
+  ).optional(),
 });
 
 riderRidesRouter.post('/estimate', async (req, res) => {
@@ -59,7 +69,7 @@ riderRidesRouter.post('/estimate', async (req, res) => {
     body.pickup.lat, body.pickup.lng,
     body.dropoff.lat, body.dropoff.lng,
   );
-  const quote = await estimateFareMru(crow, body.rideType, {
+  const quote = await estimateFareMru(crow, body.rideType as any, {
     pricingMode: body.pricingMode,
     sharedSeats: body.sharedSeats,
   });
@@ -85,7 +95,7 @@ riderRidesRouter.post('/', requirePhone, async (req, res) => {
     pickup: body.pickup,
     dropoff: body.dropoff,
     isOpen: body.isOpen,
-    rideType: body.rideType,
+    rideType: body.rideType as any,
     pricingMode: body.pricingMode,
     sharedSeats: body.sharedSeats,
     paymentMethod: body.paymentMethod,
@@ -94,6 +104,9 @@ riderRidesRouter.post('/', requirePhone, async (req, res) => {
     recipientName: body.recipientName,
     recipientPhone: body.recipientPhone,
     packageDescription: body.packageDescription,
+    privateDriverDurationH: body.privateDriverDurationH,
+    vehiclePlate: body.vehiclePlate,
+    vehicleDescription: body.vehicleDescription,
   });
   res.json(ride);
 });
@@ -113,6 +126,83 @@ riderRidesRouter.get('/open-quote', async (_req, res) => {
     perKmMru: s.openPerKmMru,
     perMinuteMru: s.openPerMinuteMru,
     minFareMru: s.openMinFareMru,
+  });
+});
+
+riderRidesRouter.get('/private-driver-quote', async (_req, res) => {
+  const s = await getPricingSettings();
+  res.json({
+    enabled: s.privateDriverEnabled,
+    hourlyRateMru: s.privateDriverHourlyRateMru,
+    minHours: s.privateDriverMinHours,
+  });
+});
+
+riderRidesRouter.get('/convoyage-quote', async (_req, res) => {
+  const s = await getPricingSettings();
+  res.json({
+    enabled: s.convoyageEnabled,
+    baseFareMru: s.convoyageBaseFareMru,
+    perKmMru: s.convoyagePerKmMru,
+    minFareMru: s.convoyageMinFareMru,
+  });
+});
+
+riderRidesRouter.get('/car-rental-quote', async (_req, res) => {
+  const s = await getPricingSettings();
+  res.json({
+    enabled: s.carRentalEnabled,
+    dailyRateMru: s.carRentalDailyRateMru,
+  });
+});
+
+riderRidesRouter.get('/roadside-assistance-quote', async (_req, res) => {
+  const s = await getPricingSettings();
+  res.json({
+    enabled: s.roadsideAssistanceEnabled,
+    baseFareMru: s.roadsideAssistanceBaseFareMru,
+  });
+});
+
+riderRidesRouter.get('/light-moving-quote', async (_req, res) => {
+  const s = await getPricingSettings();
+  res.json({
+    enabled: s.lightMovingEnabled,
+    baseFareMru: s.lightMovingBaseFareMru,
+    perKmMru: s.lightMovingPerKmMru,
+    minFareMru: s.lightMovingMinFareMru,
+  });
+});
+
+riderRidesRouter.get('/intercity-freight-quote', async (_req, res) => {
+  const s = await getPricingSettings();
+  res.json({
+    enabled: s.intercityFreightEnabled,
+    baseFareMru: s.intercityFreightBaseFareMru,
+    perKmMru: s.intercityFreightPerKmMru,
+    minFareMru: s.intercityFreightMinFareMru,
+  });
+});
+
+riderRidesRouter.get('/equipment-rental-quote', async (_req, res) => {
+  const s = await getPricingSettings();
+  res.json({
+    enabled: s.equipmentRentalEnabled,
+    dailyRateMru: s.equipmentRentalDailyRateMru,
+  });
+});
+
+riderRidesRouter.get('/modules', async (_req, res) => {
+  const s = await getPricingSettings();
+  res.json({
+    openRides: s.allowOpenRides,
+    privateDriver: s.privateDriverEnabled,
+    convoyage: s.convoyageEnabled,
+    carRental: s.carRentalEnabled,
+    roadsideAssistance: s.roadsideAssistanceEnabled,
+    lightMoving: s.lightMovingEnabled,
+    intercityFreight: s.intercityFreightEnabled,
+    equipmentRental: s.equipmentRentalEnabled,
   });
 });
 
