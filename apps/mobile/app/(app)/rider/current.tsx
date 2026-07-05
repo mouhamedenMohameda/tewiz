@@ -32,13 +32,23 @@ interface Captain {
 interface Ride {
   id: string;
   status: RideStatus;
-  rideType: 'passenger' | 'colis';
+  rideType: 'passenger' | 'colis' | 'private_driver' | 'convoyage';
   pickup: { lat: number; lng: number; label: string | null };
   dropoff: { lat: number; lng: number; label: string | null } | null;
   fareEstimateMru: number | null;
   fareFinalMru: number | null;
   paymentMethod: 'cash' | 'wallet';
   captain: Captain | null;
+  privateDriverDetails: {
+    bookedDurationH: number;
+    hourlyRateMru: number;
+    bookedFareMru: number;
+  } | null;
+  convoyageDetails: {
+    vehiclePlate: string;
+    vehicleDescription: string;
+  } | null;
+  startedAt: string | null;
   // Open ride / metered fare.
   isOpen: boolean;
   openTariff: {
@@ -96,7 +106,7 @@ export default function CurrentRideScreen() {
   useEffect(() => { load(); }, [load]);
   // Open rides display a live meter; poll fast enough that the number feels
   // alive (3 s) while in_progress, otherwise fall back to the standard 5 s.
-  const liveMeterActive = ride?.isOpen && ride?.status === 'in_progress';
+  const liveMeterActive = (ride?.isOpen || ride?.rideType === 'private_driver') && ride?.status === 'in_progress';
   usePolling(load, liveMeterActive ? 3_000 : 5_000);
 
   async function cancel(reasonKey: string) {
@@ -104,7 +114,7 @@ export default function CurrentRideScreen() {
     // Open ride after captain accepted: the captain is the only one who can
     // end the trip (rider is in the car, meter is running). Showing the
     // cancel button at all would mislead the user, so we silently skip.
-    if (ride.isOpen && ride.status !== 'searching') return;
+    if ((ride.isOpen || ride.rideType === 'private_driver') && ride.status !== 'searching') return;
     setCancelling(true);
     try {
       await api.post(`/rider/rides/${ride.id}/cancel`, { reasonKey });
@@ -160,7 +170,7 @@ export default function CurrentRideScreen() {
     || ride.status === 'in_progress';
   // Open ride past 'searching' → only the captain can end. Hide the rider
   // cancel button entirely to avoid a "cancel" that returns 403.
-  const canRiderCancel = isActive && !(ride.isOpen && ride.status !== 'searching');
+  const canRiderCancel = isActive && !((ride.isOpen || ride.rideType === 'private_driver') && ride.status !== 'searching');
 
   const needsRating = ride.status === 'completed' && !!ride.captain;
 
@@ -182,6 +192,14 @@ export default function CurrentRideScreen() {
 
         {ride.isOpen && ride.status === 'in_progress' ? (
           <LiveMeterCard ride={ride} />
+        ) : null}
+
+        {ride.rideType === 'private_driver' && ride.status === 'in_progress' && ride.privateDriverDetails && ride.startedAt ? (
+          <PrivateDriverTimerCard
+            startedAt={ride.startedAt}
+            bookedDurationH={ride.privateDriverDetails.bookedDurationH}
+            bookedFareMru={ride.privateDriverDetails.bookedFareMru}
+          />
         ) : null}
 
         <TripCard ride={ride} />
@@ -480,7 +498,8 @@ function TripCard({ ride }: { ride: Ride }) {
   // above, so the fare row here would duplicate. Display the running total
   // post-completion instead.
   const fare = ride.fareFinalMru
-    ?? (ride.isOpen ? ride.liveMeter?.fareMru ?? null : ride.fareEstimateMru);
+    ?? (ride.rideType === 'private_driver' ? ride.privateDriverDetails?.bookedFareMru ?? ride.fareEstimateMru
+    : ride.isOpen ? ride.liveMeter?.fareMru ?? null : ride.fareEstimateMru);
   return (
     <View style={{ marginTop: 16, backgroundColor: '#fff', borderRadius: 14, padding: 16, gap: 12 }}>
       <View>
@@ -596,6 +615,68 @@ function LiveMeterCard({ ride }: { ride: Ride }) {
           })}
         </Text>
       ) : null}
+    </View>
+  );
+}
+
+function PrivateDriverTimerCard({
+  startedAt, bookedDurationH, bookedFareMru,
+}: { startedAt: string; bookedDurationH: number; bookedFareMru: number }) {
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    const start = new Date(startedAt).getTime();
+    const tick = () => setElapsed(Math.max(0, Math.floor((Date.now() - start) / 1000)));
+    tick();
+    const iv = setInterval(tick, 1000);
+    return () => clearInterval(iv);
+  }, [startedAt]);
+
+  const totalBookedS = bookedDurationH * 3600;
+  const remaining = totalBookedS - elapsed;
+  const isOvertime = remaining < 0;
+  const displayS = Math.abs(remaining);
+  const hours = Math.floor(displayS / 3600);
+  const mins = Math.floor((displayS % 3600) / 60);
+  const secs = displayS % 60;
+
+  return (
+    <View style={{
+      marginTop: 16, backgroundColor: '#0f172a', borderRadius: 16,
+      padding: 18, gap: 14,
+    }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: isOvertime ? '#ef4444' : '#10a35e' }} />
+        <Text style={{ fontSize: 11, fontWeight: '700', color: isOvertime ? '#ef4444' : '#10a35e', letterSpacing: 0.6 }}>
+          {isOvertime ? 'TEMPS DÉPASSÉ' : 'CHAUFFEUR PRIVÉ'}
+        </Text>
+      </View>
+
+      <Text style={{
+        fontSize: 36, fontWeight: '800', color: '#fff', letterSpacing: -1,
+      }}>
+        {isOvertime ? '+' : ''}{hours}:{String(mins).padStart(2, '0')}:{String(secs).padStart(2, '0')}
+      </Text>
+
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <View style={{
+          flex: 1, backgroundColor: '#1e293b', borderRadius: 10,
+          paddingVertical: 12, paddingHorizontal: 14,
+        }}>
+          <Text style={{ fontSize: 10, color: '#94a3b8', letterSpacing: 0.4 }}>RÉSERVÉ</Text>
+          <Text style={{ fontSize: 20, fontWeight: '700', color: '#fff', marginTop: 4 }}>
+            {bookedDurationH}h
+          </Text>
+        </View>
+        <View style={{
+          flex: 1, backgroundColor: '#1e293b', borderRadius: 10,
+          paddingVertical: 12, paddingHorizontal: 14,
+        }}>
+          <Text style={{ fontSize: 10, color: '#94a3b8', letterSpacing: 0.4 }}>TARIF</Text>
+          <Text style={{ fontSize: 20, fontWeight: '700', color: '#fff', marginTop: 4 }}>
+            {formatMru(bookedFareMru)}
+          </Text>
+        </View>
+      </View>
     </View>
   );
 }

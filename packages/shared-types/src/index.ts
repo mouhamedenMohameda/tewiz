@@ -104,7 +104,10 @@ export type CaptainStatus = 'active' | 'suspended' | 'banned';
 export type VehicleType = 'car' | 'moto';
 
 // --- Rides ---
-export type RideType = 'passenger' | 'colis';
+export type RideType = 'passenger' | 'colis' | 'private_driver' | 'convoyage' | 'car_rental' | 'roadside_assistance' | 'light_moving' | 'intercity_freight' | 'equipment_rental';
+
+export const PRIVATE_DRIVER_DURATIONS = [3, 6, 12, 24] as const;
+export type PrivateDriverDuration = typeof PRIVATE_DRIVER_DURATIONS[number];
 
 // 'restaurant' = booked by a restaurant partner account for a phone-in
 // customer; 'partner' = booked by an individual member. Both carry

@@ -152,6 +152,18 @@ export async function estimateFareMru(
     s.intercityPricingEnabled &&
     distanceEstimateM >= s.longDistanceThresholdM;
 
+  // Daily-rate services don't use distance-based pricing
+  if (rideType === 'car_rental' || rideType === 'equipment_rental') {
+    return {
+      fareMru: 0,
+      distanceEstimateM,
+      pricingModeApplied: 'solo',
+      sharedSeatsApplied: null,
+      soloFareMru: null,
+      isIntercityPricing: false,
+    };
+  }
+
   if (isIntercity) {
     const quote = intercityFareMru(distanceEstimateM, {
       baseFareMru: s.intercityBaseFareMru,
@@ -180,7 +192,15 @@ export async function estimateFareMru(
 
   const tariff = rideType === 'colis'
     ? { base: s.colisBaseFareMru, perKm: s.colisPerKmMru, min: s.colisMinFareMru }
-    : { base: s.baseFareMru,      perKm: s.perKmMru,      min: s.minFareMru      };
+    : rideType === 'convoyage'
+      ? { base: s.convoyageBaseFareMru, perKm: s.convoyagePerKmMru, min: s.convoyageMinFareMru }
+      : rideType === 'light_moving'
+        ? { base: s.lightMovingBaseFareMru, perKm: s.lightMovingPerKmMru, min: s.lightMovingMinFareMru }
+        : rideType === 'roadside_assistance'
+          ? { base: s.roadsideAssistanceBaseFareMru, perKm: 0, min: 0 }
+          : rideType === 'intercity_freight'
+            ? { base: s.intercityFreightBaseFareMru, perKm: s.intercityFreightPerKmMru, min: s.intercityFreightMinFareMru }
+            : { base: s.baseFareMru, perKm: s.perKmMru, min: s.minFareMru };
   const raw = tariff.base + (distanceEstimateM / 1000) * tariff.perKm;
   const fareMru = applyNightPricing(roundUpToNearest5(Math.max(tariff.min, raw)), now, nightPricing);
   return {
@@ -191,6 +211,36 @@ export async function estimateFareMru(
     soloFareMru: null,
     isIntercityPricing: false,
   };
+}
+
+export interface PrivateDriverQuote {
+  fareMru: number;
+  hourlyRateMru: number;
+  durationH: number;
+}
+
+export function privateDriverFareMru(
+  hourlyRateMru: number,
+  durationH: number,
+  nightPricing: NightPricingConfig,
+  now: Date = new Date(),
+): PrivateDriverQuote {
+  const raw = hourlyRateMru * durationH;
+  const fareMru = applyNightPricing(roundUpToNearest5(raw), now, nightPricing);
+  return { fareMru, hourlyRateMru, durationH };
+}
+
+export function privateDriverFinalFareMru(
+  hourlyRateMru: number,
+  bookedDurationH: number,
+  actualDurationS: number,
+  nightPricing: NightPricingConfig,
+  now: Date = new Date(),
+): number {
+  const actualHours = Math.max(0, actualDurationS) / 3600;
+  const billableHours = Math.max(bookedDurationH, Math.ceil(actualHours));
+  const raw = hourlyRateMru * billableHours;
+  return applyNightPricing(roundUpToNearest5(raw), now, nightPricing);
 }
 
 /**
