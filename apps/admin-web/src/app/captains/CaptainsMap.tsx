@@ -108,7 +108,7 @@ export function CaptainsMap({ captains, selectedId, onSelect }: Props) {
           onClose={() => setPopupId(null)}
           closeOnClick={false}
         >
-          <div style={{ fontFamily: 'system-ui', fontSize: 13 }}>
+          <div style={{ fontFamily: 'Sora', fontSize: 13 }}>
             <div style={{ fontWeight: 600 }}>{popupCaptain.fullName ?? '—'}</div>
             <div style={{ color: '#64748b' }}>{popupCaptain.phone}</div>
             <div style={{ marginTop: 4 }}>{presenceLabel(popupCaptain.presence)}</div>

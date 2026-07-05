@@ -31,7 +31,7 @@ export default function RootLayout() {
   const hydrate = useAuth((s) => s.hydrate);
   const [crashShown, setCrashShown] = useState(false);
   // Only the Latin (Sora) fonts are on the cold-start critical path. The
-  // Arabic (Tajawal) files are loaded lazily and gate the splash ONLY when
+  // Arabic (Louguiya) files are loaded lazily and gate the splash ONLY when
   // the app actually boots in an Arabic-script language — see below.
   const [fontsLoaded, fontError] = useFonts(latinFontAssets);
   const [i18nReady, setI18nReady] = useState(false);
@@ -42,7 +42,7 @@ export default function RootLayout() {
     let mounted = true;
     initI18n().finally(() => {
       if (!mounted) return;
-      // We now know the boot language. Arabic/Hassaniya render in Noto Kufi, so
+      // We now know the boot language. Arabic/Hassaniya render in Louguiya, so
       // those fonts must be present before the first paint (else the Arabic UI
       // flashes the system font and reflows). Latin languages never touch them.
       const lang = currentLanguage();

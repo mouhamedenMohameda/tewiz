@@ -66,6 +66,29 @@ export const requireAuth: RequestHandler = (req, _res, next) => {
 };
 
 /**
+ * Like requireAuth but silent — attaches req.user if a valid token is
+ * present, otherwise continues without error.
+ */
+export const optionalAuth: RequestHandler = (req, _res, next) => {
+  const header = req.headers.authorization;
+  if (!header?.startsWith('Bearer ')) return next();
+  const token = header.slice(7);
+  try {
+    const payload = verifyAccessToken(token);
+    req.user = {
+      id: payload.sub,
+      role: payload.role,
+      adminRole: payload.adminRole ?? null,
+      sid: payload.sid,
+    };
+    bumpHeartbeat(payload.sub);
+  } catch {
+    // ignore invalid token — treat as unauthenticated
+  }
+  next();
+};
+
+/**
  * Use AFTER requireAuth. Restricts the route to the given roles.
  */
 export function requireRole(...roles: UserRole[]): RequestHandler {

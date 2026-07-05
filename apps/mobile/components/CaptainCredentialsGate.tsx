@@ -194,7 +194,7 @@ function CredentialCard({
             color: '#fff',
             fontSize: monospace ? 22 : 20,
             fontWeight: '700',
-            fontFamily: monospace ? 'Courier' : undefined,
+            fontFamily: monospace ? 'Sora_700Bold' : undefined,
             letterSpacing: monospace ? 2 : 0.3,
           }}
         >

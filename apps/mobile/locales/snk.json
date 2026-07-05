@@ -812,6 +812,10 @@
       "version": "Version",
       "support": "Support ya soxu",
       "supportMessage": "Salaamu, n ga {{app}} application do ndimbal moyni."
+    },
+    "modules": {
+      "section": "Services affichés",
+      "hint": "Choisissez les services visibles sur votre écran d'accueil."
     }
   },
   "languages": {

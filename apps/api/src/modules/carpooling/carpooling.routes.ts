@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { requireAuth, requireRole } from '../../middleware/auth.js';
+import { optionalAuth, requireAuth, requireRole } from '../../middleware/auth.js';
 import { HttpError } from '../../middleware/error.js';
 import {
   cancelMyTrip,
@@ -52,12 +52,13 @@ carpoolingRouter.post('/trips', requireAuth, requireRole('captain'), async (req,
   res.status(201).json({ trip });
 });
 
-carpoolingRouter.get('/trips', async (req, res) => {
+carpoolingRouter.get('/trips', optionalAuth, async (req, res) => {
   const q = listQuery.parse(req.query);
   const trips = await listTrips({
     origin: q.origin,
     destination: q.destination,
     date: q.date,
+    excludeDriverId: req.user?.id,
   });
   res.json({ trips });
 });

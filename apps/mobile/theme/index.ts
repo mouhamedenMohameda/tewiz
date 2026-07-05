@@ -174,7 +174,7 @@ export const fonts = {
     bold: 'Louguiya_700Bold',
     extrabold: 'Louguiya_700Bold',
   },
-  mono: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
+  mono: 'Sora_600SemiBold',
 } as const;
 
 export type TypePreset = {

@@ -203,9 +203,15 @@ export async function listTrips(filters: {
   origin?: string;
   destination?: string;
   date?: string;
+  excludeDriverId?: string;
 }): Promise<TripListItem[]> {
   const clauses = [`t.status = 'active'`, `t.departure_at > now()`];
   const params: unknown[] = [];
+
+  if (filters.excludeDriverId) {
+    params.push(filters.excludeDriverId);
+    clauses.push(`t.driver_id <> $${params.length}`);
+  }
 
   if (filters.origin?.trim()) {
     params.push(`%${filters.origin.trim()}%`);

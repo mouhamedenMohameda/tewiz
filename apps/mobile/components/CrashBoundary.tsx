@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     textTransform: 'uppercase',
   },
-  message: { color: '#fff', fontSize: 14, fontFamily: 'monospace' },
-  stack: { color: '#ddd', fontSize: 11, fontFamily: 'monospace' },
+  message: { color: '#fff', fontSize: 14, fontFamily: 'Sora_500Medium' },
+  stack: { color: '#ddd', fontSize: 11, fontFamily: 'Sora_500Medium' },
   hint: { color: '#888', marginTop: 24, fontSize: 12, fontStyle: 'italic' },
 });
