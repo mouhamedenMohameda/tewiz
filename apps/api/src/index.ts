@@ -22,6 +22,8 @@ import { startHeatmapCron } from './modules/heatmap/heatmap.service.js';
 import { startRideExpiryCron } from './modules/rides/expiry.service.js';
 import { carpoolingRouter } from './modules/carpooling/carpooling.routes.js';
 import { startCarpoolingCron } from './modules/carpooling/carpooling.service.js';
+import { listingsRouter } from './modules/listings/listings.routes.js';
+import { startListingsCron } from './modules/listings/listings.service.js';
 import { errorHandler, notFound } from './middleware/error.js';
 
 const logger = pino({
@@ -123,6 +125,7 @@ app.use('/geocode', geocodeRouter);
 // User inbox for notifications (any signed-in user can read their own).
 app.use('/notifications', userNotificationsRouter);
 app.use('/carpooling', carpoolingRouter);
+app.use('/listings', listingsRouter);
 
 app.use(notFound);
 app.use(errorHandler);
@@ -138,4 +141,6 @@ app.listen(env.PORT, '127.0.0.1', () => {
   startRideExpiryCron();
   // Expire old trips + send 2h reminders for inter-city carpooling.
   startCarpoolingCron();
+  // Expire service listings ("annonces") past their visibility window.
+  startListingsCron();
 });
