@@ -25,6 +25,7 @@ import { adminVoiceRidesRouter } from '../voice-rides/admin-voice-rides.routes.j
 import { adminRestaurantsRouter } from '../restaurants/admin-restaurants.routes.js';
 import { adminNotificationsRouter } from '../notifications/admin.routes.js';
 import { adminPartnersRouter } from '../partners/admin-partners.routes.js';
+import { adminCarpoolingRouter } from '../carpooling/admin-carpooling.routes.js';
 import { attachCaptainToAgency } from '../partners/partners.service.js';
 import * as roadReports from '../reports/road-reports.service.js';
 import type { ApplicationStatus } from '@tewiz/shared-types';
@@ -116,6 +117,16 @@ adminRouter.use(
     ['ops_manager', 'finance'],
   ),
   adminPartnersRouter,
+);
+
+// Carpooling dashboard (listing + revenue stats) — ops/dispatch/finance/support view.
+adminRouter.use(
+  '/carpooling',
+  requireAdminRoleByMethod(
+    ['ops_manager', 'dispatcher', 'finance', 'support'],
+    ['ops_manager', 'dispatcher'],
+  ),
+  adminCarpoolingRouter,
 );
 
 // Admin can also drop abusive road reports — ops + super.

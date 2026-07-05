@@ -39,6 +39,9 @@ interface PricingSettings {
   nightPriceMultiplier: number;
   nightPriceStartHour: number;
   nightPriceEndHour: number;
+  carpoolingEnabled: boolean;
+  carpoolingPublicationFee: number;
+  carpoolingBoostFee: number;
   showDemoButtons: boolean;
   captainAlertSoundMode: CaptainAlertSoundMode;
   captainAlertRepeatIntervalS: number;
@@ -74,6 +77,9 @@ interface FormState {
   nightPriceMultiplier: string;
   nightPriceStartHour: string;
   nightPriceEndHour: string;
+  carpoolingEnabled: boolean;
+  carpoolingPublicationFee: string;
+  carpoolingBoostFee: string;
   showDemoButtons: boolean;
   captainAlertSoundMode: CaptainAlertSoundMode;
   captainAlertRepeatIntervalS: string;
@@ -107,6 +113,9 @@ const EMPTY_FORM: FormState = {
   nightPriceMultiplier: '2',
   nightPriceStartHour: '0',
   nightPriceEndHour: '5',
+  carpoolingEnabled: true,
+  carpoolingPublicationFee: '100',
+  carpoolingBoostFee: '200',
   showDemoButtons: false,
   captainAlertSoundMode: 'standard',
   captainAlertRepeatIntervalS: '2',
@@ -141,6 +150,9 @@ function settingsToForm(s: PricingSettings): FormState {
     nightPriceMultiplier: String(s.nightPriceMultiplier),
     nightPriceStartHour: String(s.nightPriceStartHour),
     nightPriceEndHour: String(s.nightPriceEndHour),
+    carpoolingEnabled: s.carpoolingEnabled,
+    carpoolingPublicationFee: String(s.carpoolingPublicationFee),
+    carpoolingBoostFee: String(s.carpoolingBoostFee),
     showDemoButtons: s.showDemoButtons,
     captainAlertSoundMode: s.captainAlertSoundMode,
     captainAlertRepeatIntervalS: String(s.captainAlertRepeatIntervalS),
@@ -196,6 +208,9 @@ export default function SettingsPage() {
         nightPriceMultiplier: parseFloat(form.nightPriceMultiplier),
         nightPriceStartHour: parseInt(form.nightPriceStartHour, 10),
         nightPriceEndHour: parseInt(form.nightPriceEndHour, 10),
+        carpoolingEnabled: form.carpoolingEnabled,
+        carpoolingPublicationFee: parseInt(form.carpoolingPublicationFee, 10),
+        carpoolingBoostFee: parseInt(form.carpoolingBoostFee, 10),
         showDemoButtons: form.showDemoButtons,
         captainAlertSoundMode: form.captainAlertSoundMode,
         captainAlertRepeatIntervalS: parseInt(form.captainAlertRepeatIntervalS, 10),
@@ -543,6 +558,42 @@ export default function SettingsPage() {
               </div>
             </section>
 
+            <section className="card p-5 mb-4 border border-emerald-200 bg-emerald-50/30">
+              <div className="flex items-start justify-between mb-1">
+                <h2 className="font-semibold text-slate-900">Covoiturage inter-villes</h2>
+                <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.carpoolingEnabled}
+                    onChange={(e) => setForm({ ...form, carpoolingEnabled: e.target.checked })}
+                    className="w-4 h-4 accent-emerald-600"
+                  />
+                  <span className={form.carpoolingEnabled ? 'text-emerald-700 font-medium' : 'text-slate-500'}>
+                    {form.carpoolingEnabled ? 'Active' : 'Desactive'}
+                  </span>
+                </label>
+              </div>
+              <p className="text-xs text-slate-500 mb-4">
+                Service de publication de trajets inter-villes. Le conducteur paie un
+                frais de publication depuis son wallet, avec une option boost 24h.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field
+                  label="Frais de publication"
+                  suffix="MRU"
+                  value={form.carpoolingPublicationFee}
+                  onChange={(v) => setForm({ ...form, carpoolingPublicationFee: v })}
+                />
+                <Field
+                  label="Frais boost (24h)"
+                  suffix="MRU"
+                  value={form.carpoolingBoostFee}
+                  onChange={(v) => setForm({ ...form, carpoolingBoostFee: v })}
+                />
+              </div>
+            </section>
+
             <section className="card p-5 mb-4 border-2 border-dashed border-amber-300 bg-amber-50">
               <h2 className="font-semibold text-slate-900 mb-1">Alerte nouvelle course</h2>
               <p className="text-xs text-slate-600 mb-4">
@@ -764,6 +815,11 @@ function isFormValid(f: FormState): boolean {
   if (nightStart === nightEnd) return false;
   const alertRepeat = parseInt(f.captainAlertRepeatIntervalS, 10);
   if (Number.isNaN(alertRepeat) || alertRepeat < 1 || alertRepeat > 15) return false;
+  const carpoolFees = [
+    parseInt(f.carpoolingPublicationFee, 10),
+    parseInt(f.carpoolingBoostFee, 10),
+  ];
+  if (carpoolFees.some((n) => Number.isNaN(n) || n < 0 || n > 10_000)) return false;
   const url = f.captainAlertSoundUrl.trim();
   if (url) {
     try {

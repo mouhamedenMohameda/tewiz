@@ -241,23 +241,28 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
       {/* Multilingual taglines */}
       <View style={styles.linesWrap}>
         {LINES.map((line, i) => (
-          <Animated.View
-            key={line.code}
-            style={[
-              styles.lineRow,
-              {
-                opacity: lineAnims[i].opacity,
-                transform: [{ translateY: lineAnims[i].y }],
-              },
-            ]}
-          >
-            <Text style={styles.lineText}>
-              {line.text}
-            </Text>
-            <View style={styles.codeBadge}>
-              <Text style={styles.codeText}>{line.code}</Text>
-            </View>
-          </Animated.View>
+          (() => {
+            const anim = lineAnims[i]!;
+            return (
+              <Animated.View
+                key={line.code}
+                style={[
+                  styles.lineRow,
+                  {
+                    opacity: anim.opacity,
+                    transform: [{ translateY: anim.y }],
+                  },
+                ]}
+              >
+                <Text style={styles.lineText}>
+                  {line.text}
+                </Text>
+                <View style={styles.codeBadge}>
+                  <Text style={styles.codeText}>{line.code}</Text>
+                </View>
+              </Animated.View>
+            );
+          })()
         ))}
       </View>
     </Animated.View>

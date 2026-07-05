@@ -67,6 +67,9 @@ export interface PricingSettings {
   nightPriceMultiplier: number;
   nightPriceStartHour: number;
   nightPriceEndHour: number;
+  carpoolingEnabled: boolean;
+  carpoolingPublicationFee: number;
+  carpoolingBoostFee: number;
   // Migration 0031. Show the one-tap reviewer demo-login buttons on the welcome
   // and login screens. Flip to true before an App Store / Play submission,
   // back to false once the build is approved.
@@ -129,6 +132,9 @@ interface Row {
   night_price_multiplier: string;
   night_price_start_hour: number;
   night_price_end_hour: number;
+  carpooling_enabled: boolean;
+  carpooling_publication_fee: number;
+  carpooling_boost_fee: number;
   show_demo_buttons: boolean;
   captain_alert_sound_mode: CaptainAlertSoundMode;
   captain_alert_repeat_interval_s: number;
@@ -183,6 +189,9 @@ function toSettings(r: Row): PricingSettings {
     nightPriceMultiplier: Number(r.night_price_multiplier),
     nightPriceStartHour: r.night_price_start_hour,
     nightPriceEndHour: r.night_price_end_hour,
+    carpoolingEnabled: r.carpooling_enabled,
+    carpoolingPublicationFee: r.carpooling_publication_fee,
+    carpoolingBoostFee: r.carpooling_boost_fee,
     showDemoButtons: r.show_demo_buttons,
     captainAlertSoundMode: r.captain_alert_sound_mode,
     captainAlertRepeatIntervalS: r.captain_alert_repeat_interval_s,
@@ -228,6 +237,8 @@ export async function getPricingSettings(): Promise<PricingSettings> {
             open_per_minute_mru, open_min_fare_mru,
             night_pricing_enabled, night_price_multiplier,
             night_price_start_hour, night_price_end_hour,
+            carpooling_enabled, carpooling_publication_fee,
+            carpooling_boost_fee,
             show_demo_buttons,
               captain_alert_sound_mode, captain_alert_repeat_interval_s,
               captain_alert_sound_url,
@@ -286,6 +297,9 @@ export interface PricingSettingsPatch {
   nightPriceMultiplier?: number;
   nightPriceStartHour?: number;
   nightPriceEndHour?: number;
+  carpoolingEnabled?: boolean;
+  carpoolingPublicationFee?: number;
+  carpoolingBoostFee?: number;
   showDemoButtons?: boolean;
   captainAlertSoundMode?: CaptainAlertSoundMode;
   captainAlertRepeatIntervalS?: number;
@@ -342,6 +356,9 @@ export async function updatePricingSettings(
           night_price_multiplier            = COALESCE($33, night_price_multiplier),
           night_price_start_hour            = COALESCE($34, night_price_start_hour),
           night_price_end_hour              = COALESCE($35, night_price_end_hour),
+          carpooling_enabled                = COALESCE($50, carpooling_enabled),
+          carpooling_publication_fee        = COALESCE($51, carpooling_publication_fee),
+          carpooling_boost_fee              = COALESCE($52, carpooling_boost_fee),
           show_demo_buttons                 = COALESCE($37, show_demo_buttons),
           captain_alert_sound_mode          = COALESCE($38, captain_alert_sound_mode),
           captain_alert_repeat_interval_s   = COALESCE($39, captain_alert_repeat_interval_s),
@@ -380,6 +397,8 @@ export async function updatePricingSettings(
                 open_per_minute_mru, open_min_fare_mru,
                 night_pricing_enabled, night_price_multiplier,
                 night_price_start_hour, night_price_end_hour,
+                carpooling_enabled, carpooling_publication_fee,
+                carpooling_boost_fee,
                 show_demo_buttons,
                 captain_alert_sound_mode, captain_alert_repeat_interval_s,
                 captain_alert_sound_url,
@@ -440,6 +459,9 @@ export async function updatePricingSettings(
       patch.partnerFraudPairMaxRides7d ?? null,
       patch.partnerFraudMinDistanceM ?? null,
       patch.partnerFraudMaxCreationsPerHour ?? null,
+      patch.carpoolingEnabled ?? null,
+      patch.carpoolingPublicationFee ?? null,
+      patch.carpoolingBoostFee ?? null,
     ],
   );
   cache = null;

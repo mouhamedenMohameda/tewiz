@@ -20,6 +20,8 @@ import { geocodeRouter } from './modules/geocode/geocode.routes.js';
 import { userNotificationsRouter } from './modules/notifications/user.routes.js';
 import { startHeatmapCron } from './modules/heatmap/heatmap.service.js';
 import { startRideExpiryCron } from './modules/rides/expiry.service.js';
+import { carpoolingRouter } from './modules/carpooling/carpooling.routes.js';
+import { startCarpoolingCron } from './modules/carpooling/carpooling.service.js';
 import { errorHandler, notFound } from './middleware/error.js';
 
 const logger = pino({
@@ -120,6 +122,7 @@ app.use('/road-reports', roadReportsRouter);
 app.use('/geocode', geocodeRouter);
 // User inbox for notifications (any signed-in user can read their own).
 app.use('/notifications', userNotificationsRouter);
+app.use('/carpooling', carpoolingRouter);
 
 app.use(notFound);
 app.use(errorHandler);
@@ -133,4 +136,6 @@ app.listen(env.PORT, '127.0.0.1', () => {
   startHeatmapCron();
   // Auto-cancel rides that no captain accepted within the configured timeout.
   startRideExpiryCron();
+  // Expire old trips + send 2h reminders for inter-city carpooling.
+  startCarpoolingCron();
 });
