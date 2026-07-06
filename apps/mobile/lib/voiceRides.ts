@@ -57,6 +57,16 @@ export async function createVoiceRide(
   return data;
 }
 
+/**
+ * The rider's currently pending request, or null. Lets the screen resume the
+ * waiting phase (and offer cancel) for a request left open in a previous
+ * session, instead of soft-locking the rider out of new recordings.
+ */
+export async function getCurrentVoiceRide(): Promise<VoiceRideRequest | null> {
+  const { data } = await api.get<VoiceRideRequest | null>('/rider/voice-rides/current');
+  return data ?? null;
+}
+
 /** Poll a request's status (embeds the linked ride once confirmed). */
 export async function getVoiceRide(id: string): Promise<VoiceRideRequest> {
   const { data } = await api.get<VoiceRideRequest>(`/rider/voice-rides/${id}`);

@@ -9,7 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useVoiceRecorder } from '@/lib/useVoiceRecorder';
 import { usePolling } from '@/lib/usePolling';
 import {
-  createVoiceRide, getVoiceRide, cancelVoiceRide,
+  createVoiceRide, getVoiceRide, cancelVoiceRide, getCurrentVoiceRide,
   type VoiceRideRequest,
 } from '@/lib/voiceRides';
 import { AppText, Button, Icon } from '@/components/ui';
@@ -28,6 +28,21 @@ export default function VoiceRideScreen() {
   const [request, setRequest] = useState<VoiceRideRequest | null>(null);
   const requestId = request?.id ?? null;
 
+  // On entering the screen, resume any request still pending from a previous
+  // session so the rider sees it (and can cancel) instead of hitting the
+  // "already pending" wall with no visible request to act on.
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      const current = await getCurrentVoiceRide().catch(() => null);
+      if (active && current) {
+        setRequest(current);
+        setPhase('waiting');
+      }
+    })();
+    return () => { active = false; };
+  }, []);
+
   // ── Recording → upload ─────────────────────────────────────────────────────
   const onToggleRecord = useCallback(async () => {
     if (recorder.isRecording) {
@@ -44,14 +59,34 @@ export default function VoiceRideScreen() {
         setRequest(req);
         setPhase('waiting');
       } catch (e: any) {
+        // Server errors arrive as { error: { code, message } }; a network or
+        // timeout failure has no response at all. Surface the real reason
+        // instead of a blanket "retry" so the rider knows what went wrong
+        // (e.g. "Ajoutez votre numéro de téléphone avant de commander").
+        const err = e?.response?.data?.error;
+        // An earlier request may still be pending (left open in a previous
+        // session). Resume it so the rider can watch or cancel it instead of
+        // being soft-locked out of new recordings.
+        if (err?.code === 'voice_request_pending') {
+          const current = await getCurrentVoiceRide().catch(() => null);
+          if (current) {
+            setRequest(current);
+            setPhase('waiting');
+            return;
+          }
+        }
         setPhase('record');
-        const code = e?.response?.data?.error;
-        Alert.alert(
-          t('rider.voiceRide.uploadFailedTitle'),
-          code === 'voice_request_pending'
-            ? t('rider.voiceRide.alreadyPending')
-            : (e?.response?.data?.message ?? t('rider.voiceRide.uploadRetry')),
-        );
+        let message: string;
+        if (err?.code === 'voice_request_pending') {
+          message = t('rider.voiceRide.alreadyPending');
+        } else if (err?.message) {
+          message = err.message;
+        } else if (!e?.response) {
+          message = t('errors.network');
+        } else {
+          message = t('rider.voiceRide.uploadRetry');
+        }
+        Alert.alert(t('rider.voiceRide.uploadFailedTitle'), message);
       }
     } else {
       await recorder.start();
