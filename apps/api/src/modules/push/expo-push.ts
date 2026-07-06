@@ -140,6 +140,51 @@ export async function notifyCaptainsNewRide(
   }
 }
 
+const ROADSIDE_PROBLEM_LABEL: Record<string, string> = {
+  pneu: 'Pneu crevé',
+  batterie: 'Batterie',
+  essence: 'Panne d\'essence',
+  moteur: 'Panne moteur',
+  remorquage: 'Remorquage',
+  accident: 'Accident',
+  autre: 'Panne',
+};
+
+/**
+ * Urgent SOS push to opted-in roadside providers near a stranded driver.
+ * Mirrors notifyCaptainsNewRide but with its own copy + payload type so the
+ * app can route the tap to the roadside inbox.
+ */
+export async function notifyProvidersRoadside(
+  providerUserIds: string[],
+  req: { id: string; problemType: string; distanceM?: number | null },
+): Promise<void> {
+  const tokens = await getPushTokensForUsers(providerUserIds);
+  if (tokens.length === 0) return;
+  const settings = await getPricingSettings();
+
+  const label = ROADSIDE_PROBLEM_LABEL[req.problemType] ?? 'Panne';
+  const dist = req.distanceM != null ? ` à ${(req.distanceM / 1000).toFixed(1)} km` : '';
+  const title = `🆘 ${label}${dist}`;
+  const body = 'Un conducteur en panne demande de l\'aide près de vous — accepter avant les autres.';
+
+  for (let i = 0; i < tokens.length; i += 100) {
+    const batch = tokens.slice(i, i + 100);
+    await sendPush({
+      to: batch,
+      sound: settings.captainAlertSoundMode === 'critical'
+        ? { name: 'default', critical: true, volume: 1 }
+        : 'default',
+      title,
+      body,
+      data: { type: 'roadside_alert', requestId: req.id },
+      channelId: 'ride-alerts',
+      priority: 'high',
+      ttl: 120,
+    });
+  }
+}
+
 /**
  * Notify a rider that the admin has turned their voice memo into a real ride.
  * Fire-and-forget. The waiting screen also learns this via polling; the push
