@@ -94,6 +94,30 @@ publicRouter.get('/restaurant-photos/:filename', async (req, res) => {
   }
 });
 
+/**
+ * GET /public/car-photos/:filename
+ * Publicly streams a car-rental listing photo (same storage pattern as
+ * restaurant photos; shown in the catalog to any user).
+ */
+publicRouter.get('/car-photos/:filename', async (req, res) => {
+  const filename = req.params.filename ?? '';
+  if (!/^[a-zA-Z0-9._-]+\.webp$/.test(filename)) {
+    return res.status(404).json({ error: { code: 'not_found' } });
+  }
+  try {
+    const buf = await defaultStorage.get(`cars/${filename}`);
+    res.setHeader('Content-Type', 'image/webp');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    return res.send(buf);
+  } catch (e) {
+    if (e instanceof StorageNotFoundError) {
+      return res.status(404).json({ error: { code: 'not_found' } });
+    }
+    throw e;
+  }
+});
+
 const confirmBody = z.object({
   code: z.string().regex(/^\d{4}$/),
 });
