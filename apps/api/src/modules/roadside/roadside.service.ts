@@ -167,18 +167,18 @@ async function eligibleProviders(requestId: string, radiusM: number): Promise<{
     SELECT s.captain_id,
            ST_Distance(s.location, req.location)::int AS dist_m
       FROM captain_state s
-      JOIN captains c ON c.user_id = s.captain_id
+      JOIN roadside_providers rp ON rp.user_id = s.captain_id
       CROSS JOIN req
      WHERE s.presence = 'online'
        AND s.location IS NOT NULL
        AND ST_DWithin(s.location, req.location, $2)
-       AND c.offers_roadside = true
-       AND (cardinality(c.roadside_specialties) = 0
-            OR req.problem_type = ANY (c.roadside_specialties))
+       AND rp.enabled = true
+       AND (cardinality(rp.specialties) = 0
+            OR req.problem_type = ANY (rp.specialties))
        AND s.captain_id <> req.requester_id
        AND NOT EXISTS (
          SELECT 1 FROM roadside_declines d
-          WHERE d.request_id = req.id AND d.captain_id = s.captain_id
+          WHERE d.request_id = req.id AND d.provider_id = s.captain_id
        )
      ORDER BY dist_m ASC`,
     [requestId, radiusM],
@@ -294,23 +294,23 @@ export async function providerInbox(captainId: string, lat: number, lng: number)
   }>(
     `
     WITH me AS (SELECT ST_SetSRID(ST_MakePoint($2,$1),4326)::geography AS pt),
-    cap AS (SELECT offers_roadside, roadside_specialties FROM captains WHERE user_id = $3)
+    prov AS (SELECT enabled, specialties FROM roadside_providers WHERE user_id = $3)
     SELECT r.id, r.problem_type, r.note, r.address_label,
            ST_Y(r.location::geometry) AS lat, ST_X(r.location::geometry) AS lng,
            ST_Distance(r.location, me.pt)::int AS dist_m,
            u.full_name AS requester_name, r.created_at
       FROM roadside_requests r
       CROSS JOIN me
-      CROSS JOIN cap
+      CROSS JOIN prov
       JOIN users u ON u.id = r.requester_id
      WHERE r.status = 'searching'
-       AND cap.offers_roadside = true
+       AND prov.enabled = true
        AND ST_DWithin(r.location, me.pt, r.search_radius_m)
-       AND (cardinality(cap.roadside_specialties) = 0
-            OR r.problem_type = ANY (cap.roadside_specialties))
+       AND (cardinality(prov.specialties) = 0
+            OR r.problem_type = ANY (prov.specialties))
        AND r.requester_id <> $3
        AND NOT EXISTS (
-         SELECT 1 FROM roadside_declines d WHERE d.request_id = r.id AND d.captain_id = $3
+         SELECT 1 FROM roadside_declines d WHERE d.request_id = r.id AND d.provider_id = $3
        )
      ORDER BY dist_m ASC
      LIMIT 20`,
@@ -369,11 +369,11 @@ export async function acceptRequest(id: string, captainId: string): Promise<Acce
   };
 }
 
-export async function declineRequest(id: string, captainId: string): Promise<void> {
+export async function declineRequest(id: string, providerId: string): Promise<void> {
   await pool.query(
-    `INSERT INTO roadside_declines (request_id, captain_id)
+    `INSERT INTO roadside_declines (request_id, provider_id)
      VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-    [id, captainId],
+    [id, providerId],
   );
 }
 
@@ -392,30 +392,31 @@ export async function updateProviderStatus(
 }
 
 export async function setProviderProfile(
-  captainId: string, offersRoadside: boolean, specialties: ProblemType[],
+  userId: string, offersRoadside: boolean, specialties: ProblemType[],
 ): Promise<{ offersRoadside: boolean; specialties: ProblemType[] }> {
-  const { rows } = await pool.query<{ offers_roadside: boolean; roadside_specialties: ProblemType[] }>(
-    `UPDATE captains
-        SET offers_roadside = $2, roadside_specialties = $3
-      WHERE user_id = $1
-      RETURNING offers_roadside, roadside_specialties`,
-    [captainId, offersRoadside, specialties],
+  const { rows } = await pool.query<{ enabled: boolean; specialties: ProblemType[] }>(
+    `INSERT INTO roadside_providers (user_id, enabled, specialties, updated_at)
+     VALUES ($1, $2, $3, now())
+     ON CONFLICT (user_id) DO UPDATE
+       SET enabled = EXCLUDED.enabled,
+           specialties = EXCLUDED.specialties,
+           updated_at = now()
+     RETURNING enabled, specialties`,
+    [userId, offersRoadside, specialties],
   );
-  if (!rows[0]) {
-    throw new HttpError(404, 'not_a_captain', 'Profil chauffeur introuvable');
-  }
-  return { offersRoadside: rows[0].offers_roadside, specialties: rows[0].roadside_specialties };
+  return { offersRoadside: rows[0]!.enabled, specialties: rows[0]!.specialties };
 }
 
-export async function getProviderProfile(captainId: string): Promise<{
+export async function getProviderProfile(userId: string): Promise<{
   offersRoadside: boolean; specialties: ProblemType[];
 }> {
-  const { rows } = await pool.query<{ offers_roadside: boolean; roadside_specialties: ProblemType[] }>(
-    `SELECT offers_roadside, roadside_specialties FROM captains WHERE user_id = $1`,
-    [captainId],
+  const { rows } = await pool.query<{ enabled: boolean; specialties: ProblemType[] }>(
+    `SELECT enabled, specialties FROM roadside_providers WHERE user_id = $1`,
+    [userId],
   );
-  if (!rows[0]) throw new HttpError(404, 'not_a_captain', 'Profil chauffeur introuvable');
-  return { offersRoadside: rows[0].offers_roadside, specialties: rows[0].roadside_specialties };
+  // No row yet = hasn't opted in. Any user can opt in later.
+  if (!rows[0]) return { offersRoadside: false, specialties: [] };
+  return { offersRoadside: rows[0].enabled, specialties: rows[0].specialties };
 }
 
 /**
