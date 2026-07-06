@@ -419,7 +419,8 @@ function RestaurantForm({
       });
       const url = r.data.url as string;
       setPhoto(url);
-      setPhotoPreview(`${API_URL}${url}`);
+      // The API now returns an absolute URL; only prefix legacy relative paths.
+      setPhotoPreview(url.startsWith('http') ? url : `${API_URL}${url}`);
     } catch (e: any) {
       setErr(e?.response?.data?.error?.message ?? 'Erreur lors de l\'upload de la photo.');
     } finally {

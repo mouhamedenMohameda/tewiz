@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { z } from 'zod';
 import * as rides from '../rides/rides.service.js';
 import { getPricingSettings } from '../admin/app-settings.service.js';
+import { defaultStorage } from '../storage/local-disk.js';
+import { StorageNotFoundError } from '../storage/storage.js';
 
 // Public — NO auth. Used by passengers who don't have an app, only an SMS.
 export const publicRouter = Router();
@@ -58,6 +60,37 @@ publicRouter.get('/captain-alert-sound', async (_req, res) => {
     return res.status(200).send(body);
   } catch {
     return res.status(502).json({ error: { code: 'alert_sound_fetch_failed' } });
+  }
+});
+
+/**
+ * GET /public/restaurant-photos/:filename
+ *
+ * Publicly streams a restaurant photo uploaded from the back office. Photos
+ * MUST be served without auth because they are shown to unauthenticated
+ * customers in the mobile app (and in <img> tags that can't send a JWT). The
+ * file lives under the same `restaurants/` storage prefix the admin upload
+ * writes to.
+ */
+publicRouter.get('/restaurant-photos/:filename', async (req, res) => {
+  const filename = req.params.filename ?? '';
+  // Only allow the exact shape our upload endpoint produces (<uuid>.webp).
+  if (!/^[a-zA-Z0-9._-]+\.webp$/.test(filename)) {
+    return res.status(404).json({ error: { code: 'not_found' } });
+  }
+  try {
+    const buf = await defaultStorage.get(`restaurants/${filename}`);
+    res.setHeader('Content-Type', 'image/webp');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    // Override helmet's default `same-origin` CORP so the admin-web browser
+    // (a different origin than the API) can embed this photo in an <img>.
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    return res.send(buf);
+  } catch (e) {
+    if (e instanceof StorageNotFoundError) {
+      return res.status(404).json({ error: { code: 'not_found' } });
+    }
+    throw e;
   }
 });
 
