@@ -584,9 +584,12 @@ function RestaurantForm({
         <Field label="Délai min (min)" value={etaMin} onChange={setEtaMin} type="number" />
         <Field label="Délai max (min)" value={etaMax} onChange={setEtaMax} type="number" />
 
-        {/* Photo upload */}
+        {/* Menu / carte des plats upload — shown in the app behind "voir la carte des plats". */}
         <div className="col-span-2">
-          <label className="text-xs text-slate-600 block mb-1">Photo</label>
+          <label className="text-xs text-slate-600 block mb-1">
+            Carte des plats (menu)
+            <span className="text-slate-400"> · affichée dans l’app via « voir la carte des plats »</span>
+          </label>
           <div className="flex items-start gap-3">
             {photoSrc ? (
               <div className="relative shrink-0">
@@ -619,7 +622,7 @@ function RestaurantForm({
                 disabled={uploading}
                 className="w-full px-4 py-3 text-sm border-2 border-dashed border-slate-300 rounded-lg text-slate-500 hover:border-emerald-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
               >
-                {uploading ? 'Upload en cours…' : photoSrc ? 'Changer la photo' : '📷 Uploader une photo'}
+                {uploading ? 'Upload en cours…' : photoSrc ? 'Changer la carte' : '📷 Uploader la carte des plats'}
               </button>
               <input
                 type="text"

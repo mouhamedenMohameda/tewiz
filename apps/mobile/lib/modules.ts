@@ -15,7 +15,7 @@ export const APP_MODULES: AppModule[] = [
   { key: 'private_driver', icon: 'clock', label: 'Chauffeur Privé', route: '/(app)/listings?category=private_driver', tint: '#dbeafe', fg: '#1e40af' },
   { key: 'convoyage', icon: 'ride', label: 'Convoyage', route: '/(app)/listings?category=convoyage', tint: '#ede9fe', fg: '#7c3aed' },
   { key: 'car_rental', icon: 'car', label: 'Location Auto', route: '/(app)/listings?category=car_rental', tint: '#fef3c7', fg: '#d97706' },
-  { key: 'roadside_assistance', icon: 'shield', label: 'Assistance Routière', route: '/(app)/listings?category=roadside_assistance', tint: '#fee2e2', fg: '#dc2626' },
+  { key: 'roadside_assistance', icon: 'shield', label: 'Assistance Routière', route: '/(app)/roadside', tint: '#fee2e2', fg: '#dc2626' },
   { key: 'light_moving', icon: 'parcel', label: 'Déménagement Léger', route: '/(app)/listings?category=light_moving', tint: '#dbeafe', fg: '#0284c7' },
   { key: 'intercity_freight', icon: 'car', label: 'Fret Intercité', route: '/(app)/listings?category=intercity_freight', tint: '#f3e8ff', fg: '#a855f7' },
   { key: 'equipment_rental', icon: 'tune', label: 'Location Équipement', route: '/(app)/listings?category=equipment_rental', tint: '#e0e7ff', fg: '#6366f1' },

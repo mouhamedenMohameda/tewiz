@@ -10,7 +10,7 @@ import {
 import { colors, gradients, radius, shadow, spacing } from '@/theme';
 import { CUISINE_CATEGORIES, fetchRestaurants, type Restaurant } from '@/lib/restaurants';
 import { cuisineCounts, filterRestaurants } from '@/lib/restaurantFilter';
-import { resolveRestaurantPhoto } from '@/lib/restaurantPhotos';
+import { resolveRestaurantCover } from '@/lib/restaurantPhotos';
 
 type CuisineKey = (typeof CUISINE_CATEGORIES)[number]['key'];
 
@@ -269,9 +269,9 @@ function CategoryChip({
 }
 
 function RestaurantCard({ restaurant, onPress }: { restaurant: Restaurant; onPress: () => void }) {
-  // Every card now shows a photo: curated when present, deterministic Unsplash
-  // fallback otherwise. Keeps the list visually consistent — no blank tiles.
-  const photo = resolveRestaurantPhoto(restaurant);
+  // Every card shows a deterministic Unsplash cover keyed on cuisine — the
+  // admin-uploaded photo is the menu card, not a storefront cover.
+  const photo = resolveRestaurantCover(restaurant);
   // If the photo URL 404s (Unsplash sometimes prunes IDs) we drop into a
   // branded gradient placeholder rather than show an empty box.
   const [imgFailed, setImgFailed] = useState(false);

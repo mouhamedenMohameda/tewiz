@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Pressable, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -8,7 +8,7 @@ import {
 } from '@/components/ui';
 import { colors, gradients, radius, shadow, spacing } from '@/theme';
 import { fetchRestaurantById, type Restaurant } from '@/lib/restaurants';
-import { resolveRestaurantPhoto } from '@/lib/restaurantPhotos';
+import { resolveRestaurantCover } from '@/lib/restaurantPhotos';
 
 export default function RestaurantDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -18,6 +18,7 @@ export default function RestaurantDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [imgFailed, setImgFailed] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -78,7 +79,10 @@ export default function RestaurantDetailScreen() {
     );
   }
 
-  const photo = resolveRestaurantPhoto(restaurant);
+  // Cover = deterministic fallback. The admin-uploaded `restaurant.photo` is
+  // the menu card, shown on demand via the "voir la carte des plats" action.
+  const cover = resolveRestaurantCover(restaurant);
+  const hasMenu = !!restaurant.photo;
   const eta = restaurant.etaMin != null && restaurant.etaMax != null
     ? `${restaurant.etaMin}-${restaurant.etaMax} min`
     : null;
@@ -133,7 +137,7 @@ export default function RestaurantDetailScreen() {
           </LinearGradient>
         ) : (
           <Image
-            source={{ uri: photo }}
+            source={{ uri: cover }}
             style={{ width: '100%', height: '100%' }}
             resizeMode="cover"
             onError={() => setImgFailed(true)}
@@ -301,14 +305,69 @@ export default function RestaurantDetailScreen() {
             variant="ghost"
             title={t('rider.restaurants.viewMenu')}
             icon="menu"
-            onPress={() => Alert.alert(
-              t('rider.restaurants.menuAlertTitle'),
-              t('rider.restaurants.menuAlertBody', { name: restaurant.name }),
-            )}
+            onPress={() => {
+              // When the admin has uploaded a menu card, show it full-screen.
+              // Otherwise fall back to the "coming soon" notice.
+              if (hasMenu) setMenuOpen(true);
+              else Alert.alert(
+                t('rider.restaurants.menuAlertTitle'),
+                t('rider.restaurants.menuAlertBody', { name: restaurant.name }),
+              );
+            }}
             style={{ marginTop: spacing.xs }}
           />
         </FadeInView>
       </View>
+
+      {/* Full-screen menu (carte des plats) viewer — pinch-to-zoom on iOS. */}
+      <Modal
+        visible={menuOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuOpen(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.94)' }}>
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ flexGrow: 1, alignItems: 'center', justifyContent: 'center' }}
+            maximumZoomScale={4}
+            minimumZoomScale={1}
+            centerContent
+            showsVerticalScrollIndicator={false}
+            showsHorizontalScrollIndicator={false}
+          >
+            {restaurant.photo ? (
+              <Image
+                source={{ uri: restaurant.photo }}
+                style={{ width: '100%', height: '100%' }}
+                resizeMode="contain"
+              />
+            ) : null}
+          </ScrollView>
+          <View style={{
+            position: 'absolute', top: spacing.xxl + spacing.sm + 4, left: 0, right: 0,
+            alignItems: 'center',
+          }}>
+            <AppText variant="bodyStrong" color={colors.white}>
+              {t('rider.restaurants.menuAlertTitle')}
+            </AppText>
+          </View>
+          <Pressable
+            onPress={() => setMenuOpen(false)}
+            hitSlop={10}
+            style={{
+              position: 'absolute', top: spacing.xxl + spacing.sm, right: spacing.lg,
+              width: 44, height: 44, borderRadius: radius.md,
+              backgroundColor: 'rgba(255,255,255,0.92)',
+              alignItems: 'center', justifyContent: 'center',
+              ...shadow.card,
+            }}
+            accessibilityLabel={t('common.close', { defaultValue: 'Fermer' })}
+          >
+            <Icon name="close" size={22} color={colors.ink} />
+          </Pressable>
+        </View>
+      </Modal>
     </Screen>
   );
 }

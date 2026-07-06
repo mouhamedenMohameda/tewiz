@@ -212,21 +212,24 @@ function djb2(s: string): number {
 }
 
 /**
- * The curated photo when one exists, otherwise a deterministic Unsplash
- * fallback. Resolution priority:
- *   1. r.photo (admin-set)
- *   2. r.cuisine pool
- *   3. r.osmValue pool ('restaurant' / 'cafe' / 'fast_food')
- *   4. default (generic food)
+ * The COVER image for a restaurant (hero + list thumbnail). This is always a
+ * deterministic Unsplash fallback keyed on cuisine/osmValue.
  *
- * The pool index is also salted with `osmValue` so two restaurants with
- * identical ids landing on different osm_value's still diverge — paranoid
- * but cheap.
+ * Note: the admin-uploaded `photo` is intentionally NOT used here. That field
+ * holds the restaurant's MENU card ("carte des plats"), shown on demand behind
+ * the "voir la carte des plats" action — it is not a storefront cover.
+ *
+ * Resolution priority:
+ *   1. r.cuisine pool
+ *   2. r.osmValue pool ('restaurant' / 'cafe' / 'fast_food')
+ *   3. default (generic food)
+ *
+ * The pool index is salted with `osmValue` so two restaurants with identical
+ * ids landing on different osm_value's still diverge — paranoid but cheap.
  */
-export function resolveRestaurantPhoto(
-  r: Pick<Restaurant, 'id' | 'photo' | 'cuisine' | 'osmValue'>,
+export function resolveRestaurantCover(
+  r: Pick<Restaurant, 'id' | 'cuisine' | 'osmValue'>,
 ): string {
-  if (r.photo) return r.photo;
   const key = (r.cuisine || r.osmValue || 'default') as string;
   const pool = POOLS[key] ?? POOLS.default!;
   const salt = r.osmValue ?? '';

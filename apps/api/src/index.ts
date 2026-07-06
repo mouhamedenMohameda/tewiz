@@ -24,6 +24,8 @@ import { carpoolingRouter } from './modules/carpooling/carpooling.routes.js';
 import { startCarpoolingCron } from './modules/carpooling/carpooling.service.js';
 import { listingsRouter } from './modules/listings/listings.routes.js';
 import { startListingsCron } from './modules/listings/listings.service.js';
+import { roadsideRouter } from './modules/roadside/roadside.routes.js';
+import { startRoadsideCron } from './modules/roadside/roadside.service.js';
 import { errorHandler, notFound } from './middleware/error.js';
 
 const logger = pino({
@@ -126,6 +128,7 @@ app.use('/geocode', geocodeRouter);
 app.use('/notifications', userNotificationsRouter);
 app.use('/carpooling', carpoolingRouter);
 app.use('/listings', listingsRouter);
+app.use('/roadside', roadsideRouter);
 
 app.use(notFound);
 app.use(errorHandler);
@@ -143,4 +146,6 @@ app.listen(env.PORT, '127.0.0.1', () => {
   startCarpoolingCron();
   // Expire service listings ("annonces") past their visibility window.
   startListingsCron();
+  // Expand roadside SOS search radius + fall back to the hotline on timeout.
+  startRoadsideCron();
 });
