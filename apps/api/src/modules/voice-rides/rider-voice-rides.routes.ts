@@ -43,6 +43,20 @@ riderVoiceRidesRouter.post('/', requirePhone, uploadAudio.single('audio'), async
 });
 
 /**
+ * GET /rider/voice-rides/current
+ * The caller's currently pending request, or null. Lets the app resume the
+ * waiting screen (and offer cancel) after a restart, so a request left open in
+ * a previous session doesn't silently soft-lock the rider out of new ones.
+ *
+ * NOTE: must be registered before GET /:id, otherwise "current" is captured as
+ * an :id param.
+ */
+riderVoiceRidesRouter.get('/current', async (req, res) => {
+  const userId = req.user!.id;
+  res.json(await voiceRides.getCurrentPendingRequestForUser(userId));
+});
+
+/**
  * GET /rider/voice-rides/:id
  * Polling endpoint for the waiting screen. Embeds the linked ride once the
  * request has been confirmed by an admin.

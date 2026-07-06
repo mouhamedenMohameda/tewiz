@@ -127,6 +127,24 @@ export async function createVoiceRideRequest(input: {
 // Reads
 
 /**
+ * The caller's currently pending request, or null. Used by the app on entering
+ * the voice screen to resume an already-open request (created in a previous
+ * session) so the rider can watch or cancel it instead of being blocked by the
+ * one-pending-at-a-time rule with no visible request.
+ */
+export async function getCurrentPendingRequestForUser(userId: string) {
+  const r = await pool.query<VoiceRideRow>(
+    `SELECT ${VOICE_RIDE_COLUMNS} FROM voice_ride_requests
+      WHERE user_id = $1 AND status = 'pending'
+      ORDER BY created_at DESC
+      LIMIT 1`,
+    [userId],
+  );
+  const row = r.rows[0];
+  return row ? shape(row) : null;
+}
+
+/**
  * Fetch a request for its owner. When the request has been confirmed, the
  * linked ride is embedded so the waiting screen can transition straight to
  * ride-tracking without a second round-trip.
