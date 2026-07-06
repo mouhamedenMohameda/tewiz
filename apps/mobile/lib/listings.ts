@@ -37,20 +37,50 @@ export interface PublishListingPayload {
   window_days: number;
 }
 
-/** UI metadata per category: default price unit + how to phrase the price. */
+/** UI metadata per category: price wording + category-specific form hints. */
 export const CATEGORY_META: Record<string, {
   label: string;
   priceUnit: PriceUnit;
   unitSuffix: string;
   pricePrompt: string;
+  titlePlaceholder: string;
+  descPlaceholder: string;
 }> = {
-  private_driver:      { label: 'Chauffeur Privé',     priceUnit: 'per_hour', unitSuffix: '/h',      pricePrompt: 'Tarif horaire' },
-  convoyage:           { label: 'Convoyage',           priceUnit: 'per_trip', unitSuffix: '/trajet', pricePrompt: 'Tarif par trajet' },
-  car_rental:          { label: 'Location Auto',       priceUnit: 'per_day',  unitSuffix: '/jour',   pricePrompt: 'Tarif journalier' },
-  roadside_assistance: { label: 'Assistance Routière', priceUnit: 'fixed',    unitSuffix: '',        pricePrompt: 'Tarif de base' },
-  light_moving:        { label: 'Déménagement Léger',  priceUnit: 'per_trip', unitSuffix: '/trajet', pricePrompt: 'Tarif par trajet' },
-  intercity_freight:   { label: 'Fret Intercité',      priceUnit: 'per_trip', unitSuffix: '/trajet', pricePrompt: 'Tarif par trajet' },
-  equipment_rental:    { label: 'Location Équipement', priceUnit: 'per_day',  unitSuffix: '/jour',   pricePrompt: 'Tarif journalier' },
+  private_driver: {
+    label: 'Chauffeur Privé', priceUnit: 'per_hour', unitSuffix: '/h', pricePrompt: 'Tarif horaire',
+    titlePlaceholder: 'Ex: Chauffeur dispo soir & week-end',
+    descPlaceholder: 'Ex: Berline climatisée, +5 ans d\'expérience, Nouakchott et environs',
+  },
+  convoyage: {
+    label: 'Convoyage', priceUnit: 'per_trip', unitSuffix: '/trajet', pricePrompt: 'Tarif par trajet',
+    titlePlaceholder: 'Ex: Convoyage Nouakchott ↔ Nouadhibou',
+    descPlaceholder: 'Ex: Je conduis votre véhicule, permis toutes catégories, ponctuel',
+  },
+  car_rental: {
+    label: 'Location Auto', priceUnit: 'per_day', unitSuffix: '/jour', pricePrompt: 'Tarif journalier',
+    titlePlaceholder: 'Ex: Toyota Corolla 2020 à louer',
+    descPlaceholder: 'Ex: Climatisée, avec ou sans chauffeur, caution demandée',
+  },
+  roadside_assistance: {
+    label: 'Assistance Routière', priceUnit: 'fixed', unitSuffix: '', pricePrompt: 'Tarif de base',
+    titlePlaceholder: 'Ex: Dépannage & remorquage 24h/24',
+    descPlaceholder: 'Ex: Batterie, pneu, remorquage, intervention rapide',
+  },
+  light_moving: {
+    label: 'Déménagement Léger', priceUnit: 'per_trip', unitSuffix: '/trajet', pricePrompt: 'Tarif par trajet',
+    titlePlaceholder: 'Ex: Déménagement & transport d\'objets',
+    descPlaceholder: 'Ex: Camionnette + aide au chargement, meubles et cartons',
+  },
+  intercity_freight: {
+    label: 'Fret Intercité', priceUnit: 'per_trip', unitSuffix: '/trajet', pricePrompt: 'Tarif par trajet',
+    titlePlaceholder: 'Ex: Transport marchandises inter-villes',
+    descPlaceholder: 'Ex: Camion 3T, Nouakchott ↔ Rosso, chargement sécurisé',
+  },
+  equipment_rental: {
+    label: 'Location Équipement', priceUnit: 'per_day', unitSuffix: '/jour', pricePrompt: 'Tarif journalier',
+    titlePlaceholder: 'Ex: Groupe électrogène 5 kVA à louer',
+    descPlaceholder: 'Ex: Livraison possible, caution demandée, bon état',
+  },
 };
 
 export const PRICE_UNIT_SUFFIX: Record<PriceUnit, string> = {

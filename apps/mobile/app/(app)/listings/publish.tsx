@@ -77,7 +77,7 @@ export default function PublishListingScreen() {
             <TextField
               value={title}
               onChangeText={setTitle}
-              placeholder="Ex: Toyota Hilux disponible"
+              placeholder={meta?.titlePlaceholder ?? 'Ex: Titre de votre annonce'}
               containerStyle={{ marginTop: spacing.xs }}
             />
           </View>
@@ -87,7 +87,7 @@ export default function PublishListingScreen() {
             <TextField
               value={description}
               onChangeText={setDescription}
-              placeholder="Détails, conditions, zone… (optionnel)"
+              placeholder={meta?.descPlaceholder ?? 'Détails, conditions… (optionnel)'}
               multiline
               containerStyle={{ marginTop: spacing.xs }}
             />

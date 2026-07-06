@@ -43,6 +43,20 @@ export const adminRestaurantsRouter = Router();
 
 const priceLevel = z.enum(['$', '$$', '$$$']);
 
+/**
+ * Accepts either an absolute http(s) URL or a root-relative path such as the
+ * `/admin/restaurants/photos/<uuid>.webp` value returned by our own
+ * `POST /upload-photo` endpoint. Plain `.url()` rejects relative paths.
+ */
+const photoUrl = z
+  .string()
+  .trim()
+  .max(500)
+  .refine(
+    (v) => v.startsWith('/') || z.string().url().safeParse(v).success,
+    'URL invalide',
+  );
+
 /** Canonical (camelCase) upsert shape used by the admin UI. */
 const upsertSchema = z.object({
   id: z.string().trim().min(1).max(80).regex(/^[a-z0-9-]+$/, 'id must be lowercase slug').optional(),
@@ -58,7 +72,7 @@ const upsertSchema = z.object({
   etaMin: z.number().int().min(0).max(600).nullable().optional(),
   etaMax: z.number().int().min(0).max(600).nullable().optional(),
   description: z.string().trim().max(2000).nullable().optional(),
-  photo: z.string().trim().url().max(500).nullable().optional(),
+  photo: photoUrl.nullable().optional(),
   address: z.string().trim().max(200).nullable().optional(),
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),
