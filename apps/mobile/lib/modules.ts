@@ -13,7 +13,7 @@ export interface AppModule {
 export const APP_MODULES: AppModule[] = [
   { key: 'carpooling', icon: 'tfag', label: 'Tfag', route: '/(app)/carpooling', tint: colors.emberSoft, fg: colors.ember },
   { key: 'private_driver', icon: 'clock', label: 'Chauffeur Privé', route: '/(app)/listings?category=private_driver', tint: '#dbeafe', fg: '#1e40af' },
-  { key: 'convoyage', icon: 'ride', label: 'Convoyage', route: '/(app)/listings?category=convoyage', tint: '#ede9fe', fg: '#7c3aed' },
+  { key: 'convoyage', icon: 'ride', label: 'Convoyage', route: '/(app)/convoyage', tint: '#ede9fe', fg: '#7c3aed' },
   { key: 'car_rental', icon: 'car', label: 'Location Auto', route: '/(app)/car-rental', tint: '#fef3c7', fg: '#d97706' },
   { key: 'roadside_assistance', icon: 'shield', label: 'Assistance Routière', route: '/(app)/roadside', tint: '#fee2e2', fg: '#dc2626' },
   { key: 'light_moving', icon: 'parcel', label: 'Déménagement Léger', route: '/(app)/listings?category=light_moving', tint: '#dbeafe', fg: '#0284c7' },
