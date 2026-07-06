@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { requireAuth, requireRole } from '../../middleware/auth.js';
+import { requireAuth } from '../../middleware/auth.js';
 import { HttpError } from '../../middleware/error.js';
 import {
   PROBLEM_TYPES,
@@ -66,11 +66,11 @@ const profileBody = z.object({
   specialties: z.array(z.enum(PROBLEM_TYPES)).max(PROBLEM_TYPES.length).default([]),
 });
 
-roadsideRouter.get('/provider', requireAuth, requireRole('captain'), async (req, res) => {
+roadsideRouter.get('/provider', requireAuth, async (req, res) => {
   res.json(await getProviderProfile(req.user!.id));
 });
 
-roadsideRouter.put('/provider', requireAuth, requireRole('captain'), async (req, res) => {
+roadsideRouter.put('/provider', requireAuth, async (req, res) => {
   const b = profileBody.parse(req.body);
   res.json(await setProviderProfile(req.user!.id, b.offers_roadside, b.specialties));
 });
@@ -80,12 +80,12 @@ const inboxQuery = z.object({
   lng: z.coerce.number().min(-180).max(180),
 });
 
-roadsideRouter.get('/inbox', requireAuth, requireRole('captain'), async (req, res) => {
+roadsideRouter.get('/inbox', requireAuth, async (req, res) => {
   const q = inboxQuery.parse(req.query);
   res.json({ requests: await providerInbox(req.user!.id, q.lat, q.lng) });
 });
 
-roadsideRouter.post('/requests/:id/accept', requireAuth, requireRole('captain'), async (req, res) => {
+roadsideRouter.post('/requests/:id/accept', requireAuth, async (req, res) => {
   const result = await acceptRequest(String(req.params.id), req.user!.id);
   res.json({
     request_id: result.requestId,
@@ -98,14 +98,14 @@ roadsideRouter.post('/requests/:id/accept', requireAuth, requireRole('captain'),
   });
 });
 
-roadsideRouter.post('/requests/:id/decline', requireAuth, requireRole('captain'), async (req, res) => {
+roadsideRouter.post('/requests/:id/decline', requireAuth, async (req, res) => {
   await declineRequest(String(req.params.id), req.user!.id);
   res.json({ ok: true });
 });
 
 const statusBody = z.object({ status: z.enum(['in_progress', 'completed']) });
 
-roadsideRouter.post('/requests/:id/status', requireAuth, requireRole('captain'), async (req, res) => {
+roadsideRouter.post('/requests/:id/status', requireAuth, async (req, res) => {
   const b = statusBody.parse(req.body);
   const ok = await updateProviderStatus(String(req.params.id), req.user!.id, b.status);
   if (!ok) throw new HttpError(404, 'request_not_found', 'Demande introuvable');

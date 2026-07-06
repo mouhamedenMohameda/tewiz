@@ -215,6 +215,24 @@ export default function SettingsScreen() {
         </Card>
       </Section>
 
+      {/* Roadside provider — any user (rider or captain) can offer assistance */}
+      <Section title="Assistance routière">
+        <Card
+          onPress={() => router.push('/(app)/roadside/provider')}
+          padding={spacing.lg}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}
+        >
+          <RoundIcon name="shield" tint="#FDECEC" fg={colors.danger} />
+          <View style={{ flex: 1 }}>
+            <AppText variant="bodyStrong">Je suis dépanneur</AppText>
+            <AppText variant="caption" color={colors.muted} style={{ marginTop: 2, lineHeight: 18 }}>
+              Proposez votre aide et recevez les demandes de dépannage proches.
+            </AppText>
+          </View>
+          <Icon name="chevron" size={20} color={colors.faint} />
+        </Card>
+      </Section>
+
       {user?.role === 'captain' ? (
         <Section title={t('captain.preferences.title')}>
           <Card padding={spacing.lg} style={{ gap: spacing.md }}>

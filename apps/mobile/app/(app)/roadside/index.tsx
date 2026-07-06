@@ -84,7 +84,6 @@ export default function RoadsideScreen() {
             onPick={setProblem}
             submitting={submitting}
             onRequest={requestHelp}
-            onProvider={() => router.push('/(app)/roadside/provider')}
           />
         ) : current.status === 'searching' ? (
           <Searching request={current} notified={notified} onCancel={cancel} />
@@ -98,12 +97,11 @@ export default function RoadsideScreen() {
   );
 }
 
-function PickProblem({ problem, onPick, submitting, onRequest, onProvider }: {
+function PickProblem({ problem, onPick, submitting, onRequest }: {
   problem: ProblemType | null;
   onPick: (p: ProblemType) => void;
   submitting: boolean;
   onRequest: () => void;
-  onProvider: () => void;
 }) {
   return (
     <View style={{ flex: 1, justifyContent: 'space-between' }}>
@@ -138,19 +136,12 @@ function PickProblem({ problem, onPick, submitting, onRequest, onProvider }: {
           })}
         </View>
       </View>
-      <View style={{ gap: spacing.md }}>
-        <Button
-          title="🆘 Demander de l'aide"
-          onPress={onRequest}
-          busy={submitting}
-          disabled={!problem}
-        />
-        <Pressable onPress={onProvider} hitSlop={10}>
-          <AppText variant="caption" color={colors.muted} style={{ textAlign: 'center' }}>
-            Je suis dépanneur →
-          </AppText>
-        </Pressable>
-      </View>
+      <Button
+        title="🆘 Demander de l'aide"
+        onPress={onRequest}
+        busy={submitting}
+        disabled={!problem}
+      />
     </View>
   );
 }
