@@ -274,7 +274,13 @@ adminRestaurantsRouter.post('/upload-photo', upload.single('file'), async (req, 
 
   await defaultStorage.put(key, optimized, 'image/webp');
 
-  res.json({ url: `/admin/restaurants/photos/${key.replace('restaurants/', '')}` });
+  // Return an ABSOLUTE URL to the PUBLIC (no-auth) photo route. It must be
+  // absolute so the mobile app's <Image> and the admin <img> can load it
+  // directly, and public so unauthenticated customers can see it. `req.protocol`
+  // respects X-Forwarded-Proto because `trust proxy` is enabled.
+  const filename = key.replace('restaurants/', '');
+  const base = `${req.protocol}://${req.get('host')}`;
+  res.json({ url: `${base}/public/restaurant-photos/${filename}` });
 });
 
 adminRestaurantsRouter.get('/photos/:filename', async (req, res) => {
