@@ -74,7 +74,8 @@ export async function captainInbox(input: {
       pd.booked_duration_h,
       cv.vehicle_plate,
       cv.vehicle_description
-    FROM rides r, me
+    FROM rides r
+    CROSS JOIN me
     CROSS JOIN cap
     LEFT JOIN private_driver_details pd ON pd.ride_id = r.id
     LEFT JOIN convoyage_details cv ON cv.ride_id = r.id

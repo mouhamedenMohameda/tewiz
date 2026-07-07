@@ -212,7 +212,8 @@ export default function RidesScreen() {
 function HistorySection({ items }: { items: Ride[] }) {
   const { t, i18n } = useTranslation();
   const completedOpen = items.find((it) => it.status === 'completed' && it.isOpen);
-  const recent = items.slice(0, 5);
+  const others = completedOpen ? items.filter((it) => it.id !== completedOpen.id) : items;
+  const recent = others.slice(0, completedOpen ? 6 : 7);
 
   return (
     <View style={{ marginTop: spacing.xl }}>
