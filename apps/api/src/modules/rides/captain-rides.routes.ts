@@ -64,7 +64,7 @@ captainRidesRouter.get('/current', async (req, res) => {
 
 captainRidesRouter.get('/history', async (req, res) => {
   const userId = req.user!.id;
-  res.json(await rides.listCaptainHistory(userId, 30));
+  res.json(await rides.listCaptainHistory(userId, 7));
 });
 
 captainRidesRouter.get('/:id', async (req, res) => {
