@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Pressable, ScrollView, Switch, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
 import {
   createCar, getCar, updateCar, uploadCarPhoto, type Transmission,
@@ -11,6 +12,7 @@ import { colors, radius, spacing } from '@/theme';
 
 export default function AddCarScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const editing = !!id;
 
@@ -39,8 +41,8 @@ export default function AddCarScreen() {
       setTransmission(c.transmission); setSeats(c.seats ? String(c.seats) : '');
       setWithDriver(c.withDriver); setDriverRate(c.driverDayRateMru ? String(c.driverDayRateMru) : '');
       setDescription(c.description ?? ''); setPhotos(c.photos); setPaused(c.status === 'paused');
-    }).catch(() => Alert.alert('Erreur', 'Voiture introuvable')).finally(() => setLoading(false));
-  }, [id]);
+    }).catch(() => Alert.alert(t('carRental.errTitle'), t('carRental.errCarNotFound'))).finally(() => setLoading(false));
+  }, [id, t]);
 
   async function addPhoto() {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -52,7 +54,7 @@ export default function AddCarScreen() {
       const url = await uploadCarPhoto(r.assets[0].uri);
       setPhotos((prev) => [...prev, url]);
     } catch {
-      Alert.alert('Erreur', 'Upload de la photo impossible.');
+      Alert.alert(t('carRental.errTitle'), t('carRental.add.errUploadPhoto'));
     } finally {
       setUploading(false);
     }
@@ -61,11 +63,11 @@ export default function AddCarScreen() {
   async function save() {
     const priceN = parseInt(price, 10);
     if (!title.trim() || !city.trim() || !Number.isFinite(priceN) || priceN <= 0) {
-      Alert.alert('Incomplet', 'Titre, ville et prix/jour sont requis.');
+      Alert.alert(t('carRental.add.incompleteTitle'), t('carRental.add.incompleteBody'));
       return;
     }
     if (withDriver && !parseInt(driverRate, 10)) {
-      Alert.alert('Chauffeur', 'Indiquez le tarif chauffeur/jour.');
+      Alert.alert(t('carRental.add.driverIncompleteTitle'), t('carRental.add.driverIncompleteBody'));
       return;
     }
     const payload = {
@@ -86,11 +88,11 @@ export default function AddCarScreen() {
     try {
       if (editing) await updateCar(id!, { ...payload, status: paused ? 'paused' : 'active' });
       else await createCar(payload);
-      Alert.alert(editing ? 'Enregistré' : 'Publiée', 'Votre voiture est à jour.', [
-        { text: 'OK', onPress: () => router.back() },
+      Alert.alert(editing ? t('carRental.add.savedEditTitle') : t('carRental.add.savedNewTitle'), t('carRental.add.savedBody'), [
+        { text: t('common.ok'), onPress: () => router.back() },
       ]);
     } catch (e: any) {
-      Alert.alert('Erreur', e?.response?.data?.error?.message ?? 'Enregistrement impossible.');
+      Alert.alert(t('carRental.errTitle'), e?.response?.data?.error?.message ?? t('carRental.add.errSave'));
     } finally {
       setSaving(false);
     }
@@ -99,7 +101,7 @@ export default function AddCarScreen() {
   if (loading) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
-        <ScreenHeader title="Modifier" onBack={() => router.back()} />
+        <ScreenHeader title={t('carRental.add.headerEdit')} onBack={() => router.back()} style={{ paddingHorizontal: spacing.lg }} />
         <ActivityIndicator style={{ marginTop: spacing.xl }} />
       </SafeAreaView>
     );
@@ -107,9 +109,8 @@ export default function AddCarScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <ScreenHeader title={editing ? 'Modifier la voiture' : 'Ajouter une voiture'} onBack={() => router.back()} />
+      <ScreenHeader title={editing ? t('carRental.add.editTitle') : t('carRental.add.newTitle')} onBack={() => router.back()} style={{ paddingHorizontal: spacing.lg }} />
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
-        {/* Photos */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm }}>
           {photos.map((p) => (
             <View key={p}>
@@ -123,30 +124,32 @@ export default function AddCarScreen() {
           <Pressable onPress={addPhoto} disabled={uploading}
             style={{ width: 110, height: 90, borderRadius: radius.md, borderWidth: 2, borderColor: colors.line, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' }}>
             {uploading ? <ActivityIndicator color={colors.ember} /> : <Icon name="sparkle" size={22} color={colors.muted} />}
-            <AppText variant="caption" color={colors.muted} style={{ marginTop: 4 }}>Photo</AppText>
+            <AppText variant="caption" color={colors.muted} style={{ marginTop: 4 }}>{t('carRental.add.photoLabel')}</AppText>
           </Pressable>
         </ScrollView>
 
-        <TextField label="Titre" value={title} onChangeText={setTitle} placeholder="Ex: Toyota Corolla 2020" />
-        <TextField label="Marque / modèle" value={brandModel} onChangeText={setBrandModel} placeholder="Toyota Corolla" />
+        <TextField label={t('carRental.add.titleLabel')} value={title} onChangeText={setTitle} placeholder={t('carRental.add.titlePlaceholder')} />
+        <TextField label={t('carRental.add.brandModelLabel')} value={brandModel} onChangeText={setBrandModel} placeholder={t('carRental.add.brandModelPlaceholder')} />
         <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-          <View style={{ flex: 1 }}><TextField label="Année" value={year} onChangeText={setYear} keyboardType="number-pad" placeholder="2020" /></View>
-          <View style={{ flex: 1 }}><TextField label="Places" value={seats} onChangeText={setSeats} keyboardType="number-pad" placeholder="5" /></View>
+          <View style={{ flex: 1 }}><TextField label={t('carRental.add.yearLabel')} value={year} onChangeText={setYear} keyboardType="number-pad" placeholder={t('carRental.add.yearPlaceholder')} /></View>
+          <View style={{ flex: 1 }}><TextField label={t('carRental.add.seatsLabel')} value={seats} onChangeText={setSeats} keyboardType="number-pad" placeholder={t('carRental.add.seatsPlaceholder')} /></View>
         </View>
-        <TextField label="Ville" value={city} onChangeText={setCity} placeholder="Nouakchott" />
+        <TextField label={t('carRental.add.cityLabel')} value={city} onChangeText={setCity} placeholder={t('carRental.add.cityPlaceholder')} />
         <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-          <View style={{ flex: 1 }}><TextField label="Prix / jour (MRU)" value={price} onChangeText={setPrice} keyboardType="number-pad" placeholder="5000" /></View>
-          <View style={{ flex: 1 }}><TextField label="Caution (MRU)" value={deposit} onChangeText={setDeposit} keyboardType="number-pad" placeholder="20000" /></View>
+          <View style={{ flex: 1 }}><TextField label={t('carRental.add.pricePerDayLabel')} value={price} onChangeText={setPrice} keyboardType="number-pad" placeholder={t('carRental.add.pricePerDayPlaceholder')} /></View>
+          <View style={{ flex: 1 }}><TextField label={t('carRental.add.depositLabel')} value={deposit} onChangeText={setDeposit} keyboardType="number-pad" placeholder={t('carRental.add.depositPlaceholder')} /></View>
         </View>
 
         <View>
-          <AppText variant="label" color={colors.ink2} style={{ marginBottom: spacing.sm }}>Boîte</AppText>
+          <AppText variant="label" color={colors.ink2} style={{ marginBottom: spacing.sm }}>{t('carRental.add.transmissionLabel')}</AppText>
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
             {(['auto', 'manual'] as Transmission[]).map((tr) => (
               <Pressable key={tr} onPress={() => setTransmission(tr)}
                 style={{ flex: 1, paddingVertical: spacing.md, borderRadius: radius.md, borderWidth: 2, alignItems: 'center',
                   borderColor: transmission === tr ? colors.ember : colors.line, backgroundColor: transmission === tr ? colors.emberSoft : '#fff' }}>
-                <AppText color={transmission === tr ? colors.ember : colors.ink}>{tr === 'auto' ? 'Automatique' : 'Manuelle'}</AppText>
+                <AppText color={transmission === tr ? colors.ember : colors.ink}>
+                  {tr === 'auto' ? t('carRental.add.transmissionAutoOption') : t('carRental.add.transmissionManualOption')}
+                </AppText>
               </Pressable>
             ))}
           </View>
@@ -154,26 +157,26 @@ export default function AddCarScreen() {
 
         <Card padding={spacing.lg} style={{ gap: spacing.sm }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <AppText variant="label" color={colors.ink}>Chauffeur disponible</AppText>
+            <AppText variant="label" color={colors.ink}>{t('carRental.add.driverAvail')}</AppText>
             <Switch value={withDriver} onValueChange={setWithDriver} />
           </View>
           {withDriver ? (
-            <TextField label="Tarif chauffeur / jour (MRU)" value={driverRate} onChangeText={setDriverRate} keyboardType="number-pad" placeholder="3000" />
+            <TextField label={t('carRental.add.driverRateLabel')} value={driverRate} onChangeText={setDriverRate} keyboardType="number-pad" placeholder={t('carRental.add.driverRatePlaceholder')} />
           ) : null}
         </Card>
 
-        <TextField label="Description" value={description} onChangeText={setDescription} placeholder="État, conditions, options…" multiline />
+        <TextField label={t('carRental.add.descriptionLabel')} value={description} onChangeText={setDescription} placeholder={t('carRental.add.descriptionPlaceholder')} multiline />
 
         {editing ? (
           <Card padding={spacing.lg}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <AppText variant="label" color={colors.ink}>Mettre en pause</AppText>
+              <AppText variant="label" color={colors.ink}>{t('carRental.add.pauseLabel')}</AppText>
               <Switch value={paused} onValueChange={setPaused} />
             </View>
           </Card>
         ) : null}
 
-        <Button title={editing ? 'Enregistrer' : 'Publier ma voiture'} icon="check" busy={saving} onPress={save} />
+        <Button title={editing ? t('carRental.add.saveEdit') : t('carRental.add.saveNew')} icon="check" busy={saving} onPress={save} />
       </ScrollView>
     </SafeAreaView>
   );

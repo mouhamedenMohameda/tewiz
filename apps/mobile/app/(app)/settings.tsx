@@ -20,7 +20,7 @@ import * as Application from 'expo-application';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import {
-  AppLanguage, SUPPORTED_LANGUAGES, currentLanguage, setLanguage,
+  AppLanguage, SUPPORTED_LANGUAGES, currentLanguage, isRTL, setLanguage,
 } from '@/lib/i18n';
 import {
   AppText, Button, Card, Icon, PressableScale, Screen, ScreenHeader, TextField,
@@ -413,12 +413,13 @@ function LanguageRow({
   code, active, onPress,
 }: { code: AppLanguage; active: boolean; onPress: () => void }) {
   const { t } = useTranslation();
+  const rtl = isRTL(code);
   return (
     <PressableScale
       onPress={onPress}
       scaleTo={0.98}
       style={{
-        flexDirection: 'row', alignItems: 'center', gap: spacing.md,
+        flexDirection: rtl ? 'row-reverse' : 'row', alignItems: 'center', gap: spacing.md,
         paddingVertical: spacing.md, paddingHorizontal: spacing.md,
         borderRadius: radius.md,
         backgroundColor: active ? colors.emberSoft : colors.surface,
@@ -434,7 +435,12 @@ function LanguageRow({
       }}>
         {active ? <Icon name="checkSmall" size={18} color={colors.onEmber} /> : null}
       </View>
-      <AppText variant="bodyStrong" color={active ? colors.ember : colors.ink} style={{ flex: 1 }}>
+      <AppText
+        variant="bodyStrong"
+        color={active ? colors.ember : colors.ink}
+        align={rtl ? 'right' : 'left'}
+        style={{ flex: 1, writingDirection: rtl ? 'rtl' : 'ltr' }}
+      >
         {t(`languages.${code}` as const)}
       </AppText>
       <AppText variant="caption" color={colors.muted}>{code.toUpperCase()}</AppText>

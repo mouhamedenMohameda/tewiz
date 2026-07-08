@@ -12,6 +12,7 @@ export type CaptainMarker = {
   presence: 'offline' | 'online' | 'on_ride' | 'paused';
   lat: number | null;
   lng: number | null;
+  last_seen?: string | null;
 };
 
 interface Props {
@@ -25,12 +26,7 @@ export function CaptainsMap({ captains, selectedId, onSelect }: Props) {
   const fittedRef = useRef(false);
   const [popupId, setPopupId] = useState<string | null>(null);
 
-  const visible = captains.filter(
-    (c) =>
-      c.lat != null &&
-      c.lng != null &&
-      (c.presence === 'online' || c.presence === 'on_ride' || c.presence === 'paused'),
-  );
+  const visible = captains.filter((c) => c.lat != null && c.lng != null);
 
   // Fit bounds the first time we have any markers.
   useEffect(() => {
@@ -96,7 +92,7 @@ export function CaptainsMap({ captains, selectedId, onSelect }: Props) {
             handleMarkerClick(c.id);
           }}
         >
-          <Pin color={presenceColor(c.presence)} />
+          <Pin color={presenceColor(c.presence)} dim={c.presence === 'offline'} />
         </Marker>
       ))}
       {popupCaptain && (
@@ -112,6 +108,11 @@ export function CaptainsMap({ captains, selectedId, onSelect }: Props) {
             <div style={{ fontWeight: 600 }}>{popupCaptain.fullName ?? '—'}</div>
             <div style={{ color: '#64748b' }}>{popupCaptain.phone}</div>
             <div style={{ marginTop: 4 }}>{presenceLabel(popupCaptain.presence)}</div>
+            {popupCaptain.presence === 'offline' && popupCaptain.last_seen && (
+              <div style={{ marginTop: 2, color: '#64748b', fontSize: 12 }}>
+                Dernière connexion {formatLastSeen(popupCaptain.last_seen)}
+              </div>
+            )}
           </div>
         </Popup>
       )}
@@ -122,6 +123,7 @@ export function CaptainsMap({ captains, selectedId, onSelect }: Props) {
 function presenceColor(p: CaptainMarker['presence']): string {
   if (p === 'on_ride') return '#f97316';
   if (p === 'paused') return '#64748b';
+  if (p === 'offline') return '#94a3b8';
   return '#16a34a';
 }
 
@@ -132,7 +134,20 @@ function presenceLabel(p: CaptainMarker['presence']): string {
   return '⚫ Hors ligne';
 }
 
-function Pin({ color, label }: { color: string; label?: string }) {
+function formatLastSeen(iso: string): string {
+  const d = new Date(iso);
+  const diffMs = Date.now() - d.getTime();
+  const min = Math.floor(diffMs / 60_000);
+  if (min < 1) return 'à l’instant';
+  if (min < 60) return `il y a ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `il y a ${h} h`;
+  const days = Math.floor(h / 24);
+  if (days < 7) return `il y a ${days} j`;
+  return `le ${d.toLocaleDateString('fr-FR')}`;
+}
+
+function Pin({ color, label, dim }: { color: string; label?: string; dim?: boolean }) {
   return (
     <div
       style={{
@@ -140,6 +155,7 @@ function Pin({ color, label }: { color: string; label?: string }) {
         width: 26,
         height: 36,
         cursor: 'pointer',
+        opacity: dim ? 0.55 : 1,
         filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.3))',
       }}
     >

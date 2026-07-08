@@ -54,12 +54,12 @@ export interface MyProposal {
   createdAt: string;
 }
 
-export const JOB_STATUS_LABEL: Record<JobStatus, string> = {
-  open: 'Ouverte',
-  assigned: 'Attribuée',
-  completed: 'Terminée',
-  cancelled: 'Annulée',
-  expired: 'Expirée',
+export const JOB_STATUS_KEYS: Record<JobStatus, string> = {
+  open: 'convoyage.jobStatus.open',
+  assigned: 'convoyage.jobStatus.assigned',
+  completed: 'convoyage.jobStatus.completed',
+  cancelled: 'convoyage.jobStatus.cancelled',
+  expired: 'convoyage.jobStatus.expired',
 };
 
 export interface CreateJobPayload {

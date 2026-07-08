@@ -8,7 +8,7 @@ import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useFonts, loadAsync } from 'expo-font';
+import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -16,12 +16,12 @@ import { api } from '@/lib/api';
 import { type AuthUser, useAuth } from '@/lib/auth';
 import { registerForPushNotifications } from '@/lib/notifications';
 import { readAndClearCrash } from '@/lib/crash-reporter';
-import { currentLanguage, initI18n } from '@/lib/i18n';
+import { initI18n } from '@/lib/i18n';
 import { loadAppConfig } from '@/lib/appConfig';
 import { CrashBoundary } from '@/components/CrashBoundary';
 import { NotificationTapHandler } from '@/components/NotificationTapHandler';
 import { SplashGate } from '@/components/SplashGate';
-import { colors, latinFontAssets, arabicFontAssets } from '@/theme';
+import { colors, latinFontAssets } from '@/theme';
 
 // Hold the native splash until our custom fonts are ready, so the UI never
 // flashes the system font and re-flows.
@@ -30,30 +30,13 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 export default function RootLayout() {
   const hydrate = useAuth((s) => s.hydrate);
   const [crashShown, setCrashShown] = useState(false);
-  // Only the Latin (Sora) fonts are on the cold-start critical path. The
-  // Arabic (Louguiya) files are loaded lazily and gate the splash ONLY when
-  // the app actually boots in an Arabic-script language — see below.
   const [fontsLoaded, fontError] = useFonts(latinFontAssets);
   const [i18nReady, setI18nReady] = useState(false);
-  const [needsArabic, setNeedsArabic] = useState(false);
-  const [arabicReady, setArabicReady] = useState(false);
 
   useEffect(() => {
     let mounted = true;
     initI18n().finally(() => {
-      if (!mounted) return;
-      // We now know the boot language. Arabic/Hassaniya render in Louguiya, so
-      // those fonts must be present before the first paint (else the Arabic UI
-      // flashes the system font and reflows). Latin languages never touch them.
-      const lang = currentLanguage();
-      const arabic = lang === 'ar' || lang === 'hs';
-      setNeedsArabic(arabic);
-      if (arabic) {
-        loadAsync(arabicFontAssets)
-          .catch(() => {}) // fall back to the system Arabic font rather than hang
-          .finally(() => { if (mounted) setArabicReady(true); });
-      }
-      setI18nReady(true);
+      if (mounted) setI18nReady(true);
     });
     // Fire-and-forget: populate the in-memory + AsyncStorage config cache.
     // The auth screens read it synchronously via getAppConfig() once i18n is ready.
@@ -112,9 +95,7 @@ export default function RootLayout() {
   // Don't render the app shell until fonts resolve (or fail) — avoids a
   // flash-of-system-font. On font error we still proceed (system fallback).
   // Also gate on i18n so the first paint already has translations.
-  // Latin fonts + i18n are always required; Arabic fonts only when booting RTL.
-  const ready =
-    (fontsLoaded || !!fontError) && i18nReady && (!needsArabic || arabicReady);
+  const ready = (fontsLoaded || !!fontError) && i18nReady;
   useEffect(() => {
     if (ready) SplashScreen.hideAsync().catch(() => {});
   }, [ready]);

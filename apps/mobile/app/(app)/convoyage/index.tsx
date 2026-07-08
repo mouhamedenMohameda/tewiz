@@ -2,7 +2,8 @@ import { useCallback, useState } from 'react';
 import { ActivityIndicator, FlatList, Linking, RefreshControl, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { JOB_STATUS_LABEL, listMyJobs, type ConvoyageJob, type JobStatus } from '@/lib/convoyage';
+import { useTranslation } from 'react-i18next';
+import { JOB_STATUS_KEYS, listMyJobs, type ConvoyageJob, type JobStatus } from '@/lib/convoyage';
 import { AppText, Button, Card, Icon, ScreenHeader } from '@/components/ui';
 import { colors, radius, spacing } from '@/theme';
 
@@ -16,6 +17,7 @@ const STATUS_COLOR: Record<JobStatus, string> = {
 
 export default function ConvoyageScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [jobs, setJobs] = useState<ConvoyageJob[] | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -28,10 +30,10 @@ export default function ConvoyageScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <ScreenHeader title="Convoyage" onBack={() => router.back()} />
+      <ScreenHeader title={t('convoyage.title')} onBack={() => router.back()} style={{ paddingHorizontal: spacing.lg }} />
       <View style={{ paddingHorizontal: spacing.lg, gap: spacing.sm, paddingBottom: spacing.sm }}>
-        <Button title="Nouvelle demande" icon="send" onPress={() => router.push('/(app)/convoyage/new-job')} />
-        <Button title="Je suis convoyeur" variant="secondary" size="sm" icon="ride"
+        <Button title={t('convoyage.newRequest')} icon="send" onPress={() => router.push('/(app)/convoyage/new-job')} />
+        <Button title={t('convoyage.iAmConvoyeur')} variant="secondary" size="sm" icon="ride"
           onPress={() => router.push('/(app)/convoyage/convoyeur')} />
       </View>
 
@@ -45,7 +47,7 @@ export default function ConvoyageScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           ListEmptyComponent={
             <AppText color={colors.muted} style={{ textAlign: 'center', marginTop: spacing.xl }}>
-              Aucune demande de convoyage.
+              {t('convoyage.emptyList')}
             </AppText>
           }
           renderItem={({ item }) => (
@@ -56,7 +58,7 @@ export default function ConvoyageScreen() {
                   {item.pickupLabel} → {item.dropoffLabel}
                 </AppText>
                 <View style={{ borderRadius: radius.pill, paddingHorizontal: spacing.sm, paddingVertical: 2, borderWidth: 1, borderColor: STATUS_COLOR[item.status] }}>
-                  <AppText variant="caption" color={STATUS_COLOR[item.status]}>{JOB_STATUS_LABEL[item.status]}</AppText>
+                  <AppText variant="caption" color={STATUS_COLOR[item.status]}>{t(JOB_STATUS_KEYS[item.status])}</AppText>
                 </View>
               </View>
               <AppText variant="caption" color={colors.muted}>
@@ -66,10 +68,12 @@ export default function ConvoyageScreen() {
               {item.status === 'open' ? (
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <AppText variant="caption" color={colors.ember}>
-                    {item.proposalCount} proposition{item.proposalCount > 1 ? 's' : ''}
+                    {item.proposalCount > 1
+                      ? t('convoyage.proposalsMany', { count: item.proposalCount })
+                      : t('convoyage.proposalsOne', { count: item.proposalCount })}
                   </AppText>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-                    <AppText variant="caption" color={colors.ember}>Voir & choisir</AppText>
+                    <AppText variant="caption" color={colors.ember}>{t('convoyage.seeChoose')}</AppText>
                     <Icon name="chevron" size={16} color={colors.ember} />
                   </View>
                 </View>
@@ -78,7 +82,7 @@ export default function ConvoyageScreen() {
                   <AppText variant="caption" color={colors.ink2}>
                     {item.provider.name}{item.provider.ratingAvg != null ? ` ⭐ ${item.provider.ratingAvg.toFixed(1)}` : ''}
                   </AppText>
-                  <Button title="Appeler" icon="phone" size="sm"
+                  <Button title={t('convoyage.callBtn')} icon="phone" size="sm"
                     onPress={() => { void Linking.openURL(`tel:${item.provider!.phone}`); }} />
                 </View>
               ) : null}

@@ -37,7 +37,9 @@ import snk from '@/locales/snk.json';
  * import it above and add the code to SUPPORTED_LANGUAGES + LANGUAGE_RESOURCES.
  */
 export type AppLanguage = 'fr' | 'ar' | 'en' | 'hs' | 'ff' | 'wo' | 'snk';
-export const SUPPORTED_LANGUAGES: AppLanguage[] = ['fr', 'ar', 'en', 'hs', 'ff', 'wo', 'snk'];
+// Only fr + ar are exposed in the UI; other locales stay wired up (imports,
+// LANGUAGE_RESOURCES, RTL set) so they can be re-enabled by adding them back.
+export const SUPPORTED_LANGUAGES: AppLanguage[] = ['fr', 'ar'];
 export const DEFAULT_LANGUAGE: AppLanguage = 'fr';
 
 type Resource = Record<string, unknown>;

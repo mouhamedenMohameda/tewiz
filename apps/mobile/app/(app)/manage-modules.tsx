@@ -30,7 +30,7 @@ export default function ManageModulesScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <AppText variant="bodyStrong">
-                {m.label.startsWith('rider.') ? t(m.label as any) : m.label}
+                {t(m.label as any)}
               </AppText>
             </View>
             <Switch

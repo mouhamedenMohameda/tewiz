@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Pressable, ScrollView, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { getCar, requestBooking, type Car } from '@/lib/carRental';
 import { formatMru } from '@/lib/format';
 import { AppText, Button, Card, DateField, Icon, ScreenHeader } from '@/components/ui';
@@ -21,6 +22,7 @@ function todayISO(): string {
 
 export default function CarDetailScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [car, setCar] = useState<Car | null>(null);
   const [start, setStart] = useState('');
@@ -30,8 +32,8 @@ export default function CarDetailScreen() {
 
   useEffect(() => {
     if (!id) return;
-    getCar(id).then(setCar).catch(() => Alert.alert('Erreur', 'Voiture introuvable'));
-  }, [id]);
+    getCar(id).then(setCar).catch(() => Alert.alert(t('carRental.errTitle'), t('carRental.errCarNotFound')));
+  }, [id, t]);
 
   if (!car) return <ActivityIndicator style={{ marginTop: spacing.xl }} />;
 
@@ -41,17 +43,17 @@ export default function CarDetailScreen() {
 
   async function book() {
     if (days <= 0) {
-      Alert.alert('Dates', 'Choisissez une date de début et de fin valides.');
+      Alert.alert(t('carRental.detail.datesInvalidTitle'), t('carRental.detail.datesInvalidBody'));
       return;
     }
     setSubmitting(true);
     try {
       await requestBooking({ listing_id: car!.id, start_date: start, end_date: end, with_driver: withDriver });
-      Alert.alert('Demande envoyée', 'Le propriétaire va confirmer. Suivez le statut dans « Mes réservations ».', [
-        { text: 'OK', onPress: () => router.replace('/(app)/car-rental/my-bookings') },
+      Alert.alert(t('carRental.detail.sentTitle'), t('carRental.detail.sentBody'), [
+        { text: t('common.ok'), onPress: () => router.replace('/(app)/car-rental/my-bookings') },
       ]);
     } catch (e: any) {
-      Alert.alert('Erreur', e?.response?.data?.error?.message ?? 'Réservation impossible.');
+      Alert.alert(t('carRental.errTitle'), e?.response?.data?.error?.message ?? t('carRental.detail.errBooking'));
     } finally {
       setSubmitting(false);
     }
@@ -59,7 +61,7 @@ export default function CarDetailScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <ScreenHeader title={car.title} onBack={() => router.back()} />
+      <ScreenHeader title={car.title} onBack={() => router.back()} style={{ paddingHorizontal: spacing.lg }} />
       <ScrollView contentContainerStyle={{ paddingBottom: spacing.xl }}>
         {car.photos.length > 0 ? (
           <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false}>
@@ -76,47 +78,50 @@ export default function CarDetailScreen() {
         <View style={{ padding: spacing.lg, gap: spacing.md }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <AppText variant="h2" color={colors.ink} style={{ flex: 1 }}>{car.title}</AppText>
-            <AppText variant="h2" color={colors.ember}>{formatMru(car.pricePerDayMru)}/j</AppText>
+            <AppText variant="h2" color={colors.ember}>{t('carRental.pricePerDay', { price: formatMru(car.pricePerDayMru) })}</AppText>
           </View>
 
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md }}>
             <Spec icon="pin" label={car.city} />
             {car.year ? <Spec icon="calendar" label={String(car.year)} /> : null}
-            {car.seats ? <Spec icon="person" label={`${car.seats} places`} /> : null}
-            {car.transmission ? <Spec icon="tune" label={car.transmission === 'auto' ? 'Auto' : 'Manuelle'} /> : null}
+            {car.seats ? <Spec icon="person" label={t('carRental.seatsLabel', { count: car.seats })} /> : null}
+            {car.transmission ? <Spec icon="tune" label={car.transmission === 'auto' ? t('carRental.detail.transmissionAuto') : t('carRental.detail.transmissionManual')} /> : null}
           </View>
 
           {car.description ? <AppText variant="body" color={colors.ink2}>{car.description}</AppText> : null}
 
           <Card padding={spacing.lg} style={{ gap: spacing.sm }}>
-            <Row label="Caution" value={car.depositMru > 0 ? formatMru(car.depositMru) : '—'} />
-            {car.withDriver ? <Row label="Chauffeur / jour" value={formatMru(car.driverDayRateMru ?? 0)} /> : null}
-            <Row label="Propriétaire" value={`${car.ownerName}${car.ownerRating != null ? `  ⭐ ${car.ownerRating.toFixed(1)}` : ''}`} />
+            <Row label={t('carRental.detail.rowCaution')} value={car.depositMru > 0 ? formatMru(car.depositMru) : '—'} />
+            {car.withDriver ? <Row label={t('carRental.detail.rowDriverDay')} value={formatMru(car.driverDayRateMru ?? 0)} /> : null}
+            <Row label={t('carRental.detail.rowOwner')} value={`${car.ownerName}${car.ownerRating != null ? `  ⭐ ${car.ownerRating.toFixed(1)}` : ''}`} />
           </Card>
 
-          {/* Booking */}
-          <AppText variant="overline" color={colors.muted} style={{ marginTop: spacing.sm }}>RÉSERVER</AppText>
-          <DateField label="Du" value={start} onChange={setStart} minDate={todayISO()} placeholder="Date de début" />
-          <DateField label="Au" value={end} onChange={setEnd} minDate={start || todayISO()} placeholder="Date de fin" />
+          <AppText variant="overline" color={colors.muted} style={{ marginTop: spacing.sm }}>{t('carRental.detail.reserveHeader')}</AppText>
+          <DateField label={t('carRental.detail.dateFrom')} value={start} onChange={setStart} minDate={todayISO()} placeholder={t('carRental.detail.dateFromPlaceholder')} />
+          <DateField label={t('carRental.detail.dateTo')} value={end} onChange={setEnd} minDate={start || todayISO()} placeholder={t('carRental.detail.dateToPlaceholder')} />
 
           {car.withDriver ? (
             <Pressable onPress={() => setWithDriver((v) => !v)}
               style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
               <Icon name={withDriver ? 'check' : 'close'} size={20} color={withDriver ? colors.success : colors.muted} />
-              <AppText variant="body" color={colors.ink}>Avec chauffeur (+{formatMru(car.driverDayRateMru ?? 0)}/j)</AppText>
+              <AppText variant="body" color={colors.ink}>{t('carRental.detail.withDriverToggle', { price: formatMru(car.driverDayRateMru ?? 0) })}</AppText>
             </Pressable>
           ) : null}
 
           {days > 0 ? (
             <Card padding={spacing.lg} style={{ backgroundColor: colors.emberSoft }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <AppText variant="body" color={colors.ink2}>{days} jour{days > 1 ? 's' : ''} × {formatMru(perDay)}</AppText>
+                <AppText variant="body" color={colors.ink2}>
+                  {days > 1
+                    ? t('carRental.detail.dayMany', { count: days, price: formatMru(perDay) })
+                    : t('carRental.detail.dayOne', { count: days, price: formatMru(perDay) })}
+                </AppText>
                 <AppText variant="h2" color={colors.ember}>{formatMru(total)}</AppText>
               </View>
             </Card>
           ) : null}
 
-          <Button title="Demander la réservation" icon="check" busy={submitting} disabled={days <= 0} onPress={book} />
+          <Button title={t('carRental.detail.reserveBtn')} icon="check" busy={submitting} disabled={days <= 0} onPress={book} />
         </View>
       </ScrollView>
     </SafeAreaView>
