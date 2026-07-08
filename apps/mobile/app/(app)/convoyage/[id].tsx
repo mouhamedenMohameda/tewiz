@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, RefreshControl, View } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { acceptProposal, getJobProposals, type Proposal } from '@/lib/convoyage';
 import { formatMru } from '@/lib/format';
 import { AppText, Button, Card, ScreenHeader } from '@/components/ui';
@@ -9,6 +10,7 @@ import { colors, spacing } from '@/theme';
 
 export default function ConvoyageProposalsScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [proposals, setProposals] = useState<Proposal[] | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -23,19 +25,19 @@ export default function ConvoyageProposalsScreen() {
   async function onRefresh() { setRefreshing(true); await load(); setRefreshing(false); }
 
   function choose(p: Proposal) {
-    Alert.alert('Choisir ce convoyeur ?', `${p.providerName}${p.priceMru != null ? ` · ${formatMru(p.priceMru)}` : ''}`, [
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(t('convoyage.proposals.confirmTitle'), `${p.providerName}${p.priceMru != null ? ` · ${formatMru(p.priceMru)}` : ''}`, [
+      { text: t('convoyage.proposals.cancelBtn'), style: 'cancel' },
       {
-        text: 'Choisir',
+        text: t('convoyage.proposals.chooseYes'),
         onPress: async () => {
           setBusy(p.id);
           try {
             await acceptProposal(id!, p.id);
-            Alert.alert('Convoyeur choisi', 'Son numéro est disponible dans « Convoyage ».', [
-              { text: 'OK', onPress: () => router.replace('/(app)/convoyage') },
+            Alert.alert(t('convoyage.proposals.chosenTitle'), t('convoyage.proposals.chosenBody'), [
+              { text: t('common.ok'), onPress: () => router.replace('/(app)/convoyage') },
             ]);
           } catch (e: any) {
-            Alert.alert('Erreur', e?.response?.data?.error?.message ?? 'Action impossible.');
+            Alert.alert(t('convoyage.errTitle'), e?.response?.data?.error?.message ?? t('convoyage.proposals.errAction'));
           } finally {
             setBusy(null);
           }
@@ -46,7 +48,7 @@ export default function ConvoyageProposalsScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <ScreenHeader title="Propositions" onBack={() => router.back()} />
+      <ScreenHeader title={t('convoyage.proposals.title')} onBack={() => router.back()} style={{ paddingHorizontal: spacing.lg }} />
       {proposals === null ? (
         <ActivityIndicator style={{ marginTop: spacing.xl }} />
       ) : (
@@ -57,7 +59,7 @@ export default function ConvoyageProposalsScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           ListEmptyComponent={
             <AppText color={colors.muted} style={{ textAlign: 'center', marginTop: spacing.xl }}>
-              Aucune proposition pour le moment. Les convoyeurs vont répondre.
+              {t('convoyage.proposals.empty')}
             </AppText>
           }
           renderItem={({ item }) => (
@@ -69,7 +71,7 @@ export default function ConvoyageProposalsScreen() {
                 {item.priceMru != null ? <AppText variant="label" color={colors.ember}>{formatMru(item.priceMru)}</AppText> : null}
               </View>
               {item.note ? <AppText variant="body" color={colors.ink2}>{item.note}</AppText> : null}
-              <Button title="Choisir ce convoyeur" icon="check" size="sm" busy={busy === item.id} onPress={() => choose(item)} />
+              <Button title={t('convoyage.proposals.chooseBtn')} icon="check" size="sm" busy={busy === item.id} onPress={() => choose(item)} />
             </Card>
           )}
         />

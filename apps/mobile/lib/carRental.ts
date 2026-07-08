@@ -68,12 +68,12 @@ export interface CarInputPayload {
   photos?: string[];
 }
 
-export const BOOKING_STATUS_LABEL: Record<BookingStatus, string> = {
-  pending: 'En attente',
-  confirmed: 'Confirmée',
-  declined: 'Refusée',
-  cancelled: 'Annulée',
-  completed: 'Terminée',
+export const BOOKING_STATUS_KEYS: Record<BookingStatus, string> = {
+  pending: 'carRental.bookingStatus.pending',
+  confirmed: 'carRental.bookingStatus.confirmed',
+  declined: 'carRental.bookingStatus.declined',
+  cancelled: 'carRental.bookingStatus.cancelled',
+  completed: 'carRental.bookingStatus.completed',
 };
 
 export async function browseCars(filters: {

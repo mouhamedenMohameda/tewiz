@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, Switch, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import * as Location from 'expo-location';
 import {
   PROBLEM_META,
@@ -20,6 +21,7 @@ import { colors, radius, spacing } from '@/theme';
 
 export default function RoadsideProviderScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [offers, setOffers] = useState(false);
   const [specialties, setSpecialties] = useState<ProblemType[]>([]);
@@ -64,7 +66,7 @@ export default function RoadsideProviderScreen() {
       await setRoadsideProfile(v, specialties);
     } catch {
       setOffers(!v);
-      Alert.alert('Erreur', 'Mise à jour impossible.');
+      Alert.alert(t('roadside.errTitle'), t('roadside.provider.errUpdate'));
     }
   }
 
@@ -78,7 +80,7 @@ export default function RoadsideProviderScreen() {
     try {
       setAccepted(await acceptRoadside(id));
     } catch (e: any) {
-      Alert.alert('Déjà pris', e?.response?.data?.error?.message ?? 'Cette demande n\'est plus disponible.');
+      Alert.alert(t('roadside.provider.errAcceptedTitle'), e?.response?.data?.error?.message ?? t('roadside.provider.errAcceptedBody'));
       void loadInbox();
     }
   }
@@ -91,7 +93,7 @@ export default function RoadsideProviderScreen() {
   if (loading) {
     return (
       <Screen>
-        <ScreenHeader title="Dépannage" onBack={() => router.back()} />
+        <ScreenHeader title={t('roadside.headerProvider')} onBack={() => router.back()} />
         <ActivityIndicator style={{ marginTop: spacing.xl }} />
       </Screen>
     );
@@ -100,23 +102,23 @@ export default function RoadsideProviderScreen() {
   if (accepted) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
-        <ScreenHeader title="Intervention" onBack={() => router.back()} />
+        <ScreenHeader title={t('roadside.headerAccepted')} onBack={() => router.back()} style={{ paddingHorizontal: spacing.lg }} />
         <View style={{ flex: 1, padding: spacing.lg, justifyContent: 'space-between' }}>
           <View>
             <AppText variant="body" color={colors.success} style={{ marginBottom: spacing.md }}>
-              ✅ Vous avez pris cette intervention
+              {t('roadside.provider.acceptedIntroBtn')}
             </AppText>
             <Card padding={spacing.lg} style={{ gap: spacing.md }}>
-              <AppText variant="h2">{PROBLEM_META[accepted.problem_type].emoji} {PROBLEM_META[accepted.problem_type].label}</AppText>
+              <AppText variant="h2">{PROBLEM_META[accepted.problem_type].emoji} {t(PROBLEM_META[accepted.problem_type].labelKey)}</AppText>
               {accepted.note ? <AppText variant="body" color={colors.ink2}>{accepted.note}</AppText> : null}
               <AppText variant="label" color={colors.ink}>{accepted.requester_name}</AppText>
               <Button
-                title={`Appeler ${accepted.requester_phone}`}
+                title={t('roadside.accepted.callBtn', { phone: accepted.requester_phone })}
                 icon="phone"
                 onPress={() => { void Linking.openURL(`tel:${accepted.requester_phone}`); }}
               />
               <Button
-                title="Y aller (itinéraire)"
+                title={t('roadside.provider.routeBtn')}
                 variant="secondary"
                 icon="map"
                 onPress={() => {
@@ -126,7 +128,7 @@ export default function RoadsideProviderScreen() {
               />
             </Card>
           </View>
-          <Button title="Fermer" variant="secondary" onPress={() => { setAccepted(null); void loadInbox(); }} />
+          <Button title={t('roadside.provider.closeBtn')} variant="secondary" onPress={() => { setAccepted(null); void loadInbox(); }} />
         </View>
       </SafeAreaView>
     );
@@ -134,15 +136,15 @@ export default function RoadsideProviderScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <ScreenHeader title="Dépannage" onBack={() => router.back()} />
+      <ScreenHeader title={t('roadside.headerProvider')} onBack={() => router.back()} style={{ paddingHorizontal: spacing.lg }} />
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}>
         <Card padding={spacing.lg} style={{ gap: spacing.md }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <AppText variant="label" color={colors.ink}>Je propose l'assistance</AppText>
+            <AppText variant="label" color={colors.ink}>{t('roadside.provider.offersLabel')}</AppText>
             <Switch value={offers} onValueChange={toggleOffers} />
           </View>
           <AppText variant="caption" color={colors.muted}>
-            Activez pour recevoir les demandes de dépannage proches quand vous êtes en ligne.
+            {t('roadside.provider.offersDesc')}
           </AppText>
         </Card>
 
@@ -150,7 +152,7 @@ export default function RoadsideProviderScreen() {
           <>
             <View>
               <AppText variant="caption" color={colors.ink2} style={{ marginBottom: spacing.sm }}>
-                SPÉCIALITÉS (aucune = toutes)
+                {t('roadside.provider.specialtiesLabel')}
               </AppText>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs }}>
                 {PROBLEM_ORDER.map((p) => {
@@ -169,7 +171,7 @@ export default function RoadsideProviderScreen() {
                       }}
                     >
                       <AppText variant="caption" color={on ? colors.ember : colors.ink2}>
-                        {PROBLEM_META[p].emoji} {PROBLEM_META[p].label}
+                        {PROBLEM_META[p].emoji} {t(PROBLEM_META[p].labelKey)}
                       </AppText>
                     </Pressable>
                   );
@@ -179,11 +181,11 @@ export default function RoadsideProviderScreen() {
 
             <View>
               <AppText variant="caption" color={colors.ink2} style={{ marginBottom: spacing.sm }}>
-                DEMANDES À PROXIMITÉ
+                {t('roadside.provider.inboxLabel')}
               </AppText>
               {inbox.length === 0 ? (
                 <AppText color={colors.muted} style={{ textAlign: 'center', marginTop: spacing.lg }}>
-                  Aucune demande pour le moment.
+                  {t('roadside.provider.inboxEmpty')}
                 </AppText>
               ) : (
                 <View style={{ gap: spacing.sm }}>
@@ -191,17 +193,17 @@ export default function RoadsideProviderScreen() {
                     <Card key={r.id} padding={spacing.lg} style={{ gap: spacing.sm }}>
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                         <AppText variant="label" color={colors.ink}>
-                          {PROBLEM_META[r.problemType].emoji} {PROBLEM_META[r.problemType].label}
+                          {PROBLEM_META[r.problemType].emoji} {t(PROBLEM_META[r.problemType].labelKey)}
                         </AppText>
                         <AppText variant="caption" color={colors.muted}>
-                          {(r.distanceM / 1000).toFixed(1)} km
+                          {t('roadside.provider.distanceKm', { km: (r.distanceM / 1000).toFixed(1) })}
                         </AppText>
                       </View>
                       {r.note ? <AppText variant="body" color={colors.ink2}>{r.note}</AppText> : null}
                       <AppText variant="caption" color={colors.muted}>{r.requesterName}</AppText>
                       <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-                        <Button title="Accepter" size="sm" onPress={() => accept(r.id)} style={{ flex: 1 }} />
-                        <Button title="Refuser" size="sm" variant="secondary" onPress={() => decline(r.id)} style={{ flex: 1 }} />
+                        <Button title={t('roadside.provider.acceptBtn')} size="sm" onPress={() => accept(r.id)} style={{ flex: 1 }} />
+                        <Button title={t('roadside.provider.declineBtn')} size="sm" variant="secondary" onPress={() => decline(r.id)} style={{ flex: 1 }} />
                       </View>
                     </Card>
                   ))}

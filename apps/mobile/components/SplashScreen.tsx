@@ -2,8 +2,8 @@
  * SplashScreen — "Lever de Soleil"
  *
  * Minimal cinematic splash: warm gradient → logo fades in with a soft
- * radial glow → brand name types on → a single golden horizon line
- * sweeps across → multilingual taglines cascade in → everything fades.
+ * radial glow → brand name types on → the Arabic slogan blooms in Amiri
+ * script → a taxi drives in on the horizon → everything fades.
  */
 
 import React, { useEffect, useRef } from 'react';
@@ -16,7 +16,7 @@ import {
   Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, spacing } from '@/theme';
+import { colors } from '@/theme';
 
 interface SplashScreenProps {
   onAnimationEnd?: () => void;
@@ -24,13 +24,6 @@ interface SplashScreenProps {
 }
 
 const { width: W, height: H } = Dimensions.get('window');
-
-const LINES = [
-  { code: 'FR', text: 'Plus vite, plus serein, partout a Nouakchott.' },
-  { code: 'EN', text: 'Move with confidence. Arrive with ease.' },
-  { code: 'AR', text: 'ألو رفيق دربك وصوت أمانك', rtl: true },
-  { code: 'WO', text: 'Demal ak jamm, agsi bu gaaw te yomb.' },
-] as const;
 
 export const SplashScreen: React.FC<SplashScreenProps> = ({
   onAnimationEnd,
@@ -41,17 +34,16 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
   const glowOpacity = useRef(new Animated.Value(0)).current;
   const nameOpacity = useRef(new Animated.Value(0)).current;
   const nameY = useRef(new Animated.Value(12)).current;
-  const taglineOpacity = useRef(new Animated.Value(0)).current;
+  const sloganOpacity = useRef(new Animated.Value(0)).current;
+  const sloganScale = useRef(new Animated.Value(0.9)).current;
   const horizonWidth = useRef(new Animated.Value(0)).current;
   const horizonOpacity = useRef(new Animated.Value(0)).current;
-  const lineAnims = useRef(LINES.map(() => ({
-    opacity: new Animated.Value(0),
-    y: new Animated.Value(16),
-  }))).current;
+  const carX = useRef(new Animated.Value(-W)).current;
+  const carOpacity = useRef(new Animated.Value(0)).current;
+  const carBounce = useRef(new Animated.Value(0)).current;
   const fadeOut = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    // Gentle glow pulse
     const glowPulse = Animated.loop(
       Animated.sequence([
         Animated.timing(glowOpacity, {
@@ -68,8 +60,24 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
     );
     glowPulse.start();
 
+    // Subtle car bob while it's on-screen
+    const carBob = Animated.loop(
+      Animated.sequence([
+        Animated.timing(carBounce, {
+          toValue: -3,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(carBounce, {
+          toValue: 0,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+
     Animated.sequence([
-      // Phase 1: Logo materialises (0 → 1s)
+      // Phase 1: Logo materialises
       Animated.parallel([
         Animated.timing(logoOpacity, {
           toValue: 1,
@@ -95,7 +103,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
         }),
       ]),
 
-      // Phase 2: Brand name + tagline (0.7s → 1.6s)
+      // Phase 2: Brand name
       Animated.parallel([
         Animated.timing(nameOpacity, {
           toValue: 1,
@@ -107,17 +115,24 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
           duration: 500,
           useNativeDriver: true,
         }),
-        Animated.sequence([
-          Animated.delay(200),
-          Animated.timing(taglineOpacity, {
-            toValue: 1,
-            duration: 400,
-            useNativeDriver: true,
-          }),
-        ]),
       ]),
 
-      // Phase 3: Horizon line sweeps (1.6s → 2.2s)
+      // Phase 3: Slogan blooms in Amiri
+      Animated.parallel([
+        Animated.timing(sloganOpacity, {
+          toValue: 1,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+        Animated.spring(sloganScale, {
+          toValue: 1,
+          damping: 12,
+          stiffness: 90,
+          useNativeDriver: true,
+        }),
+      ]),
+
+      // Phase 4: Horizon line sweeps
       Animated.parallel([
         Animated.timing(horizonOpacity, {
           toValue: 1,
@@ -126,43 +141,48 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
         }),
         Animated.timing(horizonWidth, {
           toValue: 1,
-          duration: 600,
+          duration: 700,
           useNativeDriver: false,
         }),
       ]),
 
-      // Phase 4: Multilingual lines cascade (2.2s → 3s)
-      Animated.stagger(
-        100,
-        lineAnims.map(({ opacity, y }) =>
-          Animated.parallel([
-            Animated.timing(opacity, {
-              toValue: 1,
-              duration: 350,
-              useNativeDriver: true,
-            }),
-            Animated.timing(y, {
-              toValue: 0,
-              duration: 350,
-              useNativeDriver: true,
-            }),
-          ]),
-        ),
-      ),
+      // Phase 5: Taxi drives in on the horizon
+      Animated.parallel([
+        Animated.timing(carOpacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.spring(carX, {
+          toValue: 0,
+          damping: 16,
+          stiffness: 80,
+          mass: 1,
+          useNativeDriver: true,
+        }),
+      ]),
 
-      // Phase 5: Hold, then fade (3s → 4s)
+      // Phase 6: Hold, then fade
       Animated.timing(fadeOut, {
         toValue: 0,
         duration: 800,
-        delay: 600,
+        delay: 5300,
         useNativeDriver: false,
       }),
     ]).start(() => {
       glowPulse.stop();
+      carBob.stop();
       onAnimationEnd?.();
     });
 
-    return () => glowPulse.stop();
+    // Start the bob shortly after the car appears
+    const bobDelay = setTimeout(() => carBob.start(), 3200);
+
+    return () => {
+      glowPulse.stop();
+      carBob.stop();
+      clearTimeout(bobDelay);
+    };
   }, []);
 
   return (
@@ -175,9 +195,8 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
         style={StyleSheet.absoluteFill}
       />
 
-      {/* Warm radial accent — bottom left */}
+      {/* Warm radial accents */}
       <View style={styles.accentBL} />
-      {/* Warm radial accent — top right (subtler) */}
       <View style={styles.accentTR} />
 
       {/* Glow behind logo */}
@@ -219,12 +238,22 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
         ]}
       >
         <Text style={styles.brandName}>Aloo</Text>
-        <Animated.Text style={[styles.tagline, { opacity: taglineOpacity }]}>
-          Au bout du fil le bout du monde
-        </Animated.Text>
       </Animated.View>
 
-      {/* Horizon line */}
+      {/* Slogan in Amiri, sized as a real headline */}
+      <Animated.Text
+        style={[
+          styles.slogan,
+          {
+            opacity: sloganOpacity,
+            transform: [{ scale: sloganScale }],
+          },
+        ]}
+      >
+        كول آلوو تتعدل غايتك
+      </Animated.Text>
+
+      {/* Horizon line — the road */}
       <Animated.View
         style={[
           styles.horizon,
@@ -232,42 +261,32 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
             opacity: horizonOpacity,
             width: horizonWidth.interpolate({
               inputRange: [0, 1],
-              outputRange: [0, W * 0.6],
+              outputRange: [0, W * 0.9],
             }),
           },
         ]}
       />
 
-      {/* Multilingual taglines */}
-      <View style={styles.linesWrap}>
-        {LINES.map((line, i) => (
-          (() => {
-            const anim = lineAnims[i]!;
-            return (
-              <Animated.View
-                key={line.code}
-                style={[
-                  styles.lineRow,
-                  {
-                    opacity: anim.opacity,
-                    transform: [{ translateY: anim.y }],
-                  },
-                ]}
-              >
-                <Text style={styles.lineText}>
-                  {line.text}
-                </Text>
-                <View style={styles.codeBadge}>
-                  <Text style={styles.codeText}>{line.code}</Text>
-                </View>
-              </Animated.View>
-            );
-          })()
-        ))}
-      </View>
+      {/* Car driving along the horizon */}
+      <Animated.Image
+        source={require('@/assets/splash-car.png')}
+        resizeMode="contain"
+        style={[
+          styles.car,
+          {
+            opacity: carOpacity,
+            transform: [
+              { translateX: carX },
+              { translateY: carBounce },
+            ],
+          },
+        ]}
+      />
     </Animated.View>
   );
 };
+
+const HORIZON_TOP = H * 0.88;
 
 const styles = StyleSheet.create({
   container: {
@@ -300,7 +319,7 @@ const styles = StyleSheet.create({
 
   glow: {
     position: 'absolute',
-    top: H * 0.28 - 60,
+    top: H * 0.22 - 60,
     width: 200,
     height: 200,
     borderRadius: 100,
@@ -314,7 +333,7 @@ const styles = StyleSheet.create({
 
   logoWrap: {
     position: 'absolute',
-    top: H * 0.28,
+    top: H * 0.22,
     width: 96,
     height: 96,
     borderRadius: 28,
@@ -334,29 +353,32 @@ const styles = StyleSheet.create({
 
   brandWrap: {
     position: 'absolute',
-    top: H * 0.28 + 96 + 20,
+    top: H * 0.22 + 96 + 20,
     alignItems: 'center',
   },
 
   brandName: {
-    fontSize: 36,
+    fontSize: 42,
     fontWeight: '700',
     letterSpacing: 1.5,
     color: colors.ink,
   },
 
-  tagline: {
-    marginTop: 6,
-    fontSize: 13,
-    fontWeight: '500',
-    letterSpacing: 0.8,
-    color: colors.ink2,
-    textTransform: 'uppercase',
+  slogan: {
+    position: 'absolute',
+    top: H * 0.22 + 96 + 20 + 56,
+    fontFamily: 'Amiri_700Bold',
+    fontSize: 34,
+    lineHeight: 48,
+    color: colors.ink,
+    textAlign: 'center',
+    paddingHorizontal: 24,
+    writingDirection: 'rtl',
   },
 
   horizon: {
     position: 'absolute',
-    top: H * 0.28 + 96 + 20 + 70,
+    top: HORIZON_TOP,
     height: 2,
     borderRadius: 1,
     backgroundColor: colors.saffron,
@@ -367,44 +389,12 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
 
-  linesWrap: {
+  car: {
     position: 'absolute',
-    bottom: H * 0.1,
-    width: W,
-    paddingHorizontal: spacing.xl,
-    gap: 8,
-  },
-
-  lineRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 14,
-    backgroundColor: 'rgba(44, 29, 16, 0.06)',
-    gap: 10,
-  },
-
-  lineText: {
-    flex: 1,
-    fontSize: 13,
-    fontWeight: '500',
-    color: colors.ink,
-    letterSpacing: 0.2,
-  },
-
-  codeBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    backgroundColor: colors.ember,
-  },
-
-  codeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: colors.onEmber,
-    letterSpacing: 0.6,
+    // Wheels sit just above the horizon line
+    top: HORIZON_TOP - W * 0.95 * (387 / 520) + 12,
+    width: W * 0.95,
+    aspectRatio: 520 / 387,
   },
 });
 

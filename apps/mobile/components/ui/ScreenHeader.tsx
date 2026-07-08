@@ -4,7 +4,7 @@
  */
 
 import { type ReactNode } from 'react';
-import { Pressable, View } from 'react-native';
+import { Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
 import { colors, radius, shadow, spacing } from '@/theme';
 import { AppText } from './Text';
 import { Icon } from './Icon';
@@ -14,14 +14,15 @@ export interface ScreenHeaderProps {
   subtitle?: string;
   onBack?: () => void;
   right?: ReactNode;
+  style?: StyleProp<ViewStyle>;
 }
 
-export function ScreenHeader({ title, subtitle, onBack, right }: ScreenHeaderProps) {
+export function ScreenHeader({ title, subtitle, onBack, right, style }: ScreenHeaderProps) {
   return (
-    <View style={{
+    <View style={[{
       flexDirection: 'row', alignItems: 'center', gap: spacing.md,
       marginTop: spacing.sm, marginBottom: spacing.lg,
-    }}>
+    }, style]}>
       {onBack ? (
         <Pressable
           onPress={onBack}

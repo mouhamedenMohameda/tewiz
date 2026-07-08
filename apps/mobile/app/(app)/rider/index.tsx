@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { currentLanguage } from '@/lib/i18n';
 import { ModeToggle } from '@/components/ModeToggle';
 import {
   AppText, Button, Card, FadeInView, Icon, PressableScale, Screen, TextField, type IconName,
@@ -35,6 +36,8 @@ export default function RiderHome() {
   const { t } = useTranslation();
   const user = useAuth((s) => s.user);
   const setUser = useAuth((s) => s.setUser);
+  const lang = currentLanguage();
+  const isArabic = lang === 'ar' || lang === 'hs';
 
   const [application, setApplication] = useState<ApplicationDto | null>(null);
   const [loadingApp, setLoadingApp] = useState(true);
@@ -139,10 +142,14 @@ export default function RiderHome() {
     <Screen scroll onRefresh={loadApp}>
       {/* Header */}
       <View style={{
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+        flexDirection: isArabic ? 'row-reverse' : 'row',
+        alignItems: 'center', justifyContent: 'space-between',
         marginTop: spacing.sm, marginBottom: spacing.lg,
       }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, flex: 1 }}>
+        <View style={{
+          flexDirection: isArabic ? 'row-reverse' : 'row',
+          alignItems: 'center', gap: spacing.md, flex: 1,
+        }}>
           <View style={{
             width: 46, height: 46, borderRadius: radius.md,
             backgroundColor: colors.emberSoft, alignItems: 'center', justifyContent: 'center',
@@ -201,9 +208,10 @@ export default function RiderHome() {
             <QuickTile
               key={m.key}
               icon={m.icon}
-              label={m.label.startsWith('rider.') ? t(m.label as any) : m.label}
+              label={t(m.label as any)}
               tint={m.tint}
               fg={m.fg}
+              isArabic={isArabic}
               onPress={() => router.push(m.route as any)}
             />
           ))}
@@ -375,10 +383,10 @@ function Hero({ blocked, onVoice, onMap }: { blocked: boolean; onVoice: () => vo
 }
 
 function QuickTile({
-  icon, label, tint, fg, onPress,
-}: { icon: IconName; label: string; tint: string; fg: string; onPress: () => void }) {
+  icon, label, tint, fg, isArabic, onPress,
+}: { icon: IconName; label: string; tint: string; fg: string; isArabic: boolean; onPress: () => void }) {
   return (
-    <Card onPress={onPress} padding={spacing.base} style={{ flexBasis: '47%', flexGrow: 1, alignItems: 'flex-start' }}>
+    <Card onPress={onPress} padding={spacing.base} style={{ flexBasis: '47%', flexGrow: 1, alignItems: isArabic ? 'flex-end' : 'flex-start' }}>
       <View style={{
         width: 46, height: 46, borderRadius: radius.md,
         backgroundColor: tint, alignItems: 'center', justifyContent: 'center',

@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, Pressable, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import {
   AppText,
   Button,
@@ -37,6 +38,7 @@ function formatDateTime(iso: string): string {
 
 export default function CarpoolingPublishScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const user = useAuth((s) => s.user);
 
   const cityOptions = useMemo(
@@ -84,25 +86,25 @@ export default function CarpoolingPublishScreen() {
 
   async function onPublish() {
     if (user?.role !== 'captain') {
-      Alert.alert('Acces refuse', 'Seuls les chauffeurs peuvent publier un trajet.');
+      Alert.alert(t('carpooling.publish.errAccessTitle'), t('carpooling.publish.errAccessBody'));
       return;
     }
     if (!origin || !destination) {
-      Alert.alert('Champs obligatoires', 'Veuillez choisir la ville de depart et la destination.');
+      Alert.alert(t('carpooling.publish.errRequiredTitle'), t('carpooling.publish.errRequiredBody'));
       return;
     }
     if (origin === destination) {
-      Alert.alert('Trajet invalide', 'Le depart et la destination doivent etre differents.');
+      Alert.alert(t('carpooling.publish.errSameTitle'), t('carpooling.publish.errSameBody'));
       return;
     }
     const departureAt = parseDepartureAt();
     if (!departureAt) {
-      Alert.alert('Date/heure invalide', 'Veuillez saisir une date et une heure valides.');
+      Alert.alert(t('carpooling.publish.errDateTitle'), t('carpooling.publish.errDateBody'));
       return;
     }
     const price = parseInt(pricePerSeat, 10);
     if (!Number.isInteger(price) || price <= 0) {
-      Alert.alert('Prix invalide', 'Le prix par place doit etre superieur a 0.');
+      Alert.alert(t('carpooling.publish.errPriceTitle'), t('carpooling.publish.errPriceBody'));
       return;
     }
 
@@ -118,7 +120,7 @@ export default function CarpoolingPublishScreen() {
         notes: notes.trim() || undefined,
         boost,
       });
-      Alert.alert('Succes', 'Trajet publie !');
+      Alert.alert(t('carpooling.publish.successTitle'), t('carpooling.publish.successBody'));
       setNotes('');
       setBoost(false);
       setDateIso('');
@@ -127,16 +129,16 @@ export default function CarpoolingPublishScreen() {
     } catch (e: any) {
       if (e?.response?.status === 402) {
         Alert.alert(
-          'Solde insuffisant',
-          'Votre wallet ne contient pas assez de solde pour publier ce trajet.',
+          t('carpooling.publish.errBalanceTitle'),
+          t('carpooling.publish.errBalanceBody'),
           [
-            { text: 'Fermer', style: 'cancel' },
-            { text: 'Recharger mon wallet', onPress: () => router.push('/(app)/captain/wallet') },
+            { text: t('carpooling.publish.errBalanceClose'), style: 'cancel' },
+            { text: t('carpooling.publish.errBalanceTopup'), onPress: () => router.push('/(app)/captain/wallet') },
           ],
         );
       } else {
-        const msg = e?.response?.data?.error?.message ?? 'Publication impossible';
-        Alert.alert('Erreur', msg);
+        const msg = e?.response?.data?.error?.message ?? t('carpooling.publish.errPublish');
+        Alert.alert(t('carpooling.errTitle'), msg);
       }
     } finally {
       setPublishing(false);
@@ -149,7 +151,7 @@ export default function CarpoolingPublishScreen() {
       await updateCarpoolingSeats(trip.id, trip.availableSeats - 1);
       await loadMyTrips();
     } catch (e: any) {
-      Alert.alert('Erreur', e?.response?.data?.error?.message ?? 'Mise a jour impossible');
+      Alert.alert(t('carpooling.errTitle'), e?.response?.data?.error?.message ?? t('carpooling.publish.errUpdate'));
     }
   }
 
@@ -158,64 +160,64 @@ export default function CarpoolingPublishScreen() {
       await cancelCarpoolingTrip(tripId);
       await loadMyTrips();
     } catch (e: any) {
-      Alert.alert('Erreur', e?.response?.data?.error?.message ?? 'Annulation impossible');
+      Alert.alert(t('carpooling.errTitle'), e?.response?.data?.error?.message ?? t('carpooling.publish.errCancel'));
     }
   }
 
   return (
     <Screen scroll onRefresh={loadMyTrips} refreshing={loadingTrips}>
-      <ScreenHeader title="Publier un trajet" onBack={() => router.back()} />
+      <ScreenHeader title={t('carpooling.publish.header')} onBack={() => router.back()} />
 
       {user?.role !== 'captain' ? (
         <Card padding={spacing.lg}>
           <AppText variant="body" color={colors.ink2}>
-            Cette fonctionnalite est reservee aux chauffeurs.
+            {t('carpooling.publish.captainOnly')}
           </AppText>
         </Card>
       ) : (
         <View style={{ gap: spacing.md }}>
           <Card padding={spacing.base} style={{ gap: spacing.md }}>
             <SelectField
-              label="Ville de depart"
+              label={t('carpooling.publish.originLabel')}
               value={origin}
               onChange={setOrigin}
               options={cityOptions}
-              placeholder="Choisir"
-              modalTitle="Ville de depart"
+              placeholder={t('carpooling.publish.chooseCityPlaceholder')}
+              modalTitle={t('carpooling.publish.originLabel')}
               searchable
-              searchPlaceholder="Rechercher une ville"
+              searchPlaceholder={t('carpooling.publish.searchCityPlaceholder')}
             />
             <SelectField
-              label="Ville d'arrivee"
+              label={t('carpooling.publish.destLabel')}
               value={destination}
               onChange={setDestination}
               options={cityOptions}
-              placeholder="Choisir"
-              modalTitle="Ville d'arrivee"
+              placeholder={t('carpooling.publish.chooseCityPlaceholder')}
+              modalTitle={t('carpooling.publish.destLabel')}
               searchable
-              searchPlaceholder="Rechercher une ville"
+              searchPlaceholder={t('carpooling.publish.searchCityPlaceholder')}
             />
             <DateField
-              label="Date de depart"
+              label={t('carpooling.publish.dateLabel')}
               value={dateIso}
               onChange={setDateIso}
-              placeholder="Choisir une date"
-              modalTitle="Date de depart"
-              cancelLabel="Annuler"
-              confirmLabel="Valider"
+              placeholder={t('carpooling.publish.datePlaceholder')}
+              modalTitle={t('carpooling.publish.dateModalTitle')}
+              cancelLabel={t('carpooling.publish.cancelLabel')}
+              confirmLabel={t('carpooling.publish.confirmLabel')}
             />
             <TextField
-              label="Heure de depart (HH:MM)"
+              label={t('carpooling.publish.timeLabel')}
               value={timeValue}
               onChangeText={setTimeValue}
-              placeholder="08:00"
+              placeholder={t('carpooling.publish.timePlaceholder')}
               icon="clock"
               autoCapitalize="none"
             />
 
             <View>
               <AppText variant="label" color={colors.ink2} style={{ marginBottom: spacing.sm }}>
-                Nombre de places
+                {t('carpooling.publish.seatsLabel')}
               </AppText>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
                 <Pressable
@@ -255,24 +257,24 @@ export default function CarpoolingPublishScreen() {
             </View>
 
             <TextField
-              label="Prix par place (MRU)"
+              label={t('carpooling.publish.priceLabel')}
               value={pricePerSeat}
               onChangeText={setPricePerSeat}
               keyboardType="number-pad"
               icon="cash"
             />
             <TextField
-              label="Telephone"
+              label={t('carpooling.publish.phoneLabel')}
               value={driverPhone}
               onChangeText={setDriverPhone}
               keyboardType="phone-pad"
               icon="phone"
             />
             <TextField
-              label="Notes (optionnel)"
+              label={t('carpooling.publish.notesLabel')}
               value={notes}
               onChangeText={setNotes}
-              placeholder="Bagages, heure limite, point de rdv..."
+              placeholder={t('carpooling.publish.notesPlaceholder')}
               icon="document"
             />
 
@@ -290,9 +292,9 @@ export default function CarpoolingPublishScreen() {
               }}
             >
               <View style={{ flex: 1, paddingRight: spacing.md }}>
-                <AppText variant="bodyStrong">Mettre en avant (+{BOOST_FEE_MRU} MRU)</AppText>
+                <AppText variant="bodyStrong">{t('carpooling.publish.boostTitle', { price: BOOST_FEE_MRU })}</AppText>
                 <AppText variant="caption" color={colors.ink2}>
-                  Le trajet apparait en premier pendant 24h.
+                  {t('carpooling.publish.boostDesc')}
                 </AppText>
               </View>
               <View style={{
@@ -306,16 +308,16 @@ export default function CarpoolingPublishScreen() {
             </Pressable>
 
             <View style={{ borderRadius: radius.md, backgroundColor: '#F0F9FF', padding: spacing.base }}>
-              <AppText variant="bodyStrong">Frais de publication: {feeMru} MRU</AppText>
+              <AppText variant="bodyStrong">{t('carpooling.publish.feeLine', { fee: feeMru })}</AppText>
             </View>
 
-            <Button title="Payer et publier" icon="wallet" onPress={onPublish} busy={publishing} />
+            <Button title={t('carpooling.publish.publishBtn')} icon="wallet" onPress={onPublish} busy={publishing} />
           </Card>
 
           <Card padding={spacing.base} style={{ gap: spacing.sm, marginBottom: spacing.xxl }}>
-            <AppText variant="h2">Mes trajets</AppText>
+            <AppText variant="h2">{t('carpooling.publish.mineHeader')}</AppText>
             {myTrips.length === 0 ? (
-              <AppText variant="body" color={colors.ink2}>Aucune publication pour le moment.</AppText>
+              <AppText variant="body" color={colors.ink2}>{t('carpooling.publish.mineEmpty')}</AppText>
             ) : (
               myTrips.map((trip) => (
                 <View
@@ -328,23 +330,23 @@ export default function CarpoolingPublishScreen() {
                     gap: spacing.sm,
                   }}
                 >
-                  <AppText variant="bodyStrong">{trip.originCity}{' -> '}{trip.destinationCity}</AppText>
+                  <AppText variant="bodyStrong">{trip.originCity}{' → '}{trip.destinationCity}</AppText>
                   <AppText variant="caption" color={colors.ink2}>
-                    {formatDateTime(trip.departureAt)} - {trip.pricePerSeatMru} MRU/place
+                    {t('carpooling.driver.tripMeta', { date: formatDateTime(trip.departureAt), price: trip.pricePerSeatMru })}
                   </AppText>
                   <AppText variant="caption" color={colors.ink2}>
-                    {trip.availableSeats}/{trip.totalSeats} place(s) - {trip.viewsCount ?? 0} personnes ont vu votre numero
+                    {t('carpooling.publish.mineViews', { avail: trip.availableSeats, total: trip.totalSeats, views: trip.viewsCount ?? 0 })}
                   </AppText>
                   <View style={{ flexDirection: 'row', gap: spacing.sm }}>
                     <Button
-                      title="-1 place"
+                      title={t('carpooling.driver.decrementBtn')}
                       size="sm"
                       variant="secondary"
                       onPress={() => decrementSeat(trip)}
                       disabled={!trip.availableSeats || trip.availableSeats <= 0}
                     />
                     <Button
-                      title="Annuler"
+                      title={t('carpooling.driver.cancelBtn')}
                       size="sm"
                       variant="danger"
                       onPress={() => cancelTrip(trip.id)}

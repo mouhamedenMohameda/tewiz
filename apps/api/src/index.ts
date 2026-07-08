@@ -28,6 +28,7 @@ import { roadsideRouter } from './modules/roadside/roadside.routes.js';
 import { startRoadsideCron } from './modules/roadside/roadside.service.js';
 import { carRentalRouter } from './modules/car-rental/car-rental.routes.js';
 import { convoyageRouter } from './modules/convoyage/convoyage.routes.js';
+import { freightRouter } from './modules/freight/freight.routes.js';
 import { errorHandler, notFound } from './middleware/error.js';
 
 const logger = pino({
@@ -133,6 +134,7 @@ app.use('/listings', listingsRouter);
 app.use('/roadside', roadsideRouter);
 app.use('/car-rental', carRentalRouter);
 app.use('/convoyage', convoyageRouter);
+app.use('/freight', freightRouter);
 
 app.use(notFound);
 app.use(errorHandler);

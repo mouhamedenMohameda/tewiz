@@ -37,7 +37,7 @@ export default function RoadsideAssistanceScreen() {
         pickup: {
           lat: loc.coords.latitude,
           lng: loc.coords.longitude,
-          label: 'Ma position',
+          label: t('roadside.riderAssist.myPositionLabel'),
         },
         paymentMethod: 'cash',
       });
@@ -53,9 +53,9 @@ export default function RoadsideAssistanceScreen() {
   if (!quote.enabled) {
     return (
       <Screen>
-        <ScreenHeader title="Assistance Routière" onBack={() => router.back()} />
+        <ScreenHeader title={t('roadside.headerRider')} onBack={() => router.back()} />
         <AppText color={colors.muted} style={{ padding: spacing.lg }}>
-          Ce service est actuellement indisponible.
+          {t('roadside.riderAssist.unavailable')}
         </AppText>
       </Screen>
     );
@@ -63,21 +63,21 @@ export default function RoadsideAssistanceScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-      <ScreenHeader title="Assistance Routière" onBack={() => router.back()} />
+      <ScreenHeader title={t('roadside.headerRider')} onBack={() => router.back()} />
       <View style={{ flex: 1, padding: spacing.lg, justifyContent: 'space-between' }}>
         <View>
           <AppText variant="body" color={colors.ink2} style={{ marginBottom: spacing.lg }}>
-            Appelez un technicien d'assistance routière
+            {t('roadside.riderAssist.intro')}
           </AppText>
           <Card padding={spacing.lg}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <AppText variant="body" color={colors.ink2}>FRAIS DE BASE</AppText>
+              <AppText variant="body" color={colors.ink2}>{t('roadside.riderAssist.baseFareLabel')}</AppText>
               <AppText variant="h2" color={colors.ember}>{formatMru(quote.baseFareMru)}</AppText>
             </View>
           </Card>
         </View>
         <Button
-          title={`Demander aide · ${formatMru(quote.baseFareMru)}`}
+          title={t('roadside.riderAssist.requestBtn', { price: formatMru(quote.baseFareMru) })}
           icon="check"
           onPress={start}
           busy={loading}

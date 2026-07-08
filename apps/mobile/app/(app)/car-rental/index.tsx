@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { ActivityIndicator, FlatList, Image, Pressable, RefreshControl, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { browseCars, type Car } from '@/lib/carRental';
 import { formatMru } from '@/lib/format';
 import { AppText, Button, Card, Icon, ScreenHeader, TextField } from '@/components/ui';
@@ -9,6 +10,7 @@ import { colors, radius, spacing } from '@/theme';
 
 export default function CarRentalScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [cars, setCars] = useState<Car[] | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
@@ -32,23 +34,23 @@ export default function CarRentalScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <ScreenHeader title="Location Auto" onBack={() => router.back()} />
+      <ScreenHeader title={t('carRental.title')} onBack={() => router.back()} style={{ paddingHorizontal: spacing.lg }} />
 
       <View style={{ paddingHorizontal: spacing.lg, gap: spacing.sm, paddingBottom: spacing.sm }}>
         <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-          <Button title="Mes voitures" variant="secondary" size="sm" icon="car"
+          <Button title={t('carRental.myCars')} variant="secondary" size="sm" icon="car"
             onPress={() => router.push('/(app)/car-rental/my-cars')} style={{ flex: 1 }} />
-          <Button title="Mes réservations" variant="secondary" size="sm" icon="calendar"
+          <Button title={t('carRental.myBookings')} variant="secondary" size="sm" icon="calendar"
             onPress={() => router.push('/(app)/car-rental/my-bookings')} style={{ flex: 1 }} />
         </View>
-        <TextField value={search} onChangeText={setSearch} placeholder="Rechercher un modèle…"
+        <TextField value={search} onChangeText={setSearch} placeholder={t('carRental.searchPlaceholder')}
           icon="search" onSubmitEditing={() => void load()} returnKeyType="search" />
         <Pressable
           onPress={() => setWithDriver((v) => !v)}
           style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, alignSelf: 'flex-start' }}
         >
           <Icon name={withDriver ? 'check' : 'close'} size={16} color={withDriver ? colors.success : colors.muted} />
-          <AppText variant="caption" color={withDriver ? colors.ink : colors.muted}>Avec chauffeur</AppText>
+          <AppText variant="caption" color={withDriver ? colors.ink : colors.muted}>{t('carRental.withDriver')}</AppText>
         </Pressable>
       </View>
 
@@ -62,7 +64,7 @@ export default function CarRentalScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           ListEmptyComponent={
             <AppText color={colors.muted} style={{ textAlign: 'center', marginTop: spacing.xl }}>
-              Aucune voiture disponible.
+              {t('carRental.emptyBrowse')}
             </AppText>
           }
           renderItem={({ item }) => (
@@ -77,14 +79,14 @@ export default function CarRentalScreen() {
               <View style={{ padding: spacing.lg, gap: 4 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <AppText variant="label" color={colors.ink} style={{ flex: 1 }}>{item.title}</AppText>
-                  <AppText variant="label" color={colors.ember}>{formatMru(item.pricePerDayMru)}/j</AppText>
+                  <AppText variant="label" color={colors.ember}>{t('carRental.pricePerDay', { price: formatMru(item.pricePerDayMru) })}</AppText>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' }}>
                   <Meta icon="pin" text={item.city} />
-                  {item.seats ? <Meta icon="person" text={`${item.seats} places`} /> : null}
+                  {item.seats ? <Meta icon="person" text={t('carRental.seatsLabel', { count: item.seats })} /> : null}
                   {item.withDriver ? (
                     <View style={{ backgroundColor: colors.emberSoft, borderRadius: radius.pill, paddingHorizontal: spacing.sm, paddingVertical: 2 }}>
-                      <AppText variant="caption" color={colors.ember}>Chauffeur dispo</AppText>
+                      <AppText variant="caption" color={colors.ember}>{t('carRental.driverAvail')}</AppText>
                     </View>
                   ) : null}
                 </View>

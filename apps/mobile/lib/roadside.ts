@@ -3,14 +3,14 @@ import { api } from './api';
 export type ProblemType =
   | 'pneu' | 'batterie' | 'essence' | 'moteur' | 'remorquage' | 'accident' | 'autre';
 
-export const PROBLEM_META: Record<ProblemType, { label: string; emoji: string }> = {
-  pneu:       { label: 'Pneu crevé',      emoji: '🛞' },
-  batterie:   { label: 'Batterie',        emoji: '🔋' },
-  essence:    { label: 'Panne d\'essence', emoji: '⛽' },
-  moteur:     { label: 'Panne moteur',    emoji: '🛠️' },
-  remorquage: { label: 'Remorquage',      emoji: '🚛' },
-  accident:   { label: 'Accident',        emoji: '💥' },
-  autre:      { label: 'Autre',           emoji: '❓' },
+export const PROBLEM_META: Record<ProblemType, { labelKey: string; emoji: string }> = {
+  pneu:       { labelKey: 'roadside.problem.pneu',       emoji: '🛞' },
+  batterie:   { labelKey: 'roadside.problem.batterie',   emoji: '🔋' },
+  essence:    { labelKey: 'roadside.problem.essence',    emoji: '⛽' },
+  moteur:     { labelKey: 'roadside.problem.moteur',     emoji: '🛠️' },
+  remorquage: { labelKey: 'roadside.problem.remorquage', emoji: '🚛' },
+  accident:   { labelKey: 'roadside.problem.accident',   emoji: '💥' },
+  autre:      { labelKey: 'roadside.problem.autre',      emoji: '❓' },
 };
 
 export const PROBLEM_ORDER: ProblemType[] =

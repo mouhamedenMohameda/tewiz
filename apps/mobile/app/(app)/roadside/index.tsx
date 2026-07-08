@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import * as Location from 'expo-location';
 import {
   PROBLEM_META,
@@ -12,11 +13,12 @@ import {
   type ProblemType,
   type RoadsideRequest,
 } from '@/lib/roadside';
-import { AppText, Button, Card, Icon, ScreenHeader } from '@/components/ui';
+import { AppText, Button, Card, ScreenHeader } from '@/components/ui';
 import { colors, radius, spacing } from '@/theme';
 
 export default function RoadsideScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [current, setCurrent] = useState<RoadsideRequest | null | undefined>(undefined);
   const [problem, setProblem] = useState<ProblemType | null>(null);
   const [note, setNote] = useState('');
@@ -54,7 +56,7 @@ export default function RoadsideScreen() {
       setNotified(res.providersNotified);
       setCurrent(res.request);
     } catch (e: any) {
-      Alert.alert('Erreur', e?.response?.data?.error?.message ?? 'Impossible d\'envoyer la demande.');
+      Alert.alert(t('roadside.errTitle'), e?.response?.data?.error?.message ?? t('roadside.pick.errSend'));
     } finally {
       setSubmitting(false);
     }
@@ -68,13 +70,13 @@ export default function RoadsideScreen() {
       setProblem(null);
       setNotified(null);
     } catch {
-      Alert.alert('Erreur', 'Annulation impossible.');
+      Alert.alert(t('roadside.errTitle'), t('roadside.searching.errCancel'));
     }
   }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <ScreenHeader title="Assistance Routière" onBack={() => router.back()} />
+      <ScreenHeader title={t('roadside.headerRider')} onBack={() => router.back()} style={{ paddingHorizontal: spacing.lg }} />
       <View style={{ flex: 1, padding: spacing.lg }}>
         {current === undefined ? (
           <ActivityIndicator style={{ marginTop: spacing.xl }} />
@@ -103,11 +105,12 @@ function PickProblem({ problem, onPick, submitting, onRequest }: {
   submitting: boolean;
   onRequest: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <View style={{ flex: 1, justifyContent: 'space-between' }}>
       <View>
         <AppText variant="body" color={colors.ink2} style={{ marginBottom: spacing.lg }}>
-          Quel est votre problème ? Un dépanneur proche sera prévenu.
+          {t('roadside.pick.prompt')}
         </AppText>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
           {PROBLEM_ORDER.map((p) => {
@@ -129,7 +132,7 @@ function PickProblem({ problem, onPick, submitting, onRequest }: {
               >
                 <AppText variant="h2">{PROBLEM_META[p].emoji}</AppText>
                 <AppText variant="label" color={active ? colors.ember : colors.ink}>
-                  {PROBLEM_META[p].label}
+                  {t(PROBLEM_META[p].labelKey)}
                 </AppText>
               </Pressable>
             );
@@ -137,7 +140,7 @@ function PickProblem({ problem, onPick, submitting, onRequest }: {
         </View>
       </View>
       <Button
-        title="🆘 Demander de l'aide"
+        title={t('roadside.pick.requestBtn')}
         onPress={onRequest}
         busy={submitting}
         disabled={!problem}
@@ -151,82 +154,86 @@ function Searching({ request, notified, onCancel }: {
   notified: number | null;
   onCancel: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <View style={{ flex: 1, justifyContent: 'space-between' }}>
       <View style={{ alignItems: 'center', marginTop: spacing.xl }}>
         <ActivityIndicator size="large" color={colors.ember} />
         <AppText variant="h2" color={colors.ink} style={{ marginTop: spacing.lg }}>
-          {PROBLEM_META[request.problemType].emoji} Recherche d'un dépanneur…
+          {t('roadside.searching.title', { emoji: PROBLEM_META[request.problemType].emoji })}
         </AppText>
         <AppText variant="body" color={colors.ink2} style={{ marginTop: spacing.sm, textAlign: 'center' }}>
           {notified != null && notified > 0
-            ? `${notified} dépanneur${notified > 1 ? 's' : ''} prévenu${notified > 1 ? 's' : ''} autour de vous`
-            : 'Nous élargissons la recherche…'}
+            ? (notified > 1
+              ? t('roadside.searching.notifiedMany', { count: notified })
+              : t('roadside.searching.notifiedOne', { count: notified }))
+            : t('roadside.searching.expanding')}
         </AppText>
         <AppText variant="caption" color={colors.muted} style={{ marginTop: spacing.xs }}>
-          Rayon : {(request.searchRadiusM / 1000).toFixed(0)} km
+          {t('roadside.searching.radius', { km: (request.searchRadiusM / 1000).toFixed(0) })}
         </AppText>
       </View>
-      <Button title="Annuler la demande" variant="secondary" onPress={onCancel} />
+      <Button title={t('roadside.searching.cancelBtn')} variant="secondary" onPress={onCancel} />
     </View>
   );
 }
 
 function Accepted({ request, onCancel }: { request: RoadsideRequest; onCancel: () => void }) {
+  const { t } = useTranslation();
   const p = request.provider;
   return (
     <View style={{ flex: 1, justifyContent: 'space-between' }}>
       <View>
         <AppText variant="body" color={colors.success} style={{ marginBottom: spacing.md }}>
-          ✅ Un dépanneur arrive vers vous
+          {t('roadside.accepted.arriving')}
         </AppText>
         <Card padding={spacing.lg} style={{ gap: spacing.md }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <AppText variant="label" color={colors.ink}>{p?.name ?? 'Dépanneur'}</AppText>
+            <AppText variant="label" color={colors.ink}>{p?.name ?? t('roadside.accepted.providerFallback')}</AppText>
             {p?.ratingAvg != null ? (
               <AppText variant="body" color={colors.warning}>⭐ {p.ratingAvg.toFixed(1)}</AppText>
             ) : null}
           </View>
           <AppText variant="caption" color={colors.muted}>
-            {PROBLEM_META[request.problemType].label}
+            {t(PROBLEM_META[request.problemType].labelKey)}
           </AppText>
           {p?.phone ? (
             <Button
-              title={`Appeler ${p.phone}`}
+              title={t('roadside.accepted.callBtn', { phone: p.phone })}
               icon="phone"
               onPress={() => { void Linking.openURL(`tel:${p.phone}`); }}
             />
           ) : null}
         </Card>
       </View>
-      <Button title="Terminer / Annuler" variant="secondary" onPress={onCancel} />
+      <Button title={t('roadside.accepted.endBtn')} variant="secondary" onPress={onCancel} />
     </View>
   );
 }
 
 function Unresolved({ request, onCancel }: { request: RoadsideRequest; onCancel: () => void }) {
+  const { t } = useTranslation();
   return (
     <View style={{ flex: 1, justifyContent: 'space-between' }}>
       <View style={{ marginTop: spacing.xl }}>
-        <AppText variant="h2" color={colors.ink}>Aucun dépanneur disponible</AppText>
+        <AppText variant="h2" color={colors.ink}>{t('roadside.unresolved.title')}</AppText>
         <AppText variant="body" color={colors.ink2} style={{ marginTop: spacing.sm }}>
-          Personne n'a répondu à proximité. Appelez notre numéro vert, un opérateur
-          vous trouvera une solution.
+          {t('roadside.unresolved.body')}
         </AppText>
       </View>
       <View style={{ gap: spacing.sm }}>
         {request.hotlinePhone ? (
           <Button
-            title={`📞 Numéro vert · ${request.hotlinePhone}`}
+            title={t('roadside.unresolved.hotlineBtn', { phone: request.hotlinePhone })}
             icon="phone"
             onPress={() => { void Linking.openURL(`tel:${request.hotlinePhone}`); }}
           />
         ) : (
           <AppText variant="caption" color={colors.muted} style={{ textAlign: 'center' }}>
-            Numéro vert non configuré.
+            {t('roadside.unresolved.hotlineMissing')}
           </AppText>
         )}
-        <Button title="Fermer" variant="secondary" onPress={onCancel} />
+        <Button title={t('roadside.unresolved.closeBtn')} variant="secondary" onPress={onCancel} />
       </View>
     </View>
   );

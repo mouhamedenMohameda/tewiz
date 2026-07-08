@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
+import { useTranslation } from 'react-i18next';
 import {
   AppText,
   Button,
@@ -58,6 +59,7 @@ function normalizePhoneForWa(phone: string): string {
 
 export default function CarpoolingScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const user = useAuth((s) => s.user);
   const isCaptain = user?.role === 'captain';
   const [mode, setMode] = useState<TfagMode>(isCaptain ? 'driver' : 'passenger');
@@ -65,7 +67,7 @@ export default function CarpoolingScreen() {
   return (
     <>
       <Screen scroll>
-        <ScreenHeader title="Tfag" onBack={() => router.back()} />
+        <ScreenHeader title={t('carpooling.title')} onBack={() => router.back()} />
 
         {isCaptain && (
           <View style={{
@@ -77,13 +79,13 @@ export default function CarpoolingScreen() {
             marginBottom: spacing.lg,
           }}>
             <ToggleSegment
-              label="Passager"
+              label={t('carpooling.toggle.passenger')}
               icon="person"
               active={mode === 'passenger'}
               onPress={() => setMode('passenger')}
             />
             <ToggleSegment
-              label="Chauffeur"
+              label={t('carpooling.toggle.driver')}
               icon="captain"
               active={mode === 'driver'}
               onPress={() => setMode('driver')}
@@ -108,7 +110,7 @@ export default function CarpoolingScreen() {
             ...shadow.ember,
           }}
         >
-          <AppText variant="bodyStrong" color={colors.onEmber}>+ Publier un trajet</AppText>
+          <AppText variant="bodyStrong" color={colors.onEmber}>{t('carpooling.publishFab')}</AppText>
         </Pressable>
       )}
     </>
@@ -149,6 +151,7 @@ function ToggleSegment({ label, icon, active, onPress }: {
 /* ------------------------------------------------------------------ */
 
 function PassengerView() {
+  const { t } = useTranslation();
   const cityOptions = useMemo(
     () => MAURITANIA_CITIES.map((city) => ({ label: city, value: city })),
     [],
@@ -178,12 +181,12 @@ function PassengerView() {
       });
       setTrips(list);
     } catch (e: any) {
-      const msg = e?.response?.data?.error?.message ?? 'Impossible de charger les trajets';
-      Alert.alert('Erreur', msg);
+      const msg = e?.response?.data?.error?.message ?? t('carpooling.passenger.errLoad');
+      Alert.alert(t('carpooling.errTitle'), msg);
     } finally {
       setLoading(false);
     }
-  }, [origin, destination]);
+  }, [origin, destination, t]);
 
   useFocusEffect(useCallback(() => { loadTrips(); }, [loadTrips]));
 
@@ -198,8 +201,8 @@ function PassengerView() {
         driverPhone: reveal.driverPhone,
       });
     } catch (e: any) {
-      const msg = e?.response?.data?.error?.message ?? 'Impossible de recuperer le numero';
-      Alert.alert('Erreur', msg);
+      const msg = e?.response?.data?.error?.message ?? t('carpooling.passenger.errContact');
+      Alert.alert(t('carpooling.errTitle'), msg);
     } finally {
       setContactBusyId(null);
     }
@@ -219,7 +222,7 @@ function PassengerView() {
         justifyContent: 'space-between',
         marginBottom: spacing.md,
       }}>
-        <AppText variant="h2">Trajets disponibles</AppText>
+        <AppText variant="h2">{t('carpooling.passenger.available')}</AppText>
         <Pressable
           onPress={() => setFiltersVisible((v) => !v)}
           hitSlop={10}
@@ -235,7 +238,7 @@ function PassengerView() {
         >
           <Icon name="tune" size={18} color={hasFilters ? colors.ember : colors.ink2} />
           {hasFilters && (
-            <AppText variant="caption" color={colors.ember}>Filtres</AppText>
+            <AppText variant="caption" color={colors.ember}>{t('carpooling.passenger.filters')}</AppText>
           )}
         </Pressable>
       </View>
@@ -243,29 +246,29 @@ function PassengerView() {
       {filtersVisible && (
         <Card padding={spacing.base} style={{ marginBottom: spacing.md, gap: spacing.md }}>
           <SelectField
-            label="Ville de depart"
+            label={t('carpooling.passenger.originLabel')}
             value={origin}
             onChange={(v) => { setOrigin(v); }}
             options={cityOptions}
-            placeholder="Toutes"
-            modalTitle="Ville de depart"
+            placeholder={t('carpooling.passenger.originPlaceholder')}
+            modalTitle={t('carpooling.passenger.originLabel')}
             searchable
-            searchPlaceholder="Rechercher une ville"
+            searchPlaceholder={t('carpooling.passenger.searchCityPlaceholder')}
           />
           <SelectField
-            label="Ville d'arrivee"
+            label={t('carpooling.passenger.destLabel')}
             value={destination}
             onChange={(v) => { setDestination(v); }}
             options={cityOptions}
-            placeholder="Toutes"
-            modalTitle="Ville d'arrivee"
+            placeholder={t('carpooling.passenger.destPlaceholder')}
+            modalTitle={t('carpooling.passenger.destLabel')}
             searchable
-            searchPlaceholder="Rechercher une ville"
+            searchPlaceholder={t('carpooling.passenger.searchCityPlaceholder')}
           />
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-            <Button title="Rechercher" icon="search" size="md" onPress={loadTrips} />
+            <Button title={t('carpooling.passenger.searchBtn')} icon="search" size="md" onPress={loadTrips} />
             {hasFilters && (
-              <Button title="Vider" variant="secondary" size="md" onPress={clearFilters} />
+              <Button title={t('carpooling.passenger.clearBtn')} variant="secondary" size="md" onPress={clearFilters} />
             )}
           </View>
         </Card>
@@ -275,7 +278,7 @@ function PassengerView() {
       <View style={{ gap: spacing.md, marginBottom: spacing.xxl }}>
         {trips.length === 0 ? (
           <Card padding={spacing.lg}>
-            <AppText variant="body" color={colors.ink2}>Aucun trajet disponible.</AppText>
+            <AppText variant="body" color={colors.ink2}>{t('carpooling.passenger.empty')}</AppText>
           </Card>
         ) : (
           trips.map((trip) => (
@@ -301,15 +304,15 @@ function PassengerView() {
               </View>
 
               <AppText variant="body" color={colors.ink2}>
-                {trip.availableSeats}/{trip.totalSeats} places · {trip.pricePerSeatMru} MRU/place
+                {t('carpooling.passenger.seatsPrice', { avail: trip.availableSeats, total: trip.totalSeats, price: trip.pricePerSeatMru })}
               </AppText>
-              <AppText variant="body" color={colors.ink2}>Conducteur: {trip.driverName}</AppText>
+              <AppText variant="body" color={colors.ink2}>{t('carpooling.passenger.driverLabel', { name: trip.driverName })}</AppText>
               {trip.notes ? (
                 <AppText variant="caption" color={colors.muted}>{trip.notes}</AppText>
               ) : null}
 
               <Button
-                title="Reserver"
+                title={t('carpooling.passenger.reserveBtn')}
                 iconRight="arrow"
                 size="md"
                 onPress={() => onReserve(trip)}
@@ -334,7 +337,7 @@ function PassengerView() {
             padding: spacing.lg,
             gap: spacing.base,
           }}>
-            <AppText variant="h2">Contacter le conducteur</AppText>
+            <AppText variant="h2">{t('carpooling.passenger.contact.title')}</AppText>
             <AppText variant="body" color={colors.ink2}>{contact.driverName}</AppText>
             <AppText variant="title" style={{ fontSize: 28 }}>{contact.driverPhone}</AppText>
 
@@ -342,18 +345,18 @@ function PassengerView() {
               <View style={{ backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.base }}>
                 <AppText variant="bodyStrong">{contact.trip.originCity}{' → '}{contact.trip.destinationCity}</AppText>
                 <AppText variant="caption" color={colors.ink2}>
-                  {formatDateTime(contact.trip.departureAt)} · {contact.trip.pricePerSeatMru} MRU/place
+                  {t('carpooling.passenger.contact.tripMeta', { date: formatDateTime(contact.trip.departureAt), price: contact.trip.pricePerSeatMru })}
                 </AppText>
               </View>
             )}
 
             <Button
-              title="Appeler"
+              title={t('carpooling.passenger.contact.callBtn')}
               icon="phone"
               onPress={() => { void Linking.openURL(`tel:${contact.driverPhone}`); }}
             />
             <Button
-              title="WhatsApp"
+              title={t('carpooling.passenger.contact.whatsappBtn')}
               icon="whatsapp"
               variant="secondary"
               onPress={() => {
@@ -362,7 +365,7 @@ function PassengerView() {
               }}
             />
             <Button
-              title="Fermer"
+              title={t('carpooling.passenger.contact.closeBtn')}
               variant="ghost"
               onPress={() => setContact((s) => ({ ...s, visible: false }))}
             />
@@ -378,6 +381,7 @@ function PassengerView() {
 /* ------------------------------------------------------------------ */
 
 function DriverView() {
+  const { t } = useTranslation();
   const [myTrips, setMyTrips] = useState<CarpoolingTrip[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -401,7 +405,7 @@ function DriverView() {
       await updateCarpoolingSeats(trip.id, trip.availableSeats - 1);
       await loadMyTrips();
     } catch (e: any) {
-      Alert.alert('Erreur', e?.response?.data?.error?.message ?? 'Mise a jour impossible');
+      Alert.alert(t('carpooling.errTitle'), e?.response?.data?.error?.message ?? t('carpooling.driver.errUpdate'));
     }
   }
 
@@ -410,39 +414,39 @@ function DriverView() {
       await cancelCarpoolingTrip(tripId);
       await loadMyTrips();
     } catch (e: any) {
-      Alert.alert('Erreur', e?.response?.data?.error?.message ?? 'Annulation impossible');
+      Alert.alert(t('carpooling.errTitle'), e?.response?.data?.error?.message ?? t('carpooling.driver.errCancel'));
     }
   }
 
   return (
     <View style={{ gap: spacing.md, marginBottom: 100 }}>
-      <AppText variant="h2">Mes trajets</AppText>
+      <AppText variant="h2">{t('carpooling.driver.myTrips')}</AppText>
 
       {myTrips.length === 0 ? (
         <Card padding={spacing.lg}>
-          <AppText variant="body" color={colors.ink2}>Aucun trajet publie.</AppText>
+          <AppText variant="body" color={colors.ink2}>{t('carpooling.driver.empty')}</AppText>
         </Card>
       ) : (
         myTrips.map((trip) => (
           <Card key={trip.id} padding={spacing.base} style={{ gap: spacing.sm }}>
             <AppText variant="title">{trip.originCity}{' → '}{trip.destinationCity}</AppText>
             <AppText variant="caption" color={colors.ink2}>
-              {formatDateTime(trip.departureAt)} · {trip.pricePerSeatMru} MRU/place
+              {t('carpooling.driver.tripMeta', { date: formatDateTime(trip.departureAt), price: trip.pricePerSeatMru })}
             </AppText>
             <AppText variant="body" color={colors.ink2}>
-              {trip.availableSeats}/{trip.totalSeats} place(s) · {trip.viewsCount ?? 0} vues
+              {t('carpooling.driver.seatsAndViews', { avail: trip.availableSeats, total: trip.totalSeats, views: trip.viewsCount ?? 0 })}
             </AppText>
 
             <View style={{ flexDirection: 'row', gap: spacing.sm }}>
               <Button
-                title="-1 place"
+                title={t('carpooling.driver.decrementBtn')}
                 size="sm"
                 variant="secondary"
                 onPress={() => decrementSeat(trip)}
                 disabled={!trip.availableSeats || trip.availableSeats <= 0}
               />
               <Button
-                title="Annuler"
+                title={t('carpooling.driver.cancelBtn')}
                 size="sm"
                 variant="danger"
                 onPress={() => cancelTrip(trip.id)}
