@@ -15,18 +15,19 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AppShell } from '@/components/AppShell';
 import { api } from '@/lib/api';
 
-type TargetType = 'all_captains' | 'all_riders' | 'all_users' | 'group' | 'user';
+type TargetType = 'all_captains' | 'all_riders' | 'all_guests' | 'all_users' | 'group' | 'user';
 type GroupKey = 'active_captains' | 'bonus_active';
 
 const TARGET_LABELS: Record<TargetType, string> = {
   all_users:    'Tous les utilisateurs',
   all_captains: 'Tous les chauffeurs',
   all_riders:   'Tous les passagers',
+  all_guests:   'Tous les invités',
   group:        'Un groupe',
   user:         'Un utilisateur précis',
 };
 
-const TARGET_ORDER: TargetType[] = ['all_users', 'all_captains', 'all_riders', 'group', 'user'];
+const TARGET_ORDER: TargetType[] = ['all_users', 'all_captains', 'all_riders', 'all_guests', 'group', 'user'];
 
 interface UserRow {
   id: string;
@@ -83,7 +84,11 @@ export default function NotificationsPage() {
   const userLookup = useQuery({
     queryKey: ['admin-users-search', userSearch],
     queryFn: async () => {
-      const params = new URLSearchParams({ limit: '10', search: userSearch.trim() });
+      const params = new URLSearchParams({
+        limit: '10',
+        search: userSearch.trim(),
+        includeGuests: 'true', // let admins target a specific guest by phone
+      });
       const r = await api.get(`/admin/users?${params.toString()}`);
       return (r.data?.users ?? []) as UserRow[];
     },
@@ -96,6 +101,7 @@ export default function NotificationsPage() {
       const target =
         targetType === 'all_captains' ? { type: 'all_captains' as const } :
         targetType === 'all_riders'   ? { type: 'all_riders' as const } :
+        targetType === 'all_guests'   ? { type: 'all_guests' as const } :
         targetType === 'all_users'    ? { type: 'all_users' as const } :
         targetType === 'group'        ? { type: 'group' as const, group } :
                                          { type: 'user' as const, userId: selectedUser!.id };
@@ -463,6 +469,7 @@ export default function NotificationsPage() {
 function targetLabel(targetType: string, value: string | null): string {
   if (targetType === 'all_captains') return 'Tous les chauffeurs';
   if (targetType === 'all_riders') return 'Tous les passagers';
+  if (targetType === 'all_guests') return 'Tous les invités';
   if (targetType === 'all_users') return 'Tous les utilisateurs';
   if (targetType === 'group') return GROUP_LABELS[value as GroupKey] ?? value ?? 'Groupe';
   if (targetType === 'user') return `Utilisateur ${value?.slice(0, 8) ?? ''}…`;
