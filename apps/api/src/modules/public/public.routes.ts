@@ -48,6 +48,13 @@ publicRouter.get('/config', async (req, res) => {
   const s = await getPricingSettings();
   const appVersion = (req.get('x-app-version') ?? '').trim();
   const showDemoButtons = s.showDemoButtons && DEMO_BUTTON_VERSIONS.has(appVersion);
+  // The response is version-dependent (it varies on X-App-Version). Tell any
+  // intermediary (nginx/CDN/browser) never to cache it, and to key on the
+  // version header if it ever does. Without this, a proxy could cache the
+  // `false` served to a header-less request and hand it back to the 1.1.12
+  // reviewer build — hiding the demo buttons and re-triggering Guideline 2.1.
+  res.setHeader('Cache-Control', 'no-store');
+  res.vary('X-App-Version'); // appends to the existing Vary (e.g. Origin from CORS)
   res.json({
     showDemoButtons,
     captainAlertSoundMode: s.captainAlertSoundMode,

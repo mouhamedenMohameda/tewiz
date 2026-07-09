@@ -89,6 +89,14 @@ describe('public routes', () => {
     });
   });
 
+  it('GET /config is marked uncacheable and varies on the app version', async () => {
+    settingsMock.mockResolvedValue(settings);
+    const { baseUrl } = await start();
+    const res = await realFetch(`${baseUrl}/public/config`);
+    expect(res.headers.get('cache-control')).toBe('no-store');
+    expect((res.headers.get('vary') ?? '').toLowerCase()).toContain('x-app-version');
+  });
+
   it('GET /config hides the demo buttons for an older / unknown version even when the toggle is on', async () => {
     settingsMock.mockResolvedValue(settings);
     const { baseUrl } = await start();
