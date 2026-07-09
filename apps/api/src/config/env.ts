@@ -71,14 +71,6 @@ const EnvSchema = z.object({
   // When empty, CORS stays open but logs a startup warning — set this in
   // production to lock the API down to known origins.
   CORS_ORIGINS: z.string().default(''),
-
-  // Comma-separated list of app versions (as sent in the X-App-Version header)
-  // that are allowed to see the reviewer demo-login buttons — on top of the
-  // showDemoButtons master toggle. Any other version (or a request that sends
-  // no version header, i.e. every already-shipped build) never sees them, so
-  // flipping the toggle on for a store review can't leak the buttons to real
-  // users on older binaries. Update this to the version you are submitting.
-  DEMO_BUTTONS_ALLOWED_VERSIONS: z.string().default('1.1.12'),
 });
 
 export const env = EnvSchema.parse(process.env);

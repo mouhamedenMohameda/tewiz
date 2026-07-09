@@ -43,6 +43,7 @@ interface PricingSettings {
   carpoolingPublicationFee: number;
   carpoolingBoostFee: number;
   showDemoButtons: boolean;
+  demoButtonsAllowedVersions: string;
   captainAlertSoundMode: CaptainAlertSoundMode;
   captainAlertRepeatIntervalS: number;
   captainAlertSoundUrl: string | null;
@@ -109,6 +110,7 @@ interface FormState {
   carpoolingPublicationFee: string;
   carpoolingBoostFee: string;
   showDemoButtons: boolean;
+  demoButtonsAllowedVersions: string;
   captainAlertSoundMode: CaptainAlertSoundMode;
   captainAlertRepeatIntervalS: string;
   captainAlertSoundUrl: string;
@@ -201,6 +203,7 @@ const EMPTY_FORM: FormState = {
   equipmentRentalDailyRateMru: '3000',
   equipmentRentalCommissionPct: '10',
   showDemoButtons: false,
+  demoButtonsAllowedVersions: '1.1.12',
   captainAlertSoundMode: 'standard',
   captainAlertRepeatIntervalS: '2',
   captainAlertSoundUrl: '',
@@ -266,6 +269,7 @@ function settingsToForm(s: PricingSettings): FormState {
     equipmentRentalDailyRateMru: String(s.equipmentRentalDailyRateMru),
     equipmentRentalCommissionPct: (s.equipmentRentalCommissionBps / 100).toString(),
     showDemoButtons: s.showDemoButtons,
+    demoButtonsAllowedVersions: s.demoButtonsAllowedVersions,
     captainAlertSoundMode: s.captainAlertSoundMode,
     captainAlertRepeatIntervalS: String(s.captainAlertRepeatIntervalS),
     captainAlertSoundUrl: s.captainAlertSoundUrl ?? '',
@@ -352,6 +356,7 @@ export default function SettingsPage() {
         equipmentRentalDailyRateMru: parseInt(form.equipmentRentalDailyRateMru, 10),
         equipmentRentalCommissionBps: Math.round(parseFloat(form.equipmentRentalCommissionPct) * 100),
         showDemoButtons: form.showDemoButtons,
+        demoButtonsAllowedVersions: form.demoButtonsAllowedVersions.trim(),
         captainAlertSoundMode: form.captainAlertSoundMode,
         captainAlertRepeatIntervalS: parseInt(form.captainAlertRepeatIntervalS, 10),
         captainAlertSoundUrl: form.captainAlertSoundUrl.trim() === ''
@@ -1111,12 +1116,25 @@ export default function SettingsPage() {
                   </span>
                 </label>
               </div>
-              <p className="text-xs text-slate-600">
+              <p className="text-xs text-slate-600 mb-3">
                 Affiche des boutons de connexion en un tap sur l&apos;écran d&apos;accueil de l&apos;app
                 (comptes démo passager + capitaine). À activer avant une soumission App Store / Google Play,
-                à désactiver après approbation. Les boutons n&apos;apparaissent que sur la version d&apos;app
-                soumise pour review (variable serveur <code>DEMO_BUTTONS_ALLOWED_VERSIONS</code>, ex. 1.1.12) :
-                les versions déjà livrées ne les verront jamais, même toggle activé.
+                à désactiver après approbation.
+              </p>
+              <label className="block text-sm text-slate-700 mb-1">
+                Version(s) autorisée(s)
+              </label>
+              <input
+                type="text"
+                value={form.demoButtonsAllowedVersions}
+                onChange={(e) => setForm({ ...form, demoButtonsAllowedVersions: e.target.value })}
+                placeholder="1.1.12"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              />
+              <p className="text-xs text-slate-500 mt-1">
+                Les boutons n&apos;apparaissent que sur ces versions d&apos;app (celle soumise pour review),
+                séparées par des virgules (ex. <code>1.1.12</code> ou <code>1.1.12,1.1.13</code>). Les versions
+                déjà livrées ne les verront jamais, même toggle activé.
               </p>
             </section>
 
