@@ -10,6 +10,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { currentLanguage } from '@/lib/i18n';
 import { ModeToggle } from '@/components/ModeToggle';
+import { NotificationsBellButton } from '@/components/NotificationsBellButton';
 import {
   AppText, Button, Card, FadeInView, Icon, PressableScale, Screen, TextField, type IconName,
 } from '@/components/ui';
@@ -163,18 +164,24 @@ export default function RiderHome() {
             </AppText>
           </View>
         </View>
-        <Pressable
-          onPress={() => router.push('/(app)/settings')}
-          hitSlop={10}
-          accessibilityLabel={t('settings.title')}
-          style={{
-            width: 44, height: 44, borderRadius: radius.md,
-            backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center',
-            ...shadow.card,
-          }}
-        >
-          <Icon name="tune" size={22} color={colors.ink} />
-        </Pressable>
+        <View style={{
+          flexDirection: isArabic ? 'row-reverse' : 'row',
+          alignItems: 'center', gap: spacing.sm,
+        }}>
+          <NotificationsBellButton />
+          <Pressable
+            onPress={() => router.push('/(app)/settings')}
+            hitSlop={10}
+            accessibilityLabel={t('settings.title')}
+            style={{
+              width: 44, height: 44, borderRadius: radius.md,
+              backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center',
+              ...shadow.card,
+            }}
+          >
+            <Icon name="tune" size={22} color={colors.ink} />
+          </Pressable>
+        </View>
       </View>
 
       <ModeToggle />

@@ -23,6 +23,7 @@ import { sendPush } from '../push/expo-push.js';
 export type NotificationTarget =
   | { type: 'all_captains' }
   | { type: 'all_riders' }
+  | { type: 'all_guests' }
   | { type: 'all_users' }
   | { type: 'group'; group: 'active_captains' | 'bonus_active' }
   | { type: 'user'; userId: string };
@@ -82,18 +83,26 @@ async function resolveRecipients(
     return rows.map((r) => r.id);
   }
   if (target.type === 'all_riders') {
+    // All passengers, guests included (a guest keeps role = 'rider').
     const { rows } = await client.query<{ id: string }>(
-      `SELECT id FROM users
-        WHERE role = 'rider' AND COALESCE(is_guest, false) = false`,
+      `SELECT id FROM users WHERE role = 'rider'`,
+    );
+    return rows.map((r) => r.id);
+  }
+  if (target.type === 'all_guests') {
+    // Only the anonymous guest accounts (a subset of the riders). Many may be
+    // orphans from reinstalls with no live push token — inbox rows are harmless,
+    // push is best-effort.
+    const { rows } = await client.query<{ id: string }>(
+      `SELECT id FROM users WHERE COALESCE(is_guest, false) = true`,
     );
     return rows.map((r) => r.id);
   }
   if (target.type === 'all_users') {
-    // Everyone who can hold an inbox: riders + captains, excluding admins and
-    // guest accounts.
+    // Everyone who can hold an inbox: riders (guests included) + captains,
+    // excluding admins.
     const { rows } = await client.query<{ id: string }>(
-      `SELECT id FROM users
-        WHERE role IN ('rider', 'captain') AND COALESCE(is_guest, false) = false`,
+      `SELECT id FROM users WHERE role IN ('rider', 'captain')`,
     );
     return rows.map((r) => r.id);
   }

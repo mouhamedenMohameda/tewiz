@@ -35,6 +35,10 @@ const listQuery = z.object({
   role: z.enum(['rider', 'captain', 'admin']).optional(),
   search: z.string().trim().min(1).optional(),     // matches phone or full_name
   online: z.enum(['true', 'false']).optional(),
+  // Opt-in: include anonymous guest accounts (used by the notifications composer
+  // so an admin can push to a specific guest by phone). Off by default so the
+  // user directory stays limited to managed accounts.
+  includeGuests: z.enum(['true', 'false']).optional(),
   limit: z.coerce.number().min(1).max(200).default(50),
   offset: z.coerce.number().min(0).default(0),
 });
@@ -45,9 +49,12 @@ adminUsersRouter.get('/', async (req, res) => {
   const where: string[] = [];
   const params: unknown[] = [];
   // Anonymous guest accounts (no phone, created on first app launch) are not
-  // "managed users" — hide them from the admin directory. They reappear here
-  // once promoted to a captain (is_guest is cleared on approval).
-  where.push('COALESCE(is_guest, false) = false');
+  // "managed users" — hide them from the admin directory by default. They
+  // reappear once promoted to a captain (is_guest is cleared on approval), or
+  // when a caller explicitly opts in via includeGuests=true (notifications).
+  if (q.includeGuests !== 'true') {
+    where.push('COALESCE(is_guest, false) = false');
+  }
   if (q.role) {
     params.push(q.role);
     where.push(`role = $${params.length}`);

@@ -26,6 +26,7 @@ const sendBody = z.object({
   target: z.discriminatedUnion('type', [
     z.object({ type: z.literal('all_captains') }),
     z.object({ type: z.literal('all_riders') }),
+    z.object({ type: z.literal('all_guests') }),
     z.object({ type: z.literal('all_users') }),
     z.object({
       type: z.literal('group'),
