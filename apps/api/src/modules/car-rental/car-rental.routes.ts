@@ -131,8 +131,10 @@ carRentalRouter.get('/cars', requireAuth, async (req, res) => {
 carRentalRouter.get('/cars/:id', requireAuth, async (req, res) => {
   const car = await getCarDetail(String(req.params.id));
   if (!car || car.status === 'removed') throw new HttpError(404, 'car_not_found', 'Voiture introuvable');
-  const { status: _s, ...safe } = car;
-  res.json({ car: safe });
+  // Keep `status` in the response: the owner's edit screen reads it to show the
+  // correct pause state. Without it the pause toggle always renders as "off",
+  // making a paused car impossible to reliably reactivate.
+  res.json({ car });
 });
 
 const bookingBody = z.object({
