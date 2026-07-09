@@ -76,6 +76,7 @@ const patchBody = z.object({
   carpoolingPublicationFee:         z.number().int().min(0).max(10_000).optional(),
   carpoolingBoostFee:               z.number().int().min(0).max(10_000).optional(),
   carpoolingCommissionBps:          z.number().int().min(0).max(10_000).optional(),
+  carpoolingNoShowLimit:            z.number().int().min(0).max(50).optional(),
   // Feature flag for the reviewer demo-login buttons (migration 0031).
   showDemoButtons:                  z.boolean().optional(),
   // Comma-separated app version(s) allowed to see the demo buttons (migration
@@ -92,6 +93,37 @@ const patchBody = z.object({
   latestAndroidUrl:                 z.string().trim().url().max(500).nullable().optional(),
   latestIosUrl:                     z.string().trim().url().max(500).nullable().optional(),
   gpsFraudSevereMode:               z.boolean().optional(),
+  // Per-service availability + tariff knobs. These MUST be listed here: Zod
+  // strips unknown keys, so any field missing from this schema is silently
+  // dropped before it reaches the DB and the admin toggle appears to "revert".
+  privateDriverEnabled:             z.boolean().optional(),
+  privateDriverHourlyRateMru:       z.number().int().min(0).max(100_000).optional(),
+  privateDriverMinHours:            z.number().int().min(1).max(24).optional(),
+  privateDriverCommissionBps:       z.number().int().min(0).max(5_000).optional(),
+  convoyageEnabled:                 z.boolean().optional(),
+  convoyageBaseFareMru:             z.number().int().min(0).max(100_000).optional(),
+  convoyagePerKmMru:                z.number().int().min(0).max(10_000).optional(),
+  convoyageMinFareMru:              z.number().int().min(0).max(100_000).optional(),
+  convoyageCommissionBps:           z.number().int().min(0).max(5_000).optional(),
+  carRentalEnabled:                 z.boolean().optional(),
+  carRentalDailyRateMru:            z.number().int().min(0).max(1_000_000).optional(),
+  carRentalCommissionBps:           z.number().int().min(0).max(5_000).optional(),
+  roadsideAssistanceEnabled:        z.boolean().optional(),
+  roadsideAssistanceBaseFareMru:    z.number().int().min(0).max(100_000).optional(),
+  roadsideAssistanceCommissionBps:  z.number().int().min(0).max(5_000).optional(),
+  lightMovingEnabled:               z.boolean().optional(),
+  lightMovingBaseFareMru:           z.number().int().min(0).max(100_000).optional(),
+  lightMovingPerKmMru:              z.number().int().min(0).max(10_000).optional(),
+  lightMovingMinFareMru:            z.number().int().min(0).max(100_000).optional(),
+  lightMovingCommissionBps:         z.number().int().min(0).max(5_000).optional(),
+  intercityFreightEnabled:          z.boolean().optional(),
+  intercityFreightBaseFareMru:      z.number().int().min(0).max(100_000).optional(),
+  intercityFreightPerKmMru:         z.number().int().min(0).max(10_000).optional(),
+  intercityFreightMinFareMru:       z.number().int().min(0).max(100_000).optional(),
+  intercityFreightCommissionBps:    z.number().int().min(0).max(5_000).optional(),
+  equipmentRentalEnabled:           z.boolean().optional(),
+  equipmentRentalDailyRateMru:      z.number().int().min(0).max(1_000_000).optional(),
+  equipmentRentalCommissionBps:     z.number().int().min(0).max(5_000).optional(),
 }).refine(
   (b) =>
     b.nightPriceStartHour === undefined ||
