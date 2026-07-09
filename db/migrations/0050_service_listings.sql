@@ -1,5 +1,5 @@
 -- Service listings ("annonces") — a classified-ads marketplace modeled on
--- carpooling (Tfag). A captain (provider) publishes an ad for a service in a
+-- carpooling (Ervdni). A captain (provider) publishes an ad for a service in a
 -- category (car rental, private driver, moving, freight, etc.), sets their own
 -- price and how long the ad should stay visible, and pays a fixed publication
 -- fee from their wallet. Once paid, the ad is visible until published_until.

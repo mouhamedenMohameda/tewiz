@@ -1,6 +1,6 @@
 BEGIN;
 
--- Tfag (carpooling) trust layer.
+-- Ervdni (carpooling) trust layer.
 --
 -- Replaces the old "pay-to-post + reveal phone" model with:
 --   1. Free publishing (no upfront risk for the driver).

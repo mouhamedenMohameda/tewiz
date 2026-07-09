@@ -29,6 +29,8 @@ function mk(partial: Partial<Restaurant> & { id: string; name: string }): Restau
     etaMax: null,
     description: null,
     photo: null,
+    photos: [],
+    phone: null,
     address: null,
     lat: 18.08,
     lng: -15.97,

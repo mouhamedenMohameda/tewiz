@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Alert, Dimensions, Image, Linking, Modal, Pressable, ScrollView, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -19,6 +19,8 @@ export default function RestaurantDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [imgFailed, setImgFailed] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuIndex, setMenuIndex] = useState(0);
+  const screenW = Dimensions.get('window').width;
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -79,10 +81,16 @@ export default function RestaurantDetailScreen() {
     );
   }
 
-  // Cover = deterministic fallback. The admin-uploaded `restaurant.photo` is
-  // the menu card, shown on demand via the "voir la carte des plats" action.
+  // Cover = deterministic fallback. The admin-uploaded photos are the menu /
+  // table cards, shown on demand via the "voir la carte des plats" action.
   const cover = resolveRestaurantCover(restaurant);
-  const hasMenu = !!restaurant.photo;
+  // The `photos` array is the source of truth; fall back to the legacy single
+  // `photo` for rows created before multi-photo support.
+  const menuPhotos = (restaurant.photos ?? []).length > 0
+    ? restaurant.photos
+    : (restaurant.photo ? [restaurant.photo] : []);
+  const hasMenu = menuPhotos.length > 0;
+  const phone = restaurant.phone?.trim() || null;
   const eta = restaurant.etaMin != null && restaurant.etaMax != null
     ? `${restaurant.etaMin}-${restaurant.etaMax} min`
     : null;
@@ -300,15 +308,36 @@ export default function RestaurantDetailScreen() {
           </PressableScale>
         </FadeInView>
 
+        {phone ? (
+          <FadeInView delay={340}>
+            <PressableScale
+              onPress={() => Linking.openURL(`tel:${phone}`)}
+              scaleTo={0.97}
+              style={{
+                backgroundColor: colors.surface,
+                borderRadius: radius.lg,
+                paddingVertical: 15,
+                flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+                gap: spacing.sm,
+                borderWidth: 1.5, borderColor: colors.line,
+                ...shadow.card,
+              }}
+            >
+              <Icon name="phone" size={22} color={colors.ember} />
+              <AppText variant="title" color={colors.ember}>{t('rider.restaurants.callRestaurant')}</AppText>
+            </PressableScale>
+          </FadeInView>
+        ) : null}
+
         <FadeInView delay={360}>
           <Button
             variant="ghost"
             title={t('rider.restaurants.viewMenu')}
             icon="menu"
             onPress={() => {
-              // When the admin has uploaded a menu card, show it full-screen.
+              // When the admin has uploaded menu photos, show them full-screen.
               // Otherwise fall back to the "coming soon" notice.
-              if (hasMenu) setMenuOpen(true);
+              if (hasMenu) { setMenuIndex(0); setMenuOpen(true); }
               else Alert.alert(
                 t('rider.restaurants.menuAlertTitle'),
                 t('rider.restaurants.menuAlertBody', { name: restaurant.name }),
@@ -327,29 +356,43 @@ export default function RestaurantDetailScreen() {
         onRequestClose={() => setMenuOpen(false)}
       >
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.94)' }}>
+          {/* Horizontal pager — one page per photo, each pinch-to-zoom on iOS. */}
           <ScrollView
+            horizontal
+            pagingEnabled
             style={{ flex: 1 }}
-            contentContainerStyle={{ flexGrow: 1, alignItems: 'center', justifyContent: 'center' }}
-            maximumZoomScale={4}
-            minimumZoomScale={1}
-            centerContent
-            showsVerticalScrollIndicator={false}
             showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={(e) =>
+              setMenuIndex(Math.round(e.nativeEvent.contentOffset.x / screenW))
+            }
           >
-            {restaurant.photo ? (
-              <Image
-                source={{ uri: restaurant.photo }}
-                style={{ width: '100%', height: '100%' }}
-                resizeMode="contain"
-              />
-            ) : null}
+            {menuPhotos.map((uri, i) => (
+              <ScrollView
+                key={`${uri}-${i}`}
+                style={{ width: screenW }}
+                contentContainerStyle={{ flexGrow: 1, alignItems: 'center', justifyContent: 'center' }}
+                maximumZoomScale={4}
+                minimumZoomScale={1}
+                centerContent
+                showsVerticalScrollIndicator={false}
+                showsHorizontalScrollIndicator={false}
+              >
+                <Image
+                  source={{ uri }}
+                  style={{ width: screenW, height: '100%' }}
+                  resizeMode="contain"
+                />
+              </ScrollView>
+            ))}
           </ScrollView>
           <View style={{
             position: 'absolute', top: spacing.xxl + spacing.sm + 4, left: 0, right: 0,
             alignItems: 'center',
           }}>
             <AppText variant="bodyStrong" color={colors.white}>
-              {t('rider.restaurants.menuAlertTitle')}
+              {menuPhotos.length > 1
+                ? `${t('rider.restaurants.menuAlertTitle')} · ${menuIndex + 1}/${menuPhotos.length}`
+                : t('rider.restaurants.menuAlertTitle')}
             </AppText>
           </View>
           <Pressable

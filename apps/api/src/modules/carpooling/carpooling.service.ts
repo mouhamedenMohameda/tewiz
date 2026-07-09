@@ -559,7 +559,7 @@ export async function requestBooking(
     // Timestamped receipt — the driver can no longer claim "I received nothing".
     void sendNotification({
       target: { type: 'user', userId: trip.driver_id },
-      title: 'Nouvelle demande Tfag',
+      title: 'Nouvelle demande Ervdni',
       body: `Demande de ${seats} place(s) : ${trip.origin_city} -> ${trip.destination_city}.`,
       type: 'info',
       data: { feature: 'carpooling', tripId, bookingId, kind: 'booking_requested' },
@@ -715,7 +715,7 @@ export async function completeBooking(
         captainId: driverId,
         amountMru: commissionMru,
         type: 'carpooling_commission',
-        reason: `Commission Tfag ${b.origin_city} -> ${b.destination_city}`,
+        reason: `Commission Ervdni ${b.origin_city} -> ${b.destination_city}`,
         createdBy: driverId,
       }, client);
     }

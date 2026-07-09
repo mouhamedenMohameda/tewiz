@@ -128,7 +128,7 @@
       "restaurants": "Restaurants",
       "currentRide": "Course en cours",
       "modules": {
-        "carpooling": "Tfag",
+        "carpooling": "Ervdni",
         "private_driver": "Chauffeur Privé",
         "convoyage": "Convoyage",
         "car_rental": "Location Auto",
@@ -309,6 +309,7 @@
       "loadDetailError": "Impossible de charger ce restaurant.",
       "goToRestaurant": "Aller à ce restaurant",
       "deliverFromHere": "Livrer un colis d'ici",
+      "callRestaurant": "Appeler le restaurant",
       "viewMenu": "Voir la carte des plats",
       "menuAlertTitle": "Carte du restaurant",
       "menuAlertBody": "La carte des plats de {{name}} sera disponible très bientôt. Restez connecté !",
@@ -1265,7 +1266,7 @@
     }
   },
   "carpooling": {
-    "title": "Tfag",
+    "title": "Ervdni",
     "errTitle": "Erreur",
     "toggle": {
       "passenger": "Passager",

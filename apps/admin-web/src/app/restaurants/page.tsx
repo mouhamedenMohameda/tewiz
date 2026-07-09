@@ -36,6 +36,8 @@ interface Restaurant {
   etaMax: number | null;
   description: string | null;
   photo: string | null;
+  photos: string[];
+  phone: string | null;
   address: string | null;
   lat: number;
   lng: number;
@@ -385,42 +387,34 @@ function RestaurantForm({
   onSaved: () => void;
 }) {
   const isEdit = !!initial;
-  const [name, setName] = useState(initial?.name ?? '');
   const [nameFr, setNameFr] = useState(initial?.nameFr ?? '');
   const [nameAr, setNameAr] = useState(initial?.nameAr ?? '');
-  const [zone, setZone] = useState(initial?.zone ?? '');
-  const [cuisine, setCuisine] = useState(initial?.cuisine ?? '');
-  const [tagsStr, setTagsStr] = useState((initial?.tags ?? []).join(', '));
-  const [priceLevel, setPriceLevel] = useState<PriceLevel | ''>(initial?.priceLevel ?? '');
-  const [rating, setRating] = useState(initial?.rating?.toString() ?? '');
-  const [etaMin, setEtaMin] = useState(initial?.etaMin?.toString() ?? '');
-  const [etaMax, setEtaMax] = useState(initial?.etaMax?.toString() ?? '');
-  const [description, setDescription] = useState(initial?.description ?? '');
-  const [photo, setPhoto] = useState(initial?.photo ?? '');
-  const [address, setAddress] = useState(initial?.address ?? '');
+  const [phone, setPhone] = useState(initial?.phone ?? '');
   const [lat, setLat] = useState(initial?.lat?.toString() ?? '');
   const [lng, setLng] = useState(initial?.lng?.toString() ?? '');
-  const [popularity, setPopularity] = useState(initial?.popularity?.toString() ?? '50');
+  const [photos, setPhotos] = useState<string[]>(
+    initial?.photos?.length ? initial.photos : (initial?.photo ? [initial.photo] : []),
+  );
   const [err, setErr] = useState<string | null>(null);
 
-  // Photo upload
+  // Photo upload — a table/menu photo list; accepts several at once.
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(initial?.photo ?? null);
 
-  const handlePhotoUpload = useCallback(async (file: File) => {
+  const handlePhotoUpload = useCallback(async (files: FileList) => {
     setUploading(true);
     setErr(null);
     try {
-      const form = new FormData();
-      form.append('file', file);
-      const r = await api.post('/admin/restaurants/upload-photo', form, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      const url = r.data.url as string;
-      setPhoto(url);
-      // The API now returns an absolute URL; only prefix legacy relative paths.
-      setPhotoPreview(url.startsWith('http') ? url : `${API_URL}${url}`);
+      const uploaded: string[] = [];
+      for (const file of Array.from(files)) {
+        const form = new FormData();
+        form.append('file', file);
+        const r = await api.post('/admin/restaurants/upload-photo', form, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        uploaded.push(r.data.url as string);
+      }
+      setPhotos((prev) => [...prev, ...uploaded]);
     } catch (e: any) {
       setErr(e?.response?.data?.error?.message ?? 'Erreur lors de l\'upload de la photo.');
     } finally {
@@ -460,31 +454,28 @@ function RestaurantForm({
     }
     setLat(parsed.lat);
     setLng(parsed.lng);
-    if (parsed.name && !name) setName(parsed.name);
+    if (parsed.name && !nameFr.trim()) setNameFr(parsed.name);
     setMapsUrl('');
     setErr(null);
-  }, [mapsUrl, name]);
+  }, [mapsUrl, nameFr]);
+
+  // Canonical name derived from the French name, falling back to Arabic —
+  // the form no longer exposes a separate "Nom" field.
+  const primaryName = nameFr.trim() || nameAr.trim();
 
   const submit = useMutation({
     mutationFn: async () => {
       setErr(null);
       const payload = {
-        name: name.trim(),
+        name: primaryName,
         nameFr: nameFr.trim() || null,
         nameAr: nameAr.trim() || null,
-        zone: zone.trim() || null,
-        cuisine: cuisine.trim() || null,
-        tags: tagsStr.split(',').map((t) => t.trim()).filter(Boolean),
-        priceLevel: priceLevel || null,
-        rating: rating ? Number(rating) : null,
-        etaMin: etaMin ? Number(etaMin) : null,
-        etaMax: etaMax ? Number(etaMax) : null,
-        description: description.trim() || null,
-        photo: photo.trim() || null,
-        address: address.trim() || null,
+        phone: phone.trim() || null,
+        photos,
+        // Keep the legacy single-photo field in sync with the first one.
+        photo: photos[0] ?? null,
         lat: Number(lat),
         lng: Number(lng),
-        popularity: Number(popularity) || 0,
       };
       if (isEdit) {
         const r = await api.patch(`/admin/restaurants/${initial!.id}`, payload);
@@ -500,9 +491,8 @@ function RestaurantForm({
     },
   });
 
-  const photoSrc = photoPreview
-    || (photo && photo.startsWith('/') ? `${API_URL}${photo}` : photo)
-    || null;
+  // Absolute URLs load as-is; only legacy root-relative paths need the API base.
+  const photoSrc = (url: string) => (url.startsWith('/') ? `${API_URL}${url}` : url);
 
   return (
     <Modal title={isEdit ? `Modifier — ${initial!.name}` : 'Nouveau restaurant'} onClose={onClose}>
@@ -534,34 +524,17 @@ function RestaurantForm({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Field label="Nom *" value={name} onChange={setName} />
-        <Field label="Nom (français)" value={nameFr} onChange={setNameFr} />
-        <Field label="Nom (arabe)" value={nameAr} onChange={setNameAr} />
-        <Field label="Quartier" value={zone} onChange={setZone} placeholder="Tevragh Zeina" />
-        <div>
-          <label className="text-xs text-slate-600 block mb-1">Cuisine</label>
-          <select
-            value={cuisine}
-            onChange={(e) => setCuisine(e.target.value)}
-            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white"
-          >
-            {CUISINES.map((c) => <option key={c} value={c}>{c || '—'}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="text-xs text-slate-600 block mb-1">Niveau de prix</label>
-          <select
-            value={priceLevel}
-            onChange={(e) => setPriceLevel(e.target.value as PriceLevel | '')}
-            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white"
-          >
-            <option value="">—</option>
-            <option value="$">$</option>
-            <option value="$$">$$</option>
-            <option value="$$$">$$$</option>
-          </select>
-        </div>
-        <Field label="Tags (séparés par virgule)" value={tagsStr} onChange={setTagsStr} placeholder="Pizza, Italien, À emporter" className="col-span-2" />
+        <Field label="Nom (français)" value={nameFr} onChange={setNameFr} placeholder="Pizza Lina" />
+        <Field label="Nom (arabe)" value={nameAr} onChange={setNameAr} placeholder="بيتزا لينا" />
+
+        <Field
+          label="Numéro de téléphone"
+          value={phone}
+          onChange={setPhone}
+          type="tel"
+          placeholder="+222 …"
+          className="col-span-2"
+        />
 
         {/* Lat/Lng with GPS button */}
         <div className="col-span-2">
@@ -579,75 +552,47 @@ function RestaurantForm({
           </div>
         </div>
 
-        <Field label="Note (0-5)" value={rating} onChange={setRating} type="number" />
-        <Field label="Popularité" value={popularity} onChange={setPopularity} type="number" />
-        <Field label="Délai min (min)" value={etaMin} onChange={setEtaMin} type="number" />
-        <Field label="Délai max (min)" value={etaMax} onChange={setEtaMax} type="number" />
-
-        {/* Menu / carte des plats upload — shown in the app behind "voir la carte des plats". */}
+        {/* Photos de table — a list of menu / table photos (multi-upload). */}
         <div className="col-span-2">
           <label className="text-xs text-slate-600 block mb-1">
-            Carte des plats (menu)
-            <span className="text-slate-400"> · affichée dans l’app via « voir la carte des plats »</span>
+            Photos de table (carte des plats)
+            <span className="text-slate-400"> · affichées dans l’app · plusieurs possibles</span>
           </label>
-          <div className="flex items-start gap-3">
-            {photoSrc ? (
-              <div className="relative shrink-0">
+          <div className="flex flex-wrap items-start gap-3">
+            {photos.map((url, i) => (
+              <div key={`${url}-${i}`} className="relative shrink-0">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={photoSrc} alt="" className="w-20 h-20 rounded-lg object-cover bg-slate-100" />
+                <img src={photoSrc(url)} alt="" className="w-20 h-20 rounded-lg object-cover bg-slate-100" />
                 <button
                   type="button"
-                  onClick={() => { setPhoto(''); setPhotoPreview(null); }}
+                  onClick={() => setPhotos((prev) => prev.filter((_, idx) => idx !== i))}
                   className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-600"
                 >
                   ×
                 </button>
               </div>
-            ) : null}
-            <div className="flex-1">
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) void handlePhotoUpload(f);
-                  e.target.value = '';
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => fileRef.current?.click()}
-                disabled={uploading}
-                className="w-full px-4 py-3 text-sm border-2 border-dashed border-slate-300 rounded-lg text-slate-500 hover:border-emerald-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
-              >
-                {uploading ? 'Upload en cours…' : photoSrc ? 'Changer la carte' : '📷 Uploader la carte des plats'}
-              </button>
-              <input
-                type="text"
-                value={photo}
-                onChange={(e) => {
-                  setPhoto(e.target.value);
-                  setPhotoPreview(e.target.value || null);
-                }}
-                placeholder="…ou coller une URL https://…"
-                className="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-500 mt-2"
-              />
-            </div>
+            ))}
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                const fs = e.target.files;
+                if (fs && fs.length) void handlePhotoUpload(fs);
+                e.target.value = '';
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading}
+              className="w-20 h-20 shrink-0 flex flex-col items-center justify-center text-xs border-2 border-dashed border-slate-300 rounded-lg text-slate-500 hover:border-emerald-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors disabled:opacity-50"
+            >
+              {uploading ? '…' : <><span className="text-lg leading-none">＋</span><span className="mt-0.5">Photo</span></>}
+            </button>
           </div>
-        </div>
-
-        <Field label="Adresse" value={address} onChange={setAddress} className="col-span-2" />
-        <div className="col-span-2">
-          <label className="text-xs text-slate-600 block mb-1">Description</label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={3}
-            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-            placeholder="Pizzas au feu de bois, pâtes fraîches…"
-          />
         </div>
       </div>
 
@@ -659,7 +604,7 @@ function RestaurantForm({
         </button>
         <button
           onClick={() => submit.mutate()}
-          disabled={!name.trim() || !lat || !lng || submit.isPending}
+          disabled={!primaryName || !lat || !lng || submit.isPending}
           className="px-4 py-2 text-sm bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white rounded-lg font-medium"
         >
           {submit.isPending ? 'Enregistrement…' : isEdit ? 'Enregistrer' : 'Créer'}

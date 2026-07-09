@@ -128,7 +128,7 @@
       "restaurants": "مطاعم",
       "currentRide": "رحلة جارية",
       "modules": {
-        "carpooling": "تفاڭ",
+        "carpooling": "ارفدني",
         "private_driver": "سائق خاص",
         "convoyage": "نقل السيارات",
         "car_rental": "تأجير سيارات",
@@ -309,6 +309,7 @@
       "loadDetailError": "تعذّر تحميل هذا المطعم.",
       "goToRestaurant": "الذهاب إلى هذا المطعم",
       "deliverFromHere": "توصيل طرد من هنا",
+      "callRestaurant": "الاتصال بالمطعم",
       "viewMenu": "عرض قائمة الأطباق",
       "menuAlertTitle": "قائمة المطعم",
       "menuAlertBody": "قائمة أطباق {{name}} ستتوفّر قريباً جداً. ابقَ على اطّلاع!",
@@ -1265,7 +1266,7 @@
     }
   },
   "carpooling": {
-    "title": "تفاق",
+    "title": "ارفدني",
     "errTitle": "خطأ",
     "toggle": {
       "passenger": "راكب",
