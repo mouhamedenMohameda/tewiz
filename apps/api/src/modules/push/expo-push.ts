@@ -38,6 +38,22 @@ export async function getPushTokensForUsers(userIds: string[]): Promise<string[]
 }
 
 /**
+ * Like getPushTokensForUsers but keeps each token's platform, so callers can
+ * treat Android and iOS differently (e.g. Android gets an extra data-only push
+ * that drives the full-screen "incoming ride" screen).
+ */
+export async function getPushTokensWithPlatform(
+  userIds: string[],
+): Promise<{ token: string; platform: string }[]> {
+  if (userIds.length === 0) return [];
+  const { rows } = await pool.query<{ token: string; platform: string }>(
+    `SELECT token, platform FROM push_tokens WHERE user_id = ANY($1::uuid[])`,
+    [userIds],
+  );
+  return rows;
+}
+
+/**
  * Extracts token groups from a PUSH_TOO_MANY_EXPERIENCE_IDS error body.
  * Expo rejects a request mixing tokens from different projects (happens when
  * the DB holds tokens registered by builds of another Expo account) and its
@@ -102,8 +118,9 @@ export async function notifyCaptainsNewRide(
   captainUserIds: string[],
   ride: { id: string; rideType: string; fareEstimateMru: number | null },
 ): Promise<void> {
-  const tokens = await getPushTokensForUsers(captainUserIds);
-  if (tokens.length === 0) return;
+  const tokenRows = await getPushTokensWithPlatform(captainUserIds);
+  if (tokenRows.length === 0) return;
+  const tokens = tokenRows.map((r) => r.token);
   const settings = await getPricingSettings();
 
   // The custom `ride-alert` sound must be bundled with the standalone build
@@ -134,6 +151,22 @@ export async function notifyCaptainsNewRide(
       body,
       data: { type: 'ride_alert', rideId: ride.id },
       channelId: 'ride-alerts',
+      priority: 'high',
+      ttl: 60,
+    });
+  }
+
+  // Android-only, in ADDITION to the visible push above: a *data-only* push
+  // (no title/body → not drawn by the OS) so the app's headless background task
+  // can pop a full-screen "incoming ride" screen over the lock screen even when
+  // the app is killed. Older builds have no such task and simply ignore it, so
+  // this can never regress the reliable notification they already got.
+  const androidTokens = tokenRows.filter((r) => r.platform === 'android').map((r) => r.token);
+  for (let i = 0; i < androidTokens.length; i += 100) {
+    const batch = androidTokens.slice(i, i + 100);
+    await sendPush({
+      to: batch,
+      data: { type: 'ride_alert', rideId: ride.id, title, body },
       priority: 'high',
       ttl: 60,
     });

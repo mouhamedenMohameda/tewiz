@@ -1193,13 +1193,35 @@ export async function listRiderHistory(userId: string, limit = 30) {
 }
 
 export async function listCaptainHistory(captainId: string, limit = 30) {
-  const r = await pool.query<RideRow>(
-    `SELECT ${RIDE_COLUMNS} FROM rides
-      WHERE captain_id = $1
+  // Resolve the booker's name/phone in the SAME query via a LATERAL join
+  // instead of one follow-up `enrichWithBooker` query per row. This endpoint
+  // is polled every few seconds by every online captain, so collapsing the
+  // 1+N round-trips into a single query is a real, cumulative latency win.
+  // The LATERAL derived table only exposes full_name/phone, so `RIDE_COLUMNS`'
+  // bare `id` stays unambiguous.
+  const r = await pool.query<
+    RideRow & { booker_full_name: string | null; booker_phone: string | null }
+  >(
+    `SELECT ${RIDE_COLUMNS},
+            bu.full_name AS booker_full_name,
+            bu.phone     AS booker_phone
+       FROM rides
+  LEFT JOIN LATERAL (
+         SELECT full_name, phone FROM users WHERE id = rides.booker_id
+       ) bu ON true
+      WHERE rides.captain_id = $1
       ORDER BY requested_at DESC LIMIT $2`,
     [captainId, limit],
   );
-  return Promise.all(r.rows.map(async (row) => enrichWithBooker(shape(row))));
+  return r.rows.map((row) => {
+    // Mirror enrichWithBooker: for a "course pour quelqu'un d'autre" the person
+    // the captain calls is the passenger, otherwise it's the booker.
+    const rider =
+      row.is_for_other && row.passenger_phone
+        ? { id: row.booker_id, fullName: row.passenger_name, phone: row.passenger_phone }
+        : { id: row.booker_id, fullName: row.booker_full_name, phone: row.booker_phone };
+    return { ...shape(row), rider };
+  });
 }
 
 // ────────────────────────────────────────────────────────────────────────────

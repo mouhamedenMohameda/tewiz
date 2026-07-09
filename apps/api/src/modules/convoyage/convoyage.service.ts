@@ -96,31 +96,30 @@ export async function createJob(clientId: string, input: CreateJobInput): Promis
       input.desiredDate ?? null, input.note?.trim() || null,
     ],
   );
-  return (await listMyJobs(clientId)).find((j) => j.id === rows[0]!.id)!;
+  return (await getJobById(rows[0]!.id, clientId))!;
 }
 
-export async function listMyJobs(clientId: string): Promise<JobDTO[]> {
-  const { rows } = await pool.query<{
-    id: string; pickup_label: string; dropoff_label: string; vehicle_plate: string;
-    vehicle_model: string | null; desired_date: Date | null; note: string | null;
-    status: JobStatus; created_at: Date; proposal_count: string;
-    provider_name: string | null; provider_phone: string | null; provider_rating: string | null;
-  }>(
-    `SELECT j.id, j.pickup_label, j.dropoff_label, j.vehicle_plate, j.vehicle_model,
-            j.desired_date, j.note, j.status, j.created_at,
-            (SELECT COUNT(*) FROM convoyage_proposals p
-              WHERE p.job_id = j.id AND p.status IN ('pending','accepted'))::text AS proposal_count,
-            pu.full_name AS provider_name,
-            CASE WHEN j.status IN ('assigned','completed') THEN pu.phone ELSE NULL END AS provider_phone,
-            pc.rating_avg AS provider_rating
-       FROM convoyage_jobs j
-       LEFT JOIN users pu ON pu.id = j.assigned_provider_id
-       LEFT JOIN captains pc ON pc.user_id = j.assigned_provider_id
-      WHERE j.client_id = $1
-      ORDER BY j.created_at DESC`,
-    [clientId],
-  );
-  return rows.map((r) => ({
+type JobRow = {
+  id: string; pickup_label: string; dropoff_label: string; vehicle_plate: string;
+  vehicle_model: string | null; desired_date: Date | null; note: string | null;
+  status: JobStatus; created_at: Date; proposal_count: string;
+  provider_name: string | null; provider_phone: string | null; provider_rating: string | null;
+};
+
+const JOB_SELECT = `
+  SELECT j.id, j.pickup_label, j.dropoff_label, j.vehicle_plate, j.vehicle_model,
+         j.desired_date, j.note, j.status, j.created_at,
+         (SELECT COUNT(*) FROM convoyage_proposals p
+           WHERE p.job_id = j.id AND p.status IN ('pending','accepted'))::text AS proposal_count,
+         pu.full_name AS provider_name,
+         CASE WHEN j.status IN ('assigned','completed') THEN pu.phone ELSE NULL END AS provider_phone,
+         pc.rating_avg AS provider_rating
+    FROM convoyage_jobs j
+    LEFT JOIN users pu ON pu.id = j.assigned_provider_id
+    LEFT JOIN captains pc ON pc.user_id = j.assigned_provider_id`;
+
+function toJobDTO(r: JobRow): JobDTO {
+  return {
     id: r.id,
     pickupLabel: r.pickup_label,
     dropoffLabel: r.dropoff_label,
@@ -134,7 +133,23 @@ export async function listMyJobs(clientId: string): Promise<JobDTO[]> {
       ? { name: r.provider_name ?? 'Convoyeur', phone: r.provider_phone, ratingAvg: r.provider_rating != null ? Number(r.provider_rating) : null }
       : null,
     createdAt: r.created_at.toISOString(),
-  }));
+  };
+}
+
+async function getJobById(id: string, clientId: string): Promise<JobDTO | null> {
+  const { rows } = await pool.query<JobRow>(
+    `${JOB_SELECT} WHERE j.id = $1 AND j.client_id = $2`,
+    [id, clientId],
+  );
+  return rows[0] ? toJobDTO(rows[0]) : null;
+}
+
+export async function listMyJobs(clientId: string): Promise<JobDTO[]> {
+  const { rows } = await pool.query<JobRow>(
+    `${JOB_SELECT} WHERE j.client_id = $1 ORDER BY j.created_at DESC`,
+    [clientId],
+  );
+  return rows.map(toJobDTO);
 }
 
 export async function getJobProposals(jobId: string, clientId: string): Promise<ProposalDTO[]> {

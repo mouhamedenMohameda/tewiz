@@ -15,6 +15,9 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { api } from '@/lib/api';
 import { type AuthUser, useAuth } from '@/lib/auth';
 import { registerForPushNotifications } from '@/lib/notifications';
+// Importing this module also runs its top-level side effects (defines the
+// background ride-alert task + Notifee background handler).
+import { registerBackgroundRideAlertTask } from '@/lib/fullScreenRideAlert';
 import { readAndClearCrash } from '@/lib/crash-reporter';
 import { initI18n } from '@/lib/i18n';
 import { loadAppConfig } from '@/lib/appConfig';
@@ -89,6 +92,10 @@ export default function RootLayout() {
       // Push registration: safe to call every launch (server upserts).
       // Useful even for riders (future ride status updates).
       void registerForPushNotifications();
+      // Android-only: register the headless task that pops the full-screen
+      // "incoming ride" screen when a ride push lands while the app is
+      // backgrounded or killed. No-op on iOS / old builds.
+      void registerBackgroundRideAlertTask();
     })();
   }, [hydrate]);
 

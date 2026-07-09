@@ -140,6 +140,9 @@ const bookingBody = z.object({
   start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   with_driver: z.boolean().optional(),
+}).refine((b) => b.end_date >= b.start_date, {
+  message: 'La date de fin doit être >= date de début',
+  path: ['end_date'],
 });
 
 carRentalRouter.post('/bookings', requireAuth, async (req, res) => {

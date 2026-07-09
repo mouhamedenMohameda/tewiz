@@ -22,6 +22,8 @@ import { sendPush } from '../push/expo-push.js';
 
 export type NotificationTarget =
   | { type: 'all_captains' }
+  | { type: 'all_riders' }
+  | { type: 'all_users' }
   | { type: 'group'; group: 'active_captains' | 'bonus_active' }
   | { type: 'user'; userId: string };
 
@@ -47,6 +49,7 @@ export interface CampaignSummary {
   readCount: number;
   sentBy: string | null;
   createdAt: string;
+  updatedAt: string | null;
 }
 
 export interface InboxItem {
@@ -75,6 +78,22 @@ async function resolveRecipients(
     const { rows } = await client.query<{ id: string }>(
       `SELECT id FROM users
         WHERE role = 'captain' AND COALESCE(is_guest, false) = false`,
+    );
+    return rows.map((r) => r.id);
+  }
+  if (target.type === 'all_riders') {
+    const { rows } = await client.query<{ id: string }>(
+      `SELECT id FROM users
+        WHERE role = 'rider' AND COALESCE(is_guest, false) = false`,
+    );
+    return rows.map((r) => r.id);
+  }
+  if (target.type === 'all_users') {
+    // Everyone who can hold an inbox: riders + captains, excluding admins and
+    // guest accounts.
+    const { rows } = await client.query<{ id: string }>(
+      `SELECT id FROM users
+        WHERE role IN ('rider', 'captain') AND COALESCE(is_guest, false) = false`,
     );
     return rows.map((r) => r.id);
   }
@@ -307,6 +326,77 @@ export async function markAllRead(userId: string): Promise<number> {
   return r.rowCount ?? 0;
 }
 
+// ── Admin edit / delete ─────────────────────────────────────────────────────
+
+export interface UpdateCampaignInput {
+  title?: string;
+  body?: string;
+  data?: Record<string, unknown>;
+}
+
+/**
+ * Edit an already-sent campaign in place. Rewrites the campaign row AND every
+ * per-recipient `notifications` row so the correction shows up in each inbox on
+ * the next poll/refresh. Read state is preserved and NO new push is fired —
+ * this is a silent remote update, not a re-send.
+ *
+ * Returns false when the campaign id doesn't exist.
+ */
+export async function updateCampaign(
+  campaignId: string,
+  input: UpdateCampaignInput,
+): Promise<boolean> {
+  // Nothing to change → treat as a successful no-op if the campaign exists.
+  const hasChanges =
+    input.title !== undefined || input.body !== undefined || input.data !== undefined;
+
+  return withTx(async (client) => {
+    const existing = await client.query<{
+      title: string; body: string; data: Record<string, unknown>;
+    }>(
+      `SELECT title, body, data FROM notification_campaigns WHERE id = $1 FOR UPDATE`,
+      [campaignId],
+    );
+    if (existing.rowCount === 0) return false;
+    if (!hasChanges) return true;
+
+    const current = existing.rows[0]!;
+    const title = input.title ?? current.title;
+    const body = input.body ?? current.body;
+    const data = input.data ?? current.data;
+
+    await client.query(
+      `UPDATE notification_campaigns
+          SET title = $2, body = $3, data = $4::jsonb, updated_at = now()
+        WHERE id = $1`,
+      [campaignId, title, body, JSON.stringify(data)],
+    );
+    // Rewrite the fan-out rows in place; read_at is untouched.
+    await client.query(
+      `UPDATE notifications
+          SET title = $2, body = $3, data = $4::jsonb
+        WHERE campaign_id = $1`,
+      [campaignId, title, body, JSON.stringify(data)],
+    );
+    return true;
+  });
+}
+
+/**
+ * Delete a campaign and, via ON DELETE CASCADE on notifications.campaign_id,
+ * every inbox row it produced. The message disappears from all inboxes on the
+ * next poll/refresh. Already-delivered OS push banners can't be recalled.
+ *
+ * Returns false when the campaign id doesn't exist.
+ */
+export async function deleteCampaign(campaignId: string): Promise<boolean> {
+  const r = await pool.query(
+    `DELETE FROM notification_campaigns WHERE id = $1`,
+    [campaignId],
+  );
+  return (r.rowCount ?? 0) > 0;
+}
+
 // ── Admin reads ─────────────────────────────────────────────────────────────
 
 export async function listCampaigns(opts: { limit?: number } = {}): Promise<CampaignSummary[]> {
@@ -315,10 +405,10 @@ export async function listCampaigns(opts: { limit?: number } = {}): Promise<Camp
     id: string; target_type: string; target_value: string | null;
     type: string; title: string; body: string;
     recipient_count: number; sent_by: string | null; created_at: Date;
-    read_count: string;
+    updated_at: Date | null; read_count: string;
   }>(
     `SELECT c.id, c.target_type, c.target_value, c.type, c.title, c.body,
-            c.recipient_count, c.sent_by, c.created_at,
+            c.recipient_count, c.sent_by, c.created_at, c.updated_at,
             COALESCE((SELECT COUNT(*) FROM notifications n
                        WHERE n.campaign_id = c.id AND n.read_at IS NOT NULL), 0)::text AS read_count
        FROM notification_campaigns c
@@ -337,5 +427,6 @@ export async function listCampaigns(opts: { limit?: number } = {}): Promise<Camp
     readCount: Number(r.read_count),
     sentBy: r.sent_by,
     createdAt: r.created_at.toISOString(),
+    updatedAt: r.updated_at?.toISOString() ?? null,
   }));
 }
