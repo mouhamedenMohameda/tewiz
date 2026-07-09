@@ -73,10 +73,13 @@ describe('public routes', () => {
     captainAlertSoundUrl: 'https://cdn.example.com/alert.mp3',
   };
 
-  it('GET /config exposes the pre-auth feature flags', async () => {
+  it('GET /config exposes the pre-auth feature flags (demo buttons on for the allowed version)', async () => {
     settingsMock.mockResolvedValue(settings);
     const { baseUrl } = await start();
-    const res = await api(baseUrl, 'GET', '/public/config');
+    // DEMO_BUTTONS_ALLOWED_VERSIONS defaults to 1.1.12.
+    const res = await api(baseUrl, 'GET', '/public/config', undefined, {
+      'x-app-version': '1.1.12',
+    });
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
       showDemoButtons: true,
@@ -84,6 +87,24 @@ describe('public routes', () => {
       captainAlertRepeatIntervalS: 5,
       captainAlertSoundUrl: 'https://cdn.example.com/alert.mp3',
     });
+  });
+
+  it('GET /config hides the demo buttons for an older / unknown version even when the toggle is on', async () => {
+    settingsMock.mockResolvedValue(settings);
+    const { baseUrl } = await start();
+
+    // An already-shipped build sends no version header → demo buttons stay off.
+    const noHeader = await api(baseUrl, 'GET', '/public/config');
+    expect(noHeader.status).toBe(200);
+    expect(noHeader.body.showDemoButtons).toBe(false);
+    // Other flags still pass through untouched.
+    expect(noHeader.body.captainAlertSoundMode).toBe('loop');
+
+    // A different (non-allowed) version is also gated off.
+    const otherVersion = await api(baseUrl, 'GET', '/public/config', undefined, {
+      'x-app-version': '1.1.11',
+    });
+    expect(otherVersion.body.showDemoButtons).toBe(false);
   });
 
   it('GET /captain-alert-sound returns 404 when no sound is configured', async () => {

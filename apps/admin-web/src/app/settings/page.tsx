@@ -1114,7 +1114,9 @@ export default function SettingsPage() {
               <p className="text-xs text-slate-600">
                 Affiche des boutons de connexion en un tap sur l&apos;écran d&apos;accueil de l&apos;app
                 (comptes démo passager + capitaine). À activer avant une soumission App Store / Google Play,
-                à désactiver après approbation.
+                à désactiver après approbation. Les boutons n&apos;apparaissent que sur la version d&apos;app
+                soumise pour review (variable serveur <code>DEMO_BUTTONS_ALLOWED_VERSIONS</code>, ex. 1.1.12) :
+                les versions déjà livrées ne les verront jamais, même toggle activé.
               </p>
             </section>
 
