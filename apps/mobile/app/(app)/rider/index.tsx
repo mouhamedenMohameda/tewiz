@@ -17,6 +17,7 @@ import {
 import { colors, gradients, radius, shadow, spacing } from '@/theme';
 import { APP_NAME } from '@/lib/brand';
 import { useModulePreferences } from '@/lib/modulePreferences';
+import { useAppConfig } from '@/lib/appConfig';
 import type { ApplicationDto, ApplicationStatus } from '@/lib/kyc';
 
 type RideStatus =
@@ -48,6 +49,11 @@ export default function RiderHome() {
   // to be a captain (so the captain can reach them). We stash the intended
   // destination, prompt for the number, then continue.
   const { enabledModules } = useModulePreferences();
+  // Admin-managed availability. A service the admin turned off is hidden from
+  // the grid (utility modules like history/favorites aren't gated and stay
+  // visible). Fail-closed: hidden until the server confirms they're enabled.
+  const { modules: moduleFlags } = useAppConfig();
+  const visibleModules = enabledModules.filter((m) => moduleFlags[m.key] !== false);
   const [pending, setPending] = useState<Intent | null>(null);
   const [phoneInput, setPhoneInput] = useState('+222');
   const [savingPhone, setSavingPhone] = useState(false);
@@ -211,7 +217,7 @@ export default function RiderHome() {
           {t('rider.home.shortcuts')}
         </AppText>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md }}>
-          {enabledModules.map((m) => (
+          {visibleModules.map((m) => (
             <QuickTile
               key={m.key}
               icon={m.icon}

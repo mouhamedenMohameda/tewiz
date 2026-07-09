@@ -1277,7 +1277,13 @@
         "callBtn": "Call",
         "whatsappBtn": "WhatsApp",
         "closeBtn": "Close"
-      }
+      },
+      "requestBtn": "Request a seat",
+      "requestSentTitle": "Request sent",
+      "requestSentBody": "The driver received your request. You'll be notified as soon as they accept.",
+      "errRequest": "Could not send the request",
+      "myBookings": "My requests",
+      "alreadyRequested": "Request pending"
     },
     "driver": {
       "myTrips": "My trips",
@@ -1287,7 +1293,15 @@
       "decrementBtn": "-1 seat",
       "cancelBtn": "Cancel",
       "errUpdate": "Update failed",
-      "errCancel": "Cancel failed"
+      "errCancel": "Cancel failed",
+      "requests": "Incoming requests",
+      "noRequests": "No requests yet.",
+      "seatsReq": "{{seats}} seat(s) requested",
+      "acceptBtn": "Accept",
+      "declineBtn": "Decline",
+      "completeBtn": "Complete",
+      "noShowBtn": "No-show",
+      "seatsLeft": "{{avail}}/{{total}} seat(s) left"
     },
     "publish": {
       "header": "Publish a trip",
@@ -1311,7 +1325,7 @@
       "boostTitle": "Boost (+{{price}} MRU)",
       "boostDesc": "The trip appears at the top for 24h.",
       "feeLine": "Publication fee: {{fee}} MRU",
-      "publishBtn": "Pay and publish",
+      "publishBtn": "Publish",
       "errAccessTitle": "Access denied",
       "errAccessBody": "Only drivers can publish a trip.",
       "errRequiredTitle": "Required fields",
@@ -1333,7 +1347,39 @@
       "mineEmpty": "No publication yet.",
       "mineViews": "{{avail}}/{{total}} seat(s) · {{views}} people saw your number",
       "errUpdate": "Update failed",
-      "errCancel": "Cancel failed"
+      "errCancel": "Cancel failed",
+      "freeNote": "Free to publish — you pay nothing to post. Requests come straight into the app.",
+      "boostFeeLine": "Boost: {{fee}} MRU (optional) — only charged if you enable promotion."
+    },
+    "errGeneric": "Something went wrong",
+    "booking": {
+      "status": {
+        "requested": "Pending",
+        "accepted": "Accepted",
+        "declined": "Declined",
+        "cancelled": "Cancelled",
+        "completed": "Completed",
+        "no_show": "No-show",
+        "expired": "Expired"
+      },
+      "metaLine": "{{date}} · {{price}} MRU/seat",
+      "driverLabel": "Driver: {{name}}",
+      "passengerLabel": "Passenger: {{name}}",
+      "otpTitle": "Your confirmation code",
+      "otpHint": "Give this code to the driver when you get in. They enter it to confirm the trip.",
+      "callBtn": "Call",
+      "whatsappBtn": "WhatsApp",
+      "cancelBtn": "Cancel"
+    },
+    "complete": {
+      "title": "Confirm the trip",
+      "hint": "Enter the code the passenger gives you.",
+      "placeholder": "Code",
+      "confirmBtn": "Confirm",
+      "cancelBtn": "Cancel",
+      "errInvalid": "Incorrect code",
+      "successTitle": "Trip confirmed",
+      "successBody": "The trip is recorded. Thank you!"
     }
   },
   "roadside": {

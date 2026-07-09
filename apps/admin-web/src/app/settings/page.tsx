@@ -76,6 +76,8 @@ interface PricingSettings {
   equipmentRentalDailyRateMru: number;
   equipmentRentalCommissionBps: number;
   gpsFraudSevereMode: boolean;
+  latestAndroidUrl: string | null;
+  latestIosUrl: string | null;
   updatedAt: string;
   updatedBy: string | null;
 }
@@ -143,6 +145,8 @@ interface FormState {
   equipmentRentalDailyRateMru: string;
   equipmentRentalCommissionPct: string;
   gpsFraudSevereMode: boolean;
+  latestAndroidUrl: string;
+  latestIosUrl: string;
 }
 
 const EMPTY_FORM: FormState = {
@@ -208,6 +212,8 @@ const EMPTY_FORM: FormState = {
   captainAlertRepeatIntervalS: '2',
   captainAlertSoundUrl: '',
   gpsFraudSevereMode: false,
+  latestAndroidUrl: '',
+  latestIosUrl: '',
 };
 
 function settingsToForm(s: PricingSettings): FormState {
@@ -274,6 +280,8 @@ function settingsToForm(s: PricingSettings): FormState {
     captainAlertRepeatIntervalS: String(s.captainAlertRepeatIntervalS),
     captainAlertSoundUrl: s.captainAlertSoundUrl ?? '',
     gpsFraudSevereMode: s.gpsFraudSevereMode,
+    latestAndroidUrl: s.latestAndroidUrl ?? '',
+    latestIosUrl: s.latestIosUrl ?? '',
   };
 }
 
@@ -363,6 +371,12 @@ export default function SettingsPage() {
           ? null
           : form.captainAlertSoundUrl.trim(),
         gpsFraudSevereMode: form.gpsFraudSevereMode,
+        latestAndroidUrl: form.latestAndroidUrl.trim() === ''
+          ? null
+          : form.latestAndroidUrl.trim(),
+        latestIosUrl: form.latestIosUrl.trim() === ''
+          ? null
+          : form.latestIosUrl.trim(),
       };
       const r = await api.put<PricingSettings>('/admin/settings', payload);
       return r.data;
@@ -1138,6 +1152,43 @@ export default function SettingsPage() {
               </p>
             </section>
 
+            <section className="card p-5 mb-4">
+              <h2 className="font-semibold text-slate-900 mb-1">
+                Liens de téléchargement de l&apos;application
+              </h2>
+              <p className="text-xs text-slate-600 mb-3">
+                Affichés en bas de l&apos;écran Paramètres de l&apos;app mobile
+                (boutons « Dernière version Android » et « Dernière version iOS »).
+                Laissez un champ vide pour masquer le bouton correspondant.
+              </p>
+              <label className="block mb-3">
+                <span className="block text-xs text-slate-600 mb-1">
+                  Lien Android (APK / Google Play)
+                </span>
+                <input
+                  type="url"
+                  inputMode="url"
+                  placeholder="https://play.google.com/store/apps/details?id=..."
+                  value={form.latestAndroidUrl}
+                  onChange={(e) => setForm({ ...form, latestAndroidUrl: e.target.value })}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                />
+              </label>
+              <label className="block">
+                <span className="block text-xs text-slate-600 mb-1">
+                  Lien iOS (App Store / TestFlight)
+                </span>
+                <input
+                  type="url"
+                  inputMode="url"
+                  placeholder="https://apps.apple.com/app/id..."
+                  value={form.latestIosUrl}
+                  onChange={(e) => setForm({ ...form, latestIosUrl: e.target.value })}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                />
+              </label>
+            </section>
+
             {error && (
               <div className="card p-3 mb-4 text-sm text-red-700 bg-red-50 border-red-200">
                 {error}
@@ -1281,8 +1332,13 @@ function isFormValid(f: FormState): boolean {
   if (cvInts.some((n) => Number.isNaN(n) || n < 0 || n > 10_000)) return false;
   const cvComm = parseFloat(f.convoyageCommissionPct);
   if (Number.isNaN(cvComm) || cvComm < 0 || cvComm > 50) return false;
-  const url = f.captainAlertSoundUrl.trim();
-  if (url) {
+  const urls = [
+    f.captainAlertSoundUrl.trim(),
+    f.latestAndroidUrl.trim(),
+    f.latestIosUrl.trim(),
+  ];
+  for (const url of urls) {
+    if (!url) continue;
     try {
       const parsed = new URL(url);
       if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;

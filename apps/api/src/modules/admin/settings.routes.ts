@@ -75,6 +75,7 @@ const patchBody = z.object({
   carpoolingEnabled:                z.boolean().optional(),
   carpoolingPublicationFee:         z.number().int().min(0).max(10_000).optional(),
   carpoolingBoostFee:               z.number().int().min(0).max(10_000).optional(),
+  carpoolingCommissionBps:          z.number().int().min(0).max(10_000).optional(),
   // Feature flag for the reviewer demo-login buttons (migration 0031).
   showDemoButtons:                  z.boolean().optional(),
   // Comma-separated app version(s) allowed to see the demo buttons (migration
@@ -86,6 +87,10 @@ const patchBody = z.object({
   captainAlertSoundMode:            z.enum(CAPTAIN_ALERT_SOUND_MODES).optional(),
   captainAlertRepeatIntervalS:      z.number().int().min(1).max(15).optional(),
   captainAlertSoundUrl:             z.string().trim().url().max(500).nullable().optional(),
+  // Public download links for the latest mobile builds (migration 0059),
+  // surfaced at the bottom of the in-app Settings screen.
+  latestAndroidUrl:                 z.string().trim().url().max(500).nullable().optional(),
+  latestIosUrl:                     z.string().trim().url().max(500).nullable().optional(),
   gpsFraudSevereMode:               z.boolean().optional(),
 }).refine(
   (b) =>

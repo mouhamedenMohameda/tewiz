@@ -18,6 +18,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import * as Application from 'expo-application';
 import { api } from '@/lib/api';
+import { useAppConfig } from '@/lib/appConfig';
 import { useAuth } from '@/lib/auth';
 import {
   AppLanguage, SUPPORTED_LANGUAGES, currentLanguage, isRTL, setLanguage,
@@ -43,6 +44,7 @@ export default function SettingsScreen() {
   const { t } = useTranslation();
   const user = useAuth((s) => s.user);
   const setUser = useAuth((s) => s.setUser);
+  const { latestAndroidUrl, latestIosUrl } = useAppConfig();
 
   // Profile name — local edit buffer so the input stays editable without
   // round-tripping the auth store on every keystroke.
@@ -137,6 +139,12 @@ export default function SettingsScreen() {
   function contactSupport() {
     const msg = encodeURIComponent(t('settings.about.supportMessage', { app: APP_NAME }));
     Linking.openURL(`https://wa.me/${SUPPORT_WHATSAPP}?text=${msg}`).catch(() => undefined);
+  }
+
+  function openDownload(url: string) {
+    Linking.openURL(url).catch(() =>
+      Alert.alert(t('common.error'), t('settings.download.openError')),
+    );
   }
 
   const version = Application.nativeApplicationVersion ?? '—';
@@ -333,6 +341,36 @@ export default function SettingsScreen() {
           </Pressable>
         </Card>
       </Section>
+
+      {/* Download the latest build — links managed from the admin panel. Each
+          button is hidden when its URL is not configured. */}
+      {latestAndroidUrl || latestIosUrl ? (
+        <Section title={t('settings.download.section')}>
+          <Card padding={spacing.lg} style={{ gap: spacing.md }}>
+            <AppText variant="caption" color={colors.muted} style={{ lineHeight: 18 }}>
+              {t('settings.download.hint')}
+            </AppText>
+            {latestAndroidUrl ? (
+              <Button
+                title={t('settings.download.android')}
+                icon="power"
+                iconRight="arrow"
+                variant="dark"
+                onPress={() => openDownload(latestAndroidUrl)}
+              />
+            ) : null}
+            {latestIosUrl ? (
+              <Button
+                title={t('settings.download.ios')}
+                icon="sparkle"
+                iconRight="arrow"
+                variant="secondary"
+                onPress={() => openDownload(latestIosUrl)}
+              />
+            ) : null}
+          </Card>
+        </Section>
+      ) : null}
     </Screen>
   );
 }

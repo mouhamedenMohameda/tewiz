@@ -19,11 +19,11 @@ import {
   cancelCarpoolingTrip,
   listMyCarpoolingTrips,
   publishCarpoolingTrip,
-  updateCarpoolingSeats,
   type CarpoolingTrip,
 } from '@/lib/carpooling';
 
-const PUBLICATION_FEE_MRU = 100;
+// Publishing is free — the driver never pays to post. Boost stays an optional,
+// opt-in promotion.
 const BOOST_FEE_MRU = 200;
 
 function formatDateTime(iso: string): string {
@@ -58,8 +58,6 @@ export default function CarpoolingPublishScreen() {
   const [publishing, setPublishing] = useState(false);
   const [myTrips, setMyTrips] = useState<CarpoolingTrip[]>([]);
   const [loadingTrips, setLoadingTrips] = useState(false);
-
-  const feeMru = boost ? PUBLICATION_FEE_MRU + BOOST_FEE_MRU : PUBLICATION_FEE_MRU;
 
   const loadMyTrips = useCallback(async () => {
     if (user?.role !== 'captain') return;
@@ -142,16 +140,6 @@ export default function CarpoolingPublishScreen() {
       }
     } finally {
       setPublishing(false);
-    }
-  }
-
-  async function decrementSeat(trip: CarpoolingTrip) {
-    if (!trip.availableSeats || trip.availableSeats <= 0) return;
-    try {
-      await updateCarpoolingSeats(trip.id, trip.availableSeats - 1);
-      await loadMyTrips();
-    } catch (e: any) {
-      Alert.alert(t('carpooling.errTitle'), e?.response?.data?.error?.message ?? t('carpooling.publish.errUpdate'));
     }
   }
 
@@ -307,11 +295,15 @@ export default function CarpoolingPublishScreen() {
               }} />
             </Pressable>
 
-            <View style={{ borderRadius: radius.md, backgroundColor: '#F0F9FF', padding: spacing.base }}>
-              <AppText variant="bodyStrong">{t('carpooling.publish.feeLine', { fee: feeMru })}</AppText>
+            <View style={{ borderRadius: radius.md, backgroundColor: '#E6F4EA', padding: spacing.base }}>
+              <AppText variant="bodyStrong" style={{ color: colors.success }}>
+                {boost
+                  ? t('carpooling.publish.boostFeeLine', { fee: BOOST_FEE_MRU })
+                  : t('carpooling.publish.freeNote')}
+              </AppText>
             </View>
 
-            <Button title={t('carpooling.publish.publishBtn')} icon="wallet" onPress={onPublish} busy={publishing} />
+            <Button title={t('carpooling.publish.publishBtn')} icon="check" onPress={onPublish} busy={publishing} />
           </Card>
 
           <Card padding={spacing.base} style={{ gap: spacing.sm, marginBottom: spacing.xxl }}>
@@ -335,23 +327,14 @@ export default function CarpoolingPublishScreen() {
                     {t('carpooling.driver.tripMeta', { date: formatDateTime(trip.departureAt), price: trip.pricePerSeatMru })}
                   </AppText>
                   <AppText variant="caption" color={colors.ink2}>
-                    {t('carpooling.publish.mineViews', { avail: trip.availableSeats, total: trip.totalSeats, views: trip.viewsCount ?? 0 })}
+                    {t('carpooling.driver.seatsLeft', { avail: trip.availableSeats, total: trip.totalSeats })}
                   </AppText>
-                  <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-                    <Button
-                      title={t('carpooling.driver.decrementBtn')}
-                      size="sm"
-                      variant="secondary"
-                      onPress={() => decrementSeat(trip)}
-                      disabled={!trip.availableSeats || trip.availableSeats <= 0}
-                    />
-                    <Button
-                      title={t('carpooling.driver.cancelBtn')}
-                      size="sm"
-                      variant="danger"
-                      onPress={() => cancelTrip(trip.id)}
-                    />
-                  </View>
+                  <Button
+                    title={t('carpooling.driver.cancelBtn')}
+                    size="sm"
+                    variant="danger"
+                    onPress={() => cancelTrip(trip.id)}
+                  />
                 </View>
               ))
             )}

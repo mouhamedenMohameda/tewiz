@@ -4,6 +4,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  TextInput,
   View,
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -23,22 +24,23 @@ import { colors, radius, shadow, spacing } from '@/theme';
 import { useAuth } from '@/lib/auth';
 import { MAURITANIA_CITIES } from '@/lib/cities';
 import {
+  acceptCarpoolingBooking,
+  cancelCarpoolingBooking,
   cancelCarpoolingTrip,
+  completeCarpoolingBooking,
+  declineCarpoolingBooking,
   listCarpoolingTrips,
+  listDriverCarpoolingBookings,
+  listMyCarpoolingBookings,
   listMyCarpoolingTrips,
-  revealTripContact,
-  updateCarpoolingSeats,
+  noShowCarpoolingBooking,
+  requestCarpoolingBooking,
+  type CarpoolingBooking,
+  type CarpoolingBookingStatus,
   type CarpoolingTrip,
 } from '@/lib/carpooling';
 
 type TfagMode = 'passenger' | 'driver';
-
-interface ContactModalState {
-  visible: boolean;
-  trip: CarpoolingTrip | null;
-  driverName: string;
-  driverPhone: string;
-}
 
 function formatDateTime(iso: string): string {
   const d = new Date(iso);
@@ -55,6 +57,42 @@ function normalizePhoneForWa(phone: string): string {
   const raw = phone.replace(/\D/g, '');
   if (raw.startsWith('222')) return raw;
   return `222${raw}`;
+}
+
+function openCall(phone: string) {
+  void Linking.openURL(`tel:${phone}`);
+}
+
+function openWhatsapp(phone: string) {
+  void Linking.openURL(`https://wa.me/${normalizePhoneForWa(phone)}`);
+}
+
+const STATUS_TINT: Record<CarpoolingBookingStatus, { bg: string; fg: string }> = {
+  requested: { bg: colors.saffronSoft, fg: colors.warning },
+  accepted: { bg: '#E6F4EA', fg: colors.success },
+  completed: { bg: '#E6F4EA', fg: colors.success },
+  declined: { bg: '#FEE2E2', fg: '#dc2626' },
+  cancelled: { bg: colors.sunken, fg: colors.muted },
+  no_show: { bg: '#FEE2E2', fg: '#dc2626' },
+  expired: { bg: colors.sunken, fg: colors.muted },
+};
+
+function StatusBadge({ status }: { status: CarpoolingBookingStatus }) {
+  const { t } = useTranslation();
+  const tint = STATUS_TINT[status];
+  return (
+    <View style={{
+      alignSelf: 'flex-start',
+      backgroundColor: tint.bg,
+      borderRadius: 999,
+      paddingHorizontal: 10,
+      paddingVertical: 3,
+    }}>
+      <AppText variant="caption" style={{ color: tint.fg }}>
+        {t(`carpooling.booking.status.${status}`)}
+      </AppText>
+    </View>
+  );
 }
 
 export default function CarpoolingScreen() {
@@ -147,7 +185,7 @@ function ToggleSegment({ label, icon, active, onPress }: {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Passenger view — browse & filter trips from others                 */
+/*  Passenger view — browse trips, request a seat, track my bookings   */
 /* ------------------------------------------------------------------ */
 
 function PassengerView() {
@@ -160,51 +198,66 @@ function PassengerView() {
   const [origin, setOrigin] = useState('');
   const [destination, setDestination] = useState('');
   const [filtersVisible, setFiltersVisible] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [trips, setTrips] = useState<CarpoolingTrip[]>([]);
-  const [contactBusyId, setContactBusyId] = useState<string | null>(null);
-  const [contact, setContact] = useState<ContactModalState>({
-    visible: false,
-    trip: null,
-    driverName: '',
-    driverPhone: '',
-  });
+  const [bookings, setBookings] = useState<CarpoolingBooking[]>([]);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const hasFilters = !!(origin || destination);
 
-  const loadTrips = useCallback(async () => {
-    setLoading(true);
+  // Trip ids where I already have a live request/booking.
+  const activeTripIds = useMemo(
+    () => new Set(
+      bookings
+        .filter((b) => b.status === 'requested' || b.status === 'accepted')
+        .map((b) => b.tripId),
+    ),
+    [bookings],
+  );
+
+  const activeBookings = useMemo(
+    () => bookings.filter((b) => b.status === 'requested' || b.status === 'accepted'),
+    [bookings],
+  );
+
+  const loadAll = useCallback(async () => {
     try {
-      const list = await listCarpoolingTrips({
-        origin: origin || undefined,
-        destination: destination || undefined,
-      });
-      setTrips(list);
+      const [tripList, myBookings] = await Promise.all([
+        listCarpoolingTrips({ origin: origin || undefined, destination: destination || undefined }),
+        listMyCarpoolingBookings().catch(() => [] as CarpoolingBooking[]),
+      ]);
+      setTrips(tripList);
+      setBookings(myBookings);
     } catch (e: any) {
       const msg = e?.response?.data?.error?.message ?? t('carpooling.passenger.errLoad');
       Alert.alert(t('carpooling.errTitle'), msg);
-    } finally {
-      setLoading(false);
     }
   }, [origin, destination, t]);
 
-  useFocusEffect(useCallback(() => { loadTrips(); }, [loadTrips]));
+  useFocusEffect(useCallback(() => { loadAll(); }, [loadAll]));
 
-  async function onReserve(trip: CarpoolingTrip) {
-    setContactBusyId(trip.id);
+  async function onRequest(trip: CarpoolingTrip) {
+    setBusyId(trip.id);
     try {
-      const reveal = await revealTripContact(trip.id);
-      setContact({
-        visible: true,
-        trip,
-        driverName: reveal.driverName,
-        driverPhone: reveal.driverPhone,
-      });
+      await requestCarpoolingBooking(trip.id, 1);
+      Alert.alert(t('carpooling.passenger.requestSentTitle'), t('carpooling.passenger.requestSentBody'));
+      await loadAll();
     } catch (e: any) {
-      const msg = e?.response?.data?.error?.message ?? t('carpooling.passenger.errContact');
+      const msg = e?.response?.data?.error?.message ?? t('carpooling.passenger.errRequest');
       Alert.alert(t('carpooling.errTitle'), msg);
     } finally {
-      setContactBusyId(null);
+      setBusyId(null);
+    }
+  }
+
+  async function onCancelBooking(bookingId: string) {
+    setBusyId(bookingId);
+    try {
+      await cancelCarpoolingBooking(bookingId);
+      await loadAll();
+    } catch (e: any) {
+      Alert.alert(t('carpooling.errTitle'), e?.response?.data?.error?.message ?? t('carpooling.errGeneric'));
+    } finally {
+      setBusyId(null);
     }
   }
 
@@ -215,6 +268,21 @@ function PassengerView() {
 
   return (
     <>
+      {/* My requests */}
+      {activeBookings.length > 0 && (
+        <View style={{ marginBottom: spacing.lg, gap: spacing.md }}>
+          <AppText variant="h2">{t('carpooling.passenger.myBookings')}</AppText>
+          {activeBookings.map((b) => (
+            <PassengerBookingCard
+              key={b.id}
+              booking={b}
+              busy={busyId === b.id}
+              onCancel={() => onCancelBooking(b.id)}
+            />
+          ))}
+        </View>
+      )}
+
       {/* Filter bar */}
       <View style={{
         flexDirection: 'row',
@@ -266,7 +334,7 @@ function PassengerView() {
             searchPlaceholder={t('carpooling.passenger.searchCityPlaceholder')}
           />
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-            <Button title={t('carpooling.passenger.searchBtn')} icon="search" size="md" onPress={loadTrips} />
+            <Button title={t('carpooling.passenger.searchBtn')} icon="search" size="md" onPress={loadAll} />
             {hasFilters && (
               <Button title={t('carpooling.passenger.clearBtn')} variant="secondary" size="md" onPress={clearFilters} />
             )}
@@ -281,180 +349,345 @@ function PassengerView() {
             <AppText variant="body" color={colors.ink2}>{t('carpooling.passenger.empty')}</AppText>
           </Card>
         ) : (
-          trips.map((trip) => (
-            <Card key={trip.id} padding={spacing.base} style={{ gap: spacing.sm }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
-                <View style={{ flex: 1 }}>
-                  <AppText variant="title">{trip.originCity}{' → '}{trip.destinationCity}</AppText>
-                  <AppText variant="caption" color={colors.ink2} style={{ marginTop: 4 }}>
-                    {formatDateTime(trip.departureAt)}
-                  </AppText>
-                </View>
-                {trip.isBoosted && (
-                  <View style={{
-                    alignSelf: 'flex-start',
-                    backgroundColor: '#FEF3C7',
-                    borderRadius: 999,
-                    paddingHorizontal: 10,
-                    paddingVertical: 4,
-                  }}>
-                    <AppText variant="caption" style={{ color: '#92400E' }}>⭐</AppText>
+          trips.map((trip) => {
+            const alreadyRequested = activeTripIds.has(trip.id);
+            return (
+              <Card key={trip.id} padding={spacing.base} style={{ gap: spacing.sm }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
+                  <View style={{ flex: 1 }}>
+                    <AppText variant="title">{trip.originCity}{' → '}{trip.destinationCity}</AppText>
+                    <AppText variant="caption" color={colors.ink2} style={{ marginTop: 4 }}>
+                      {formatDateTime(trip.departureAt)}
+                    </AppText>
                   </View>
+                  {trip.isBoosted && (
+                    <View style={{
+                      alignSelf: 'flex-start',
+                      backgroundColor: '#FEF3C7',
+                      borderRadius: 999,
+                      paddingHorizontal: 10,
+                      paddingVertical: 4,
+                    }}>
+                      <AppText variant="caption" style={{ color: '#92400E' }}>⭐</AppText>
+                    </View>
+                  )}
+                </View>
+
+                <AppText variant="body" color={colors.ink2}>
+                  {t('carpooling.passenger.seatsPrice', { avail: trip.availableSeats, total: trip.totalSeats, price: trip.pricePerSeatMru })}
+                </AppText>
+                <AppText variant="body" color={colors.ink2}>{t('carpooling.passenger.driverLabel', { name: trip.driverName })}</AppText>
+                {trip.notes ? (
+                  <AppText variant="caption" color={colors.muted}>{trip.notes}</AppText>
+                ) : null}
+
+                {alreadyRequested ? (
+                  <View style={{
+                    flexDirection: 'row', alignItems: 'center', gap: 6,
+                    backgroundColor: colors.saffronSoft, borderRadius: radius.md,
+                    paddingHorizontal: 12, paddingVertical: 10,
+                  }}>
+                    <Icon name="clock" size={16} color={colors.warning} />
+                    <AppText variant="caption" color={colors.warning}>
+                      {t('carpooling.passenger.alreadyRequested')}
+                    </AppText>
+                  </View>
+                ) : (
+                  <Button
+                    title={t('carpooling.passenger.requestBtn')}
+                    iconRight="arrow"
+                    size="md"
+                    onPress={() => onRequest(trip)}
+                    busy={busyId === trip.id}
+                  />
                 )}
-              </View>
-
-              <AppText variant="body" color={colors.ink2}>
-                {t('carpooling.passenger.seatsPrice', { avail: trip.availableSeats, total: trip.totalSeats, price: trip.pricePerSeatMru })}
-              </AppText>
-              <AppText variant="body" color={colors.ink2}>{t('carpooling.passenger.driverLabel', { name: trip.driverName })}</AppText>
-              {trip.notes ? (
-                <AppText variant="caption" color={colors.muted}>{trip.notes}</AppText>
-              ) : null}
-
-              <Button
-                title={t('carpooling.passenger.reserveBtn')}
-                iconRight="arrow"
-                size="md"
-                onPress={() => onReserve(trip)}
-                busy={contactBusyId === trip.id}
-              />
-            </Card>
-          ))
+              </Card>
+            );
+          })
         )}
       </View>
-
-      {/* Contact modal */}
-      <Modal
-        visible={contact.visible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setContact((s) => ({ ...s, visible: false }))}
-      >
-        <View style={{ flex: 1, backgroundColor: 'rgba(15,23,42,0.55)', justifyContent: 'center', padding: spacing.lg }}>
-          <View style={{
-            backgroundColor: colors.canvas,
-            borderRadius: radius.xl,
-            padding: spacing.lg,
-            gap: spacing.base,
-          }}>
-            <AppText variant="h2">{t('carpooling.passenger.contact.title')}</AppText>
-            <AppText variant="body" color={colors.ink2}>{contact.driverName}</AppText>
-            <AppText variant="title" style={{ fontSize: 28 }}>{contact.driverPhone}</AppText>
-
-            {contact.trip && (
-              <View style={{ backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.base }}>
-                <AppText variant="bodyStrong">{contact.trip.originCity}{' → '}{contact.trip.destinationCity}</AppText>
-                <AppText variant="caption" color={colors.ink2}>
-                  {t('carpooling.passenger.contact.tripMeta', { date: formatDateTime(contact.trip.departureAt), price: contact.trip.pricePerSeatMru })}
-                </AppText>
-              </View>
-            )}
-
-            <Button
-              title={t('carpooling.passenger.contact.callBtn')}
-              icon="phone"
-              onPress={() => { void Linking.openURL(`tel:${contact.driverPhone}`); }}
-            />
-            <Button
-              title={t('carpooling.passenger.contact.whatsappBtn')}
-              icon="whatsapp"
-              variant="secondary"
-              onPress={() => {
-                const wa = normalizePhoneForWa(contact.driverPhone);
-                void Linking.openURL(`https://wa.me/${wa}`);
-              }}
-            />
-            <Button
-              title={t('carpooling.passenger.contact.closeBtn')}
-              variant="ghost"
-              onPress={() => setContact((s) => ({ ...s, visible: false }))}
-            />
-          </View>
-        </View>
-      </Modal>
     </>
   );
 }
 
+function PassengerBookingCard({ booking, busy, onCancel }: {
+  booking: CarpoolingBooking; busy: boolean; onCancel: () => void;
+}) {
+  const { t } = useTranslation();
+  const accepted = booking.status === 'accepted';
+  return (
+    <Card padding={spacing.base} style={{ gap: spacing.sm }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <AppText variant="title">{booking.originCity}{' → '}{booking.destinationCity}</AppText>
+        <StatusBadge status={booking.status} />
+      </View>
+      <AppText variant="caption" color={colors.ink2}>
+        {t('carpooling.booking.metaLine', { date: formatDateTime(booking.departureAt), price: booking.pricePerSeatMru })}
+      </AppText>
+      <AppText variant="body" color={colors.ink2}>
+        {t('carpooling.booking.driverLabel', { name: booking.driverName })}
+      </AppText>
+
+      {accepted && booking.otpCode && (
+        <View style={{
+          backgroundColor: '#E6F4EA', borderRadius: radius.md, padding: spacing.base, gap: 4,
+        }}>
+          <AppText variant="caption" color={colors.success}>{t('carpooling.booking.otpTitle')}</AppText>
+          <AppText variant="title" style={{ fontSize: 32, letterSpacing: 6, color: colors.success }}>
+            {booking.otpCode}
+          </AppText>
+          <AppText variant="caption" color={colors.ink2}>{t('carpooling.booking.otpHint')}</AppText>
+        </View>
+      )}
+
+      {accepted && booking.driverPhone && (
+        <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+          <Button title={t('carpooling.booking.callBtn')} icon="phone" size="sm" onPress={() => openCall(booking.driverPhone!)} />
+          <Button title={t('carpooling.booking.whatsappBtn')} icon="whatsapp" variant="secondary" size="sm" onPress={() => openWhatsapp(booking.driverPhone!)} />
+        </View>
+      )}
+
+      <Button
+        title={t('carpooling.booking.cancelBtn')}
+        variant="ghost"
+        size="sm"
+        onPress={onCancel}
+        busy={busy}
+      />
+    </Card>
+  );
+}
+
 /* ------------------------------------------------------------------ */
-/*  Driver view — my trips + manage                                    */
+/*  Driver view — incoming requests + my trips                         */
 /* ------------------------------------------------------------------ */
 
 function DriverView() {
   const { t } = useTranslation();
   const [myTrips, setMyTrips] = useState<CarpoolingTrip[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [bookings, setBookings] = useState<CarpoolingBooking[]>([]);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [completeFor, setCompleteFor] = useState<CarpoolingBooking | null>(null);
+  const [otp, setOtp] = useState('');
+  const [completing, setCompleting] = useState(false);
 
-  const loadMyTrips = useCallback(async () => {
-    setLoading(true);
+  const pending = useMemo(() => bookings.filter((b) => b.status === 'requested'), [bookings]);
+  const ongoing = useMemo(() => bookings.filter((b) => b.status === 'accepted'), [bookings]);
+
+  const loadAll = useCallback(async () => {
     try {
-      const list = await listMyCarpoolingTrips();
-      setMyTrips(list);
+      const [trips, driverBookings] = await Promise.all([
+        listMyCarpoolingTrips(),
+        listDriverCarpoolingBookings().catch(() => [] as CarpoolingBooking[]),
+      ]);
+      setMyTrips(trips);
+      setBookings(driverBookings);
     } catch {
       setMyTrips([]);
-    } finally {
-      setLoading(false);
     }
   }, []);
 
-  useFocusEffect(useCallback(() => { loadMyTrips(); }, [loadMyTrips]));
+  useFocusEffect(useCallback(() => { loadAll(); }, [loadAll]));
 
-  async function decrementSeat(trip: CarpoolingTrip) {
-    if (!trip.availableSeats || trip.availableSeats <= 0) return;
+  async function run(bookingId: string, fn: () => Promise<unknown>) {
+    setBusyId(bookingId);
     try {
-      await updateCarpoolingSeats(trip.id, trip.availableSeats - 1);
-      await loadMyTrips();
+      await fn();
+      await loadAll();
     } catch (e: any) {
-      Alert.alert(t('carpooling.errTitle'), e?.response?.data?.error?.message ?? t('carpooling.driver.errUpdate'));
+      Alert.alert(t('carpooling.errTitle'), e?.response?.data?.error?.message ?? t('carpooling.errGeneric'));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function submitComplete() {
+    if (!completeFor) return;
+    setCompleting(true);
+    try {
+      await completeCarpoolingBooking(completeFor.id, otp.trim());
+      setCompleteFor(null);
+      setOtp('');
+      Alert.alert(t('carpooling.complete.successTitle'), t('carpooling.complete.successBody'));
+      await loadAll();
+    } catch (e: any) {
+      Alert.alert(t('carpooling.errTitle'), e?.response?.data?.error?.message ?? t('carpooling.complete.errInvalid'));
+    } finally {
+      setCompleting(false);
     }
   }
 
   async function cancelTrip(tripId: string) {
     try {
       await cancelCarpoolingTrip(tripId);
-      await loadMyTrips();
+      await loadAll();
     } catch (e: any) {
       Alert.alert(t('carpooling.errTitle'), e?.response?.data?.error?.message ?? t('carpooling.driver.errCancel'));
     }
   }
 
   return (
-    <View style={{ gap: spacing.md, marginBottom: 100 }}>
-      <AppText variant="h2">{t('carpooling.driver.myTrips')}</AppText>
+    <View style={{ gap: spacing.lg, marginBottom: 100 }}>
+      {/* Incoming requests */}
+      <View style={{ gap: spacing.md }}>
+        <AppText variant="h2">{t('carpooling.driver.requests')}</AppText>
+        {pending.length === 0 && ongoing.length === 0 ? (
+          <Card padding={spacing.lg}>
+            <AppText variant="body" color={colors.ink2}>{t('carpooling.driver.noRequests')}</AppText>
+          </Card>
+        ) : (
+          <>
+            {pending.map((b) => (
+              <Card key={b.id} padding={spacing.base} style={{ gap: spacing.sm }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <AppText variant="title">{b.originCity}{' → '}{b.destinationCity}</AppText>
+                  <StatusBadge status={b.status} />
+                </View>
+                <AppText variant="caption" color={colors.ink2}>
+                  {t('carpooling.booking.metaLine', { date: formatDateTime(b.departureAt), price: b.pricePerSeatMru })}
+                </AppText>
+                <AppText variant="body" color={colors.ink2}>
+                  {t('carpooling.booking.passengerLabel', { name: b.passengerName })}
+                </AppText>
+                <AppText variant="caption" color={colors.muted}>
+                  {t('carpooling.driver.seatsReq', { seats: b.seats })}
+                </AppText>
+                <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                  <Button
+                    title={t('carpooling.driver.acceptBtn')}
+                    icon="check"
+                    size="sm"
+                    onPress={() => run(b.id, () => acceptCarpoolingBooking(b.id))}
+                    busy={busyId === b.id}
+                  />
+                  <Button
+                    title={t('carpooling.driver.declineBtn')}
+                    variant="danger"
+                    size="sm"
+                    onPress={() => run(b.id, () => declineCarpoolingBooking(b.id))}
+                    disabled={busyId === b.id}
+                  />
+                </View>
+              </Card>
+            ))}
 
-      {myTrips.length === 0 ? (
-        <Card padding={spacing.lg}>
-          <AppText variant="body" color={colors.ink2}>{t('carpooling.driver.empty')}</AppText>
-        </Card>
-      ) : (
-        myTrips.map((trip) => (
-          <Card key={trip.id} padding={spacing.base} style={{ gap: spacing.sm }}>
-            <AppText variant="title">{trip.originCity}{' → '}{trip.destinationCity}</AppText>
-            <AppText variant="caption" color={colors.ink2}>
-              {t('carpooling.driver.tripMeta', { date: formatDateTime(trip.departureAt), price: trip.pricePerSeatMru })}
-            </AppText>
-            <AppText variant="body" color={colors.ink2}>
-              {t('carpooling.driver.seatsAndViews', { avail: trip.availableSeats, total: trip.totalSeats, views: trip.viewsCount ?? 0 })}
-            </AppText>
+            {ongoing.map((b) => (
+              <Card key={b.id} padding={spacing.base} style={{ gap: spacing.sm }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <AppText variant="title">{b.originCity}{' → '}{b.destinationCity}</AppText>
+                  <StatusBadge status={b.status} />
+                </View>
+                <AppText variant="body" color={colors.ink2}>
+                  {t('carpooling.booking.passengerLabel', { name: b.passengerName })}
+                </AppText>
+                {b.passengerPhone && (
+                  <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                    <Button title={t('carpooling.booking.callBtn')} icon="phone" size="sm" onPress={() => openCall(b.passengerPhone!)} />
+                    <Button title={t('carpooling.booking.whatsappBtn')} icon="whatsapp" variant="secondary" size="sm" onPress={() => openWhatsapp(b.passengerPhone!)} />
+                  </View>
+                )}
+                <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                  <Button
+                    title={t('carpooling.driver.completeBtn')}
+                    icon="check"
+                    size="sm"
+                    onPress={() => { setCompleteFor(b); setOtp(''); }}
+                    disabled={busyId === b.id}
+                  />
+                  <Button
+                    title={t('carpooling.driver.noShowBtn')}
+                    variant="secondary"
+                    size="sm"
+                    onPress={() => run(b.id, () => noShowCarpoolingBooking(b.id))}
+                    disabled={busyId === b.id}
+                  />
+                </View>
+                <Button
+                  title={t('carpooling.booking.cancelBtn')}
+                  variant="ghost"
+                  size="sm"
+                  onPress={() => run(b.id, () => cancelCarpoolingBooking(b.id))}
+                  disabled={busyId === b.id}
+                />
+              </Card>
+            ))}
+          </>
+        )}
+      </View>
 
-            <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-              <Button
-                title={t('carpooling.driver.decrementBtn')}
-                size="sm"
-                variant="secondary"
-                onPress={() => decrementSeat(trip)}
-                disabled={!trip.availableSeats || trip.availableSeats <= 0}
-              />
+      {/* My trips */}
+      <View style={{ gap: spacing.md }}>
+        <AppText variant="h2">{t('carpooling.driver.myTrips')}</AppText>
+        {myTrips.length === 0 ? (
+          <Card padding={spacing.lg}>
+            <AppText variant="body" color={colors.ink2}>{t('carpooling.driver.empty')}</AppText>
+          </Card>
+        ) : (
+          myTrips.map((trip) => (
+            <Card key={trip.id} padding={spacing.base} style={{ gap: spacing.sm }}>
+              <AppText variant="title">{trip.originCity}{' → '}{trip.destinationCity}</AppText>
+              <AppText variant="caption" color={colors.ink2}>
+                {t('carpooling.driver.tripMeta', { date: formatDateTime(trip.departureAt), price: trip.pricePerSeatMru })}
+              </AppText>
+              <AppText variant="body" color={colors.ink2}>
+                {t('carpooling.driver.seatsLeft', { avail: trip.availableSeats, total: trip.totalSeats })}
+              </AppText>
               <Button
                 title={t('carpooling.driver.cancelBtn')}
                 size="sm"
                 variant="danger"
                 onPress={() => cancelTrip(trip.id)}
               />
-            </View>
-          </Card>
-        ))
-      )}
+            </Card>
+          ))
+        )}
+      </View>
+
+      {/* Complete (OTP) modal */}
+      <Modal
+        visible={completeFor !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setCompleteFor(null)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(15,23,42,0.55)', justifyContent: 'center', padding: spacing.lg }}>
+          <View style={{ backgroundColor: colors.canvas, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.base }}>
+            <AppText variant="h2">{t('carpooling.complete.title')}</AppText>
+            <AppText variant="body" color={colors.ink2}>{t('carpooling.complete.hint')}</AppText>
+            <TextInput
+              value={otp}
+              onChangeText={setOtp}
+              keyboardType="number-pad"
+              maxLength={6}
+              placeholder={t('carpooling.complete.placeholder')}
+              placeholderTextColor={colors.muted}
+              style={{
+                borderWidth: 1,
+                borderColor: colors.sunken,
+                borderRadius: radius.md,
+                paddingHorizontal: spacing.base,
+                paddingVertical: spacing.md,
+                fontSize: 24,
+                letterSpacing: 4,
+                textAlign: 'center',
+                color: colors.ink,
+              }}
+            />
+            <Button
+              title={t('carpooling.complete.confirmBtn')}
+              icon="check"
+              onPress={submitComplete}
+              busy={completing}
+              disabled={otp.trim().length < 3}
+            />
+            <Button
+              title={t('carpooling.complete.cancelBtn')}
+              variant="ghost"
+              onPress={() => { setCompleteFor(null); setOtp(''); }}
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
