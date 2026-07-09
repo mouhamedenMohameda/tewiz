@@ -86,6 +86,13 @@ interface RideInsights {
 // cap was reached, the oldest entry was evicted and a course refused 30 min
 // earlier could re-alert. The TTL makes the eviction deterministic.
 const SEEN_TTL_MS = 60 * 60_000; // 1 hour
+
+// How long the full-screen alert rings before it auto-dismisses when the
+// captain doesn't react. After this window the alarm stops and the modal
+// closes so the phone isn't left ringing forever. The ride stays in the inbox
+// (marked "seen", so it won't re-ring) and is still acceptable from the list.
+const RING_DURATION_MS = 15_000; // 15 s
+
 const seenRides = new Map<string, number>();
 const SEEN_STORAGE_KEY = '@tewiz/captain-seen-rides';
 const PAUSE_STORAGE_KEY = '@tewiz/captain-pause-until';
@@ -196,6 +203,8 @@ export function CaptainRideWatcher() {
   const [insightsError, setInsightsError] = useState(false);
 
   const ringIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Auto-dismiss timer: closes the alert after RING_DURATION_MS if untouched.
+  const dismissTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
   const onRideRef = useRef(false); // skip polling inbox when on a ride
   // Synchronous tap/poll guard: prevents double-accept and racey state updates
@@ -266,6 +275,10 @@ export function CaptainRideWatcher() {
   }, [appConfig.captainAlertSoundMode]);
 
   const stopRinging = useCallback(async () => {
+    if (dismissTimeoutRef.current) {
+      clearTimeout(dismissTimeoutRef.current);
+      dismissTimeoutRef.current = null;
+    }
     if (ringIntervalRef.current) {
       clearInterval(ringIntervalRef.current);
       ringIntervalRef.current = null;
@@ -278,6 +291,15 @@ export function CaptainRideWatcher() {
 
   const startRinging = useCallback(async (ride: InboxItem) => {
     await stopRinging();
+
+    // Ring for at most RING_DURATION_MS. If the captain hasn't accepted by
+    // then, stop the alarm and close the modal — the ride simply disappears
+    // from the foreground (it remains in the inbox list, marked "seen", so it
+    // won't ring again but can still be tapped/accepted there).
+    dismissTimeoutRef.current = setTimeout(() => {
+      void stopRinging();
+      setAlertRide(null);
+    }, RING_DURATION_MS);
 
     if (customRingtoneUrl) {
       try {

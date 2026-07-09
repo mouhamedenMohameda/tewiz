@@ -272,27 +272,26 @@ export async function requestBooking(renterId: string, input: BookingInput): Pro
     sentBy: null,
   }).catch(() => {});
 
-  return (await getMyBookings(renterId)).find((b) => b.id === rows[0]!.id)!;
+  return (await getRenterBookingById(rows[0]!.id, renterId))!;
 }
 
-export async function getMyBookings(renterId: string): Promise<RenterBookingDTO[]> {
-  const { rows } = await pool.query<{
-    id: string; start_date: Date; end_date: Date; days: number; with_driver: boolean;
-    total_mru: number; status: BookingStatus; created_at: Date;
-    car_title: string; city: string; photos: string[]; owner_name: string | null; owner_phone: string | null;
-  }>(
-    `SELECT b.id, b.start_date, b.end_date, b.days, b.with_driver, b.total_mru, b.status, b.created_at,
-            c.title AS car_title, c.city, c.photos,
-            u.full_name AS owner_name,
-            CASE WHEN b.status = 'confirmed' THEN u.phone ELSE NULL END AS owner_phone
-       FROM car_bookings b
-       JOIN car_listings c ON c.id = b.listing_id
-       JOIN users u ON u.id = c.owner_id
-      WHERE b.renter_id = $1
-      ORDER BY b.created_at DESC`,
-    [renterId],
-  );
-  return rows.map((r) => ({
+type RenterBookingRow = {
+  id: string; start_date: Date; end_date: Date; days: number; with_driver: boolean;
+  total_mru: number; status: BookingStatus; created_at: Date;
+  car_title: string; city: string; photos: string[]; owner_name: string | null; owner_phone: string | null;
+};
+
+const RENTER_BOOKING_SELECT = `
+  SELECT b.id, b.start_date, b.end_date, b.days, b.with_driver, b.total_mru, b.status, b.created_at,
+         c.title AS car_title, c.city, c.photos,
+         u.full_name AS owner_name,
+         CASE WHEN b.status = 'confirmed' THEN u.phone ELSE NULL END AS owner_phone
+    FROM car_bookings b
+    JOIN car_listings c ON c.id = b.listing_id
+    JOIN users u ON u.id = c.owner_id`;
+
+function toRenterBooking(r: RenterBookingRow): RenterBookingDTO {
+  return {
     id: r.id,
     carTitle: r.car_title,
     carPhoto: r.photos[0] ?? null,
@@ -306,7 +305,23 @@ export async function getMyBookings(renterId: string): Promise<RenterBookingDTO[
     ownerName: r.owner_name ?? 'Propriétaire',
     ownerPhone: r.owner_phone,
     createdAt: r.created_at.toISOString(),
-  }));
+  };
+}
+
+async function getRenterBookingById(id: string, renterId: string): Promise<RenterBookingDTO | null> {
+  const { rows } = await pool.query<RenterBookingRow>(
+    `${RENTER_BOOKING_SELECT} WHERE b.id = $1 AND b.renter_id = $2`,
+    [id, renterId],
+  );
+  return rows[0] ? toRenterBooking(rows[0]) : null;
+}
+
+export async function getMyBookings(renterId: string): Promise<RenterBookingDTO[]> {
+  const { rows } = await pool.query<RenterBookingRow>(
+    `${RENTER_BOOKING_SELECT} WHERE b.renter_id = $1 ORDER BY b.created_at DESC`,
+    [renterId],
+  );
+  return rows.map(toRenterBooking);
 }
 
 export async function cancelBooking(id: string, renterId: string): Promise<boolean> {
@@ -334,24 +349,23 @@ export interface OwnerBookingDTO {
   createdAt: string;
 }
 
-export async function listIncomingBookings(ownerId: string): Promise<OwnerBookingDTO[]> {
-  const { rows } = await pool.query<{
-    id: string; start_date: Date; end_date: Date; days: number; with_driver: boolean;
-    total_mru: number; status: BookingStatus; created_at: Date;
-    car_title: string; renter_name: string | null; renter_phone: string | null;
-  }>(
-    `SELECT b.id, b.start_date, b.end_date, b.days, b.with_driver, b.total_mru, b.status, b.created_at,
-            c.title AS car_title,
-            ru.full_name AS renter_name,
-            CASE WHEN b.status = 'confirmed' THEN ru.phone ELSE NULL END AS renter_phone
-       FROM car_bookings b
-       JOIN car_listings c ON c.id = b.listing_id
-       JOIN users ru ON ru.id = b.renter_id
-      WHERE c.owner_id = $1
-      ORDER BY (b.status = 'pending') DESC, b.created_at DESC`,
-    [ownerId],
-  );
-  return rows.map((r) => ({
+type OwnerBookingRow = {
+  id: string; start_date: Date; end_date: Date; days: number; with_driver: boolean;
+  total_mru: number; status: BookingStatus; created_at: Date;
+  car_title: string; renter_name: string | null; renter_phone: string | null;
+};
+
+const OWNER_BOOKING_SELECT = `
+  SELECT b.id, b.start_date, b.end_date, b.days, b.with_driver, b.total_mru, b.status, b.created_at,
+         c.title AS car_title,
+         ru.full_name AS renter_name,
+         CASE WHEN b.status = 'confirmed' THEN ru.phone ELSE NULL END AS renter_phone
+    FROM car_bookings b
+    JOIN car_listings c ON c.id = b.listing_id
+    JOIN users ru ON ru.id = b.renter_id`;
+
+function toOwnerBooking(r: OwnerBookingRow): OwnerBookingDTO {
+  return {
     id: r.id,
     carTitle: r.car_title,
     startDate: r.start_date.toISOString().slice(0, 10),
@@ -363,49 +377,77 @@ export async function listIncomingBookings(ownerId: string): Promise<OwnerBookin
     renterName: r.renter_name ?? 'Client',
     renterPhone: r.renter_phone,
     createdAt: r.created_at.toISOString(),
-  }));
+  };
+}
+
+async function getOwnerBookingById(id: string, ownerId: string): Promise<OwnerBookingDTO | null> {
+  const { rows } = await pool.query<OwnerBookingRow>(
+    `${OWNER_BOOKING_SELECT} WHERE b.id = $1 AND c.owner_id = $2`,
+    [id, ownerId],
+  );
+  return rows[0] ? toOwnerBooking(rows[0]) : null;
+}
+
+export async function listIncomingBookings(ownerId: string): Promise<OwnerBookingDTO[]> {
+  const { rows } = await pool.query<OwnerBookingRow>(
+    `${OWNER_BOOKING_SELECT} WHERE c.owner_id = $1 ORDER BY (b.status = 'pending') DESC, b.created_at DESC`,
+    [ownerId],
+  );
+  return rows.map(toOwnerBooking);
 }
 
 export async function respondBooking(id: string, ownerId: string, action: 'confirm' | 'decline'): Promise<OwnerBookingDTO> {
-  // Verify ownership + fetch the booking dates for the overlap guard.
-  const b = await pool.query<{ listing_id: string; start_date: Date; end_date: Date; status: BookingStatus; renter_id: string }>(
-    `SELECT b.listing_id, b.start_date, b.end_date, b.status, b.renter_id
-       FROM car_bookings b JOIN car_listings c ON c.id = b.listing_id
-      WHERE b.id = $1 AND c.owner_id = $2`,
-    [id, ownerId],
-  );
-  const row = b.rows[0];
-  if (!row) throw new HttpError(404, 'booking_not_found', 'Demande introuvable');
-  if (row.status !== 'pending') throw new HttpError(409, 'not_pending', 'Cette demande a déjà été traitée');
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
 
-  if (action === 'confirm') {
-    // Guard against double-booking the same car on overlapping confirmed dates.
-    const clash = await pool.query(
-      `SELECT 1 FROM car_bookings
-        WHERE listing_id = $1 AND status = 'confirmed' AND id <> $2
-          AND daterange(start_date, end_date, '[]') && daterange($3, $4, '[]')
-        LIMIT 1`,
-      [row.listing_id, id, row.start_date, row.end_date],
+    const b = await client.query<{ listing_id: string; start_date: Date; end_date: Date; status: BookingStatus; renter_id: string }>(
+      `SELECT b.listing_id, b.start_date, b.end_date, b.status, b.renter_id
+         FROM car_bookings b JOIN car_listings c ON c.id = b.listing_id
+        WHERE b.id = $1 AND c.owner_id = $2
+        FOR UPDATE OF b`,
+      [id, ownerId],
     );
-    if (clash.rows[0]) throw new HttpError(409, 'dates_taken', 'Ces dates sont déjà réservées');
+    const row = b.rows[0];
+    if (!row) { await client.query('ROLLBACK'); throw new HttpError(404, 'booking_not_found', 'Demande introuvable'); }
+    if (row.status !== 'pending') { await client.query('ROLLBACK'); throw new HttpError(409, 'not_pending', 'Cette demande a déjà été traitée'); }
+
+    if (action === 'confirm') {
+      const clash = await client.query(
+        `SELECT 1 FROM car_bookings
+          WHERE listing_id = $1 AND status = 'confirmed' AND id <> $2
+            AND daterange(start_date, end_date, '[]') && daterange($3, $4, '[]')
+          LIMIT 1
+          FOR UPDATE`,
+        [row.listing_id, id, row.start_date, row.end_date],
+      );
+      if (clash.rows[0]) { await client.query('ROLLBACK'); throw new HttpError(409, 'dates_taken', 'Ces dates sont déjà réservées'); }
+    }
+
+    const newStatus: BookingStatus = action === 'confirm' ? 'confirmed' : 'declined';
+    await client.query(
+      `UPDATE car_bookings SET status = $2, responded_at = now() WHERE id = $1`,
+      [id, newStatus],
+    );
+
+    await client.query('COMMIT');
+
+    void sendNotification({
+      target: { type: 'user', userId: row.renter_id },
+      title: action === 'confirm' ? 'Réservation confirmée ✅' : 'Réservation refusée',
+      body: action === 'confirm'
+        ? 'Le propriétaire a confirmé. Vous pouvez voir son numéro dans « Mes réservations ».'
+        : 'Le propriétaire n\'a pas pu confirmer votre demande.',
+      type: 'info',
+      data: { feature: 'car_rental', bookingId: id },
+      sentBy: null,
+    }).catch(() => {});
+
+    return (await getOwnerBookingById(id, ownerId))!;
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw err;
+  } finally {
+    client.release();
   }
-
-  const newStatus: BookingStatus = action === 'confirm' ? 'confirmed' : 'declined';
-  await pool.query(
-    `UPDATE car_bookings SET status = $2, responded_at = now() WHERE id = $1`,
-    [id, newStatus],
-  );
-
-  void sendNotification({
-    target: { type: 'user', userId: row.renter_id },
-    title: action === 'confirm' ? 'Réservation confirmée ✅' : 'Réservation refusée',
-    body: action === 'confirm'
-      ? 'Le propriétaire a confirmé. Vous pouvez voir son numéro dans « Mes réservations ».'
-      : 'Le propriétaire n\'a pas pu confirmer votre demande.',
-    type: 'info',
-    data: { feature: 'car_rental', bookingId: id },
-    sentBy: null,
-  }).catch(() => {});
-
-  return (await listIncomingBookings(ownerId)).find((x) => x.id === id)!;
 }

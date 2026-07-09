@@ -6,6 +6,11 @@ export const pool = new pg.Pool({
   max: 20,
   idleTimeoutMillis: 30_000,
   connectionTimeoutMillis: 5_000,
+  // Keep pooled sockets warm: enabling TCP keep-alive stops idle connections
+  // from being silently dropped by the OS/NAT between the API's frequent polls,
+  // which otherwise forces a fresh (slower) TCP+auth handshake on the next query.
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 10_000,
 });
 
 pool.on('error', (err) => {

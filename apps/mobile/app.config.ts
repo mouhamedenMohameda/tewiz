@@ -24,7 +24,7 @@ const HAS_GOOGLE_SERVICES = existsSync(GOOGLE_SERVICES_FILE);
 const config: ExpoConfig = {
   name: APP_NAME,
   slug: APP_SLUG,
-  version: '1.1.12',
+  version: '1.2.0',
   orientation: 'portrait',
   userInterfaceStyle: 'light',
   icon: './assets/icon.png',
@@ -126,6 +126,10 @@ const config: ExpoConfig = {
         RNMapboxMapsDownloadToken: process.env.MAPBOX_DOWNLOAD_TOKEN,
       },
     ],
+    // Android: permission + activity flags so a new ride can pop a full-screen
+    // "incoming call"-style screen over the lock screen (see
+    // lib/fullScreenRideAlert.ts). No-op on iOS.
+    './plugins/withRideFullScreenIntent',
   ],
   experiments: {
     typedRoutes: true,

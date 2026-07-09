@@ -2,6 +2,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
 import cors from 'cors';
+import compression from 'compression';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { pinoHttp } from 'pino-http';
@@ -47,6 +48,21 @@ const app = express();
 app.set('trust proxy', 1);
 
 app.use(helmet());
+
+// --- Response compression (gzip) ---
+// Native clients run on 2G/3G links across Mauritania, so shrinking JSON on the
+// wire is the single biggest perceived-latency win. gzip cuts our list/inbox/
+// history payloads by ~70–90%. `threshold` skips tiny bodies where the CPU cost
+// isn't worth it; a client can opt out per-request with `x-no-compression`.
+app.use(
+  compression({
+    threshold: 1024,
+    filter(req, res) {
+      if (req.headers['x-no-compression']) return false;
+      return compression.filter(req, res);
+    },
+  }),
+);
 
 // --- CORS ---
 // Lock the API to known browser origins (the admin-web). Native clients

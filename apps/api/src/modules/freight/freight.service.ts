@@ -233,28 +233,27 @@ export async function requestBooking(shipperId: string, input: { tripId: string;
     sentBy: null,
   }).catch(() => {});
 
-  return (await listMyBookings(shipperId)).find((b) => b.id === rows[0]!.id)!;
+  return (await getShipperBookingById(rows[0]!.id, shipperId))!;
 }
 
-export async function listMyBookings(shipperId: string): Promise<ShipperBookingDTO[]> {
-  const { rows } = await pool.query<{
-    id: string; cargo_description: string; weight_kg: number; total_mru: number;
-    status: FreightBookingStatus; created_at: Date;
-    origin_city: string; destination_city: string; departure_date: Date;
-    carrier_name: string | null; carrier_phone: string | null;
-  }>(
-    `SELECT b.id, b.cargo_description, b.weight_kg, b.total_mru, b.status, b.created_at,
-            t.origin_city, t.destination_city, t.departure_date,
-            u.full_name AS carrier_name,
-            CASE WHEN b.status = 'confirmed' THEN u.phone ELSE NULL END AS carrier_phone
-       FROM freight_bookings b
-       JOIN freight_trips t ON t.id = b.trip_id
-       JOIN users u ON u.id = t.carrier_id
-      WHERE b.shipper_id = $1
-      ORDER BY b.created_at DESC`,
-    [shipperId],
-  );
-  return rows.map((r) => ({
+type ShipperBookingRow = {
+  id: string; cargo_description: string; weight_kg: number; total_mru: number;
+  status: FreightBookingStatus; created_at: Date;
+  origin_city: string; destination_city: string; departure_date: Date;
+  carrier_name: string | null; carrier_phone: string | null;
+};
+
+const SHIPPER_BOOKING_SELECT = `
+  SELECT b.id, b.cargo_description, b.weight_kg, b.total_mru, b.status, b.created_at,
+         t.origin_city, t.destination_city, t.departure_date,
+         u.full_name AS carrier_name,
+         CASE WHEN b.status = 'confirmed' THEN u.phone ELSE NULL END AS carrier_phone
+    FROM freight_bookings b
+    JOIN freight_trips t ON t.id = b.trip_id
+    JOIN users u ON u.id = t.carrier_id`;
+
+function toShipperBooking(r: ShipperBookingRow): ShipperBookingDTO {
+  return {
     id: r.id,
     originCity: r.origin_city,
     destinationCity: r.destination_city,
@@ -266,7 +265,23 @@ export async function listMyBookings(shipperId: string): Promise<ShipperBookingD
     carrierName: r.carrier_name ?? 'Transporteur',
     carrierPhone: r.carrier_phone,
     createdAt: r.created_at.toISOString(),
-  }));
+  };
+}
+
+async function getShipperBookingById(id: string, shipperId: string): Promise<ShipperBookingDTO | null> {
+  const { rows } = await pool.query<ShipperBookingRow>(
+    `${SHIPPER_BOOKING_SELECT} WHERE b.id = $1 AND b.shipper_id = $2`,
+    [id, shipperId],
+  );
+  return rows[0] ? toShipperBooking(rows[0]) : null;
+}
+
+export async function listMyBookings(shipperId: string): Promise<ShipperBookingDTO[]> {
+  const { rows } = await pool.query<ShipperBookingRow>(
+    `${SHIPPER_BOOKING_SELECT} WHERE b.shipper_id = $1 ORDER BY b.created_at DESC`,
+    [shipperId],
+  );
+  return rows.map(toShipperBooking);
 }
 
 export async function cancelBooking(id: string, shipperId: string): Promise<boolean> {
@@ -293,24 +308,23 @@ export interface CarrierBookingDTO {
   createdAt: string;
 }
 
-export async function listIncomingBookings(carrierId: string): Promise<CarrierBookingDTO[]> {
-  const { rows } = await pool.query<{
-    id: string; cargo_description: string; weight_kg: number; total_mru: number;
-    status: FreightBookingStatus; created_at: Date; origin_city: string; destination_city: string;
-    shipper_name: string | null; shipper_phone: string | null;
-  }>(
-    `SELECT b.id, b.cargo_description, b.weight_kg, b.total_mru, b.status, b.created_at,
-            t.origin_city, t.destination_city,
-            su.full_name AS shipper_name,
-            CASE WHEN b.status = 'confirmed' THEN su.phone ELSE NULL END AS shipper_phone
-       FROM freight_bookings b
-       JOIN freight_trips t ON t.id = b.trip_id
-       JOIN users su ON su.id = b.shipper_id
-      WHERE t.carrier_id = $1
-      ORDER BY (b.status = 'pending') DESC, b.created_at DESC`,
-    [carrierId],
-  );
-  return rows.map((r) => ({
+type CarrierBookingRow = {
+  id: string; cargo_description: string; weight_kg: number; total_mru: number;
+  status: FreightBookingStatus; created_at: Date; origin_city: string; destination_city: string;
+  shipper_name: string | null; shipper_phone: string | null;
+};
+
+const CARRIER_BOOKING_SELECT = `
+  SELECT b.id, b.cargo_description, b.weight_kg, b.total_mru, b.status, b.created_at,
+         t.origin_city, t.destination_city,
+         su.full_name AS shipper_name,
+         CASE WHEN b.status = 'confirmed' THEN su.phone ELSE NULL END AS shipper_phone
+    FROM freight_bookings b
+    JOIN freight_trips t ON t.id = b.trip_id
+    JOIN users su ON su.id = b.shipper_id`;
+
+function toCarrierBooking(r: CarrierBookingRow): CarrierBookingDTO {
+  return {
     id: r.id,
     originCity: r.origin_city,
     destinationCity: r.destination_city,
@@ -321,44 +335,73 @@ export async function listIncomingBookings(carrierId: string): Promise<CarrierBo
     shipperName: r.shipper_name ?? 'Expéditeur',
     shipperPhone: r.shipper_phone,
     createdAt: r.created_at.toISOString(),
-  }));
+  };
+}
+
+async function getCarrierBookingById(id: string, carrierId: string): Promise<CarrierBookingDTO | null> {
+  const { rows } = await pool.query<CarrierBookingRow>(
+    `${CARRIER_BOOKING_SELECT} WHERE b.id = $1 AND t.carrier_id = $2`,
+    [id, carrierId],
+  );
+  return rows[0] ? toCarrierBooking(rows[0]) : null;
+}
+
+export async function listIncomingBookings(carrierId: string): Promise<CarrierBookingDTO[]> {
+  const { rows } = await pool.query<CarrierBookingRow>(
+    `${CARRIER_BOOKING_SELECT} WHERE t.carrier_id = $1 ORDER BY (b.status = 'pending') DESC, b.created_at DESC`,
+    [carrierId],
+  );
+  return rows.map(toCarrierBooking);
 }
 
 export async function respondBooking(id: string, carrierId: string, action: 'confirm' | 'decline'): Promise<CarrierBookingDTO> {
-  const b = await pool.query<{ trip_id: string; weight_kg: number; status: FreightBookingStatus; shipper_id: string }>(
-    `SELECT b.trip_id, b.weight_kg, b.status, b.shipper_id
-       FROM freight_bookings b JOIN freight_trips t ON t.id = b.trip_id
-      WHERE b.id = $1 AND t.carrier_id = $2`,
-    [id, carrierId],
-  );
-  const row = b.rows[0];
-  if (!row) throw new HttpError(404, 'booking_not_found', 'Demande introuvable');
-  if (row.status !== 'pending') throw new HttpError(409, 'not_pending', 'Cette demande a déjà été traitée');
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
 
-  if (action === 'confirm') {
-    const cap = await pool.query<{ capacity_kg: number; booked_kg: string }>(
-      `SELECT capacity_kg,
-              (SELECT COALESCE(SUM(weight_kg),0) FROM freight_bookings x WHERE x.trip_id = $1 AND x.status = 'confirmed')::text AS booked_kg
-         FROM freight_trips WHERE id = $1`,
-      [row.trip_id],
+    const b = await client.query<{ trip_id: string; weight_kg: number; status: FreightBookingStatus; shipper_id: string }>(
+      `SELECT b.trip_id, b.weight_kg, b.status, b.shipper_id
+         FROM freight_bookings b JOIN freight_trips t ON t.id = b.trip_id
+        WHERE b.id = $1 AND t.carrier_id = $2
+        FOR UPDATE OF b`,
+      [id, carrierId],
     );
-    const remaining = cap.rows[0]!.capacity_kg - Number(cap.rows[0]!.booked_kg);
-    if (row.weight_kg > remaining) throw new HttpError(409, 'capacity_exceeded', `Capacité restante : ${remaining} kg`);
+    const row = b.rows[0];
+    if (!row) { await client.query('ROLLBACK'); throw new HttpError(404, 'booking_not_found', 'Demande introuvable'); }
+    if (row.status !== 'pending') { await client.query('ROLLBACK'); throw new HttpError(409, 'not_pending', 'Cette demande a déjà été traitée'); }
+
+    if (action === 'confirm') {
+      const cap = await client.query<{ capacity_kg: number; booked_kg: string }>(
+        `SELECT capacity_kg,
+                (SELECT COALESCE(SUM(weight_kg),0) FROM freight_bookings x WHERE x.trip_id = $1 AND x.status = 'confirmed')::text AS booked_kg
+           FROM freight_trips WHERE id = $1 FOR UPDATE`,
+        [row.trip_id],
+      );
+      const remaining = cap.rows[0]!.capacity_kg - Number(cap.rows[0]!.booked_kg);
+      if (row.weight_kg > remaining) { await client.query('ROLLBACK'); throw new HttpError(409, 'capacity_exceeded', `Capacité restante : ${remaining} kg`); }
+    }
+
+    const newStatus: FreightBookingStatus = action === 'confirm' ? 'confirmed' : 'declined';
+    await client.query(`UPDATE freight_bookings SET status = $2, responded_at = now() WHERE id = $1`, [id, newStatus]);
+
+    await client.query('COMMIT');
+
+    void sendNotification({
+      target: { type: 'user', userId: row.shipper_id },
+      title: action === 'confirm' ? 'Envoi confirmé ✅' : 'Envoi refusé',
+      body: action === 'confirm'
+        ? 'Le transporteur a confirmé. Son numéro est dans « Mes envois ».'
+        : 'Le transporteur n\'a pas pu confirmer votre envoi.',
+      type: 'info',
+      data: { feature: 'freight', bookingId: id },
+      sentBy: null,
+    }).catch(() => {});
+
+    return (await getCarrierBookingById(id, carrierId))!;
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw err;
+  } finally {
+    client.release();
   }
-
-  const newStatus: FreightBookingStatus = action === 'confirm' ? 'confirmed' : 'declined';
-  await pool.query(`UPDATE freight_bookings SET status = $2, responded_at = now() WHERE id = $1`, [id, newStatus]);
-
-  void sendNotification({
-    target: { type: 'user', userId: row.shipper_id },
-    title: action === 'confirm' ? 'Envoi confirmé ✅' : 'Envoi refusé',
-    body: action === 'confirm'
-      ? 'Le transporteur a confirmé. Son numéro est dans « Mes envois ».'
-      : 'Le transporteur n\'a pas pu confirmer votre envoi.',
-    type: 'info',
-    data: { feature: 'freight', bookingId: id },
-    sentBy: null,
-  }).catch(() => {});
-
-  return (await listIncomingBookings(carrierId)).find((x) => x.id === id)!;
 }

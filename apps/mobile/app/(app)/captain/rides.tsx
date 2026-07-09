@@ -153,17 +153,14 @@ export default function RidesScreen() {
   const [history, setHistory] = useState<Ride[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Fast path (polled): only the volatile bits — the active ride and, when
+  // idle, the nearby inbox. keepIfEqual bails out of the re-render when the
+  // polled data matches the previous tick (the usual case between real changes).
   const load = useCallback(async () => {
     try {
-      const [curRes, historyRes] = await Promise.all([
-        api.get<Ride>('/captain/rides/current', {
-          validateStatus: (s) => s === 200 || s === 204,
-        }),
-        api.get<Ride[]>('/captain/rides/history'),
-      ]);
-      // keepIfEqual bails out of the re-render when the polled data matches the
-      // previous tick (the usual case at 3–8 s cadence between real changes).
-      setHistory(keepIfEqual(historyRes.data));
+      const curRes = await api.get<Ride>('/captain/rides/current', {
+        validateStatus: (s) => s === 200 || s === 204,
+      });
       if (curRes.status === 204) {
         setCurrent(keepIfEqual<Ride | null>(null));
         try {
@@ -185,7 +182,35 @@ export default function RidesScreen() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  // History barely changes between rides, so it doesn't belong in the fast
+  // poll. We refresh it on mount, on pull-to-refresh, and whenever the active
+  // ride starts/ends (below) — not on every 5 s tick.
+  const loadHistory = useCallback(async () => {
+    try {
+      const historyRes = await api.get<Ride[]>('/captain/rides/history');
+      setHistory(keepIfEqual(historyRes.data));
+    } catch {
+      // Non-critical: keep the last good history rather than clearing it.
+    }
+  }, []);
+
+  const refreshAll = useCallback(async () => {
+    await Promise.all([load(), loadHistory()]);
+  }, [load, loadHistory]);
+
+  useEffect(() => { refreshAll(); }, [refreshAll]);
+
+  // A ride starting or ending is exactly when the history list changes; pull a
+  // fresh copy then instead of every poll tick.
+  const currentId = current?.id ?? null;
+  const prevIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (prevIdRef.current !== currentId) {
+      prevIdRef.current = currentId;
+      void loadHistory();
+    }
+  }, [currentId, loadHistory]);
+
   // While an open ride is in_progress we want the meter card to update
   // every ~3 s; otherwise the standard cadence is fine.
   const openMeterActive = current?.isOpen && current.status === 'in_progress';
@@ -197,12 +222,12 @@ export default function RidesScreen() {
   useOpenRideMeterPinger(current);
 
   return (
-    <Screen scroll onRefresh={load} refreshing={loading}>
+    <Screen scroll onRefresh={refreshAll} refreshing={loading}>
       <ScreenHeader title={t('captain.rides.title')} onBack={() => router.back()} />
       {current ? (
-        <CurrentRideCard ride={current} onChanged={load} />
+        <CurrentRideCard ride={current} onChanged={refreshAll} />
       ) : (
-        <InboxList items={inbox} onAccepted={load} />
+        <InboxList items={inbox} onAccepted={refreshAll} />
       )}
       <HistorySection items={history} />
     </Screen>
