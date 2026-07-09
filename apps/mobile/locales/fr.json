@@ -886,6 +886,13 @@
       "support": "Contacter le support",
       "supportMessage": "Bonjour, j'ai besoin d'aide avec l'application {{app}}."
     },
+    "download": {
+      "section": "Télécharger l'application",
+      "hint": "Obtenez la dernière version de l'application.",
+      "android": "Dernière version Android",
+      "ios": "Dernière version iOS",
+      "openError": "Impossible d'ouvrir le lien."
+    },
     "modules": {
       "section": "Services affichés",
       "hint": "Choisissez les services visibles sur votre écran d'accueil.",
@@ -1287,7 +1294,13 @@
         "callBtn": "Appeler",
         "whatsappBtn": "WhatsApp",
         "closeBtn": "Fermer"
-      }
+      },
+      "requestBtn": "Demander une place",
+      "requestSentTitle": "Demande envoyée",
+      "requestSentBody": "Le conducteur a reçu votre demande. Vous serez notifié dès qu'il l'accepte.",
+      "errRequest": "Impossible d'envoyer la demande",
+      "myBookings": "Mes demandes",
+      "alreadyRequested": "Demande en cours"
     },
     "driver": {
       "myTrips": "Mes trajets",
@@ -1297,7 +1310,15 @@
       "decrementBtn": "-1 place",
       "cancelBtn": "Annuler",
       "errUpdate": "Mise à jour impossible",
-      "errCancel": "Annulation impossible"
+      "errCancel": "Annulation impossible",
+      "requests": "Demandes reçues",
+      "noRequests": "Aucune demande pour le moment.",
+      "seatsReq": "{{seats}} place(s) demandée(s)",
+      "acceptBtn": "Accepter",
+      "declineBtn": "Refuser",
+      "completeBtn": "Terminer",
+      "noShowBtn": "Absent",
+      "seatsLeft": "{{avail}}/{{total}} place(s) restante(s)"
     },
     "publish": {
       "header": "Publier un trajet",
@@ -1321,7 +1342,7 @@
       "boostTitle": "Mettre en avant (+{{price}} MRU)",
       "boostDesc": "Le trajet apparaît en premier pendant 24h.",
       "feeLine": "Frais de publication: {{fee}} MRU",
-      "publishBtn": "Payer et publier",
+      "publishBtn": "Publier",
       "errAccessTitle": "Accès refusé",
       "errAccessBody": "Seuls les chauffeurs peuvent publier un trajet.",
       "errRequiredTitle": "Champs obligatoires",
@@ -1343,7 +1364,39 @@
       "mineEmpty": "Aucune publication pour le moment.",
       "mineViews": "{{avail}}/{{total}} place(s) · {{views}} personnes ont vu votre numéro",
       "errUpdate": "Mise à jour impossible",
-      "errCancel": "Annulation impossible"
+      "errCancel": "Annulation impossible",
+      "freeNote": "Publication gratuite — vous ne payez rien pour publier. Les demandes arrivent directement dans l'app.",
+      "boostFeeLine": "Boost : {{fee}} MRU (optionnel) — payé uniquement si vous activez la mise en avant."
+    },
+    "errGeneric": "Une erreur est survenue",
+    "booking": {
+      "status": {
+        "requested": "En attente",
+        "accepted": "Acceptée",
+        "declined": "Refusée",
+        "cancelled": "Annulée",
+        "completed": "Terminée",
+        "no_show": "Absent",
+        "expired": "Expirée"
+      },
+      "metaLine": "{{date}} · {{price}} MRU/place",
+      "driverLabel": "Conducteur : {{name}}",
+      "passengerLabel": "Passager : {{name}}",
+      "otpTitle": "Votre code de confirmation",
+      "otpHint": "Donnez ce code au conducteur à la montée. Il le saisit pour confirmer le trajet.",
+      "callBtn": "Appeler",
+      "whatsappBtn": "WhatsApp",
+      "cancelBtn": "Annuler"
+    },
+    "complete": {
+      "title": "Confirmer le trajet",
+      "hint": "Saisissez le code que le passager vous communique.",
+      "placeholder": "Code",
+      "confirmBtn": "Confirmer",
+      "cancelBtn": "Annuler",
+      "errInvalid": "Code incorrect",
+      "successTitle": "Trajet confirmé",
+      "successBody": "Le trajet est enregistré. Merci !"
     }
   },
   "roadside": {

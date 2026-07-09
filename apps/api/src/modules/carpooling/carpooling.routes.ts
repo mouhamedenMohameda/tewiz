@@ -3,12 +3,19 @@ import { z } from 'zod';
 import { optionalAuth, requireAuth, requireRole } from '../../middleware/auth.js';
 import { HttpError } from '../../middleware/error.js';
 import {
+  acceptBooking,
+  cancelBooking,
   cancelMyTrip,
+  completeBooking,
+  declineBooking,
   getTripById,
+  listDriverBookings,
   listMyTrips,
+  listPassengerBookings,
   listTrips,
+  markBookingNoShow,
   publishTrip,
-  revealDriverContact,
+  requestBooking,
   updateTripSeats,
 } from './carpooling.service.js';
 
@@ -36,6 +43,16 @@ const listQuery = z.object({
 const seatsBody = z.object({
   available_seats: z.number().int().min(0).max(8),
 });
+
+const bookingBody = z.object({
+  seats: z.number().int().min(1).max(8).optional(),
+});
+
+const completeBody = z.object({
+  otp: z.string().trim().min(3).max(10),
+});
+
+/* ---- Trips -------------------------------------------------------- */
 
 carpoolingRouter.post('/trips', requireAuth, requireRole('captain'), async (req, res) => {
   const body = publishBody.parse(req.body);
@@ -72,14 +89,6 @@ carpoolingRouter.get('/trips/:id', async (req, res) => {
   res.json({ trip: safeTrip });
 });
 
-carpoolingRouter.post('/trips/:id/reveal', requireAuth, async (req, res) => {
-  const contact = await revealDriverContact(String(req.params.id), req.user!.id);
-  res.json({
-    driver_phone: contact.driverPhone,
-    driver_name: contact.driverName,
-  });
-});
-
 carpoolingRouter.patch('/trips/:id/seats', requireAuth, requireRole('captain'), async (req, res) => {
   const body = seatsBody.parse(req.body);
   const trip = await updateTripSeats(String(req.params.id), req.user!.id, body.available_seats);
@@ -97,4 +106,55 @@ carpoolingRouter.delete('/trips/:id', requireAuth, requireRole('captain'), async
     throw new HttpError(404, 'trip_not_found', 'Trajet introuvable');
   }
   res.json({ ok: true });
+});
+
+/* ---- Bookings ----------------------------------------------------- */
+
+// Passenger requests a seat. Creates a timestamped booking (the receipt) and
+// notifies the driver. Contact is NOT revealed here.
+carpoolingRouter.post('/trips/:id/bookings', requireAuth, async (req, res) => {
+  const body = bookingBody.parse(req.body ?? {});
+  const booking = await requestBooking(req.user!.id, String(req.params.id), body.seats ?? 1);
+  res.status(201).json({ booking });
+});
+
+// Passenger: my own booking requests (status, revealed contact + OTP once accepted).
+carpoolingRouter.get('/my-bookings', requireAuth, async (req, res) => {
+  const bookings = await listPassengerBookings(req.user!.id);
+  res.json({ bookings });
+});
+
+// Driver: all requests on my trips (requested first).
+carpoolingRouter.get('/driver-bookings', requireAuth, requireRole('captain'), async (req, res) => {
+  const bookings = await listDriverBookings(req.user!.id);
+  res.json({ bookings });
+});
+
+carpoolingRouter.post('/bookings/:id/accept', requireAuth, requireRole('captain'), async (req, res) => {
+  const booking = await acceptBooking(req.user!.id, String(req.params.id));
+  res.json({ booking });
+});
+
+carpoolingRouter.post('/bookings/:id/decline', requireAuth, requireRole('captain'), async (req, res) => {
+  const booking = await declineBooking(req.user!.id, String(req.params.id));
+  res.json({ booking });
+});
+
+// Driver closes the trip with the code the passenger reads out. This is the
+// proof the ride happened and the only moment a commission is charged.
+carpoolingRouter.post('/bookings/:id/complete', requireAuth, requireRole('captain'), async (req, res) => {
+  const body = completeBody.parse(req.body);
+  const booking = await completeBooking(req.user!.id, String(req.params.id), body.otp);
+  res.json({ booking });
+});
+
+carpoolingRouter.post('/bookings/:id/no-show', requireAuth, requireRole('captain'), async (req, res) => {
+  const booking = await markBookingNoShow(req.user!.id, String(req.params.id));
+  res.json({ booking });
+});
+
+// Either side can cancel while still requested/accepted.
+carpoolingRouter.post('/bookings/:id/cancel', requireAuth, async (req, res) => {
+  const booking = await cancelBooking(req.user!.id, String(req.params.id));
+  res.json({ booking });
 });

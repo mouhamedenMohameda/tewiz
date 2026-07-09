@@ -7,6 +7,8 @@
  *
  * Fail-safe defaults (used when the API is unreachable and no cache exists):
  *   showDemoButtons: false  — demo buttons stay hidden for real users.
+ *   modules.*: false        — admin-gated services stay hidden until the server
+ *                             confirms they are enabled (fail-closed).
  */
 
 import { useState, useEffect } from 'react';
@@ -17,18 +19,47 @@ export type CaptainAlertSoundMode = 'standard' | 'critical';
 
 const STORAGE_KEY = '@tewiz/app-config';
 
+/**
+ * Per-service availability flags, keyed by APP_MODULES key. Managed from the
+ * admin settings screen. `false` means the admin turned the service off — the
+ * home grid hides it. Utility modules (history, favorites, …) are not gated and
+ * are simply absent from this map (treated as always available).
+ */
+export type ModuleFlags = Record<string, boolean>;
+
 export interface AppConfig {
   showDemoButtons: boolean;
   captainAlertSoundMode: CaptainAlertSoundMode;
   captainAlertRepeatIntervalS: number;
   captainAlertSoundUrl: string | null;
+  // Download links for the latest builds, shown at the bottom of the in-app
+  // Settings screen. null = the corresponding button is hidden.
+  latestAndroidUrl: string | null;
+  latestIosUrl: string | null;
+  modules: ModuleFlags;
 }
+
+// Fail-closed: every admin-gated module defaults to false so a service the
+// admin disabled is never shown while we lack a fresh server confirmation.
+const DEFAULT_MODULE_FLAGS: ModuleFlags = {
+  carpooling: false,
+  private_driver: false,
+  convoyage: false,
+  car_rental: false,
+  roadside_assistance: false,
+  light_moving: false,
+  intercity_freight: false,
+  equipment_rental: false,
+};
 
 const DEFAULTS: AppConfig = {
   showDemoButtons: false,
   captainAlertSoundMode: 'standard',
   captainAlertRepeatIntervalS: 2,
   captainAlertSoundUrl: null,
+  latestAndroidUrl: null,
+  latestIosUrl: null,
+  modules: DEFAULT_MODULE_FLAGS,
 };
 
 let memCache: AppConfig | null = null;
@@ -66,15 +97,27 @@ function refreshInBackground(): void {
   })();
 }
 
+// Merge a partial config (from the network or an older AsyncStorage cache that
+// predates a field) onto the defaults. `modules` is merged key-by-key so a
+// missing service flag falls back to its fail-closed default rather than
+// leaving `modules` undefined.
+function normalize(partial: Partial<AppConfig> | null | undefined): AppConfig {
+  return {
+    ...DEFAULTS,
+    ...partial,
+    modules: { ...DEFAULT_MODULE_FLAGS, ...(partial?.modules ?? {}) },
+  };
+}
+
 async function fetchRemote(): Promise<AppConfig> {
-  const r = await api.get<AppConfig>('/public/config');
-  return { ...DEFAULTS, ...r.data };
+  const r = await api.get<Partial<AppConfig>>('/public/config');
+  return normalize(r.data);
 }
 
 async function readStorage(): Promise<AppConfig | null> {
   try {
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as AppConfig;
+    if (raw) return normalize(JSON.parse(raw) as Partial<AppConfig>);
   } catch {}
   return null;
 }

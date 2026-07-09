@@ -70,6 +70,9 @@ export interface PricingSettings {
   carpoolingEnabled: boolean;
   carpoolingPublicationFee: number;
   carpoolingBoostFee: number;
+  // Migration 0058. Success commission charged from the driver wallet only on a
+  // confirmed (OTP) carpooling trip. Basis points; 0 during launch.
+  carpoolingCommissionBps: number;
   // Migration 0031. Show the one-tap reviewer demo-login buttons on the welcome
   // and login screens. Flip to true before an App Store / Play submission,
   // back to false once the build is approved.
@@ -121,6 +124,10 @@ export interface PricingSettings {
   equipmentRentalEnabled: boolean;
   equipmentRentalDailyRateMru: number;
   equipmentRentalCommissionBps: number;
+  // Migration 0059. Public download links for the latest mobile builds, shown
+  // at the bottom of the in-app Settings screen. NULL = button hidden.
+  latestAndroidUrl: string | null;
+  latestIosUrl: string | null;
   updatedAt: string;
   updatedBy: string | null;
 }
@@ -167,6 +174,7 @@ interface Row {
   carpooling_enabled: boolean;
   carpooling_publication_fee: number;
   carpooling_boost_fee: number;
+  carpooling_commission_bps: number;
   show_demo_buttons: boolean;
   demo_buttons_allowed_versions: string;
   captain_alert_sound_mode: CaptainAlertSoundMode;
@@ -209,6 +217,8 @@ interface Row {
   equipment_rental_enabled: boolean;
   equipment_rental_daily_rate_mru: number;
   equipment_rental_commission_bps: number;
+  latest_android_url: string | null;
+  latest_ios_url: string | null;
   updated_at: Date;
   updated_by: string | null;
 }
@@ -253,6 +263,7 @@ function toSettings(r: Row): PricingSettings {
     carpoolingEnabled: r.carpooling_enabled,
     carpoolingPublicationFee: r.carpooling_publication_fee,
     carpoolingBoostFee: r.carpooling_boost_fee,
+    carpoolingCommissionBps: r.carpooling_commission_bps,
     showDemoButtons: r.show_demo_buttons,
     demoButtonsAllowedVersions: r.demo_buttons_allowed_versions,
     captainAlertSoundMode: r.captain_alert_sound_mode,
@@ -295,6 +306,8 @@ function toSettings(r: Row): PricingSettings {
     equipmentRentalEnabled: r.equipment_rental_enabled,
     equipmentRentalDailyRateMru: r.equipment_rental_daily_rate_mru,
     equipmentRentalCommissionBps: r.equipment_rental_commission_bps,
+    latestAndroidUrl: r.latest_android_url,
+    latestIosUrl: r.latest_ios_url,
     updatedAt: r.updated_at.toISOString(),
     updatedBy: r.updated_by,
   };
@@ -328,7 +341,7 @@ export async function getPricingSettings(): Promise<PricingSettings> {
             night_pricing_enabled, night_price_multiplier,
             night_price_start_hour, night_price_end_hour,
             carpooling_enabled, carpooling_publication_fee,
-            carpooling_boost_fee,
+            carpooling_boost_fee, carpooling_commission_bps,
             show_demo_buttons, demo_buttons_allowed_versions,
               captain_alert_sound_mode, captain_alert_repeat_interval_s,
               captain_alert_sound_url,
@@ -355,6 +368,7 @@ export async function getPricingSettings(): Promise<PricingSettings> {
             intercity_freight_commission_bps,
             equipment_rental_enabled, equipment_rental_daily_rate_mru,
             equipment_rental_commission_bps,
+            latest_android_url, latest_ios_url,
             updated_at, updated_by
        FROM app_settings WHERE id = 1`,
   );
@@ -407,6 +421,7 @@ export interface PricingSettingsPatch {
   carpoolingEnabled?: boolean;
   carpoolingPublicationFee?: number;
   carpoolingBoostFee?: number;
+  carpoolingCommissionBps?: number;
   showDemoButtons?: boolean;
   demoButtonsAllowedVersions?: string;
   captainAlertSoundMode?: CaptainAlertSoundMode;
@@ -449,6 +464,8 @@ export interface PricingSettingsPatch {
   equipmentRentalEnabled?: boolean;
   equipmentRentalDailyRateMru?: number;
   equipmentRentalCommissionBps?: number;
+  latestAndroidUrl?: string | null;
+  latestIosUrl?: string | null;
 }
 
 export async function updatePricingSettings(
@@ -495,6 +512,7 @@ export async function updatePricingSettings(
           carpooling_enabled                = COALESCE($50, carpooling_enabled),
           carpooling_publication_fee        = COALESCE($51, carpooling_publication_fee),
           carpooling_boost_fee              = COALESCE($52, carpooling_boost_fee),
+          carpooling_commission_bps         = COALESCE($82, carpooling_commission_bps),
           show_demo_buttons                 = COALESCE($37, show_demo_buttons),
           captain_alert_sound_mode          = COALESCE($38, captain_alert_sound_mode),
           captain_alert_repeat_interval_s   = COALESCE($39, captain_alert_repeat_interval_s),
@@ -537,6 +555,8 @@ export async function updatePricingSettings(
           equipment_rental_daily_rate_mru    = COALESCE($79, equipment_rental_daily_rate_mru),
           equipment_rental_commission_bps    = COALESCE($80, equipment_rental_commission_bps),
           demo_buttons_allowed_versions      = COALESCE($81, demo_buttons_allowed_versions),
+          latest_android_url                 = COALESCE($83, latest_android_url),
+          latest_ios_url                     = COALESCE($84, latest_ios_url),
             updated_at                        = now(),
           updated_by                        = $36
       WHERE id = 1
@@ -563,7 +583,7 @@ export async function updatePricingSettings(
                 night_pricing_enabled, night_price_multiplier,
                 night_price_start_hour, night_price_end_hour,
                 carpooling_enabled, carpooling_publication_fee,
-                carpooling_boost_fee,
+                carpooling_boost_fee, carpooling_commission_bps,
                 show_demo_buttons, demo_buttons_allowed_versions,
                 captain_alert_sound_mode, captain_alert_repeat_interval_s,
                 captain_alert_sound_url,
@@ -590,6 +610,7 @@ export async function updatePricingSettings(
                 intercity_freight_commission_bps,
                 equipment_rental_enabled, equipment_rental_daily_rate_mru,
                 equipment_rental_commission_bps,
+                latest_android_url, latest_ios_url,
                 updated_at, updated_by`,
     [
       patch.baseFareMru ?? null,
@@ -673,6 +694,9 @@ export async function updatePricingSettings(
       patch.equipmentRentalDailyRateMru ?? null,
       patch.equipmentRentalCommissionBps ?? null,
       patch.demoButtonsAllowedVersions ?? null,
+      patch.carpoolingCommissionBps ?? null,
+      patch.latestAndroidUrl ?? null,
+      patch.latestIosUrl ?? null,
     ],
   );
   cache = null;

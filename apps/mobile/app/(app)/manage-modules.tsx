@@ -5,11 +5,16 @@ import { AppText, Card, Icon, Screen, ScreenHeader } from '@/components/ui';
 import { colors, radius, spacing } from '@/theme';
 import { APP_MODULES } from '@/lib/modules';
 import { useModulePreferences } from '@/lib/modulePreferences';
+import { useAppConfig } from '@/lib/appConfig';
 
 export default function ManageModulesScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { isEnabled, toggle } = useModulePreferences();
+  // Only let the user toggle services the admin has enabled; a service turned
+  // off from the admin isn't listed here (and is hidden from the home grid).
+  const { modules: moduleFlags } = useAppConfig();
+  const modules = APP_MODULES.filter((m) => moduleFlags[m.key] !== false);
 
   return (
     <Screen scroll>
@@ -20,7 +25,7 @@ export default function ManageModulesScreen() {
       </AppText>
 
       <Card padding={spacing.lg} style={{ gap: spacing.lg }}>
-        {APP_MODULES.map((m) => (
+        {modules.map((m) => (
           <View key={m.key} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.base }}>
             <View style={{
               width: 46, height: 46, borderRadius: radius.md,

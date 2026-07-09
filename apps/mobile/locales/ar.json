@@ -886,6 +886,13 @@
       "support": "تواصل مع الدعم",
       "supportMessage": "مرحباً، أحتاج إلى مساعدة في تطبيق {{app}}."
     },
+    "download": {
+      "section": "تنزيل التطبيق",
+      "hint": "احصل على أحدث إصدار من التطبيق.",
+      "android": "أحدث إصدار لأندرويد",
+      "ios": "أحدث إصدار لـ iOS",
+      "openError": "تعذّر فتح الرابط."
+    },
     "modules": {
       "section": "الخدمات المعروضة",
       "hint": "اختر الخدمات التي تظهر على شاشتك الرئيسية.",
@@ -1287,7 +1294,13 @@
         "callBtn": "اتصال",
         "whatsappBtn": "واتساب",
         "closeBtn": "إغلاق"
-      }
+      },
+      "requestBtn": "طلب مقعد",
+      "requestSentTitle": "تم إرسال الطلب",
+      "requestSentBody": "استلم السائق طلبك. سيتم إشعارك بمجرد قبوله.",
+      "errRequest": "تعذّر إرسال الطلب",
+      "myBookings": "طلباتي",
+      "alreadyRequested": "طلب قيد الانتظار"
     },
     "driver": {
       "myTrips": "رحلاتي",
@@ -1297,7 +1310,15 @@
       "decrementBtn": "-1 مقعد",
       "cancelBtn": "إلغاء",
       "errUpdate": "تعذر التحديث",
-      "errCancel": "تعذر الإلغاء"
+      "errCancel": "تعذر الإلغاء",
+      "requests": "الطلبات الواردة",
+      "noRequests": "لا توجد طلبات حالياً.",
+      "seatsReq": "{{seats}} مقعد مطلوب",
+      "acceptBtn": "قبول",
+      "declineBtn": "رفض",
+      "completeBtn": "إنهاء",
+      "noShowBtn": "لم يحضر",
+      "seatsLeft": "{{avail}}/{{total}} مقعد متبقٍ"
     },
     "publish": {
       "header": "نشر رحلة",
@@ -1321,7 +1342,7 @@
       "boostTitle": "إبراز (+{{price}} أوقية)",
       "boostDesc": "تظهر الرحلة في المقدمة لمدة 24 ساعة.",
       "feeLine": "رسوم النشر: {{fee}} أوقية",
-      "publishBtn": "الدفع والنشر",
+      "publishBtn": "نشر",
       "errAccessTitle": "الوصول مرفوض",
       "errAccessBody": "يمكن للسائقين فقط نشر رحلة.",
       "errRequiredTitle": "حقول مطلوبة",
@@ -1343,7 +1364,39 @@
       "mineEmpty": "لا توجد منشورات حاليا.",
       "mineViews": "{{avail}}/{{total}} مقاعد · شاهد رقمك {{views}} شخصا",
       "errUpdate": "تعذر التحديث",
-      "errCancel": "تعذر الإلغاء"
+      "errCancel": "تعذر الإلغاء",
+      "freeNote": "النشر مجاني — لا تدفع شيئاً للنشر. تصلك الطلبات مباشرة في التطبيق.",
+      "boostFeeLine": "تمييز: {{fee}} أوقية (اختياري) — يُدفع فقط عند تفعيل التمييز."
+    },
+    "errGeneric": "حدث خطأ ما",
+    "booking": {
+      "status": {
+        "requested": "قيد الانتظار",
+        "accepted": "مقبول",
+        "declined": "مرفوض",
+        "cancelled": "ملغى",
+        "completed": "مكتمل",
+        "no_show": "لم يحضر",
+        "expired": "منتهٍ"
+      },
+      "metaLine": "{{date}} · {{price}} أوقية/مقعد",
+      "driverLabel": "السائق: {{name}}",
+      "passengerLabel": "الراكب: {{name}}",
+      "otpTitle": "رمز التأكيد الخاص بك",
+      "otpHint": "أعطِ هذا الرمز للسائق عند الركوب. يُدخله لتأكيد الرحلة.",
+      "callBtn": "اتصال",
+      "whatsappBtn": "واتساب",
+      "cancelBtn": "إلغاء"
+    },
+    "complete": {
+      "title": "تأكيد الرحلة",
+      "hint": "أدخل الرمز الذي يعطيك إياه الراكب.",
+      "placeholder": "الرمز",
+      "confirmBtn": "تأكيد",
+      "cancelBtn": "إلغاء",
+      "errInvalid": "رمز غير صحيح",
+      "successTitle": "تم تأكيد الرحلة",
+      "successBody": "تم تسجيل الرحلة. شكراً!"
     }
   },
   "roadside": {

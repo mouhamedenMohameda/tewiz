@@ -61,6 +61,25 @@ publicRouter.get('/config', async (req, res) => {
     captainAlertSoundMode: s.captainAlertSoundMode,
     captainAlertRepeatIntervalS: s.captainAlertRepeatIntervalS,
     captainAlertSoundUrl: s.captainAlertSoundUrl,
+    // Latest-build download links shown at the bottom of the in-app Settings
+    // screen. Not version-gated — managed from the admin Settings screen.
+    latestAndroidUrl: s.latestAndroidUrl,
+    latestIosUrl: s.latestIosUrl,
+    // Per-service availability toggles managed from the admin settings screen.
+    // The mobile home grid hides any module whose flag is false; the server
+    // still rejects a booking for a disabled service (403 *_disabled) as a
+    // second line of defence. Keys match APP_MODULES keys in the app so the
+    // client can filter by module key directly.
+    modules: {
+      carpooling: s.carpoolingEnabled,
+      private_driver: s.privateDriverEnabled,
+      convoyage: s.convoyageEnabled,
+      car_rental: s.carRentalEnabled,
+      roadside_assistance: s.roadsideAssistanceEnabled,
+      light_moving: s.lightMovingEnabled,
+      intercity_freight: s.intercityFreightEnabled,
+      equipment_rental: s.equipmentRentalEnabled,
+    },
   });
 });
 
