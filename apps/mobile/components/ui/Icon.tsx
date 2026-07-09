@@ -63,7 +63,7 @@ const REGISTRY = {
   bell: { set: 'ion', glyph: 'notifications-outline' },
   bellFilled: { set: 'ion', glyph: 'notifications' },
   globe: { set: 'ion', glyph: 'globe-outline' },
-  tfag: { set: 'mci', glyph: 'highway' },
+  Ervdni: { set: 'mci', glyph: 'highway' },
 } as const satisfies Record<string, IconEntry>;
 
 export type IconName = keyof typeof REGISTRY;

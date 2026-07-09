@@ -32,6 +32,8 @@ export interface Restaurant {
   etaMax: number | null;
   description: string | null;
   photo: string | null;
+  photos: string[];
+  phone: string | null;
   address: string | null;
   lat: number;
   lng: number;

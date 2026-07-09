@@ -11,7 +11,7 @@ export interface AppModule {
 }
 
 export const APP_MODULES: AppModule[] = [
-  { key: 'carpooling', icon: 'tfag', label: 'rider.home.modules.carpooling', route: '/(app)/carpooling', tint: colors.emberSoft, fg: colors.ember },
+  { key: 'carpooling', icon: 'Ervdni', label: 'rider.home.modules.carpooling', route: '/(app)/carpooling', tint: colors.emberSoft, fg: colors.ember },
   { key: 'private_driver', icon: 'clock', label: 'rider.home.modules.private_driver', route: '/(app)/listings?category=private_driver', tint: '#dbeafe', fg: '#1e40af' },
   { key: 'convoyage', icon: 'ride', label: 'rider.home.modules.convoyage', route: '/(app)/convoyage', tint: '#ede9fe', fg: '#7c3aed' },
   { key: 'car_rental', icon: 'car', label: 'rider.home.modules.car_rental', route: '/(app)/car-rental', tint: '#fef3c7', fg: '#d97706' },

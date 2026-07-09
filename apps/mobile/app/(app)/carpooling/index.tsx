@@ -41,7 +41,7 @@ import {
   type CarpoolingTrip,
 } from '@/lib/carpooling';
 
-type TfagMode = 'passenger' | 'driver';
+type ErvdniMode = 'passenger' | 'driver';
 
 function formatDateTime(iso: string): string {
   const d = new Date(iso);
@@ -166,7 +166,7 @@ export default function CarpoolingScreen() {
   const isCaptain = user?.role === 'captain';
   // Everyone lands on the passenger (booking) view — booking is open to all.
   // Only a registered captain sees the 'Chauffeur' tab to publish & manage.
-  const [mode, setMode] = useState<TfagMode>('passenger');
+  const [mode, setMode] = useState<ErvdniMode>('passenger');
 
   return (
     <>

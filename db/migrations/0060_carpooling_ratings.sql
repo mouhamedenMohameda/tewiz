@@ -1,6 +1,6 @@
 BEGIN;
 
--- Bilateral post-trip ratings for Tfag (carpooling). After a booking is
+-- Bilateral post-trip ratings for Ervdni (carpooling). After a booking is
 -- confirmed completed (OTP), the passenger can rate the driver and the driver
 -- can rate the passenger — one each. Reputation discourages no-shows and bad
 -- behaviour on both sides.
