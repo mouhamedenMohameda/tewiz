@@ -77,6 +77,12 @@ const patchBody = z.object({
   carpoolingBoostFee:               z.number().int().min(0).max(10_000).optional(),
   // Feature flag for the reviewer demo-login buttons (migration 0031).
   showDemoButtons:                  z.boolean().optional(),
+  // Comma-separated app version(s) allowed to see the demo buttons (migration
+  // 0056), e.g. "1.1.12" or "1.1.12,1.1.13". Only digits, dots, commas and
+  // spaces. Empty string = no version allowed (buttons stay hidden for all).
+  demoButtonsAllowedVersions:       z.string().trim().max(200)
+                                      .regex(/^[0-9.,\s]*$/, 'Only digits, dots and commas')
+                                      .optional(),
   captainAlertSoundMode:            z.enum(CAPTAIN_ALERT_SOUND_MODES).optional(),
   captainAlertRepeatIntervalS:      z.number().int().min(1).max(15).optional(),
   captainAlertSoundUrl:             z.string().trim().url().max(500).nullable().optional(),

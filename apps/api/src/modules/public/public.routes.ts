@@ -4,23 +4,22 @@ import * as rides from '../rides/rides.service.js';
 import { getPricingSettings } from '../admin/app-settings.service.js';
 import { defaultStorage } from '../storage/local-disk.js';
 import { StorageNotFoundError } from '../storage/storage.js';
-import { env } from '../../config/env.js';
 
 // Public — NO auth. Used by passengers who don't have an app, only an SMS.
 export const publicRouter = Router();
 
-// App versions allowed to see the reviewer demo-login buttons, parsed once at
-// startup from DEMO_BUTTONS_ALLOWED_VERSIONS. The demo buttons are gated on
-// BOTH the showDemoButtons master toggle AND the requesting app's version
-// (sent in the X-App-Version header). Any build that doesn't send a matching
-// version — including every already-shipped binary, which sends no header at
-// all — is treated as not allowed, so enabling the toggle for a store review
-// can never surface the buttons to real users on older versions.
-const DEMO_BUTTON_VERSIONS: ReadonlySet<string> = new Set(
-  env.DEMO_BUTTONS_ALLOWED_VERSIONS.split(',')
-    .map((v) => v.trim())
-    .filter((v) => v.length > 0),
-);
+// The demo-login buttons are gated on BOTH the showDemoButtons master toggle
+// AND the requesting app's version (sent in the X-App-Version header). The
+// allow-list lives in app_settings.demo_buttons_allowed_versions (managed from
+// the admin), a comma-separated list of versions. Any build that doesn't send
+// a matching version — including every already-shipped binary, which sends no
+// header at all — is treated as not allowed, so enabling the toggle for a store
+// review can never surface the buttons to real users on older versions.
+function parseAllowedVersions(csv: string): ReadonlySet<string> {
+  return new Set(
+    csv.split(',').map((v) => v.trim()).filter((v) => v.length > 0),
+  );
+}
 
 /**
  * GET /public/config
@@ -32,9 +31,10 @@ const DEMO_BUTTON_VERSIONS: ReadonlySet<string> = new Set(
  * showDemoButtons — controlled via PUT /admin/settings { showDemoButtons: bool }
  *   (the master toggle) AND gated on the requesting app's X-App-Version header:
  *   the flag is only ever returned `true` when the toggle is on AND the caller's
- *   version is in DEMO_BUTTONS_ALLOWED_VERSIONS. Older / already-shipped builds
- *   send no version header, so they always receive `false` — enabling the toggle
- *   for a store review cannot leak the buttons to real users on older versions.
+ *   version is in the admin-managed demoButtonsAllowedVersions list. Older /
+ *   already-shipped builds send no version header, so they always receive
+ *   `false` — enabling the toggle for a store review cannot leak the buttons to
+ *   real users on older versions.
  *   true  → show the one-tap reviewer demo-login buttons (set before a store review).
  *   false → hide them (set after the build is approved so real users never see them).
  * captainAlert* — captain alert intensity knobs controlled from the same
@@ -47,7 +47,8 @@ const DEMO_BUTTON_VERSIONS: ReadonlySet<string> = new Set(
 publicRouter.get('/config', async (req, res) => {
   const s = await getPricingSettings();
   const appVersion = (req.get('x-app-version') ?? '').trim();
-  const showDemoButtons = s.showDemoButtons && DEMO_BUTTON_VERSIONS.has(appVersion);
+  const allowedVersions = parseAllowedVersions(s.demoButtonsAllowedVersions);
+  const showDemoButtons = s.showDemoButtons && allowedVersions.has(appVersion);
   // The response is version-dependent (it varies on X-App-Version). Tell any
   // intermediary (nginx/CDN/browser) never to cache it, and to key on the
   // version header if it ever does. Without this, a proxy could cache the

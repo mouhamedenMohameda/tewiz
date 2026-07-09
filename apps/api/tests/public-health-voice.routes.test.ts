@@ -68,6 +68,7 @@ describe('public routes', () => {
 
   const settings = {
     showDemoButtons: true,
+    demoButtonsAllowedVersions: '1.1.12',
     captainAlertSoundMode: 'loop',
     captainAlertRepeatIntervalS: 5,
     captainAlertSoundUrl: 'https://cdn.example.com/alert.mp3',

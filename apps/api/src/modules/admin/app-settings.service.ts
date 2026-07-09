@@ -74,6 +74,10 @@ export interface PricingSettings {
   // and login screens. Flip to true before an App Store / Play submission,
   // back to false once the build is approved.
   showDemoButtons: boolean;
+  // Migration 0056. Comma-separated app version(s) allowed to see the demo
+  // buttons (matched against the X-App-Version header), e.g. '1.1.12'. Gates
+  // the buttons on top of showDemoButtons so older builds never see them.
+  demoButtonsAllowedVersions: string;
   captainAlertSoundMode: CaptainAlertSoundMode;
   captainAlertRepeatIntervalS: number;
   captainAlertSoundUrl: string | null;
@@ -164,6 +168,7 @@ interface Row {
   carpooling_publication_fee: number;
   carpooling_boost_fee: number;
   show_demo_buttons: boolean;
+  demo_buttons_allowed_versions: string;
   captain_alert_sound_mode: CaptainAlertSoundMode;
   captain_alert_repeat_interval_s: number;
   captain_alert_sound_url: string | null;
@@ -249,6 +254,7 @@ function toSettings(r: Row): PricingSettings {
     carpoolingPublicationFee: r.carpooling_publication_fee,
     carpoolingBoostFee: r.carpooling_boost_fee,
     showDemoButtons: r.show_demo_buttons,
+    demoButtonsAllowedVersions: r.demo_buttons_allowed_versions,
     captainAlertSoundMode: r.captain_alert_sound_mode,
     captainAlertRepeatIntervalS: r.captain_alert_repeat_interval_s,
     captainAlertSoundUrl: r.captain_alert_sound_url,
@@ -323,7 +329,7 @@ export async function getPricingSettings(): Promise<PricingSettings> {
             night_price_start_hour, night_price_end_hour,
             carpooling_enabled, carpooling_publication_fee,
             carpooling_boost_fee,
-            show_demo_buttons,
+            show_demo_buttons, demo_buttons_allowed_versions,
               captain_alert_sound_mode, captain_alert_repeat_interval_s,
               captain_alert_sound_url,
                   gps_fraud_severe_mode,
@@ -402,6 +408,7 @@ export interface PricingSettingsPatch {
   carpoolingPublicationFee?: number;
   carpoolingBoostFee?: number;
   showDemoButtons?: boolean;
+  demoButtonsAllowedVersions?: string;
   captainAlertSoundMode?: CaptainAlertSoundMode;
   captainAlertRepeatIntervalS?: number;
   captainAlertSoundUrl?: string | null;
@@ -529,6 +536,7 @@ export async function updatePricingSettings(
           equipment_rental_enabled           = COALESCE($78, equipment_rental_enabled),
           equipment_rental_daily_rate_mru    = COALESCE($79, equipment_rental_daily_rate_mru),
           equipment_rental_commission_bps    = COALESCE($80, equipment_rental_commission_bps),
+          demo_buttons_allowed_versions      = COALESCE($81, demo_buttons_allowed_versions),
             updated_at                        = now(),
           updated_by                        = $36
       WHERE id = 1
@@ -556,7 +564,7 @@ export async function updatePricingSettings(
                 night_price_start_hour, night_price_end_hour,
                 carpooling_enabled, carpooling_publication_fee,
                 carpooling_boost_fee,
-                show_demo_buttons,
+                show_demo_buttons, demo_buttons_allowed_versions,
                 captain_alert_sound_mode, captain_alert_repeat_interval_s,
                 captain_alert_sound_url,
                 gps_fraud_severe_mode,
@@ -664,6 +672,7 @@ export async function updatePricingSettings(
       patch.equipmentRentalEnabled ?? null,
       patch.equipmentRentalDailyRateMru ?? null,
       patch.equipmentRentalCommissionBps ?? null,
+      patch.demoButtonsAllowedVersions ?? null,
     ],
   );
   cache = null;
