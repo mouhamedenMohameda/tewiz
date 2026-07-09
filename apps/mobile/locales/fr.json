@@ -1397,6 +1397,19 @@
       "errInvalid": "Code incorrect",
       "successTitle": "Trajet confirmé",
       "successBody": "Le trajet est enregistré. Merci !"
+    },
+    "rate": {
+      "title": "Noter le trajet",
+      "prompt": "Comment s'est passé le trajet avec {{name}} ?",
+      "commentPlaceholder": "Commentaire (optionnel)",
+      "submitBtn": "Envoyer",
+      "cancelBtn": "Annuler",
+      "rateDriverBtn": "Noter le conducteur",
+      "ratePassengerBtn": "Noter le passager",
+      "toRateTitle": "À noter",
+      "successTitle": "Merci",
+      "successBody": "Votre note a été enregistrée.",
+      "errRate": "Impossible d'enregistrer la note"
     }
   },
   "roadside": {

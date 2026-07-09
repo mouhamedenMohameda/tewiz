@@ -28,6 +28,8 @@ export interface TripListItem {
   isBoosted: boolean;
   boostedUntil: string | null;
   driverName: string;
+  driverRatingAvg?: number;
+  driverRatingCount?: number;
 }
 
 export interface TripDetail extends TripListItem {
@@ -59,6 +61,8 @@ interface TripRow {
   status: 'active' | 'full' | 'expired' | 'cancelled';
   created_at: Date;
   driver_name: string | null;
+  driver_rating_avg?: string | null;
+  driver_rating_count?: number;
 }
 
 function toTripDetail(row: TripRow): TripDetail {
@@ -97,6 +101,8 @@ function toTripListItem(row: TripRow): TripListItem {
     isBoosted: detail.isBoosted,
     boostedUntil: detail.boostedUntil,
     driverName: detail.driverName,
+    driverRatingAvg: row.driver_rating_avg != null ? Number(row.driver_rating_avg) : 0,
+    driverRatingCount: row.driver_rating_count ?? 0,
   };
 }
 
@@ -238,7 +244,9 @@ export async function listTrips(filters: {
             t.total_seats, t.available_seats, t.price_per_seat_mru, t.driver_phone,
             t.notes, t.publication_fee_mru, t.boost_fee_mru, t.is_boosted,
             t.boosted_until, t.views_count, t.status, t.created_at,
-            u.full_name AS driver_name
+            u.full_name AS driver_name,
+            u.carpooling_rating_avg AS driver_rating_avg,
+            u.carpooling_rating_count AS driver_rating_count
        FROM carpooling_trips t
        JOIN users u ON u.id = t.driver_id
        ${where}
@@ -362,6 +370,11 @@ export interface BookingView {
   driverPhone: string | null;
   passengerPhone: string | null;
   otpCode: string | null;
+  // Ratings (available once completed). ratedByMe = the viewer already rated
+  // the counterpart; counterpart* = the other person's overall reputation.
+  ratedByMe: boolean;
+  counterpartRatingAvg: number;
+  counterpartRatingCount: number;
 }
 
 interface BookingRow {
@@ -385,6 +398,12 @@ interface BookingRow {
   driver_name: string | null;
   passenger_name: string | null;
   passenger_phone: string | null;
+  driver_rating_avg: string | null;
+  driver_rating_count: number;
+  passenger_rating_avg: string | null;
+  passenger_rating_count: number;
+  rated_by_passenger: boolean;
+  rated_by_driver: boolean;
 }
 
 const BOOKING_SELECT = `
@@ -393,7 +412,15 @@ const BOOKING_SELECT = `
          t.driver_id, t.origin_city, t.destination_city, t.departure_at,
          t.price_per_seat_mru, t.driver_phone,
          du.full_name AS driver_name,
-         pu.full_name AS passenger_name, pu.phone AS passenger_phone
+         pu.full_name AS passenger_name, pu.phone AS passenger_phone,
+         du.carpooling_rating_avg AS driver_rating_avg,
+         du.carpooling_rating_count AS driver_rating_count,
+         pu.carpooling_rating_avg AS passenger_rating_avg,
+         pu.carpooling_rating_count AS passenger_rating_count,
+         EXISTS (SELECT 1 FROM carpooling_ratings r
+                  WHERE r.booking_id = b.id AND r.role = 'passenger') AS rated_by_passenger,
+         EXISTS (SELECT 1 FROM carpooling_ratings r
+                  WHERE r.booking_id = b.id AND r.role = 'driver') AS rated_by_driver
     FROM carpooling_bookings b
     JOIN carpooling_trips t ON t.id = b.trip_id
     JOIN users du ON du.id = t.driver_id
@@ -423,6 +450,12 @@ function mapBookingRow(row: BookingRow, viewer: 'driver' | 'passenger'): Booking
     passengerPhone: viewer === 'driver' && revealed ? row.passenger_phone : null,
     // The passenger holds the code and reads it to the driver at pickup.
     otpCode: viewer === 'passenger' && row.status === 'accepted' ? row.otp_code : null,
+    ratedByMe: viewer === 'passenger' ? row.rated_by_passenger : row.rated_by_driver,
+    counterpartRatingAvg: Number(
+      viewer === 'passenger' ? row.driver_rating_avg : row.passenger_rating_avg,
+    ) || 0,
+    counterpartRatingCount:
+      viewer === 'passenger' ? row.driver_rating_count : row.passenger_rating_count,
   };
 }
 
@@ -484,6 +517,26 @@ export async function requestBooking(
     }
     if (trip.available_seats < seats) {
       throw new HttpError(409, 'not_enough_seats', 'Plus assez de places disponibles');
+    }
+
+    // No-show deterrent: block a passenger who piled up no-shows in the last
+    // 30 days. Rolling window, so it clears itself. 0 = disabled.
+    if (settings.carpoolingNoShowLimit > 0) {
+      const ns = await client.query<{ cnt: string }>(
+        `SELECT COUNT(*)::text AS cnt
+           FROM carpooling_bookings
+          WHERE passenger_id = $1
+            AND status = 'no_show'
+            AND created_at > now() - interval '30 days'`,
+        [passengerId],
+      );
+      if (Number(ns.rows[0]?.cnt ?? 0) >= settings.carpoolingNoShowLimit) {
+        throw new HttpError(
+          403,
+          'too_many_no_shows',
+          "Trop d'absences recentes. Vous ne pouvez pas reserver pour le moment.",
+        );
+      }
     }
 
     const fareMru = trip.price_per_seat_mru * seats;
@@ -710,7 +763,7 @@ export async function markBookingNoShow(driverId: string, bookingId: string): Pr
     void sendNotification({
       target: { type: 'user', userId: b.passenger_id },
       title: 'Trajet marque absent',
-      body: `Le conducteur a signale que vous n'etiez pas present pour ${b.origin_city} -> ${b.destination_city}.`,
+      body: `Le conducteur a signale votre absence pour ${b.origin_city} -> ${b.destination_city}. Les absences repetees peuvent bloquer vos reservations.`,
       type: 'info',
       data: { feature: 'carpooling', tripId: b.trip_id, bookingId, kind: 'booking_no_show' },
       sentBy: null,
@@ -780,6 +833,75 @@ export async function cancelBooking(userId: string, bookingId: string): Promise<
     }).catch(() => {});
 
     return fetchBookingView(client, bookingId, isPassenger ? 'passenger' : 'driver');
+  });
+}
+
+export async function rateBooking(
+  userId: string,
+  bookingId: string,
+  stars: number,
+  comment: string | null,
+): Promise<BookingView> {
+  return withTx(async (client) => {
+    const { rows } = await client.query<{
+      status: BookingStatus;
+      passenger_id: string;
+      driver_id: string;
+    }>(
+      `SELECT b.status, b.passenger_id, t.driver_id
+         FROM carpooling_bookings b
+         JOIN carpooling_trips t ON t.id = b.trip_id
+        WHERE b.id = $1
+        FOR UPDATE OF b`,
+      [bookingId],
+    );
+    const b = rows[0];
+    if (!b) throw new HttpError(404, 'booking_not_found', 'Reservation introuvable');
+    if (b.status !== 'completed') {
+      throw new HttpError(409, 'not_completed', 'Vous ne pouvez noter qu\'un trajet termine');
+    }
+
+    let role: 'passenger' | 'driver';
+    let rateeId: string;
+    if (userId === b.passenger_id) {
+      role = 'passenger';
+      rateeId = b.driver_id;
+    } else if (userId === b.driver_id) {
+      role = 'driver';
+      rateeId = b.passenger_id;
+    } else {
+      throw new HttpError(403, 'not_your_booking', 'Cette reservation ne vous concerne pas');
+    }
+
+    try {
+      await client.query(
+        `INSERT INTO carpooling_ratings (booking_id, rater_id, ratee_id, role, stars, comment)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [bookingId, userId, rateeId, role, stars, comment],
+      );
+    } catch (err) {
+      if ((err as { code?: string }).code === '23505') {
+        throw new HttpError(409, 'already_rated', 'Vous avez deja note ce trajet');
+      }
+      throw err;
+    }
+
+    // Recompute the ratee's reputation from all their carpooling ratings.
+    await client.query(
+      `UPDATE users u
+          SET carpooling_rating_count = agg.cnt,
+              carpooling_rating_avg   = agg.avg
+         FROM (
+           SELECT COUNT(*)::int AS cnt,
+                  COALESCE(ROUND(AVG(stars), 2), 0) AS avg
+             FROM carpooling_ratings
+            WHERE ratee_id = $1
+         ) agg
+        WHERE u.id = $1`,
+      [rateeId],
+    );
+
+    return fetchBookingView(client, bookingId, role);
   });
 }
 

@@ -42,6 +42,8 @@ interface PricingSettings {
   carpoolingEnabled: boolean;
   carpoolingPublicationFee: number;
   carpoolingBoostFee: number;
+  carpoolingCommissionBps: number;
+  carpoolingNoShowLimit: number;
   showDemoButtons: boolean;
   demoButtonsAllowedVersions: string;
   captainAlertSoundMode: CaptainAlertSoundMode;
@@ -111,6 +113,8 @@ interface FormState {
   carpoolingEnabled: boolean;
   carpoolingPublicationFee: string;
   carpoolingBoostFee: string;
+  carpoolingCommissionPct: string;
+  carpoolingNoShowLimit: string;
   showDemoButtons: boolean;
   demoButtonsAllowedVersions: string;
   captainAlertSoundMode: CaptainAlertSoundMode;
@@ -176,8 +180,10 @@ const EMPTY_FORM: FormState = {
   nightPriceStartHour: '0',
   nightPriceEndHour: '5',
   carpoolingEnabled: true,
-  carpoolingPublicationFee: '100',
+  carpoolingPublicationFee: '0',
   carpoolingBoostFee: '200',
+  carpoolingCommissionPct: '0',
+  carpoolingNoShowLimit: '0',
   privateDriverEnabled: false,
   privateDriverHourlyRateMru: '500',
   privateDriverMinHours: '3',
@@ -246,6 +252,8 @@ function settingsToForm(s: PricingSettings): FormState {
     carpoolingEnabled: s.carpoolingEnabled,
     carpoolingPublicationFee: String(s.carpoolingPublicationFee),
     carpoolingBoostFee: String(s.carpoolingBoostFee),
+    carpoolingCommissionPct: (s.carpoolingCommissionBps / 100).toString(),
+    carpoolingNoShowLimit: String(s.carpoolingNoShowLimit),
     privateDriverEnabled: s.privateDriverEnabled,
     privateDriverHourlyRateMru: String(s.privateDriverHourlyRateMru),
     privateDriverMinHours: String(s.privateDriverMinHours),
@@ -335,6 +343,8 @@ export default function SettingsPage() {
         carpoolingEnabled: form.carpoolingEnabled,
         carpoolingPublicationFee: parseInt(form.carpoolingPublicationFee, 10),
         carpoolingBoostFee: parseInt(form.carpoolingBoostFee, 10),
+        carpoolingCommissionBps: Math.round(parseFloat(form.carpoolingCommissionPct) * 100),
+        carpoolingNoShowLimit: parseInt(form.carpoolingNoShowLimit, 10),
         privateDriverEnabled: form.privateDriverEnabled,
         privateDriverHourlyRateMru: parseInt(form.privateDriverHourlyRateMru, 10),
         privateDriverMinHours: parseInt(form.privateDriverMinHours, 10),
@@ -1020,11 +1030,19 @@ export default function SettingsPage() {
                 </label>
               </div>
               <p className="text-xs text-slate-500 mb-4">
-                Service de publication de trajets inter-villes. Le conducteur paie un
-                frais de publication depuis son wallet, avec une option boost 24h.
+                Publication de trajets inter-villes. La publication est gratuite : le
+                conducteur ne paie qu&apos;une commission au succes, prelevee de son wallet
+                uniquement quand un trajet est confirme (code OTP). Laissez la commission
+                a 0 % pendant le lancement. Le boost 24h reste optionnel et payant.
               </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <Field
+                  label="Commission au succes"
+                  suffix="%"
+                  value={form.carpoolingCommissionPct}
+                  onChange={(v) => setForm({ ...form, carpoolingCommissionPct: v })}
+                />
                 <Field
                   label="Frais de publication"
                   suffix="MRU"
@@ -1036,6 +1054,12 @@ export default function SettingsPage() {
                   suffix="MRU"
                   value={form.carpoolingBoostFee}
                   onChange={(v) => setForm({ ...form, carpoolingBoostFee: v })}
+                />
+                <Field
+                  label="Limite absences (30j, 0 = off)"
+                  suffix="abs."
+                  value={form.carpoolingNoShowLimit}
+                  onChange={(v) => setForm({ ...form, carpoolingNoShowLimit: v })}
                 />
               </div>
             </section>

@@ -15,6 +15,7 @@ import {
   listTrips,
   markBookingNoShow,
   publishTrip,
+  rateBooking,
   requestBooking,
   updateTripSeats,
 } from './carpooling.service.js';
@@ -50,6 +51,11 @@ const bookingBody = z.object({
 
 const completeBody = z.object({
   otp: z.string().trim().min(3).max(10),
+});
+
+const rateBody = z.object({
+  stars: z.number().int().min(1).max(5),
+  comment: z.string().trim().max(500).optional(),
 });
 
 /* ---- Trips -------------------------------------------------------- */
@@ -156,5 +162,13 @@ carpoolingRouter.post('/bookings/:id/no-show', requireAuth, requireRole('captain
 // Either side can cancel while still requested/accepted.
 carpoolingRouter.post('/bookings/:id/cancel', requireAuth, async (req, res) => {
   const booking = await cancelBooking(req.user!.id, String(req.params.id));
+  res.json({ booking });
+});
+
+// Bilateral rating on a completed trip (passenger rates driver, driver rates
+// passenger — one each).
+carpoolingRouter.post('/bookings/:id/rate', requireAuth, async (req, res) => {
+  const body = rateBody.parse(req.body);
+  const booking = await rateBooking(req.user!.id, String(req.params.id), body.stars, body.comment ?? null);
   res.json({ booking });
 });

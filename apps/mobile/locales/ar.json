@@ -1397,6 +1397,19 @@
       "errInvalid": "رمز غير صحيح",
       "successTitle": "تم تأكيد الرحلة",
       "successBody": "تم تسجيل الرحلة. شكراً!"
+    },
+    "rate": {
+      "title": "تقييم الرحلة",
+      "prompt": "كيف كانت الرحلة مع {{name}}؟",
+      "commentPlaceholder": "تعليق (اختياري)",
+      "submitBtn": "إرسال",
+      "cancelBtn": "إلغاء",
+      "rateDriverBtn": "تقييم السائق",
+      "ratePassengerBtn": "تقييم الراكب",
+      "toRateTitle": "للتقييم",
+      "successTitle": "شكراً",
+      "successBody": "تم حفظ تقييمك.",
+      "errRate": "تعذّر حفظ التقييم"
     }
   },
   "roadside": {

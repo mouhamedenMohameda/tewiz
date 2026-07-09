@@ -1380,6 +1380,19 @@
       "errInvalid": "Incorrect code",
       "successTitle": "Trip confirmed",
       "successBody": "The trip is recorded. Thank you!"
+    },
+    "rate": {
+      "title": "Rate the trip",
+      "prompt": "How was the trip with {{name}}?",
+      "commentPlaceholder": "Comment (optional)",
+      "submitBtn": "Send",
+      "cancelBtn": "Cancel",
+      "rateDriverBtn": "Rate the driver",
+      "ratePassengerBtn": "Rate the passenger",
+      "toRateTitle": "To rate",
+      "successTitle": "Thank you",
+      "successBody": "Your rating was saved.",
+      "errRate": "Could not save the rating"
     }
   },
   "roadside": {

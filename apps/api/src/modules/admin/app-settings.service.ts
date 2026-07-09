@@ -73,6 +73,9 @@ export interface PricingSettings {
   // Migration 0058. Success commission charged from the driver wallet only on a
   // confirmed (OTP) carpooling trip. Basis points; 0 during launch.
   carpoolingCommissionBps: number;
+  // Migration 0061. A passenger with >= this many no-shows in the trailing
+  // 30 days is temporarily blocked from booking. 0 disables it.
+  carpoolingNoShowLimit: number;
   // Migration 0031. Show the one-tap reviewer demo-login buttons on the welcome
   // and login screens. Flip to true before an App Store / Play submission,
   // back to false once the build is approved.
@@ -175,6 +178,7 @@ interface Row {
   carpooling_publication_fee: number;
   carpooling_boost_fee: number;
   carpooling_commission_bps: number;
+  carpooling_no_show_limit: number;
   show_demo_buttons: boolean;
   demo_buttons_allowed_versions: string;
   captain_alert_sound_mode: CaptainAlertSoundMode;
@@ -264,6 +268,7 @@ function toSettings(r: Row): PricingSettings {
     carpoolingPublicationFee: r.carpooling_publication_fee,
     carpoolingBoostFee: r.carpooling_boost_fee,
     carpoolingCommissionBps: r.carpooling_commission_bps,
+    carpoolingNoShowLimit: r.carpooling_no_show_limit,
     showDemoButtons: r.show_demo_buttons,
     demoButtonsAllowedVersions: r.demo_buttons_allowed_versions,
     captainAlertSoundMode: r.captain_alert_sound_mode,
@@ -341,7 +346,7 @@ export async function getPricingSettings(): Promise<PricingSettings> {
             night_pricing_enabled, night_price_multiplier,
             night_price_start_hour, night_price_end_hour,
             carpooling_enabled, carpooling_publication_fee,
-            carpooling_boost_fee, carpooling_commission_bps,
+            carpooling_boost_fee, carpooling_commission_bps, carpooling_no_show_limit,
             show_demo_buttons, demo_buttons_allowed_versions,
               captain_alert_sound_mode, captain_alert_repeat_interval_s,
               captain_alert_sound_url,
@@ -422,6 +427,7 @@ export interface PricingSettingsPatch {
   carpoolingPublicationFee?: number;
   carpoolingBoostFee?: number;
   carpoolingCommissionBps?: number;
+  carpoolingNoShowLimit?: number;
   showDemoButtons?: boolean;
   demoButtonsAllowedVersions?: string;
   captainAlertSoundMode?: CaptainAlertSoundMode;
@@ -513,6 +519,7 @@ export async function updatePricingSettings(
           carpooling_publication_fee        = COALESCE($51, carpooling_publication_fee),
           carpooling_boost_fee              = COALESCE($52, carpooling_boost_fee),
           carpooling_commission_bps         = COALESCE($82, carpooling_commission_bps),
+          carpooling_no_show_limit          = COALESCE($85, carpooling_no_show_limit),
           show_demo_buttons                 = COALESCE($37, show_demo_buttons),
           captain_alert_sound_mode          = COALESCE($38, captain_alert_sound_mode),
           captain_alert_repeat_interval_s   = COALESCE($39, captain_alert_repeat_interval_s),
@@ -583,7 +590,7 @@ export async function updatePricingSettings(
                 night_pricing_enabled, night_price_multiplier,
                 night_price_start_hour, night_price_end_hour,
                 carpooling_enabled, carpooling_publication_fee,
-                carpooling_boost_fee, carpooling_commission_bps,
+                carpooling_boost_fee, carpooling_commission_bps, carpooling_no_show_limit,
                 show_demo_buttons, demo_buttons_allowed_versions,
                 captain_alert_sound_mode, captain_alert_repeat_interval_s,
                 captain_alert_sound_url,
@@ -697,6 +704,7 @@ export async function updatePricingSettings(
       patch.carpoolingCommissionBps ?? null,
       patch.latestAndroidUrl ?? null,
       patch.latestIosUrl ?? null,
+      patch.carpoolingNoShowLimit ?? null,
     ],
   );
   cache = null;

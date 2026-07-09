@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Modal,
@@ -34,6 +34,7 @@ import {
   listMyCarpoolingBookings,
   listMyCarpoolingTrips,
   noShowCarpoolingBooking,
+  rateCarpoolingBooking,
   requestCarpoolingBooking,
   type CarpoolingBooking,
   type CarpoolingBookingStatus,
@@ -95,12 +96,77 @@ function StatusBadge({ status }: { status: CarpoolingBookingStatus }) {
   );
 }
 
+function RatingBadge({ avg, count }: { avg?: number; count?: number }) {
+  if (!count || count <= 0) return null;
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+      <Icon name="star" size={14} color={colors.warning} />
+      <AppText variant="caption" color={colors.ink2}>{(avg ?? 0).toFixed(1)} ({count})</AppText>
+    </View>
+  );
+}
+
+function RatingModal({ visible, name, busy, onSubmit, onClose }: {
+  visible: boolean;
+  name: string;
+  busy: boolean;
+  onSubmit: (stars: number, comment: string) => void;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const [stars, setStars] = useState(5);
+  const [comment, setComment] = useState('');
+
+  useEffect(() => {
+    if (visible) { setStars(5); setComment(''); }
+  }, [visible]);
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={{ flex: 1, backgroundColor: 'rgba(15,23,42,0.55)', justifyContent: 'center', padding: spacing.lg }}>
+        <View style={{ backgroundColor: colors.canvas, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.base }}>
+          <AppText variant="h2">{t('carpooling.rate.title')}</AppText>
+          <AppText variant="body" color={colors.ink2}>{t('carpooling.rate.prompt', { name })}</AppText>
+          <View style={{ flexDirection: 'row', gap: spacing.sm, justifyContent: 'center', paddingVertical: spacing.sm }}>
+            {[1, 2, 3, 4, 5].map((n) => (
+              <Pressable key={n} onPress={() => setStars(n)} hitSlop={6}>
+                <Icon name="star" size={38} color={n <= stars ? colors.warning : colors.sunken} />
+              </Pressable>
+            ))}
+          </View>
+          <TextInput
+            value={comment}
+            onChangeText={setComment}
+            placeholder={t('carpooling.rate.commentPlaceholder')}
+            placeholderTextColor={colors.muted}
+            multiline
+            style={{
+              borderWidth: 1,
+              borderColor: colors.sunken,
+              borderRadius: radius.md,
+              paddingHorizontal: spacing.base,
+              paddingVertical: spacing.md,
+              minHeight: 64,
+              textAlignVertical: 'top',
+              color: colors.ink,
+            }}
+          />
+          <Button title={t('carpooling.rate.submitBtn')} icon="check" busy={busy} onPress={() => onSubmit(stars, comment)} />
+          <Button title={t('carpooling.rate.cancelBtn')} variant="ghost" onPress={onClose} />
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 export default function CarpoolingScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const user = useAuth((s) => s.user);
   const isCaptain = user?.role === 'captain';
-  const [mode, setMode] = useState<TfagMode>(isCaptain ? 'driver' : 'passenger');
+  // Everyone lands on the passenger (booking) view — booking is open to all.
+  // Only a registered captain sees the 'Chauffeur' tab to publish & manage.
+  const [mode, setMode] = useState<TfagMode>('passenger');
 
   return (
     <>
@@ -201,6 +267,8 @@ function PassengerView() {
   const [trips, setTrips] = useState<CarpoolingTrip[]>([]);
   const [bookings, setBookings] = useState<CarpoolingBooking[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [rateFor, setRateFor] = useState<CarpoolingBooking | null>(null);
+  const [rating, setRating] = useState(false);
 
   const hasFilters = !!(origin || destination);
 
@@ -216,6 +284,11 @@ function PassengerView() {
 
   const activeBookings = useMemo(
     () => bookings.filter((b) => b.status === 'requested' || b.status === 'accepted'),
+    [bookings],
+  );
+
+  const toRate = useMemo(
+    () => bookings.filter((b) => b.status === 'completed' && !b.ratedByMe),
     [bookings],
   );
 
@@ -261,6 +334,21 @@ function PassengerView() {
     }
   }
 
+  async function submitRating(stars: number, comment: string) {
+    if (!rateFor) return;
+    setRating(true);
+    try {
+      await rateCarpoolingBooking(rateFor.id, stars, comment);
+      setRateFor(null);
+      Alert.alert(t('carpooling.rate.successTitle'), t('carpooling.rate.successBody'));
+      await loadAll();
+    } catch (e: any) {
+      Alert.alert(t('carpooling.errTitle'), e?.response?.data?.error?.message ?? t('carpooling.rate.errRate'));
+    } finally {
+      setRating(false);
+    }
+  }
+
   function clearFilters() {
     setOrigin('');
     setDestination('');
@@ -268,6 +356,27 @@ function PassengerView() {
 
   return (
     <>
+      {/* To rate */}
+      {toRate.length > 0 && (
+        <View style={{ marginBottom: spacing.lg, gap: spacing.md }}>
+          <AppText variant="h2">{t('carpooling.rate.toRateTitle')}</AppText>
+          {toRate.map((b) => (
+            <Card key={b.id} padding={spacing.base} style={{ gap: spacing.sm }}>
+              <AppText variant="title">{b.originCity}{' → '}{b.destinationCity}</AppText>
+              <AppText variant="body" color={colors.ink2}>
+                {t('carpooling.booking.driverLabel', { name: b.driverName })}
+              </AppText>
+              <Button
+                title={t('carpooling.rate.rateDriverBtn')}
+                icon="star"
+                size="sm"
+                onPress={() => setRateFor(b)}
+              />
+            </Card>
+          ))}
+        </View>
+      )}
+
       {/* My requests */}
       {activeBookings.length > 0 && (
         <View style={{ marginBottom: spacing.lg, gap: spacing.md }}>
@@ -376,7 +485,10 @@ function PassengerView() {
                 <AppText variant="body" color={colors.ink2}>
                   {t('carpooling.passenger.seatsPrice', { avail: trip.availableSeats, total: trip.totalSeats, price: trip.pricePerSeatMru })}
                 </AppText>
-                <AppText variant="body" color={colors.ink2}>{t('carpooling.passenger.driverLabel', { name: trip.driverName })}</AppText>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm }}>
+                  <AppText variant="body" color={colors.ink2}>{t('carpooling.passenger.driverLabel', { name: trip.driverName })}</AppText>
+                  <RatingBadge avg={trip.driverRatingAvg} count={trip.driverRatingCount} />
+                </View>
                 {trip.notes ? (
                   <AppText variant="caption" color={colors.muted}>{trip.notes}</AppText>
                 ) : null}
@@ -406,6 +518,14 @@ function PassengerView() {
           })
         )}
       </View>
+
+      <RatingModal
+        visible={rateFor !== null}
+        name={rateFor?.driverName ?? ''}
+        busy={rating}
+        onSubmit={submitRating}
+        onClose={() => setRateFor(null)}
+      />
     </>
   );
 }
@@ -470,9 +590,15 @@ function DriverView() {
   const [completeFor, setCompleteFor] = useState<CarpoolingBooking | null>(null);
   const [otp, setOtp] = useState('');
   const [completing, setCompleting] = useState(false);
+  const [rateFor, setRateFor] = useState<CarpoolingBooking | null>(null);
+  const [rating, setRating] = useState(false);
 
   const pending = useMemo(() => bookings.filter((b) => b.status === 'requested'), [bookings]);
   const ongoing = useMemo(() => bookings.filter((b) => b.status === 'accepted'), [bookings]);
+  const toRate = useMemo(
+    () => bookings.filter((b) => b.status === 'completed' && !b.ratedByMe),
+    [bookings],
+  );
 
   const loadAll = useCallback(async () => {
     try {
@@ -523,6 +649,21 @@ function DriverView() {
       await loadAll();
     } catch (e: any) {
       Alert.alert(t('carpooling.errTitle'), e?.response?.data?.error?.message ?? t('carpooling.driver.errCancel'));
+    }
+  }
+
+  async function submitRating(stars: number, comment: string) {
+    if (!rateFor) return;
+    setRating(true);
+    try {
+      await rateCarpoolingBooking(rateFor.id, stars, comment);
+      setRateFor(null);
+      Alert.alert(t('carpooling.rate.successTitle'), t('carpooling.rate.successBody'));
+      await loadAll();
+    } catch (e: any) {
+      Alert.alert(t('carpooling.errTitle'), e?.response?.data?.error?.message ?? t('carpooling.rate.errRate'));
+    } finally {
+      setRating(false);
     }
   }
 
@@ -615,6 +756,27 @@ function DriverView() {
         )}
       </View>
 
+      {/* To rate */}
+      {toRate.length > 0 && (
+        <View style={{ gap: spacing.md }}>
+          <AppText variant="h2">{t('carpooling.rate.toRateTitle')}</AppText>
+          {toRate.map((b) => (
+            <Card key={b.id} padding={spacing.base} style={{ gap: spacing.sm }}>
+              <AppText variant="title">{b.originCity}{' → '}{b.destinationCity}</AppText>
+              <AppText variant="body" color={colors.ink2}>
+                {t('carpooling.booking.passengerLabel', { name: b.passengerName })}
+              </AppText>
+              <Button
+                title={t('carpooling.rate.ratePassengerBtn')}
+                icon="star"
+                size="sm"
+                onPress={() => setRateFor(b)}
+              />
+            </Card>
+          ))}
+        </View>
+      )}
+
       {/* My trips */}
       <View style={{ gap: spacing.md }}>
         <AppText variant="h2">{t('carpooling.driver.myTrips')}</AppText>
@@ -688,6 +850,14 @@ function DriverView() {
           </View>
         </View>
       </Modal>
+
+      <RatingModal
+        visible={rateFor !== null}
+        name={rateFor?.passengerName ?? ''}
+        busy={rating}
+        onSubmit={submitRating}
+        onClose={() => setRateFor(null)}
+      />
     </View>
   );
 }

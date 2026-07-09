@@ -15,6 +15,8 @@ export interface CarpoolingTrip {
   viewsCount?: number;
   status?: 'active' | 'full' | 'expired' | 'cancelled';
   publicationFeeMru?: number;
+  driverRatingAvg?: number;
+  driverRatingCount?: number;
 }
 
 export interface PublishCarpoolingPayload {
@@ -71,6 +73,10 @@ export interface CarpoolingBooking {
   driverPhone: string | null;
   passengerPhone: string | null;
   otpCode: string | null;
+  // Ratings (once completed).
+  ratedByMe: boolean;
+  counterpartRatingAvg: number;
+  counterpartRatingCount: number;
 }
 
 /* ---- Passenger side ---- */
@@ -129,6 +135,18 @@ export async function noShowCarpoolingBooking(bookingId: string): Promise<Carpoo
 export async function cancelCarpoolingBooking(bookingId: string): Promise<CarpoolingBooking> {
   const r = await api.post<{ booking: CarpoolingBooking }>(
     `/carpooling/bookings/${encodeURIComponent(bookingId)}/cancel`,
+  );
+  return r.data.booking;
+}
+
+export async function rateCarpoolingBooking(
+  bookingId: string,
+  stars: number,
+  comment?: string,
+): Promise<CarpoolingBooking> {
+  const r = await api.post<{ booking: CarpoolingBooking }>(
+    `/carpooling/bookings/${encodeURIComponent(bookingId)}/rate`,
+    { stars, comment: comment?.trim() || undefined },
   );
   return r.data.booking;
 }
