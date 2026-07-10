@@ -25,6 +25,7 @@ export interface RestaurantDto {
   photo: string | null;
   photos: string[];
   phone: string | null;
+  phones: string[];
   address: string | null;
   lat: number;
   lng: number;
@@ -52,6 +53,7 @@ interface RestaurantRow {
   photo: string | null;
   photos: string[] | null;
   phone: string | null;
+  phones: string[] | null;
   address: string | null;
   lat: number;
   lng: number;
@@ -80,6 +82,7 @@ function toDto(r: RestaurantRow): RestaurantDto {
     photo: r.photo,
     photos: r.photos ?? [],
     phone: r.phone,
+    phones: r.phones ?? [],
     address: r.address,
     lat: r.lat,
     lng: r.lng,
@@ -221,6 +224,7 @@ export interface UpsertInput {
   photo?: string | null;
   photos?: string[];
   phone?: string | null;
+  phones?: string[];
   address?: string | null;
   lat: number;
   lng: number;
@@ -380,18 +384,21 @@ export async function upsertRestaurant(
   const exec = client ?? pool;
   const id = input.id ?? (client ? await uniqueSlug(client, slugify(input.name)) : await uniqueSlugStandalone(input.name));
 
-  // The legacy single `photo` column stays in sync with photos[0] so any
-  // reader still on the old field (and existing rows) keeps working.
+  // The legacy single `photo`/`phone` columns stay in sync with the first of
+  // their list so any reader still on the old field (and existing rows) keeps
+  // working.
   const photos = input.photos ?? [];
   const photo = input.photo ?? photos[0] ?? null;
+  const phones = input.phones ?? [];
+  const phone = input.phone ?? phones[0] ?? null;
 
   const { rows } = await exec.query<RestaurantRow>(
     `INSERT INTO restaurants
        (id, name, name_fr, name_ar, name_en, zone, cuisine, tags, price_level,
-        rating, eta_min, eta_max, description, photo, photos, phone, address,
+        rating, eta_min, eta_max, description, photo, photos, phone, phones, address,
         lat, lng, popularity, osm_value, raw_tags, is_active, created_by, updated_by)
      VALUES
-       ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22::jsonb,$23,$24,$24)
+       ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23::jsonb,$24,$25,$25)
      ON CONFLICT (id) DO UPDATE SET
        name        = EXCLUDED.name,
        name_fr     = EXCLUDED.name_fr,
@@ -408,6 +415,7 @@ export async function upsertRestaurant(
        photo       = COALESCE(EXCLUDED.photo, restaurants.photo),
        photos      = CASE WHEN cardinality(EXCLUDED.photos) > 0 THEN EXCLUDED.photos ELSE restaurants.photos END,
        phone       = COALESCE(EXCLUDED.phone, restaurants.phone),
+       phones      = CASE WHEN cardinality(EXCLUDED.phones) > 0 THEN EXCLUDED.phones ELSE restaurants.phones END,
        address     = COALESCE(EXCLUDED.address, restaurants.address),
        lat         = EXCLUDED.lat,
        lng         = EXCLUDED.lng,
@@ -434,7 +442,8 @@ export async function upsertRestaurant(
       input.description ?? null,
       photo,
       photos,
-      input.phone ?? null,
+      phone,
+      phones,
       input.address ?? null,
       input.lat,
       input.lng,
@@ -497,6 +506,12 @@ export async function patchRestaurant(
     if (patch.photo === undefined) push('photo', patch.photos[0] ?? null);
   }
   if (patch.photo !== undefined) push('photo', patch.photo);
+  if (patch.phones !== undefined) {
+    push('phones', patch.phones);
+    // Keep the legacy single `phone` in sync with the first of the list,
+    // unless the caller set it explicitly.
+    if (patch.phone === undefined) push('phone', patch.phones[0] ?? null);
+  }
   if (patch.phone !== undefined) push('phone', patch.phone);
   if (patch.address !== undefined) push('address', patch.address);
   if (patch.lat !== undefined) push('lat', patch.lat);

@@ -34,6 +34,7 @@ export interface Restaurant {
   photo: string | null;
   photos: string[];
   phone: string | null;
+  phones: string[];
   address: string | null;
   lat: number;
   lng: number;

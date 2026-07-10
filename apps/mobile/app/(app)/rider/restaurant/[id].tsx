@@ -90,7 +90,13 @@ export default function RestaurantDetailScreen() {
     ? restaurant.photos
     : (restaurant.photo ? [restaurant.photo] : []);
   const hasMenu = menuPhotos.length > 0;
-  const phone = restaurant.phone?.trim() || null;
+  // A restaurant can list several numbers; the array is the source of truth,
+  // with the legacy single `phone` as a fallback for older rows.
+  const phones = ((restaurant.phones ?? []).length > 0
+    ? restaurant.phones
+    : (restaurant.phone ? [restaurant.phone] : []))
+    .map((p) => p.trim())
+    .filter(Boolean);
   const eta = restaurant.etaMin != null && restaurant.etaMax != null
     ? `${restaurant.etaMin}-${restaurant.etaMax} min`
     : null;
@@ -250,6 +256,42 @@ export default function RestaurantDetailScreen() {
           </FadeInView>
         ) : null}
 
+        {phones.length > 0 ? (
+          <FadeInView delay={170} style={{ marginTop: spacing.lg }}>
+            <AppText variant="overline" color={colors.muted}>{t('rider.restaurants.phoneLabel')}</AppText>
+            <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
+              {phones.map((num, i) => (
+                <PressableScale
+                  key={`${num}-${i}`}
+                  onPress={() => Linking.openURL(`tel:${num}`)}
+                  scaleTo={0.98}
+                  style={{
+                    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+                    backgroundColor: colors.surfaceAlt,
+                    borderRadius: radius.md,
+                    paddingVertical: 10, paddingHorizontal: spacing.md,
+                  }}
+                >
+                  <View style={{
+                    width: 36, height: 36, borderRadius: radius.sm,
+                    backgroundColor: colors.emberSoft,
+                    alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Icon name="phone" size={18} color={colors.ember} />
+                  </View>
+                  <AppText variant="bodyStrong" style={{ flex: 1 }}>{num}</AppText>
+                  <View style={{
+                    backgroundColor: colors.ember,
+                    paddingHorizontal: 14, paddingVertical: 7, borderRadius: radius.pill,
+                  }}>
+                    <AppText variant="label" color={colors.white}>{t('rider.restaurants.call')}</AppText>
+                  </View>
+                </PressableScale>
+              ))}
+            </View>
+          </FadeInView>
+        ) : null}
+
         {restaurant.address ? (
           <FadeInView delay={200} style={{ marginTop: spacing.lg }}>
             <AppText variant="overline" color={colors.muted}>{t('rider.restaurants.address')}</AppText>
@@ -307,27 +349,6 @@ export default function RestaurantDetailScreen() {
             <AppText variant="title" color={colors.ember}>{t('rider.restaurants.deliverFromHere')}</AppText>
           </PressableScale>
         </FadeInView>
-
-        {phone ? (
-          <FadeInView delay={340}>
-            <PressableScale
-              onPress={() => Linking.openURL(`tel:${phone}`)}
-              scaleTo={0.97}
-              style={{
-                backgroundColor: colors.surface,
-                borderRadius: radius.lg,
-                paddingVertical: 15,
-                flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-                gap: spacing.sm,
-                borderWidth: 1.5, borderColor: colors.line,
-                ...shadow.card,
-              }}
-            >
-              <Icon name="phone" size={22} color={colors.ember} />
-              <AppText variant="title" color={colors.ember}>{t('rider.restaurants.callRestaurant')}</AppText>
-            </PressableScale>
-          </FadeInView>
-        ) : null}
 
         <FadeInView delay={360}>
           <Button

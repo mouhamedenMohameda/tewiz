@@ -75,6 +75,7 @@ const upsertSchema = z.object({
   photo: photoUrl.nullable().optional(),
   photos: z.array(photoUrl).max(12).optional(),
   phone: z.string().trim().max(40).nullable().optional(),
+  phones: z.array(z.string().trim().min(1).max(40)).max(10).optional(),
   address: z.string().trim().max(200).nullable().optional(),
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),

@@ -38,6 +38,7 @@ interface Restaurant {
   photo: string | null;
   photos: string[];
   phone: string | null;
+  phones: string[];
   address: string | null;
   lat: number;
   lng: number;
@@ -379,6 +380,24 @@ function parseGoogleMapsUrl(url: string): { lat: string; lng: string; name?: str
   }
 }
 
+/**
+ * Normalize a Mauritanian phone number to the canonical +222XXXXXXXX form.
+ * Accepts input with or without the +222 prefix: a bare 8-digit local number
+ * is prefixed, a 222/00222 prefix is turned into +222, and anything already
+ * starting with "+" just has its separators stripped. Unrecognized shapes are
+ * left as typed (trimmed) so nothing is silently dropped.
+ */
+function normalizePhone(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return '';
+  const digits = trimmed.replace(/\D/g, '');
+  if (trimmed.startsWith('+')) return `+${digits}`;
+  if (digits.startsWith('00222')) return `+${digits.slice(2)}`;
+  if (digits.startsWith('222') && digits.length === 11) return `+${digits}`;
+  if (digits.length === 8) return `+222${digits}`;
+  return trimmed;
+}
+
 function RestaurantForm({
   initial, onClose, onSaved,
 }: {
@@ -389,7 +408,10 @@ function RestaurantForm({
   const isEdit = !!initial;
   const [nameFr, setNameFr] = useState(initial?.nameFr ?? '');
   const [nameAr, setNameAr] = useState(initial?.nameAr ?? '');
-  const [phone, setPhone] = useState(initial?.phone ?? '');
+  // A restaurant can have several numbers; always keep at least one input row.
+  const [phones, setPhones] = useState<string[]>(
+    initial?.phones?.length ? initial.phones : (initial?.phone ? [initial.phone] : ['']),
+  );
   const [lat, setLat] = useState(initial?.lat?.toString() ?? '');
   const [lng, setLng] = useState(initial?.lng?.toString() ?? '');
   const [photos, setPhotos] = useState<string[]>(
@@ -466,13 +488,15 @@ function RestaurantForm({
   const submit = useMutation({
     mutationFn: async () => {
       setErr(null);
+      const cleanedPhones = phones.map(normalizePhone).filter(Boolean);
       const payload = {
         name: primaryName,
         nameFr: nameFr.trim() || null,
         nameAr: nameAr.trim() || null,
-        phone: phone.trim() || null,
+        phones: cleanedPhones,
+        // Keep the legacy single-value fields in sync with the first entry.
+        phone: cleanedPhones[0] ?? null,
         photos,
-        // Keep the legacy single-photo field in sync with the first one.
         photo: photos[0] ?? null,
         lat: Number(lat),
         lng: Number(lng),
@@ -527,14 +551,42 @@ function RestaurantForm({
         <Field label="Nom (français)" value={nameFr} onChange={setNameFr} placeholder="Pizza Lina" />
         <Field label="Nom (arabe)" value={nameAr} onChange={setNameAr} placeholder="بيتزا لينا" />
 
-        <Field
-          label="Numéro de téléphone"
-          value={phone}
-          onChange={setPhone}
-          type="tel"
-          placeholder="+222 …"
-          className="col-span-2"
-        />
+        {/* Phone numbers — a restaurant can have several. */}
+        <div className="col-span-2">
+          <label className="text-xs text-slate-600 block mb-1">Numéros de téléphone</label>
+          <div className="flex flex-col gap-2">
+            {phones.map((p, i) => (
+              <div key={i} className="flex gap-2">
+                <input
+                  type="tel"
+                  value={p}
+                  onChange={(e) =>
+                    setPhones((prev) => prev.map((v, idx) => (idx === i ? e.target.value : v)))
+                  }
+                  placeholder="+222 …"
+                  className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                />
+                {phones.length > 1 ? (
+                  <button
+                    type="button"
+                    onClick={() => setPhones((prev) => prev.filter((_, idx) => idx !== i))}
+                    className="px-3 py-2 text-sm text-red-600 hover:bg-red-50 border border-slate-300 rounded-lg"
+                    aria-label="Supprimer ce numéro"
+                  >
+                    ×
+                  </button>
+                ) : null}
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => setPhones((prev) => [...prev, ''])}
+            className="mt-2 text-xs font-medium text-emerald-700 hover:text-emerald-900"
+          >
+            + Ajouter un numéro
+          </button>
+        </div>
 
         {/* Lat/Lng with GPS button */}
         <div className="col-span-2">
