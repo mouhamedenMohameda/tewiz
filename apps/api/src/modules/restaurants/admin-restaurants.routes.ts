@@ -34,6 +34,7 @@ import {
   upsertRestaurant,
   type UpsertInput,
 } from './restaurants.service.js';
+import { getRestaurantMenu, setRestaurantMenu } from './dishes.service.js';
 
 export const adminRestaurantsRouter = Router();
 
@@ -177,6 +178,48 @@ adminRestaurantsRouter.delete('/:id', async (req, res) => {
     after: { ...before, isActive: false },
   });
   res.json({ ok: true });
+});
+
+// ---------------------------------------------------------------------------
+// Menu (dish + price) for a restaurant
+// ---------------------------------------------------------------------------
+
+const menuBody = z.object({
+  items: z
+    .array(
+      z.object({
+        dishId: z.string().uuid(),
+        priceMru: z.number().int().min(0).max(1_000_000),
+        sortOrder: z.number().int().min(0).optional(),
+        isAvailable: z.boolean().optional(),
+      }),
+    )
+    .max(300),
+});
+
+adminRestaurantsRouter.get('/:id/menu', async (req, res) => {
+  const r = await getRestaurant(req.params.id!, true);
+  if (!r) throw new HttpError(404, 'not_found', 'Restaurant introuvable');
+  const items = await getRestaurantMenu(req.params.id!);
+  res.json({ items });
+});
+
+adminRestaurantsRouter.put('/:id/menu', async (req, res) => {
+  const adminId = req.user!.id;
+  const r = await getRestaurant(req.params.id!, true);
+  if (!r) throw new HttpError(404, 'not_found', 'Restaurant introuvable');
+  const body = menuBody.parse(req.body);
+
+  const items = await withTx((client) => setRestaurantMenu(req.params.id!, body.items, client));
+
+  await audit({
+    adminId,
+    action: 'restaurant_menu_update',
+    targetType: 'restaurant',
+    targetId: req.params.id!,
+    after: { count: items.length },
+  });
+  res.json({ items });
 });
 
 // ---------------------------------------------------------------------------

@@ -12,12 +12,11 @@
 
 'use client';
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AppShell } from '@/components/AppShell';
 import { ResponsiveTable, type Column } from '@/components/ResponsiveTable';
 import { api } from '@/lib/api';
-import { API_URL } from '@/lib/env';
 
 type PriceLevel = '$' | '$$' | '$$$';
 
@@ -61,6 +60,54 @@ interface BulkResponse {
   skipped: number;
   errors: Array<{ index: number; reason: string }>;
   items: Array<{ id: string; name: string }>;
+}
+
+/** A catalog dish (one chip). */
+interface Dish {
+  id: string;
+  nameAr: string;
+  nameFr: string | null;
+  category: string | null;
+  usageCount: number;
+}
+
+/** A menu line as returned by GET /admin/restaurants/:id/menu. */
+interface MenuItemResponse {
+  id: string;
+  dishId: string;
+  nameAr: string;
+  nameFr: string | null;
+  category: string | null;
+  priceMru: number;
+  sortOrder: number;
+  isAvailable: boolean;
+}
+
+/** A menu line while editing (price kept as a string for the input). */
+interface MenuDraftItem {
+  dishId: string;
+  nameAr: string;
+  nameFr: string | null;
+  category: string | null;
+  priceMru: string;
+}
+
+const DISH_CATEGORIES: { value: string; label: string }[] = [
+  { value: '', label: '— catégorie —' },
+  { value: 'plats', label: 'Plats' },
+  { value: 'fast_food', label: 'Fast-food' },
+  { value: 'boissons', label: 'Boissons' },
+  { value: 'desserts', label: 'Desserts' },
+];
+
+/** Client mirror of the API dish-name normalization (dedup + search). */
+function normalizeDishName(name: string): string {
+  return name
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 const CUISINES = [
@@ -414,35 +461,28 @@ function RestaurantForm({
   );
   const [lat, setLat] = useState(initial?.lat?.toString() ?? '');
   const [lng, setLng] = useState(initial?.lng?.toString() ?? '');
-  const [photos, setPhotos] = useState<string[]>(
-    initial?.photos?.length ? initial.photos : (initial?.photo ? [initial.photo] : []),
-  );
+  const [menu, setMenu] = useState<MenuDraftItem[]>([]);
   const [err, setErr] = useState<string | null>(null);
 
-  // Photo upload — a table/menu photo list; accepts several at once.
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
-
-  const handlePhotoUpload = useCallback(async (files: FileList) => {
-    setUploading(true);
-    setErr(null);
-    try {
-      const uploaded: string[] = [];
-      for (const file of Array.from(files)) {
-        const form = new FormData();
-        form.append('file', file);
-        const r = await api.post('/admin/restaurants/upload-photo', form, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
-        uploaded.push(r.data.url as string);
-      }
-      setPhotos((prev) => [...prev, ...uploaded]);
-    } catch (e: any) {
-      setErr(e?.response?.data?.error?.message ?? 'Erreur lors de l\'upload de la photo.');
-    } finally {
-      setUploading(false);
+  // Load the existing menu when editing an existing restaurant.
+  const menuQuery = useQuery<{ items: MenuItemResponse[] }>({
+    queryKey: ['admin-restaurant-menu', initial?.id],
+    queryFn: async () => (await api.get(`/admin/restaurants/${initial!.id}/menu`)).data,
+    enabled: isEdit,
+  });
+  useEffect(() => {
+    if (menuQuery.data) {
+      setMenu(
+        menuQuery.data.items.map((m) => ({
+          dishId: m.dishId,
+          nameAr: m.nameAr,
+          nameFr: m.nameFr,
+          category: m.category,
+          priceMru: String(m.priceMru),
+        })),
+      );
     }
-  }, []);
+  }, [menuQuery.data]);
 
   // GPS position
   const [gpsLoading, setGpsLoading] = useState(false);
@@ -488,35 +528,41 @@ function RestaurantForm({
   const submit = useMutation({
     mutationFn: async () => {
       setErr(null);
+      // Every selected dish must carry a valid price.
+      if (menu.some((m) => !(Number(m.priceMru) > 0))) {
+        throw new Error('Chaque plat du menu doit avoir un prix (> 0).');
+      }
+
       const cleanedPhones = phones.map(normalizePhone).filter(Boolean);
       const payload = {
         name: primaryName,
         nameFr: nameFr.trim() || null,
         nameAr: nameAr.trim() || null,
         phones: cleanedPhones,
-        // Keep the legacy single-value fields in sync with the first entry.
+        // Keep the legacy single-value field in sync with the first entry.
         phone: cleanedPhones[0] ?? null,
-        photos,
-        photo: photos[0] ?? null,
         lat: Number(lat),
         lng: Number(lng),
       };
-      if (isEdit) {
-        const r = await api.patch(`/admin/restaurants/${initial!.id}`, payload);
-        return r.data;
-      } else {
-        const r = await api.post(`/admin/restaurants`, payload);
-        return r.data;
-      }
+      const saved = isEdit
+        ? (await api.patch(`/admin/restaurants/${initial!.id}`, payload)).data
+        : (await api.post(`/admin/restaurants`, payload)).data;
+
+      // Persist the menu (dish + price) for the saved restaurant.
+      await api.put(`/admin/restaurants/${saved.id}/menu`, {
+        items: menu.map((m, i) => ({
+          dishId: m.dishId,
+          priceMru: Math.round(Number(m.priceMru)),
+          sortOrder: i,
+        })),
+      });
+      return saved;
     },
     onSuccess: () => onSaved(),
     onError: (e: any) => {
-      setErr(e?.response?.data?.error?.message ?? 'Erreur lors de l\'enregistrement.');
+      setErr(e?.response?.data?.error?.message ?? (e as Error).message ?? 'Erreur lors de l\'enregistrement.');
     },
   });
-
-  // Absolute URLs load as-is; only legacy root-relative paths need the API base.
-  const photoSrc = (url: string) => (url.startsWith('/') ? `${API_URL}${url}` : url);
 
   return (
     <Modal title={isEdit ? `Modifier — ${initial!.name}` : 'Nouveau restaurant'} onClose={onClose}>
@@ -604,47 +650,10 @@ function RestaurantForm({
           </div>
         </div>
 
-        {/* Photos de table — a list of menu / table photos (multi-upload). */}
+        {/* Menu — searchable dish chips + a price per selected dish. */}
         <div className="col-span-2">
-          <label className="text-xs text-slate-600 block mb-1">
-            Photos de table (carte des plats)
-            <span className="text-slate-400"> · affichées dans l’app · plusieurs possibles</span>
-          </label>
-          <div className="flex flex-wrap items-start gap-3">
-            {photos.map((url, i) => (
-              <div key={`${url}-${i}`} className="relative shrink-0">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={photoSrc(url)} alt="" className="w-20 h-20 rounded-lg object-cover bg-slate-100" />
-                <button
-                  type="button"
-                  onClick={() => setPhotos((prev) => prev.filter((_, idx) => idx !== i))}
-                  className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-600"
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              onChange={(e) => {
-                const fs = e.target.files;
-                if (fs && fs.length) void handlePhotoUpload(fs);
-                e.target.value = '';
-              }}
-            />
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              disabled={uploading}
-              className="w-20 h-20 shrink-0 flex flex-col items-center justify-center text-xs border-2 border-dashed border-slate-300 rounded-lg text-slate-500 hover:border-emerald-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors disabled:opacity-50"
-            >
-              {uploading ? '…' : <><span className="text-lg leading-none">＋</span><span className="mt-0.5">Photo</span></>}
-            </button>
-          </div>
+          <label className="text-xs text-slate-600 block mb-1">Menu (plats + prix)</label>
+          <MenuBuilder value={menu} onChange={setMenu} loading={isEdit && menuQuery.isLoading} />
         </div>
       </div>
 
@@ -663,6 +672,175 @@ function RestaurantForm({
         </button>
       </div>
     </Modal>
+  );
+}
+
+/**
+ * Menu builder: a searchable list of dish "chips" (the shared catalog) plus a
+ * price field per selected dish. Clicking a chip adds the dish to the menu;
+ * typing a new name lets the collector create a brand-new dish (chip) that then
+ * becomes reusable for every restaurant.
+ */
+function MenuBuilder({
+  value, onChange, loading,
+}: {
+  value: MenuDraftItem[];
+  onChange: (m: MenuDraftItem[]) => void;
+  loading?: boolean;
+}) {
+  const qc = useQueryClient();
+  const [query, setQuery] = useState('');
+  const [newCategory, setNewCategory] = useState('');
+  const [createErr, setCreateErr] = useState<string | null>(null);
+
+  const dishesQuery = useQuery<{ items: Dish[] }>({
+    queryKey: ['admin-dishes'],
+    queryFn: async () => (await api.get('/admin/dishes?limit=500')).data,
+  });
+  const dishes = dishesQuery.data?.items ?? [];
+
+  const inMenu = useMemo(() => new Set(value.map((m) => m.dishId)), [value]);
+  const nq = normalizeDishName(query);
+  const filtered = useMemo(
+    () =>
+      dishes.filter(
+        (d) =>
+          !inMenu.has(d.id) &&
+          (!nq ||
+            normalizeDishName(d.nameAr).includes(nq) ||
+            (d.nameFr ? normalizeDishName(d.nameFr).includes(nq) : false)),
+      ),
+    [dishes, inMenu, nq],
+  );
+  const exactExists = dishes.some((d) => normalizeDishName(d.nameAr) === nq);
+  const canCreate = nq.length > 0 && !exactExists;
+
+  const addDish = (d: Dish) => {
+    onChange([
+      ...value,
+      { dishId: d.id, nameAr: d.nameAr, nameFr: d.nameFr, category: d.category, priceMru: '' },
+    ]);
+    setQuery('');
+  };
+
+  const createDish = useMutation({
+    mutationFn: async () => {
+      setCreateErr(null);
+      const r = await api.post('/admin/dishes', {
+        nameAr: query.trim(),
+        category: newCategory || null,
+      });
+      return r.data as Dish;
+    },
+    onSuccess: (d) => {
+      qc.invalidateQueries({ queryKey: ['admin-dishes'] });
+      addDish(d);
+      setNewCategory('');
+    },
+    onError: (e: any) => setCreateErr(e?.response?.data?.error?.message ?? 'Erreur création plat.'),
+  });
+
+  const setPrice = (i: number, v: string) =>
+    onChange(value.map((m, idx) => (idx === i ? { ...m, priceMru: v } : m)));
+  const removeItem = (i: number) => onChange(value.filter((_, idx) => idx !== i));
+
+  return (
+    <div className="border border-slate-200 rounded-lg p-3 bg-slate-50/50">
+      {/* Search / create bar */}
+      <div className="flex gap-2">
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Rechercher un plat ou en créer un…"
+          className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white"
+        />
+        {canCreate ? (
+          <select
+            value={newCategory}
+            onChange={(e) => setNewCategory(e.target.value)}
+            className="border border-slate-300 rounded-lg px-2 py-2 text-xs bg-white"
+          >
+            {DISH_CATEGORIES.map((c) => (
+              <option key={c.value} value={c.value}>{c.label}</option>
+            ))}
+          </select>
+        ) : null}
+      </div>
+
+      {createErr ? <div className="mt-2 text-xs text-red-600">{createErr}</div> : null}
+
+      {/* Chips */}
+      <div className="flex flex-wrap gap-2 mt-3">
+        {canCreate ? (
+          <button
+            type="button"
+            onClick={() => createDish.mutate()}
+            disabled={createDish.isPending}
+            className="px-3 py-1.5 text-sm rounded-full border border-dashed border-emerald-400 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50"
+          >
+            + Créer « {query.trim()} »
+          </button>
+        ) : null}
+        {dishesQuery.isLoading ? (
+          <span className="text-xs text-slate-400">Chargement des plats…</span>
+        ) : filtered.length === 0 && !canCreate ? (
+          <span className="text-xs text-slate-400">Aucun plat. Tape un nom pour en créer un.</span>
+        ) : (
+          filtered.slice(0, 60).map((d) => (
+            <button
+              key={d.id}
+              type="button"
+              onClick={() => addDish(d)}
+              className="px-3 py-1.5 text-sm rounded-full border border-slate-300 bg-white text-slate-700 hover:border-emerald-400 hover:bg-emerald-50"
+              title={d.category ?? undefined}
+            >
+              {d.nameAr}
+              {d.usageCount > 0 ? <span className="text-slate-400"> · {d.usageCount}</span> : null}
+            </button>
+          ))
+        )}
+      </div>
+
+      {/* Selected dishes with price */}
+      <div className="mt-4">
+        {loading ? (
+          <div className="text-xs text-slate-400">Chargement du menu…</div>
+        ) : value.length === 0 ? (
+          <div className="text-xs text-slate-400">
+            Aucun plat sélectionné. Clique une chip ci-dessus pour l’ajouter, puis saisis son prix.
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {value.map((m, i) => (
+              <div key={m.dishId} className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2">
+                <span className="flex-1 text-sm text-slate-800 truncate">
+                  {m.nameAr}
+                  {m.category ? <span className="text-slate-400 text-xs"> · {m.category}</span> : null}
+                </span>
+                <input
+                  type="number"
+                  value={m.priceMru}
+                  onChange={(e) => setPrice(i, e.target.value)}
+                  placeholder="Prix"
+                  className="w-24 border border-slate-300 rounded-lg px-2 py-1 text-sm text-right"
+                  min={0}
+                />
+                <span className="text-xs text-slate-500">MRU</span>
+                <button
+                  type="button"
+                  onClick={() => removeItem(i)}
+                  className="text-red-500 hover:text-red-700 text-lg leading-none px-1"
+                  aria-label="Retirer ce plat"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 

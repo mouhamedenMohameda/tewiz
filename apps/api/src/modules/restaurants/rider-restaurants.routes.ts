@@ -14,6 +14,7 @@ import { z } from 'zod';
 import { HttpError } from '../../middleware/error.js';
 import { defaultStorage } from '../storage/local-disk.js';
 import { getRestaurant, listRestaurants } from './restaurants.service.js';
+import { getRestaurantMenu } from './dishes.service.js';
 
 export const riderRestaurantsRouter = Router();
 
@@ -50,5 +51,7 @@ riderRestaurantsRouter.get('/photos/:filename', async (req, res) => {
 riderRestaurantsRouter.get('/:id', async (req, res) => {
   const r = await getRestaurant(req.params.id!);
   if (!r) throw new HttpError(404, 'not_found', 'Restaurant introuvable');
-  res.json(r);
+  // Only surface available items to riders.
+  const menu = (await getRestaurantMenu(req.params.id!)).filter((m) => m.isAvailable);
+  res.json({ ...r, menu });
 });

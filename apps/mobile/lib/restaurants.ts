@@ -17,6 +17,18 @@ export type Cuisine =
   | 'asiatique' | 'cafe' | 'patisserie' | 'grillades'
   | string;
 
+/** One line of a restaurant's structured menu (dish + price). */
+export interface MenuItem {
+  id: string;
+  dishId: string;
+  nameAr: string;
+  nameFr: string | null;
+  category: string | null;
+  priceMru: number;
+  sortOrder: number;
+  isAvailable: boolean;
+}
+
 export interface Restaurant {
   id: string;
   name: string;
@@ -43,6 +55,8 @@ export interface Restaurant {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  /** Present on the single-restaurant fetch; the list endpoint omits it. */
+  menu?: MenuItem[];
 }
 
 interface ListResponse {
