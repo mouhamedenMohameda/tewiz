@@ -23,6 +23,7 @@ import { getRequiredDocumentTypes } from './document-requirements.service.js';
 import { adminStatsRouter } from './stats.routes.js';
 import { adminVoiceRidesRouter } from '../voice-rides/admin-voice-rides.routes.js';
 import { adminRestaurantsRouter } from '../restaurants/admin-restaurants.routes.js';
+import { adminDishesRouter } from '../restaurants/admin-dishes.routes.js';
 import { adminNotificationsRouter } from '../notifications/admin.routes.js';
 import { adminPartnersRouter } from '../partners/admin-partners.routes.js';
 import { adminCarpoolingRouter } from '../carpooling/admin-carpooling.routes.js';
@@ -102,6 +103,15 @@ adminRouter.use(
     ['ops_manager'],
   ),
   adminRestaurantsRouter,
+);
+// Dish catalog (chips) for the restaurant menu builder — same access as restaurants.
+adminRouter.use(
+  '/dishes',
+  requireAdminRoleByMethod(
+    ['ops_manager', 'dispatcher', 'kyc_reviewer', 'support'],
+    ['ops_manager'],
+  ),
+  adminDishesRouter,
 );
 // Notifications broadcast — ops only.
 adminRouter.use(

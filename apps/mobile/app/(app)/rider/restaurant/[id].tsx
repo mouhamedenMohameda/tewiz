@@ -1,26 +1,24 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Dimensions, Image, Linking, Modal, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Image, Linking, Pressable, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
-  AppText, Button, FadeInView, Icon, PressableScale, Screen,
+  AppText, FadeInView, Icon, PressableScale, Screen,
 } from '@/components/ui';
 import { colors, gradients, radius, shadow, spacing } from '@/theme';
-import { fetchRestaurantById, type Restaurant } from '@/lib/restaurants';
+import { formatMru } from '@/lib/format';
+import { fetchRestaurantById, type MenuItem, type Restaurant } from '@/lib/restaurants';
 import { resolveRestaurantCover } from '@/lib/restaurantPhotos';
 
 export default function RestaurantDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [imgFailed, setImgFailed] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [menuIndex, setMenuIndex] = useState(0);
-  const screenW = Dimensions.get('window').width;
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -81,15 +79,21 @@ export default function RestaurantDetailScreen() {
     );
   }
 
-  // Cover = deterministic fallback. The admin-uploaded photos are the menu /
-  // table cards, shown on demand via the "voir la carte des plats" action.
+  // Cover = deterministic Unsplash fallback keyed on cuisine (photos were
+  // dropped from the collection flow — the menu is now structured data).
   const cover = resolveRestaurantCover(restaurant);
-  // The `photos` array is the source of truth; fall back to the legacy single
-  // `photo` for rows created before multi-photo support.
-  const menuPhotos = (restaurant.photos ?? []).length > 0
-    ? restaurant.photos
-    : (restaurant.photo ? [restaurant.photo] : []);
-  const hasMenu = menuPhotos.length > 0;
+  // Structured menu (dish + price). The API returns lines sorted by
+  // sort_order; group them by category, categories keeping their
+  // first-appearance order. Uncategorized lines render without a header.
+  const isArabic = i18n.language.startsWith('ar');
+  const dishName = (m: MenuItem) => (isArabic ? m.nameAr : (m.nameFr ?? m.nameAr));
+  const menuSections: Array<{ category: string; items: MenuItem[] }> = [];
+  for (const item of restaurant.menu ?? []) {
+    const category = item.category?.trim() ?? '';
+    const section = menuSections.find((s) => s.category === category);
+    if (section) section.items.push(item);
+    else menuSections.push({ category, items: [item] });
+  }
   // A restaurant can list several numbers; the array is the source of truth,
   // with the legacy single `phone` as a fallback for older rows.
   const phones = ((restaurant.phones ?? []).length > 0
@@ -309,6 +313,55 @@ export default function RestaurantDetailScreen() {
         ) : null}
       </View>
 
+      {/* Structured menu — dishes grouped by category, with prices. */}
+      {menuSections.length > 0 ? (
+        <FadeInView delay={230} style={{
+          marginHorizontal: spacing.lg,
+          marginTop: spacing.md,
+          backgroundColor: colors.surface,
+          borderRadius: radius.xxl,
+          padding: spacing.xl,
+          ...shadow.card,
+        }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+            <View style={{
+              width: 36, height: 36, borderRadius: radius.sm,
+              backgroundColor: colors.emberSoft,
+              alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Icon name="menu" size={18} color={colors.ember} />
+            </View>
+            <AppText variant="title">{t('rider.restaurants.menuTitle')}</AppText>
+          </View>
+
+          {menuSections.map(({ category, items }) => (
+            <View key={category || '__uncategorized__'} style={{ marginTop: spacing.lg }}>
+              {category ? (
+                <AppText variant="overline" color={colors.ember}>{category}</AppText>
+              ) : null}
+              <View style={{ marginTop: category ? spacing.xs : 0 }}>
+                {items.map((item, i) => (
+                  <View
+                    key={item.id}
+                    style={{
+                      flexDirection: 'row', alignItems: 'center', gap: spacing.md,
+                      paddingVertical: 10,
+                      borderBottomWidth: i === items.length - 1 ? 0 : 1,
+                      borderBottomColor: colors.line,
+                    }}
+                  >
+                    <AppText variant="body" style={{ flex: 1 }}>{dishName(item)}</AppText>
+                    <AppText variant="bodyStrong" color={colors.ember}>
+                      {formatMru(item.priceMru)}
+                    </AppText>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ))}
+        </FadeInView>
+      ) : null}
+
       {/* CTAs — primary actions */}
       <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.xl, marginBottom: spacing.huge, gap: spacing.sm }}>
         <FadeInView delay={260}>
@@ -350,88 +403,7 @@ export default function RestaurantDetailScreen() {
           </PressableScale>
         </FadeInView>
 
-        <FadeInView delay={360}>
-          <Button
-            variant="ghost"
-            title={t('rider.restaurants.viewMenu')}
-            icon="menu"
-            onPress={() => {
-              // When the admin has uploaded menu photos, show them full-screen.
-              // Otherwise fall back to the "coming soon" notice.
-              if (hasMenu) { setMenuIndex(0); setMenuOpen(true); }
-              else Alert.alert(
-                t('rider.restaurants.menuAlertTitle'),
-                t('rider.restaurants.menuAlertBody', { name: restaurant.name }),
-              );
-            }}
-            style={{ marginTop: spacing.xs }}
-          />
-        </FadeInView>
       </View>
-
-      {/* Full-screen menu (carte des plats) viewer — pinch-to-zoom on iOS. */}
-      <Modal
-        visible={menuOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setMenuOpen(false)}
-      >
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.94)' }}>
-          {/* Horizontal pager — one page per photo, each pinch-to-zoom on iOS. */}
-          <ScrollView
-            horizontal
-            pagingEnabled
-            style={{ flex: 1 }}
-            showsHorizontalScrollIndicator={false}
-            onMomentumScrollEnd={(e) =>
-              setMenuIndex(Math.round(e.nativeEvent.contentOffset.x / screenW))
-            }
-          >
-            {menuPhotos.map((uri, i) => (
-              <ScrollView
-                key={`${uri}-${i}`}
-                style={{ width: screenW }}
-                contentContainerStyle={{ flexGrow: 1, alignItems: 'center', justifyContent: 'center' }}
-                maximumZoomScale={4}
-                minimumZoomScale={1}
-                centerContent
-                showsVerticalScrollIndicator={false}
-                showsHorizontalScrollIndicator={false}
-              >
-                <Image
-                  source={{ uri }}
-                  style={{ width: screenW, height: '100%' }}
-                  resizeMode="contain"
-                />
-              </ScrollView>
-            ))}
-          </ScrollView>
-          <View style={{
-            position: 'absolute', top: spacing.xxl + spacing.sm + 4, left: 0, right: 0,
-            alignItems: 'center',
-          }}>
-            <AppText variant="bodyStrong" color={colors.white}>
-              {menuPhotos.length > 1
-                ? `${t('rider.restaurants.menuAlertTitle')} · ${menuIndex + 1}/${menuPhotos.length}`
-                : t('rider.restaurants.menuAlertTitle')}
-            </AppText>
-          </View>
-          <Pressable
-            onPress={() => setMenuOpen(false)}
-            hitSlop={10}
-            style={{
-              position: 'absolute', top: spacing.xxl + spacing.sm, right: spacing.lg,
-              width: 44, height: 44, borderRadius: radius.md,
-              backgroundColor: 'rgba(255,255,255,0.92)',
-              alignItems: 'center', justifyContent: 'center',
-              ...shadow.card,
-            }}
-            accessibilityLabel={t('common.close', { defaultValue: 'Fermer' })}
-          >
-            <Icon name="close" size={22} color={colors.ink} />
-          </Pressable>
-        </View>
-      </Modal>
     </Screen>
   );
 }
