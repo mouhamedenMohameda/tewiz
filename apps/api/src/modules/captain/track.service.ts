@@ -192,3 +192,35 @@ export async function reapTrackPartitions(
 
   return { created: [], dropped };
 }
+
+/**
+ * In-process daily cron for track retention, mirroring the other
+ * `start*Cron()` jobs wired in index.ts. Runs once a day at ~03:30 local time
+ * (low-traffic window): ensures tomorrow's partition exists and drops
+ * partitions past the retention window. Idempotent, so a missed/duplicate run
+ * is harmless.
+ */
+export function startCaptainTrackReapCron(): void {
+  const tick = async () => {
+    try {
+      const r = await reapTrackPartitions();
+      // eslint-disable-next-line no-console
+      console.log(`[captain-track] reap ok, dropped ${r.dropped.length} partition(s)`);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn('[captain-track] reap failed', err);
+    }
+  };
+
+  // Fire first at the next 03:30, then every 24 h.
+  const now = new Date();
+  const next = new Date(now);
+  next.setHours(3, 30, 0, 0);
+  if (next <= now) next.setDate(next.getDate() + 1);
+  const msUntilNext = next.getTime() - now.getTime();
+
+  setTimeout(() => {
+    void tick();
+    setInterval(() => void tick(), 24 * 60 * 60 * 1000).unref();
+  }, msUntilNext).unref();
+}

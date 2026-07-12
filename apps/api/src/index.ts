@@ -27,6 +27,7 @@ import { listingsRouter } from './modules/listings/listings.routes.js';
 import { startListingsCron } from './modules/listings/listings.service.js';
 import { roadsideRouter } from './modules/roadside/roadside.routes.js';
 import { startRoadsideCron } from './modules/roadside/roadside.service.js';
+import { startCaptainTrackReapCron } from './modules/captain/track.service.js';
 import { carRentalRouter } from './modules/car-rental/car-rental.routes.js';
 import { convoyageRouter } from './modules/convoyage/convoyage.routes.js';
 import { freightRouter } from './modules/freight/freight.routes.js';
@@ -170,4 +171,6 @@ app.listen(env.PORT, '127.0.0.1', () => {
   startListingsCron();
   // Expand roadside SOS search radius + fall back to the hotline on timeout.
   startRoadsideCron();
+  // Off-ride track retention: drop partitions older than 14 days, daily 03:30.
+  startCaptainTrackReapCron();
 });
