@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { MapRef } from 'react-map-gl/mapbox';
-import { Marker, Popup } from 'react-map-gl/mapbox';
+import { Layer, Marker, Popup, Source } from 'react-map-gl/mapbox';
 import { MapShell } from '@/components/Map';
+
+export type TrackPoint = { lat: number; lng: number };
 
 export type CaptainMarker = {
   id: string;
@@ -19,9 +21,11 @@ interface Props {
   captains: CaptainMarker[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  /** Off-ride breadcrumb trail of the selected captain, drawn as a polyline. */
+  track?: TrackPoint[];
 }
 
-export function CaptainsMap({ captains, selectedId, onSelect }: Props) {
+export function CaptainsMap({ captains, selectedId, onSelect, track }: Props) {
   const mapRef = useRef<MapRef | null>(null);
   const fittedRef = useRef(false);
   const [popupId, setPopupId] = useState<string | null>(null);
@@ -79,8 +83,30 @@ export function CaptainsMap({ captains, selectedId, onSelect }: Props) {
 
   const popupCaptain = popupId ? visible.find((c) => c.id === popupId) : null;
 
+  // GeoJSON LineString for the selected captain's trail (needs ≥2 points).
+  const trackGeoJson = track && track.length >= 2
+    ? {
+        type: 'Feature' as const,
+        properties: {},
+        geometry: {
+          type: 'LineString' as const,
+          coordinates: track.map((p) => [p.lng, p.lat]),
+        },
+      }
+    : null;
+
   return (
     <MapShell ref={mapRef}>
+      {trackGeoJson && (
+        <Source id="captain-track" type="geojson" data={trackGeoJson}>
+          <Layer
+            id="captain-track-line"
+            type="line"
+            layout={{ 'line-join': 'round', 'line-cap': 'round' }}
+            paint={{ 'line-color': '#f97316', 'line-width': 4, 'line-opacity': 0.85 }}
+          />
+        </Source>
+      )}
       {visible.map((c) => (
         <Marker
           key={c.id}

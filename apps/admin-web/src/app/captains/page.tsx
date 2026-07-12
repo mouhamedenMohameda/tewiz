@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import clsx from 'clsx';
 import { AppShell } from '@/components/AppShell';
 import { api } from '@/lib/api';
-import { CaptainsMap, type CaptainMarker } from './CaptainsMap';
+import { CaptainsMap, type CaptainMarker, type TrackPoint } from './CaptainsMap';
 
 type CaptainStatus = 'active' | 'suspended' | 'banned' | 'pending';
 
@@ -36,6 +36,18 @@ export default function CaptainsPage() {
   const [filter, setFilter] = useState<Filter>('all');
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // Off-ride breadcrumb trail of the selected captain (last 24 h), drawn as a
+  // polyline on the map. Only fetched when a captain is selected.
+  const { data: track } = useQuery({
+    queryKey: ['admin-captain-track', selectedId],
+    enabled: !!selectedId,
+    refetchInterval: 15_000,
+    queryFn: async () => {
+      const r = await api.get(`/admin/captains/${selectedId}/track`);
+      return (r.data.points ?? []) as TrackPoint[];
+    },
+  });
 
   const counts = useMemo(() => {
     const c = { total: 0, online: 0, on_ride: 0, paused: 0, offline: 0 };
@@ -181,6 +193,7 @@ export default function CaptainsPage() {
               captains={data ?? []}
               selectedId={selectedId}
               onSelect={setSelectedId}
+              track={selectedId ? track : undefined}
             />
             {selected && (
               <CaptainDetailCard

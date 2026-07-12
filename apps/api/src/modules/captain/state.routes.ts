@@ -6,6 +6,7 @@ import { type AuthedRequest } from '../../middleware/auth.js';
 import { HttpError } from '../../middleware/error.js';
 import { getBalance } from '../wallet/wallet.service.js';
 import * as goingHome from '../home/going-home.service.js';
+import { ingestTrackBatch, isTrackingEnabled } from './track.service.js';
 
 // Parent enforces auth + role=captain.
 export const captainStateRouter = Router();
@@ -120,6 +121,54 @@ captainStateRouter.get('/', async (req, res) => {
   );
   if (!r.rows[0]) throw new HttpError(404, 'no_state', 'No state row');
   res.json(r.rows[0]);
+});
+
+/**
+ * POST /captain/state/track
+ * Batch of off-ride GPS breadcrumbs from the mobile background TaskManager
+ * (Level B). Body: { points: [{ lat, lng, accuracyM?, speedMps?, recordedAt }] }.
+ *
+ * The captain app buffers points (~50 m / 30 s) and flushes them here. The
+ * server drops noise (immobile / teleport / bad accuracy) and stores the rest
+ * in the daily-partitioned `captain_track`. Also refreshes the live location
+ * in `captain_state` so the back-office marker stays current between rides.
+ *
+ * Returns { stored } even when tracking is disabled (stored: 0) so the client
+ * can quietly stop pushing without treating it as an error.
+ */
+const trackBody = z.object({
+  points: z.array(z.object({
+    lat: z.number().min(-90).max(90),
+    lng: z.number().min(-180).max(180),
+    accuracyM: z.number().min(0).max(10_000).optional(),
+    speedMps: z.number().min(-1).max(200).optional(),
+    recordedAt: z.number().int().positive(),
+  })).min(1).max(200),
+});
+captainStateRouter.post('/track', async (req, res) => {
+  const userId = req.user!.id;
+
+  if (!(await isTrackingEnabled())) {
+    res.json({ stored: 0, disabled: true });
+    return;
+  }
+
+  const body = trackBody.parse(req.body);
+  const result = await ingestTrackBatch(userId, body.points);
+
+  // Keep the live marker fresh from the most recent accepted-looking point
+  // (the latest one in the batch), without downgrading an on_ride presence.
+  const latest = body.points.reduce((a, b) => (b.recordedAt > a.recordedAt ? b : a));
+  await pool.query(
+    `UPDATE captain_state
+        SET location   = ST_SetSRID(ST_MakePoint($2, $3), 4326)::geography,
+            updated_at = now()
+      WHERE captain_id = $1
+        AND presence <> 'offline'`,
+    [userId, latest.lng, latest.lat],
+  );
+
+  res.json({ stored: result.accepted, dropped: result.dropped });
 });
 
 /**

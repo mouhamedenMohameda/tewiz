@@ -18,6 +18,9 @@ import { registerForPushNotifications } from '@/lib/notifications';
 // Importing this module also runs its top-level side effects (defines the
 // background ride-alert task + Notifee background handler).
 import { registerBackgroundRideAlertTask } from '@/lib/fullScreenRideAlert';
+// Import for side effect: defines the background off-ride location task so the
+// OS can invoke it once the captain starts tracking (Level B).
+import '@/lib/track-task';
 import { readAndClearCrash } from '@/lib/crash-reporter';
 import { initI18n } from '@/lib/i18n';
 import { loadAppConfig } from '@/lib/appConfig';

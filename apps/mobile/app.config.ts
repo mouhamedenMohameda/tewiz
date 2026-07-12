@@ -36,10 +36,15 @@ const config: ExpoConfig = {
     infoPlist: {
       NSLocationWhenInUseUsageDescription:
         'Pour commander une course et — en mode chauffeur — recevoir des courses proches.',
-      // No NSLocationAlwaysAndWhenInUseUsageDescription: the app only uses
-      // foreground location (getCurrentPositionAsync). Declaring Always
-      // without runtime usage triggers App Store rejection under
-      // guideline 5.1.1 (data collection scope).
+      // Background location (Level B): a captain who is ONLINE shares their
+      // position continuously so the support/back-office can see and replay
+      // their route, even when the app is backgrounded. Only active while
+      // online; stops on offline. This backs the Always usage declaration
+      // below (App Store guideline 5.1.1 — the runtime usage now exists).
+      NSLocationAlwaysAndWhenInUseUsageDescription:
+        'En mode chauffeur en ligne, votre position est partagée en continu avec le support pour la sécurité et le suivi de vos trajets, même en arrière-plan.',
+      // Allow location delivery while backgrounded.
+      UIBackgroundModes: ['location'],
       NSCameraUsageDescription:
         'Pour prendre les photos requises pour votre dossier de chauffeur.',
       NSPhotoLibraryUsageDescription:
@@ -59,6 +64,10 @@ const config: ExpoConfig = {
     permissions: [
       'android.permission.ACCESS_COARSE_LOCATION',
       'android.permission.ACCESS_FINE_LOCATION',
+      // Background tracking (Level B) while the captain is online.
+      'android.permission.ACCESS_BACKGROUND_LOCATION',
+      'android.permission.FOREGROUND_SERVICE',
+      'android.permission.FOREGROUND_SERVICE_LOCATION',
       'android.permission.CAMERA',
       'android.permission.READ_EXTERNAL_STORAGE',
       'android.permission.RECORD_AUDIO',
@@ -86,10 +95,14 @@ const config: ExpoConfig = {
     [
       'expo-location',
       {
-        // Foreground-only — see comment on NSLocationWhenInUseUsageDescription
-        // above. Switch to `locationAlwaysAndWhenInUsePermission` only if we
-        // actually start a background TaskManager for ride tracking.
         locationWhenInUsePermission: `${APP_NAME} utilise votre position pour commander ou — en mode chauffeur — recevoir des courses.`,
+        // Level B background tracking: a background TaskManager collects the
+        // online captain's location for the back-office route view. This turns
+        // on the Android background-location + foreground-service wiring and the
+        // iOS Always permission string.
+        locationAlwaysAndWhenInUsePermission: `${APP_NAME}, en mode chauffeur en ligne, partage votre position en continu avec le support, même en arrière-plan.`,
+        isAndroidBackgroundLocationEnabled: true,
+        isAndroidForegroundServiceEnabled: true,
       },
     ],
     [
