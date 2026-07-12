@@ -2,7 +2,9 @@ import { api } from './api';
 
 export type Transmission = 'auto' | 'manual';
 export type CarStatus = 'active' | 'paused' | 'removed';
-export type BookingStatus = 'pending' | 'confirmed' | 'declined' | 'cancelled' | 'completed';
+export type BookingStatus =
+  | 'pending' | 'confirmed' | 'declined' | 'cancelled'
+  | 'in_progress' | 'completed' | 'no_show' | 'no_return' | 'disputed';
 
 export interface Car {
   id: string;
@@ -19,11 +21,12 @@ export interface Car {
   photos: string[];
   ownerName: string;
   ownerRating: number | null;
+  ownerRatingCount: number;
   description?: string | null;
   status?: CarStatus;
 }
 
-export interface RenterBooking {
+interface BaseBooking {
   id: string;
   carTitle: string;
   carPhoto: string | null;
@@ -34,23 +37,32 @@ export interface RenterBooking {
   withDriver: boolean;
   totalMru: number;
   status: BookingStatus;
-  ownerName: string;
-  ownerPhone: string | null;
+  depositMru: number;
+  depositTaken: boolean;
+  depositReturned: boolean;
+  commissionMru: number;
+  pickupPhotos: string[];
+  returnPhotos: string[];
+  pickedUpAt: string | null;
+  returnedAt: string | null;
   createdAt: string;
+  ratedByMe: boolean;
+  counterpartRatingAvg: number;
+  counterpartRatingCount: number;
 }
 
-export interface OwnerBooking {
-  id: string;
-  carTitle: string;
-  startDate: string;
-  endDate: string;
-  days: number;
-  withDriver: boolean;
-  totalMru: number;
-  status: BookingStatus;
+export interface RenterBooking extends BaseBooking {
+  ownerName: string;
+  ownerPhone: string | null;
+  // The renter holds this and reads it to the owner at handover.
+  pickupOtp: string | null;
+}
+
+export interface OwnerBooking extends BaseBooking {
   renterName: string;
   renterPhone: string | null;
-  createdAt: string;
+  // The owner holds this and reads it to the renter at return.
+  returnOtp: string | null;
 }
 
 export interface CarInputPayload {
@@ -73,7 +85,11 @@ export const BOOKING_STATUS_KEYS: Record<BookingStatus, string> = {
   confirmed: 'carRental.bookingStatus.confirmed',
   declined: 'carRental.bookingStatus.declined',
   cancelled: 'carRental.bookingStatus.cancelled',
+  in_progress: 'carRental.bookingStatus.in_progress',
   completed: 'carRental.bookingStatus.completed',
+  no_show: 'carRental.bookingStatus.no_show',
+  no_return: 'carRental.bookingStatus.no_return',
+  disputed: 'carRental.bookingStatus.disputed',
 };
 
 export async function browseCars(filters: {
@@ -132,6 +148,46 @@ export async function listIncomingBookings(): Promise<OwnerBooking[]> {
 
 export async function respondBooking(id: string, action: 'confirm' | 'decline'): Promise<OwnerBooking> {
   const r = await api.post<{ booking: OwnerBooking }>(`/car-rental/bookings/${encodeURIComponent(id)}/respond`, { action });
+  return r.data.booking;
+}
+
+// --- Trust checkpoints ---
+
+// Owner enters the renter's pickup code (+ état-des-lieux photos) -> in_progress.
+export async function pickupBooking(id: string, otp: string, photos: string[] = []): Promise<OwnerBooking> {
+  const r = await api.post<{ booking: OwnerBooking }>(`/car-rental/bookings/${encodeURIComponent(id)}/pickup`, { otp, photos });
+  return r.data.booking;
+}
+
+// Renter enters the owner's return code (+ photos) -> completed.
+export async function returnBooking(id: string, otp: string, photos: string[] = []): Promise<RenterBooking> {
+  const r = await api.post<{ booking: RenterBooking }>(`/car-rental/bookings/${encodeURIComponent(id)}/return`, { otp, photos });
+  return r.data.booking;
+}
+
+// Owner confirms the return and marks the deposit restituted.
+export async function confirmReturn(id: string, photos: string[] = []): Promise<OwnerBooking> {
+  const r = await api.post<{ booking: OwnerBooking }>(`/car-rental/bookings/${encodeURIComponent(id)}/confirm-return`, { photos });
+  return r.data.booking;
+}
+
+export async function markNoShow(id: string): Promise<OwnerBooking> {
+  const r = await api.post<{ booking: OwnerBooking }>(`/car-rental/bookings/${encodeURIComponent(id)}/no-show`);
+  return r.data.booking;
+}
+
+export async function markNoReturn(id: string): Promise<OwnerBooking> {
+  const r = await api.post<{ booking: OwnerBooking }>(`/car-rental/bookings/${encodeURIComponent(id)}/no-return`);
+  return r.data.booking;
+}
+
+export async function openDispute(id: string, photos: string[] = []): Promise<RenterBooking | OwnerBooking> {
+  const r = await api.post<{ booking: RenterBooking | OwnerBooking }>(`/car-rental/bookings/${encodeURIComponent(id)}/dispute`, { photos });
+  return r.data.booking;
+}
+
+export async function rateBooking(id: string, stars: number, comment?: string): Promise<RenterBooking | OwnerBooking> {
+  const r = await api.post<{ booking: RenterBooking | OwnerBooking }>(`/car-rental/bookings/${encodeURIComponent(id)}/rate`, { stars, comment });
   return r.data.booking;
 }
 

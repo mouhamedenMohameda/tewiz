@@ -108,6 +108,7 @@ const patchBody = z.object({
   carRentalEnabled:                 z.boolean().optional(),
   carRentalDailyRateMru:            z.number().int().min(0).max(1_000_000).optional(),
   carRentalCommissionBps:           z.number().int().min(0).max(5_000).optional(),
+  carRentalNoShowLimit:             z.number().int().min(0).max(50).optional(),
   roadsideAssistanceEnabled:        z.boolean().optional(),
   roadsideAssistanceBaseFareMru:    z.number().int().min(0).max(100_000).optional(),
   roadsideAssistanceCommissionBps:  z.number().int().min(0).max(5_000).optional(),
