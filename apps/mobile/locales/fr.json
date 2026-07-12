@@ -1246,7 +1246,9 @@
       "pausedLabel": "En pause",
       "errAction": "Action impossible.",
       "daysWithDriver": " · avec chauffeur",
-      "daysMeta": "{{start}} → {{end}} · {{days}} j"
+      "daysMeta": "{{start}} → {{end}} · {{days}} j",
+      "requestsLabel": "DEMANDES ({{count}})",
+      "noShowBtn": "Non présenté"
     },
     "bookings": {
       "title": "Mes réservations",
@@ -1261,7 +1263,75 @@
       "confirmed": "Confirmée",
       "declined": "Refusée",
       "cancelled": "Annulée",
-      "completed": "Terminée"
+      "completed": "Terminée",
+      "in_progress": "En cours",
+      "no_show": "Absent",
+      "no_return": "Non rendue",
+      "disputed": "Litige"
+    },
+    "deposit": {
+      "line": "Caution : {{amount}} (en espèces)",
+      "dueLine": "Caution à percevoir : {{amount}}",
+      "returned": "Caution restituée ✅",
+      "pendingReturn": "Caution à restituer"
+    },
+    "pickup": {
+      "codeLabel": "CODE DE REMISE",
+      "codeHint": "Donnez ce code au propriétaire à la remise des clés.",
+      "startBtn": "Remettre (saisir code)",
+      "title": "Remise du véhicule",
+      "hint": "Saisissez le code de remise du locataire et prenez des photos de l’état du véhicule.",
+      "confirmBtn": "Valider la remise",
+      "successTitle": "Remise validée",
+      "successBody": "La location a démarré.",
+      "errInvalid": "Code de remise incorrect."
+    },
+    "returnCode": {
+      "label": "CODE DE RETOUR",
+      "hint": "Donnez ce code au locataire au retour du véhicule."
+    },
+    "return": {
+      "startBtn": "Rendre (code retour)",
+      "title": "Retour du véhicule",
+      "hint": "Saisissez le code de retour du propriétaire et prenez des photos de l’état du véhicule.",
+      "confirmBtn": "Valider le retour",
+      "successTitle": "Retour validé",
+      "successBody": "La location est terminée. Merci !",
+      "errInvalid": "Code de retour incorrect."
+    },
+    "confirmReturn": {
+      "startBtn": "Confirmer retour + caution",
+      "title": "Confirmer le retour",
+      "hint": "Ajoutez des photos de l’état au retour et confirmez la restitution de la caution.",
+      "confirmBtn": "Confirmer"
+    },
+    "noReturn": {
+      "startBtn": "Non rendue",
+      "confirmTitle": "Signaler un non-retour",
+      "confirmBody": "Confirmez-vous que la voiture n’a pas été rendue ? Le dossier sera signalé à l’administration.",
+      "confirmBtn": "Signaler"
+    },
+    "dispute": {
+      "openBtn": "Signaler un litige",
+      "confirmTitle": "Ouvrir un litige",
+      "confirmBody": "Ouvrir un litige sur cette location ? Un administrateur examinera les photos avant/après."
+    },
+    "rate": {
+      "title": "Notez",
+      "prompt": "Comment s’est passée la location avec {{name}} ?",
+      "commentPlaceholder": "Un commentaire (facultatif)",
+      "submitBtn": "Envoyer",
+      "cancelBtn": "Annuler",
+      "rateOwnerBtn": "Noter le propriétaire",
+      "rateRenterBtn": "Noter le locataire",
+      "errRate": "Notation impossible."
+    },
+    "otp": {
+      "placeholder": "Code à 4 chiffres",
+      "cancelBtn": "Annuler"
+    },
+    "photos": {
+      "label": "Photos état des lieux"
     }
   },
   "carpooling": {

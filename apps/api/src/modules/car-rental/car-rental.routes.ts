@@ -9,13 +9,20 @@ import { defaultStorage } from '../storage/local-disk.js';
 import {
   browseCars,
   cancelBooking,
+  confirmReturn,
   createCar,
   getCarDetail,
   getMyBookings,
   listIncomingBookings,
   listMyCars,
+  markNoReturn,
+  markNoShow,
+  openDispute,
+  pickupBooking,
+  rateBooking,
   requestBooking,
   respondBooking,
+  returnBooking,
   updateCar,
 } from './car-rental.service.js';
 
@@ -167,4 +174,49 @@ carRentalRouter.post('/bookings/:id/cancel', requireAuth, async (req, res) => {
   const ok = await cancelBooking(String(req.params.id), req.user!.id);
   if (!ok) throw new HttpError(404, 'booking_not_found', 'Réservation introuvable');
   res.json({ ok: true });
+});
+
+// --- Trust checkpoints ---
+const otpBody = z.object({ otp: z.string().trim().min(3).max(10) });
+const otpPhotosBody = otpBody.extend({ photos: z.array(photoUrl).max(8).optional() });
+const photosBody = z.object({ photos: z.array(photoUrl).max(8).optional() });
+const rateBody = z.object({
+  stars: z.number().int().min(1).max(5),
+  comment: z.string().trim().max(500).optional(),
+});
+
+// Owner enters the renter's pickup code (+ état-des-lieux photos) -> in_progress.
+carRentalRouter.post('/bookings/:id/pickup', requireAuth, async (req, res) => {
+  const b = otpPhotosBody.parse(req.body ?? {});
+  res.json({ booking: await pickupBooking(req.user!.id, String(req.params.id), b.otp, b.photos ?? []) });
+});
+
+// Renter enters the owner's return code (+ photos) -> completed, commission charged.
+carRentalRouter.post('/bookings/:id/return', requireAuth, async (req, res) => {
+  const b = otpPhotosBody.parse(req.body ?? {});
+  res.json({ booking: await returnBooking(req.user!.id, String(req.params.id), b.otp, b.photos ?? []) });
+});
+
+// Owner confirms the return (photos) and marks the deposit restituted.
+carRentalRouter.post('/bookings/:id/confirm-return', requireAuth, async (req, res) => {
+  const b = photosBody.parse(req.body ?? {});
+  res.json({ booking: await confirmReturn(req.user!.id, String(req.params.id), b.photos ?? []) });
+});
+
+carRentalRouter.post('/bookings/:id/no-show', requireAuth, async (req, res) => {
+  res.json({ booking: await markNoShow(req.user!.id, String(req.params.id)) });
+});
+
+carRentalRouter.post('/bookings/:id/no-return', requireAuth, async (req, res) => {
+  res.json({ booking: await markNoReturn(req.user!.id, String(req.params.id)) });
+});
+
+carRentalRouter.post('/bookings/:id/dispute', requireAuth, async (req, res) => {
+  const b = photosBody.parse(req.body ?? {});
+  res.json({ booking: await openDispute(req.user!.id, String(req.params.id), b.photos ?? []) });
+});
+
+carRentalRouter.post('/bookings/:id/rate', requireAuth, async (req, res) => {
+  const b = rateBody.parse(req.body);
+  res.json({ booking: await rateBooking(req.user!.id, String(req.params.id), b.stars, b.comment ?? null) });
 });

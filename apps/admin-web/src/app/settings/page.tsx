@@ -61,6 +61,7 @@ interface PricingSettings {
   carRentalEnabled: boolean;
   carRentalDailyRateMru: number;
   carRentalCommissionBps: number;
+  carRentalNoShowLimit: number;
   roadsideAssistanceEnabled: boolean;
   roadsideAssistanceBaseFareMru: number;
   roadsideAssistanceCommissionBps: number;
@@ -132,6 +133,7 @@ interface FormState {
   carRentalEnabled: boolean;
   carRentalDailyRateMru: string;
   carRentalCommissionPct: string;
+  carRentalNoShowLimit: string;
   roadsideAssistanceEnabled: boolean;
   roadsideAssistanceBaseFareMru: string;
   roadsideAssistanceCommissionPct: string;
@@ -196,6 +198,7 @@ const EMPTY_FORM: FormState = {
   carRentalEnabled: false,
   carRentalDailyRateMru: '5000',
   carRentalCommissionPct: '10',
+  carRentalNoShowLimit: '0',
   roadsideAssistanceEnabled: false,
   roadsideAssistanceBaseFareMru: '1000',
   roadsideAssistanceCommissionPct: '10',
@@ -266,6 +269,7 @@ function settingsToForm(s: PricingSettings): FormState {
     carRentalEnabled: s.carRentalEnabled,
     carRentalDailyRateMru: String(s.carRentalDailyRateMru),
     carRentalCommissionPct: (s.carRentalCommissionBps / 100).toString(),
+    carRentalNoShowLimit: String(s.carRentalNoShowLimit),
     roadsideAssistanceEnabled: s.roadsideAssistanceEnabled,
     roadsideAssistanceBaseFareMru: String(s.roadsideAssistanceBaseFareMru),
     roadsideAssistanceCommissionPct: (s.roadsideAssistanceCommissionBps / 100).toString(),
@@ -357,6 +361,7 @@ export default function SettingsPage() {
         carRentalEnabled: form.carRentalEnabled,
         carRentalDailyRateMru: parseInt(form.carRentalDailyRateMru, 10),
         carRentalCommissionBps: Math.round(parseFloat(form.carRentalCommissionPct) * 100),
+        carRentalNoShowLimit: parseInt(form.carRentalNoShowLimit, 10),
         roadsideAssistanceEnabled: form.roadsideAssistanceEnabled,
         roadsideAssistanceBaseFareMru: parseInt(form.roadsideAssistanceBaseFareMru, 10),
         roadsideAssistanceCommissionBps: Math.round(parseFloat(form.roadsideAssistanceCommissionPct) * 100),
@@ -739,7 +744,16 @@ export default function SettingsPage() {
                   onChange={(v) => setForm({ ...form, carRentalCommissionPct: v })}
                   step="0.5"
                 />
+                <Field
+                  label="Limite absences / non-retours (30j)"
+                  suffix="abs."
+                  value={form.carRentalNoShowLimit}
+                  onChange={(v) => setForm({ ...form, carRentalNoShowLimit: v })}
+                />
               </div>
+              <p className="text-xs text-slate-500 mt-2">
+                Un locataire qui cumule ce nombre d’absences ou de non-retours sur 30 jours est bloqué. 0 = désactivé.
+              </p>
             </section>
 
             <section className="card p-5 mb-4 border border-red-200 bg-red-50/30">

@@ -111,6 +111,9 @@ export interface PricingSettings {
   carRentalEnabled: boolean;
   carRentalDailyRateMru: number;
   carRentalCommissionBps: number;
+  // Migration 0067. A renter with >= this many no-shows / no-returns in the
+  // trailing 30 days is temporarily blocked from booking. 0 disables it.
+  carRentalNoShowLimit: number;
   roadsideAssistanceEnabled: boolean;
   roadsideAssistanceBaseFareMru: number;
   roadsideAssistanceCommissionBps: number;
@@ -205,6 +208,7 @@ interface Row {
   car_rental_enabled: boolean;
   car_rental_daily_rate_mru: number;
   car_rental_commission_bps: number;
+  car_rental_no_show_limit: number;
   roadside_assistance_enabled: boolean;
   roadside_assistance_base_fare_mru: number;
   roadside_assistance_commission_bps: number;
@@ -295,6 +299,7 @@ function toSettings(r: Row): PricingSettings {
     carRentalEnabled: r.car_rental_enabled,
     carRentalDailyRateMru: r.car_rental_daily_rate_mru,
     carRentalCommissionBps: r.car_rental_commission_bps,
+    carRentalNoShowLimit: r.car_rental_no_show_limit,
     roadsideAssistanceEnabled: r.roadside_assistance_enabled,
     roadsideAssistanceBaseFareMru: r.roadside_assistance_base_fare_mru,
     roadsideAssistanceCommissionBps: r.roadside_assistance_commission_bps,
@@ -362,7 +367,7 @@ export async function getPricingSettings(): Promise<PricingSettings> {
             convoyage_per_km_mru, convoyage_min_fare_mru,
             convoyage_commission_bps,
             car_rental_enabled, car_rental_daily_rate_mru,
-            car_rental_commission_bps,
+            car_rental_commission_bps, car_rental_no_show_limit,
             roadside_assistance_enabled, roadside_assistance_base_fare_mru,
             roadside_assistance_commission_bps,
             light_moving_enabled, light_moving_base_fare_mru,
@@ -454,6 +459,7 @@ export interface PricingSettingsPatch {
   carRentalEnabled?: boolean;
   carRentalDailyRateMru?: number;
   carRentalCommissionBps?: number;
+  carRentalNoShowLimit?: number;
   roadsideAssistanceEnabled?: boolean;
   roadsideAssistanceBaseFareMru?: number;
   roadsideAssistanceCommissionBps?: number;
@@ -545,6 +551,7 @@ export async function updatePricingSettings(
           car_rental_enabled                 = COALESCE($62, car_rental_enabled),
           car_rental_daily_rate_mru          = COALESCE($63, car_rental_daily_rate_mru),
           car_rental_commission_bps          = COALESCE($64, car_rental_commission_bps),
+          car_rental_no_show_limit           = COALESCE($86, car_rental_no_show_limit),
           roadside_assistance_enabled        = COALESCE($65, roadside_assistance_enabled),
           roadside_assistance_base_fare_mru  = COALESCE($66, roadside_assistance_base_fare_mru),
           roadside_assistance_commission_bps = COALESCE($67, roadside_assistance_commission_bps),
@@ -705,6 +712,7 @@ export async function updatePricingSettings(
       patch.latestAndroidUrl ?? null,
       patch.latestIosUrl ?? null,
       patch.carpoolingNoShowLimit ?? null,
+      patch.carRentalNoShowLimit ?? null,
     ],
   );
   cache = null;
