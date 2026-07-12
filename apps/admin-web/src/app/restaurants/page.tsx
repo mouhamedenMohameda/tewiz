@@ -17,6 +17,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AppShell } from '@/components/AppShell';
 import { ResponsiveTable, type Column } from '@/components/ResponsiveTable';
 import { api } from '@/lib/api';
+import { parseGoogleMapsUrl, isGoogleMapsShortLink } from '@/lib/google-maps';
 
 type PriceLevel = '$' | '$$' | '$$$';
 
@@ -391,42 +392,6 @@ export default function RestaurantsPage() {
 
 /* ------------------------------------------------------------------ */
 
-/** Extract lat, lng and optional name from a Google Maps URL. */
-function parseGoogleMapsUrl(url: string): { lat: string; lng: string; name?: string } | null {
-  try {
-    // Format: https://maps.google.com/?q=18.0862,-15.9753
-    // Format: https://www.google.com/maps/place/Restaurant+Name/@18.0862,-15.9753,17z
-    // Format: https://www.google.com/maps/@18.0862,-15.9753,17z
-    // Format: https://maps.app.goo.gl/... (short link — can't parse without fetch)
-    const coordsRegex = /@(-?\d+\.\d+),(-?\d+\.\d+)/;
-    const qRegex = /[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/;
-    const placeRegex = /\/place\/([^/@]+)\//;
-
-    let lat: string | undefined;
-    let lng: string | undefined;
-    let name: string | undefined;
-
-    const cm = url.match(coordsRegex);
-    if (cm) { lat = cm[1]; lng = cm[2]; }
-
-    if (!lat) {
-      const qm = url.match(qRegex);
-      if (qm) { lat = qm[1]; lng = qm[2]; }
-    }
-
-    if (!lat) return null;
-
-    const pm = url.match(placeRegex);
-    if (pm) {
-      name = decodeURIComponent(pm[1]!.replace(/\+/g, ' '));
-    }
-
-    return { lat: lat!, lng: lng!, name };
-  } catch {
-    return null;
-  }
-}
-
 /**
  * Normalize a Mauritanian phone number to the canonical +222XXXXXXXX form.
  * Accepts input with or without the +222 prefix: a bare 8-digit local number
@@ -508,18 +473,47 @@ function RestaurantForm({
 
   // Google Maps import
   const [mapsUrl, setMapsUrl] = useState('');
-  const handleMapsImport = useCallback(() => {
-    const parsed = parseGoogleMapsUrl(mapsUrl);
-    if (!parsed) {
-      setErr('Lien Google Maps invalide. Copie un lien contenant des coordonnées (@lat,lng).');
+  const [mapsLoading, setMapsLoading] = useState(false);
+  const applyMapsLocation = useCallback(
+    (parsed: { lat: string; lng: string; name?: string }) => {
+      setLat(parsed.lat);
+      setLng(parsed.lng);
+      if (parsed.name && !nameFr.trim()) setNameFr(parsed.name);
+      setMapsUrl('');
+      setErr(null);
+    },
+    [nameFr],
+  );
+  const handleMapsImport = useCallback(async () => {
+    const raw = mapsUrl.trim();
+    // Full URLs carry their coordinates in the string — parse them inline.
+    const parsed = parseGoogleMapsUrl(raw);
+    if (parsed) {
+      applyMapsLocation(parsed);
       return;
     }
-    setLat(parsed.lat);
-    setLng(parsed.lng);
-    if (parsed.name && !nameFr.trim()) setNameFr(parsed.name);
-    setMapsUrl('');
-    setErr(null);
-  }, [mapsUrl, nameFr]);
+    // Short links (maps.app.goo.gl/…) only redirect to the full URL; the
+    // browser can't follow that (CORS), so resolve it via the server route.
+    if (isGoogleMapsShortLink(raw)) {
+      setMapsLoading(true);
+      setErr(null);
+      try {
+        const res = await fetch(`/api/resolve-maps-link?url=${encodeURIComponent(raw)}`);
+        const data = await res.json();
+        if (!res.ok || !data?.lat || !data?.lng) {
+          setErr(data?.error ?? 'Lien Google Maps non résolu. Réessaie avec un autre lien.');
+          return;
+        }
+        applyMapsLocation(data);
+      } catch {
+        setErr('Échec de la résolution du lien Google Maps. Vérifie ta connexion.');
+      } finally {
+        setMapsLoading(false);
+      }
+      return;
+    }
+    setErr('Lien Google Maps invalide. Colle un lien de partage (maps.app.goo.gl/…) ou un lien contenant des coordonnées (@lat,lng).');
+  }, [mapsUrl, applyMapsLocation]);
 
   // Canonical name derived from the French name, falling back to Arabic —
   // the form no longer exposes a separate "Nom" field.
@@ -576,19 +570,21 @@ function RestaurantForm({
             type="text"
             value={mapsUrl}
             onChange={(e) => setMapsUrl(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleMapsImport(); } }}
             placeholder="Coller un lien Google Maps ici…"
             className="flex-1 border border-blue-300 rounded-lg px-3 py-1.5 text-sm bg-white"
           />
           <button
             type="button"
             onClick={handleMapsImport}
-            disabled={!mapsUrl.trim()}
+            disabled={!mapsUrl.trim() || mapsLoading}
             className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-lg font-medium whitespace-nowrap"
           >
-            Importer
+            {mapsLoading ? 'Résolution…' : 'Importer'}
           </button>
         </div>
         <p className="text-[11px] text-blue-600 mt-1">
+          Accepte les liens de partage (maps.app.goo.gl/…) et les liens complets.
           Remplit automatiquement les coordonnées et le nom du restaurant.
         </p>
       </div>
