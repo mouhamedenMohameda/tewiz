@@ -30,6 +30,7 @@ import { adminCarpoolingRouter } from '../carpooling/admin-carpooling.routes.js'
 import { adminListingsRouter } from '../listings/admin-listings.routes.js';
 import { attachCaptainToAgency } from '../partners/partners.service.js';
 import * as roadReports from '../reports/road-reports.service.js';
+import { readTrack } from '../captain/track.service.js';
 import type { ApplicationStatus } from '@tewiz/shared-types';
 
 export const adminRouter = Router();
@@ -211,6 +212,27 @@ adminRouter.get('/captains', requireAdminRole(
         u.full_name NULLS LAST`,
   );
   res.json(r.rows);
+});
+
+/**
+ * GET /admin/captains/:id/track?from=<iso>&to=<iso>
+ * Off-ride breadcrumb trail of one captain as an ordered point list, for
+ * drawing the path (polyline) on the back-office map. Defaults to the last
+ * 24 h when the window is omitted. Same viewer roles as the captains map.
+ */
+const trackQuery = z.object({
+  from: z.string().datetime().optional(),
+  to: z.string().datetime().optional(),
+});
+adminRouter.get('/captains/:id/track', requireAdminRole(
+  'ops_manager', 'dispatcher', 'kyc_reviewer', 'finance', 'support',
+), async (req, res) => {
+  const captainId = String(req.params.id);
+  const q = trackQuery.parse(req.query);
+  const to = q.to ? new Date(q.to) : new Date();
+  const from = q.from ? new Date(q.from) : new Date(to.getTime() - 24 * 3600 * 1000);
+  const points = await readTrack(captainId, from, to);
+  res.json({ captainId, from: from.toISOString(), to: to.toISOString(), points });
 });
 
 // ─── Applications queue ──────────────────────────────────────────────────────

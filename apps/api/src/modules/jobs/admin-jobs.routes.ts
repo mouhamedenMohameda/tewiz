@@ -6,6 +6,7 @@ import * as reports from '../reports/road-reports.service.js';
 import * as recurring from '../recurring/recurring.service.js';
 import * as goingHome from '../home/going-home.service.js';
 import { scanPartnerEarnings } from '../partners/fraud.service.js';
+import { reapTrackPartitions } from '../captain/track.service.js';
 
 // Parent: adminRouter (auth + role=admin)
 export const adminJobsRouter = Router();
@@ -20,6 +21,7 @@ export const adminJobsRouter = Router();
  *   - reap-going-home    every  5 min
  *   - expire-documents   every  1 day at 03:00 Africa/Nouakchott
  *   - partner-fraud-scan every 30 min
+ *   - reap-captain-track every  1 day at 03:30 Africa/Nouakchott
  */
 adminJobsRouter.post('/process-recurring', async (_req, res) => {
   res.json(await recurring.processOccurrences());
@@ -47,6 +49,13 @@ adminJobsRouter.post('/expire-documents', async (_req, res) => {
 // fraud report (/admin/partners/earnings?status=on_hold).
 adminJobsRouter.post('/partner-fraud-scan', async (_req, res) => {
   res.json(await scanPartnerEarnings());
+});
+
+// Off-ride track retention: ensure tomorrow's partition exists and DROP any
+// daily partition older than the retention window. Suggested schedule: every
+// 1 day at 03:30 Africa/Nouakchott.
+adminJobsRouter.post('/reap-captain-track', async (_req, res) => {
+  res.json(await reapTrackPartitions());
 });
 
 const expiringQuery = z.object({ days: z.coerce.number().int().min(1).max(90).default(14) });

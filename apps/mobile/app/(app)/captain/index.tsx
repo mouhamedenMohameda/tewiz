@@ -10,6 +10,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { formatMru } from '@/lib/format';
 import { usePolling } from '@/lib/usePolling';
+import { resumeOfflineTracking, startOfflineTracking, stopOfflineTracking } from '@/lib/track-task';
 import { ModeToggle } from '@/components/ModeToggle';
 import { resetRideAlerts } from '@/components/CaptainRideWatcher';
 import { BonusCard } from '@/components/BonusCard';
@@ -81,6 +82,15 @@ export default function CaptainHome() {
   // Refresh balance/state/going-home periodically (battery-friendly cadence).
   usePolling(load, 30_000);
 
+  // Resume background tracking after an app restart if the captain is still
+  // online (Level B). Non-prompting — only starts when permission already
+  // granted, so it never pops a dialog on a passive mount.
+  useEffect(() => {
+    if (state?.presence === 'online' || state?.presence === 'on_ride') {
+      void resumeOfflineTracking();
+    }
+  }, [state?.presence]);
+
   async function goOnline() {
     setToggling(true);
     try {
@@ -95,6 +105,10 @@ export default function CaptainHome() {
         lat: loc.coords.latitude,
         lng: loc.coords.longitude,
       });
+      // Begin background off-ride tracking (Level B). Prompts for the "Always"
+      // permission; if declined, going online still succeeds — tracking is
+      // simply off for this captain.
+      void startOfflineTracking();
       await load();
     } catch (e: any) {
       Alert.alert(t('captain.state.errorTitle'),
@@ -108,6 +122,7 @@ export default function CaptainHome() {
     setToggling(true);
     try {
       await api.post('/captain/state/offline', {});
+      await stopOfflineTracking();
       await load();
     } catch (e: any) {
       Alert.alert(t('captain.state.errorTitle'),
