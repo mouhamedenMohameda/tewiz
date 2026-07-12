@@ -1246,7 +1246,9 @@
       "pausedLabel": "موقوفة",
       "errAction": "الإجراء غير ممكن.",
       "daysWithDriver": " · مع سائق",
-      "daysMeta": "{{start}} → {{end}} · {{days}} يوم"
+      "daysMeta": "{{start}} → {{end}} · {{days}} يوم",
+      "requestsLabel": "الطلبات ({{count}})",
+      "noShowBtn": "لم يحضر"
     },
     "bookings": {
       "title": "حجوزاتي",
@@ -1261,7 +1263,75 @@
       "confirmed": "مؤكَّدة",
       "declined": "مرفوضة",
       "cancelled": "أُلغيت",
-      "completed": "مكتملة"
+      "completed": "مكتملة",
+      "in_progress": "جارية",
+      "no_show": "لم يحضر",
+      "no_return": "لم تُعد",
+      "disputed": "نزاع"
+    },
+    "deposit": {
+      "line": "الضمان: {{amount}} (نقداً)",
+      "dueLine": "الضمان المطلوب تحصيله: {{amount}}",
+      "returned": "تمت إعادة الضمان ✅",
+      "pendingReturn": "الضمان بانتظار الإعادة"
+    },
+    "pickup": {
+      "codeLabel": "رمز التسليم",
+      "codeHint": "أعطِ هذا الرمز للمالك عند استلام المفاتيح.",
+      "startBtn": "تسليم (أدخل الرمز)",
+      "title": "تسليم المركبة",
+      "hint": "أدخل رمز التسليم الخاص بالمستأجر والتقط صوراً لحالة السيارة.",
+      "confirmBtn": "تأكيد التسليم",
+      "successTitle": "تم تأكيد التسليم",
+      "successBody": "بدأت عملية الإيجار.",
+      "errInvalid": "رمز التسليم غير صحيح."
+    },
+    "returnCode": {
+      "label": "رمز الإعادة",
+      "hint": "أعطِ هذا الرمز للمستأجر عند إعادة السيارة."
+    },
+    "return": {
+      "startBtn": "إعادة (رمز الإعادة)",
+      "title": "إعادة المركبة",
+      "hint": "أدخل رمز الإعادة الخاص بالمالك والتقط صوراً لحالة السيارة.",
+      "confirmBtn": "تأكيد الإعادة",
+      "successTitle": "تم تأكيد الإعادة",
+      "successBody": "انتهت عملية الإيجار. شكراً!",
+      "errInvalid": "رمز الإعادة غير صحيح."
+    },
+    "confirmReturn": {
+      "startBtn": "تأكيد الإعادة + الضمان",
+      "title": "تأكيد الإعادة",
+      "hint": "أضف صوراً لحالة السيارة عند الإعادة وأكّد إرجاع الضمان.",
+      "confirmBtn": "تأكيد"
+    },
+    "noReturn": {
+      "startBtn": "لم تُعد",
+      "confirmTitle": "الإبلاغ عن عدم الإعادة",
+      "confirmBody": "هل تؤكد أن السيارة لم تُعَد؟ سيتم تحويل الملف إلى الإدارة.",
+      "confirmBtn": "إبلاغ"
+    },
+    "dispute": {
+      "openBtn": "الإبلاغ عن نزاع",
+      "confirmTitle": "فتح نزاع",
+      "confirmBody": "فتح نزاع حول هذا الإيجار؟ سيراجع المشرف صور ما قبل وبعد."
+    },
+    "rate": {
+      "title": "قيّم",
+      "prompt": "كيف كانت تجربة الإيجار مع {{name}}؟",
+      "commentPlaceholder": "تعليق (اختياري)",
+      "submitBtn": "إرسال",
+      "cancelBtn": "إلغاء",
+      "rateOwnerBtn": "قيّم المالك",
+      "rateRenterBtn": "قيّم المستأجر",
+      "errRate": "تعذّر التقييم."
+    },
+    "otp": {
+      "placeholder": "رمز من 4 أرقام",
+      "cancelBtn": "إلغاء"
+    },
+    "photos": {
+      "label": "صور حالة المركبة"
     }
   },
   "carpooling": {

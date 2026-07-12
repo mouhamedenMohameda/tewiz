@@ -98,6 +98,7 @@ export type WalletTxType =
   | 'bonus'
   | 'carpooling_publication'
   | 'carpooling_commission'
+  | 'car_rental_commission'
   | 'listing_publication';
 
 // --- Captain state ---
