@@ -1229,7 +1229,9 @@
       "pausedLabel": "Paused",
       "errAction": "Action failed.",
       "daysWithDriver": " · with driver",
-      "daysMeta": "{{start}} → {{end}} · {{days}} d"
+      "daysMeta": "{{start}} → {{end}} · {{days}} d",
+      "requestsLabel": "REQUESTS ({{count}})",
+      "noShowBtn": "No-show"
     },
     "bookings": {
       "title": "My bookings",
@@ -1244,7 +1246,75 @@
       "confirmed": "Confirmed",
       "declined": "Declined",
       "cancelled": "Cancelled",
-      "completed": "Completed"
+      "completed": "Completed",
+      "in_progress": "In progress",
+      "no_show": "No-show",
+      "no_return": "Not returned",
+      "disputed": "Dispute"
+    },
+    "deposit": {
+      "line": "Deposit: {{amount}} (cash)",
+      "dueLine": "Deposit to collect: {{amount}}",
+      "returned": "Deposit returned ✅",
+      "pendingReturn": "Deposit to return"
+    },
+    "pickup": {
+      "codeLabel": "PICKUP CODE",
+      "codeHint": "Give this code to the owner when you collect the keys.",
+      "startBtn": "Hand over (enter code)",
+      "title": "Vehicle handover",
+      "hint": "Enter the renter’s pickup code and take photos of the car’s condition.",
+      "confirmBtn": "Confirm handover",
+      "successTitle": "Handover confirmed",
+      "successBody": "The rental has started.",
+      "errInvalid": "Incorrect pickup code."
+    },
+    "returnCode": {
+      "label": "RETURN CODE",
+      "hint": "Give this code to the renter when the car comes back."
+    },
+    "return": {
+      "startBtn": "Return (return code)",
+      "title": "Vehicle return",
+      "hint": "Enter the owner’s return code and take photos of the car’s condition.",
+      "confirmBtn": "Confirm return",
+      "successTitle": "Return confirmed",
+      "successBody": "The rental is complete. Thank you!",
+      "errInvalid": "Incorrect return code."
+    },
+    "confirmReturn": {
+      "startBtn": "Confirm return + deposit",
+      "title": "Confirm the return",
+      "hint": "Add photos of the condition on return and confirm the deposit was given back.",
+      "confirmBtn": "Confirm"
+    },
+    "noReturn": {
+      "startBtn": "Not returned",
+      "confirmTitle": "Report a non-return",
+      "confirmBody": "Confirm the car was not returned? This flags the case for the administration.",
+      "confirmBtn": "Report"
+    },
+    "dispute": {
+      "openBtn": "Report a dispute",
+      "confirmTitle": "Open a dispute",
+      "confirmBody": "Open a dispute for this rental? An administrator will review the before/after photos."
+    },
+    "rate": {
+      "title": "Rate",
+      "prompt": "How was the rental with {{name}}?",
+      "commentPlaceholder": "A comment (optional)",
+      "submitBtn": "Send",
+      "cancelBtn": "Cancel",
+      "rateOwnerBtn": "Rate the owner",
+      "rateRenterBtn": "Rate the renter",
+      "errRate": "Rating failed."
+    },
+    "otp": {
+      "placeholder": "4-digit code",
+      "cancelBtn": "Cancel"
+    },
+    "photos": {
+      "label": "Condition photos"
     }
   },
   "carpooling": {
