@@ -30,7 +30,21 @@
     "sending": "Envoi…",
     "notSent": "Non envoyé",
     "tapToReplace": "Toucher pour remplacer",
-    "holdToDelete": "Maintenir pour supprimer"
+    "holdToDelete": "Maintenir pour supprimer",
+    "close": "Fermer"
+  },
+  "rideCancelReasons": {
+    "change_of_plans": "Changement de programme",
+    "booked_by_mistake": "Course demandée par erreur",
+    "long_wait": "Attente trop longue",
+    "driver_not_moving": "Le chauffeur ne se rapproche pas",
+    "cannot_contact_driver": "Impossible de joindre le chauffeur",
+    "passenger_no_show": "Passager introuvable",
+    "cannot_contact_passenger": "Impossible de joindre le passager",
+    "vehicle_issue": "Problème de véhicule",
+    "traffic_delay": "Retard important sur la route",
+    "unsafe_area": "Zone jugée non sûre",
+    "other": "Autre raison"
   },
   "errors": {
     "server": "Impossible de joindre le serveur.",
@@ -414,6 +428,10 @@
       "goOffline": "Passer hors ligne",
       "locationRequiredTitle": "Position requise",
       "locationRequiredBody": "{{app}} a besoin de votre position pour vous mettre en ligne.",
+      "bgLocationTitle": "Localisation en arrière-plan",
+      "bgLocationBody": "Pour que {{app}} affiche votre trajet au support pendant votre service, autorisez la localisation « Toujours » dans les réglages. Sans cela, votre position n'est pas partagée en arrière-plan.",
+      "bgLocationLater": "Plus tard",
+      "openSettings": "Ouvrir les réglages",
       "errorOnline": "Erreur lors du passage en ligne.",
       "errorOffline": "Erreur lors du passage hors ligne.",
       "errorGoingHome": "Erreur sur le mode \"Je rentre chez moi\".",

@@ -1,4 +1,5 @@
 import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 export interface RideCancelReasonOption {
   key: string;
@@ -24,6 +25,7 @@ export function RideCancelReasonSheet({
   onClose,
   onSelect,
 }: RideCancelReasonSheetProps) {
+  const { t } = useTranslation();
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={{
@@ -77,7 +79,7 @@ export function RideCancelReasonSheet({
               opacity: busy ? 0.5 : 1,
             })}
           >
-            <Text style={{ fontSize: 14, fontWeight: '700', color: '#334155' }}>Fermer</Text>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: '#334155' }}>{t('common.close')}</Text>
           </Pressable>
         </View>
       </View>
