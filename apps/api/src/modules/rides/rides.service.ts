@@ -1332,18 +1332,16 @@ export async function acceptRide(rideId: string, captainId: string) {
       [captainId],
     );
 
-    // Colis: generate the drop OTP and SMS it to the recipient.
+    // Colis: notify the recipient that a courier is on the way.
     if (ride.ride_type === 'colis') {
-      const dropOtp = crypto.randomInt(0, 10_000).toString().padStart(4, '0');
       const colis = await client.query<{ recipient_phone: string; recipient_name: string }>(
-        `UPDATE colis_details SET drop_otp_code = $1 WHERE ride_id = $2
-       RETURNING recipient_phone, recipient_name`,
-        [dropOtp, ride.id],
+        `SELECT recipient_phone, recipient_name FROM colis_details WHERE ride_id = $1`,
+        [ride.id],
       );
       if (colis.rows[0]) {
         await sms.send(
           colis.rows[0].recipient_phone,
-          `Tewiz Colis: un livreur est en route. Code de livraison: ${dropOtp}. Donnez-le au chauffeur à l'arrivée.`,
+          `Tewiz Colis: un livreur est en route avec votre colis.`,
         );
       }
     }
@@ -1405,8 +1403,6 @@ interface CompleteInput {
   captainId: string;
   actualDistanceM?: number;
   actualDurationS?: number;
-  // For colis: the 4-digit code from the recipient
-  dropOtp?: string;
 }
 
 type GpsPenaltyAction = 'warning_1' | 'warning_2' | 'double_commission' | 'recovery_suspend';
@@ -1596,19 +1592,8 @@ export async function completeRide(input: CompleteInput) {
         `Ride is ${ride.status}, cannot complete`);
     }
 
-    // For colis rides: must validate the drop OTP from the recipient.
+    // For colis rides: mark the delivery as confirmed on completion.
     if (ride.ride_type === 'colis') {
-      if (!input.dropOtp) {
-        throw new HttpError(400, 'drop_otp_required',
-          'Code de livraison du destinataire requis');
-      }
-      const colis = await client.query<{ drop_otp_code: string | null }>(
-        `SELECT drop_otp_code FROM colis_details WHERE ride_id = $1`,
-        [ride.id],
-      );
-      if (!colis.rows[0]?.drop_otp_code || colis.rows[0].drop_otp_code !== input.dropOtp) {
-        throw new HttpError(400, 'invalid_drop_otp', 'Code de livraison incorrect');
-      }
       await client.query(
         `UPDATE colis_details SET recipient_confirmed_at = now() WHERE ride_id = $1`,
         [ride.id],

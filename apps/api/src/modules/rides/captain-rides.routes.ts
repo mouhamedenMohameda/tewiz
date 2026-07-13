@@ -137,7 +137,6 @@ captainRidesRouter.post('/:id/start', async (req, res) => {
 const completeBody = z.object({
   actualDistanceM: z.coerce.number().int().min(0).optional(),
   actualDurationS: z.coerce.number().int().min(0).optional(),
-  dropOtp: z.string().regex(/^\d{4}$/).optional(),  // required for colis
 });
 captainRidesRouter.post('/:id/complete', async (req, res) => {
   const userId = req.user!.id;
@@ -147,7 +146,6 @@ captainRidesRouter.post('/:id/complete', async (req, res) => {
     captainId: userId,
     actualDistanceM: body.actualDistanceM,
     actualDurationS: body.actualDurationS,
-    dropOtp: body.dropOtp,
   }));
 });
 
