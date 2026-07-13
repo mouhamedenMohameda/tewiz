@@ -194,11 +194,21 @@ adminRouter.get('/captains', requireAdminRole(
         GREATEST(cs.updated_at, u.last_seen_at) AS last_seen,
         ST_X(cs.location::geometry)             AS lng,
         ST_Y(cs.location::geometry)             AS lat,
-        v.plate, v.brand, v.model, v.color
+        v.plate, v.brand, v.model, v.color,
+        -- Off-ride breadcrumb availability, so the UI can flag who has a
+        -- recorded trail without probing /track for all 26 captains.
+        COALESCE(tk.pts, 0)::int                AS track_points,
+        tk.last_point                           AS track_last
        FROM users u
        LEFT JOIN captains c       ON c.user_id    = u.id
        LEFT JOIN captain_state cs ON cs.captain_id = u.id
        LEFT JOIN vehicles v       ON v.captain_id  = u.id AND v.is_active = true
+       LEFT JOIN (
+         SELECT captain_id, count(*) AS pts, max(recorded_at) AS last_point
+           FROM captain_track
+          WHERE recorded_at > now() - interval '24 hours'
+          GROUP BY captain_id
+       ) tk ON tk.captain_id = u.id
       WHERE u.role = 'captain'
         AND COALESCE(u.is_guest, false) = false
       ORDER BY
