@@ -127,6 +127,14 @@ export default function CaptainsPage() {
     [data, selectedId],
   );
 
+  // Whether the floating detail card is collapsed. Collapsing hides the card
+  // WITHOUT clearing the selection, so the trail stays drawn on the map.
+  // Reset every time a different captain is picked so the card reappears.
+  const [detailHidden, setDetailHidden] = useState(false);
+  useEffect(() => {
+    setDetailHidden(false);
+  }, [selectedId]);
+
   // Mobile-only view toggle: list ↔ map (detail card still floats over map)
   const [mobileView, setMobileView] = useState<'list' | 'map'>('list');
 
@@ -254,9 +262,17 @@ export default function CaptainsPage() {
               track={trail}
               replayIndex={replayIndex}
             />
-            {selected && (
+            {selected && !detailHidden && (
               <CaptainDetailCard
                 captain={selected}
+                onHide={() => setDetailHidden(true)}
+                onClose={() => setSelectedId(null)}
+              />
+            )}
+            {selected && detailHidden && (
+              <CaptainDetailPill
+                captain={selected}
+                onOpen={() => setDetailHidden(false)}
                 onClose={() => setSelectedId(null)}
               />
             )}
@@ -365,9 +381,13 @@ function CaptainRow({
 
 function CaptainDetailCard({
   captain: c,
+  onHide,
   onClose,
 }: {
   captain: Captain;
+  /** Collapse the card but keep the captain selected (trail stays visible). */
+  onHide: () => void;
+  /** Deselect the captain entirely (removes the trail from the map). */
   onClose: () => void;
 }) {
   const rating = formatRating(c.rating_avg);
@@ -380,13 +400,24 @@ function CaptainDetailCard({
           </div>
           <div className="text-xs text-slate-500 font-mono">{c.phone}</div>
         </div>
-        <button
-          onClick={onClose}
-          className="text-slate-400 hover:text-slate-600 text-xl leading-none"
-          aria-label="Fermer"
-        >
-          ×
-        </button>
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={onHide}
+            className="w-7 h-7 grid place-items-center rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 text-lg leading-none"
+            aria-label="Réduire la fiche (garder le trajet)"
+            title="Réduire — le trajet reste affiché"
+          >
+            –
+          </button>
+          <button
+            onClick={onClose}
+            className="w-7 h-7 grid place-items-center rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 text-xl leading-none"
+            aria-label="Fermer et masquer le trajet"
+            title="Fermer — masque aussi le trajet"
+          >
+            ×
+          </button>
+        </div>
       </div>
 
       <div className="px-4 py-3 space-y-3">
@@ -427,6 +458,42 @@ function CaptainDetailCard({
           Appeler
         </a>
       </div>
+    </div>
+  );
+}
+
+// Compact pill shown when the detail card is collapsed. Keeps the captain
+// selected (trail stays on the map) while getting the big card out of the way.
+function CaptainDetailPill({
+  captain: c,
+  onOpen,
+  onClose,
+}: {
+  captain: Captain;
+  onOpen: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-10 flex items-center gap-1 bg-white rounded-full shadow-lg border border-slate-200 pl-1 pr-1 py-1">
+      <button
+        onClick={onOpen}
+        className="flex items-center gap-2 pl-2 pr-1 py-1 rounded-full hover:bg-slate-50"
+        title="Afficher la fiche du chauffeur"
+      >
+        <PresenceDot presence={c.presence} />
+        <span className="text-sm font-medium text-slate-800 truncate max-w-[160px]">
+          {c.fullName?.trim() || c.phone}
+        </span>
+        <span className="text-xs text-brand-600 font-medium shrink-0">Détails</span>
+      </button>
+      <button
+        onClick={onClose}
+        className="w-7 h-7 grid place-items-center rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 text-lg leading-none shrink-0"
+        aria-label="Désélectionner le chauffeur"
+        title="Désélectionner — masque le trajet"
+      >
+        ×
+      </button>
     </div>
   );
 }
