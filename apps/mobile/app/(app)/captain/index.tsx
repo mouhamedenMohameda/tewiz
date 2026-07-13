@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert, Animated, Easing, Pressable, Switch, View,
+  ActivityIndicator, Alert, Animated, Easing, Linking, Pressable, Switch, View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -22,6 +22,13 @@ import { colors, gradients, radius, shadow, spacing } from '@/theme';
 import { APP_NAME } from '@/lib/brand';
 
 type Presence = 'offline' | 'online' | 'on_ride';
+
+// Tell the server whether background ("Always") location is granted, so the
+// back-office can distinguish a captain who declined tracking from one who is
+// simply parked. Best-effort — a failed report must never block going online.
+function reportTrackPermission(granted: boolean): void {
+  api.post('/captain/state/track-permission', { granted }).catch(() => {});
+}
 
 interface WalletSummary {
   balanceMru: number;
@@ -88,6 +95,10 @@ export default function CaptainHome() {
   useEffect(() => {
     if (state?.presence === 'online' || state?.presence === 'on_ride') {
       void resumeOfflineTracking();
+      // Keep the server's view of the permission fresh across app restarts.
+      Location.getBackgroundPermissionsAsync()
+        .then((p) => reportTrackPermission(p.status === 'granted'))
+        .catch(() => {});
     }
   }, [state?.presence]);
 
@@ -106,9 +117,21 @@ export default function CaptainHome() {
         lng: loc.coords.longitude,
       });
       // Begin background off-ride tracking (Level B). Prompts for the "Always"
-      // permission; if declined, going online still succeeds — tracking is
-      // simply off for this captain.
-      void startOfflineTracking();
+      // permission; going online still succeeds if it's declined, but we no
+      // longer fail silently: tell the captain why it matters + how to fix it,
+      // and report the permission state so the back-office can see who to nudge.
+      const tracking = await startOfflineTracking();
+      reportTrackPermission(tracking);
+      if (!tracking) {
+        Alert.alert(
+          t('captain.state.bgLocationTitle'),
+          t('captain.state.bgLocationBody', { app: APP_NAME }),
+          [
+            { text: t('captain.state.bgLocationLater'), style: 'cancel' },
+            { text: t('captain.state.openSettings'), onPress: () => { void Linking.openSettings(); } },
+          ],
+        );
+      }
       await load();
     } catch (e: any) {
       Alert.alert(t('captain.state.errorTitle'),

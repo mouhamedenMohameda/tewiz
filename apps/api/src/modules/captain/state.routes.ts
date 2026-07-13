@@ -172,6 +172,26 @@ captainStateRouter.post('/track', async (req, res) => {
 });
 
 /**
+ * POST /captain/state/track-permission
+ * The captain app reports whether it holds the background ("Always") location
+ * permission that off-ride tracking needs. Stored on captain_state so the
+ * back-office can tell "declined" (never emits) apart from merely "not moving".
+ * Body: { granted: boolean }.
+ */
+const trackPermBody = z.object({ granted: z.boolean() });
+captainStateRouter.post('/track-permission', async (req, res) => {
+  const userId = req.user!.id;
+  const { granted } = trackPermBody.parse(req.body);
+  await pool.query(
+    `UPDATE captain_state
+        SET track_perm = $2, track_perm_at = now()
+      WHERE captain_id = $1`,
+    [userId, granted ? 'granted' : 'denied'],
+  );
+  res.json({ ok: true, trackPerm: granted ? 'granted' : 'denied' });
+});
+
+/**
  * POST /captain/state/going-home
  * Start a going-home session. Rides bringing the captain closer to home will
  * be prioritized in the dispatch.

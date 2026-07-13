@@ -53,6 +53,10 @@ export class LocalDiskStorage implements StorageProvider {
       return false;
     }
   }
+
+  localPath(key: string): string {
+    return this.safePath(key);
+  }
 }
 
 // Default storage instance for the app.

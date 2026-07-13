@@ -22,6 +22,8 @@ type Captain = CaptainMarker & {
   // Off-ride breadcrumb availability (last 24 h), from /admin/captains.
   track_points: number;
   track_last: string | null;
+  // Captain-reported background-location permission (migration 0068).
+  track_perm: 'granted' | 'denied' | null;
 };
 
 type Filter = 'all' | 'connected' | 'offline' | 'tracked';
@@ -92,13 +94,16 @@ export default function CaptainsPage() {
   };
 
   const counts = useMemo(() => {
-    const c = { total: 0, online: 0, on_ride: 0, paused: 0, offline: 0 };
+    const c = { total: 0, online: 0, on_ride: 0, paused: 0, offline: 0, tracked: 0, denied: 0 };
     for (const x of data ?? []) {
       c.total++;
       if (x.presence === 'online') c.online++;
       else if (x.presence === 'on_ride') c.on_ride++;
       else if (x.presence === 'paused') c.paused++;
       else c.offline++;
+      // Emitting a trail (24 h) vs. connected but declined background location.
+      if (x.track_points > 0) c.tracked++;
+      if (x.track_perm === 'denied' && x.presence !== 'offline') c.denied++;
     }
     return c;
   }, [data]);
@@ -142,6 +147,10 @@ export default function CaptainsPage() {
               <StatChip label="En ligne" value={counts.online} dot="bg-emerald-500" />
               <StatChip label="En course" value={counts.on_ride} dot="bg-orange-500" />
               <StatChip label="Hors ligne" value={counts.offline} dot="bg-slate-300" />
+              <StatChip label="🛰️ Suivis" value={counts.tracked} dot="bg-orange-500" />
+              {counts.denied > 0 && (
+                <StatChip label="⚠️ Loc. refusée" value={counts.denied} dot="bg-red-500" />
+              )}
             </div>
           </div>
         </div>
@@ -313,11 +322,18 @@ function CaptainRow({
           {vehicle && (
             <div className="text-xs text-slate-600 truncate mt-0.5">{vehicle}</div>
           )}
-          {c.track_points > 0 && (
-            <div className="mt-1">
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-orange-50 text-orange-700 border border-orange-200 text-[10px] font-medium">
-                🛰️ Trajet · {c.track_points} pts
-              </span>
+          {(c.track_points > 0 || (c.track_perm === 'denied' && c.presence !== 'offline')) && (
+            <div className="mt-1 flex flex-wrap gap-1">
+              {c.track_points > 0 && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-orange-50 text-orange-700 border border-orange-200 text-[10px] font-medium">
+                  🛰️ Trajet · {c.track_points} pts
+                </span>
+              )}
+              {c.track_perm === 'denied' && c.presence !== 'offline' && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-50 text-red-700 border border-red-200 text-[10px] font-medium">
+                  ⚠️ Loc. refusée
+                </span>
+              )}
             </div>
           )}
           <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-1">

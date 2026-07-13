@@ -45,6 +45,11 @@ const EnvSchema = z.object({
   // Storage
   UPLOAD_DIR: z.string().default('./uploads'),
   MAX_UPLOAD_BYTES: z.coerce.number().default(10 * 1024 * 1024),
+  // APK builds are far larger than photos/audio, so they get their own,
+  // higher limit (default 200 MB). NOTE: nginx must allow a body this large
+  // too — set `client_max_body_size 200m;` on the API server block or the
+  // upload is rejected with 413 before it ever reaches Express.
+  MAX_APK_UPLOAD_BYTES: z.coerce.number().default(200 * 1024 * 1024),
   IMAGE_MAX_WIDTH_PX: z.coerce.number().default(1600),
   IMAGE_JPEG_QUALITY: z.coerce.number().min(40).max(95).default(80),
 

@@ -1,4 +1,5 @@
 import type { ErrorRequestHandler, RequestHandler } from 'express';
+import { MulterError } from 'multer';
 import { ZodError } from 'zod';
 import { env } from '../config/env.js';
 import { StorageNotFoundError } from '../modules/storage/storage.js';
@@ -39,6 +40,20 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
     req.log?.warn({ key: err.key }, 'storage: file missing');
     res.status(404).json({
       error: { code: 'file_missing', message: 'File not found in storage', details: { key: err.key } },
+    });
+    return;
+  }
+
+  if (err instanceof MulterError) {
+    // Upload-layer failures (size limit, too many files, unexpected field).
+    // Map the "file too big" case to 413 so the client can tell the user to
+    // pick a smaller build; everything else is a 400 bad upload.
+    const tooBig = err.code === 'LIMIT_FILE_SIZE';
+    res.status(tooBig ? 413 : 400).json({
+      error: {
+        code: tooBig ? 'file_too_large' : 'upload_error',
+        message: tooBig ? 'Fichier trop volumineux.' : err.message,
+      },
     });
     return;
   }

@@ -368,6 +368,8 @@
       "estimate": "Estimation",
       "submitting": "Envoi…",
       "missingPoints": "Précisez le départ et la destination.",
+      "distanceDuration": "Distance / Durée",
+      "interCitySolo": "Inter-ville solo",
       "openRideTitle": "Course ouverte",
       "openRideHint": "Pas de destination — le compteur démarre à bord",
       "openFareLabel": "Tarif",
