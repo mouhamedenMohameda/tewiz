@@ -8,7 +8,7 @@ import * as Location from 'expo-location';
 import { api } from '@/lib/api';
 import { RideCancelReasonSheet } from '@/components/RideCancelReasonSheet';
 import { formatMru } from '@/lib/format';
-import { CAPTAIN_RIDE_CANCEL_REASONS, RIDE_CANCEL_REASON_LABEL_FR } from '@/lib/rideCancelReasons';
+import { CAPTAIN_RIDE_CANCEL_REASONS } from '@/lib/rideCancelReasons';
 import { usePolling } from '@/lib/usePolling';
 import { keepIfEqual } from '@/lib/sameData';
 import {
@@ -817,7 +817,7 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
         title={t('captain.rides.cancelTitle')}
         body={t('captain.rides.cancelBody')}
         busy={busy === 'cancel'}
-        options={CAPTAIN_RIDE_CANCEL_REASONS.map((key) => ({ key, label: RIDE_CANCEL_REASON_LABEL_FR[key] }))}
+        options={CAPTAIN_RIDE_CANCEL_REASONS.map((key) => ({ key, label: t(`rideCancelReasons.${key}`) }))}
         onClose={() => { if (busy !== 'cancel') setCancelSheetVisible(false); }}
         onSelect={cancel}
       />
