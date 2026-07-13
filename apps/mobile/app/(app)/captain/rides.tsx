@@ -1,6 +1,6 @@
 import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert, Animated, Linking, Pressable, Text, TextInput, View,
+  ActivityIndicator, Alert, Animated, Linking, Pressable, Text, View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -8,7 +8,7 @@ import * as Location from 'expo-location';
 import { api } from '@/lib/api';
 import { RideCancelReasonSheet } from '@/components/RideCancelReasonSheet';
 import { formatMru } from '@/lib/format';
-import { CAPTAIN_RIDE_CANCEL_REASONS, RIDE_CANCEL_REASON_LABEL_FR } from '@/lib/rideCancelReasons';
+import { CAPTAIN_RIDE_CANCEL_REASONS } from '@/lib/rideCancelReasons';
 import { usePolling } from '@/lib/usePolling';
 import { keepIfEqual } from '@/lib/sameData';
 import {
@@ -590,7 +590,6 @@ function InboxList({ items, onAccepted }: { items: InboxItem[]; onAccepted: () =
 function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => void }) {
   const { t } = useTranslation();
   const [busy, setBusy] = useState<string | null>(null);
-  const [code, setCode] = useState('');
   const [cancelSheetVisible, setCancelSheetVisible] = useState(false);
 
   function errorMessage(e: any) {
@@ -637,14 +636,6 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
   }
 
   async function complete() {
-    const body: any = {};
-    if (ride.rideType === 'colis') {
-      if (!/^\d{4}$/.test(code)) {
-        Alert.alert(t('captain.rides.deliveryCodeTitle'), t('captain.rides.deliveryCodeBody'));
-        return;
-      }
-      body.dropOtp = code;
-    }
     return action('complete', async () => {
       const res = await api.post<{
         gpsCompliance?: {
@@ -653,7 +644,7 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
           recoveryDebitMru: number;
           suspended: boolean;
         } | null;
-      }>(`/captain/rides/${ride.id}/complete`, body);
+      }>(`/captain/rides/${ride.id}/complete`);
       const gps = res.data?.gpsCompliance;
       if (gps) {
         if (gps.action === 'warning_1' || gps.action === 'warning_2') {
@@ -673,7 +664,6 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
           );
         }
       }
-      setCode('');
     });
   }
 
@@ -801,25 +791,17 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
         />
       ) : null}
 
-      {ride.status === 'in_progress' && (ride.rideType === 'passenger' || ride.rideType === 'convoyage') ? (
+      {ride.status === 'in_progress' && (ride.rideType === 'passenger' || ride.rideType === 'convoyage' || ride.rideType === 'colis') ? (
         <Button
-          title={ride.rideType === 'convoyage' ? 'Véhicule livré' : ride.isOpen ? t('captain.rides.endOpenRide') : t('captain.rides.completeRide')}
+          title={ride.rideType === 'convoyage'
+            ? 'Véhicule livré'
+            : ride.rideType === 'colis'
+              ? t('captain.rides.confirmDelivery')
+              : ride.isOpen ? t('captain.rides.endOpenRide') : t('captain.rides.completeRide')}
           icon="check"
           onPress={complete}
           busy={busy === 'complete'}
           style={{ marginTop: spacing.base }}
-        />
-      ) : null}
-
-      {ride.status === 'in_progress' && ride.rideType === 'colis' ? (
-        <CodeBox
-          title={t('captain.rides.deliveryConfirmTitle')}
-          subtitle={t('captain.rides.deliveryConfirmSub')}
-          code={code}
-          onChange={setCode}
-          actionLabel={t('captain.rides.confirmDelivery')}
-          onAction={complete}
-          busy={busy === 'complete'}
         />
       ) : null}
 
@@ -835,7 +817,7 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
         title={t('captain.rides.cancelTitle')}
         body={t('captain.rides.cancelBody')}
         busy={busy === 'cancel'}
-        options={CAPTAIN_RIDE_CANCEL_REASONS.map((key) => ({ key, label: RIDE_CANCEL_REASON_LABEL_FR[key] }))}
+        options={CAPTAIN_RIDE_CANCEL_REASONS.map((key) => ({ key, label: t(`rideCancelReasons.${key}`) }))}
         onClose={() => { if (busy !== 'cancel') setCancelSheetVisible(false); }}
         onSelect={cancel}
       />
@@ -879,35 +861,6 @@ function Route({
         <AppText variant="bodyStrong" color={strong} numberOfLines={1}>{dropoff ?? t('captain.rides.dropoffFallback')}</AppText>
       </View>
     </View>
-  );
-}
-
-function CodeBox({
-  title, subtitle, code, onChange, actionLabel, onAction, busy,
-}: {
-  title: string; subtitle: string;
-  code: string; onChange: (v: string) => void;
-  actionLabel: string; onAction: () => void; busy?: boolean;
-}) {
-  return (
-    <Card padding={spacing.base} style={{ marginTop: spacing.base }}>
-      <AppText variant="bodyStrong">{title}</AppText>
-      <AppText variant="caption" color={colors.ink2} style={{ marginTop: 2 }}>{subtitle}</AppText>
-      <TextInput
-        value={code}
-        onChangeText={(t) => onChange(t.replace(/\D/g, '').slice(0, 4))}
-        keyboardType="number-pad"
-        maxLength={4}
-        placeholder="····"
-        placeholderTextColor={colors.faint}
-        style={{
-          marginTop: spacing.md, borderWidth: 1.5, borderColor: colors.line, borderRadius: radius.md,
-          paddingVertical: 16, fontSize: 26, color: colors.ink, backgroundColor: colors.sunken,
-          textAlign: 'center', letterSpacing: 14, fontFamily: 'Sora_700Bold',
-        }}
-      />
-      <Button title={actionLabel} onPress={onAction} busy={busy} style={{ marginTop: spacing.md }} />
-    </Card>
   );
 }
 

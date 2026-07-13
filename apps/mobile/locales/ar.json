@@ -30,7 +30,21 @@
     "sending": "جارٍ الإرسال…",
     "notSent": "لم يُرسل",
     "tapToReplace": "اضغط للاستبدال",
-    "holdToDelete": "اضغط مطوّلاً للحذف"
+    "holdToDelete": "اضغط مطوّلاً للحذف",
+    "close": "إغلاق"
+  },
+  "rideCancelReasons": {
+    "change_of_plans": "تغيير في البرنامج",
+    "booked_by_mistake": "تم طلب الرحلة عن طريق الخطأ",
+    "long_wait": "الانتظار طويل جدًا",
+    "driver_not_moving": "السائق لا يقترب",
+    "cannot_contact_driver": "تعذّر الاتصال بالسائق",
+    "passenger_no_show": "الراكب غير موجود",
+    "cannot_contact_passenger": "تعذّر الاتصال بالراكب",
+    "vehicle_issue": "مشكلة في المركبة",
+    "traffic_delay": "تأخّر كبير بسبب حركة المرور",
+    "unsafe_area": "منطقة غير آمنة",
+    "other": "سبب آخر"
   },
   "errors": {
     "server": "تعذّر الاتصال بالخادم.",

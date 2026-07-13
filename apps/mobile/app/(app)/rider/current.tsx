@@ -9,7 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '@/lib/api';
 import { RideCancelReasonSheet } from '@/components/RideCancelReasonSheet';
 import { formatMru } from '@/lib/format';
-import { RIDER_RIDE_CANCEL_REASONS, RIDE_CANCEL_REASON_LABEL_FR } from '@/lib/rideCancelReasons';
+import { RIDER_RIDE_CANCEL_REASONS } from '@/lib/rideCancelReasons';
 import { usePolling } from '@/lib/usePolling';
 import { keepIfEqual } from '@/lib/sameData';
 import { APP_NAME } from '@/lib/brand';
@@ -228,7 +228,7 @@ export default function CurrentRideScreen() {
         title={t('rider.current.cancelTitle')}
         body={t('rider.current.cancelBody')}
         busy={cancelling}
-        options={RIDER_RIDE_CANCEL_REASONS.map((key) => ({ key, label: RIDE_CANCEL_REASON_LABEL_FR[key] }))}
+        options={RIDER_RIDE_CANCEL_REASONS.map((key) => ({ key, label: t(`rideCancelReasons.${key}`) }))}
         onClose={() => { if (!cancelling) setCancelSheetVisible(false); }}
         onSelect={cancel}
       />

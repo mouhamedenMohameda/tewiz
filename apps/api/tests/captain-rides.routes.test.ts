@@ -188,13 +188,12 @@ describe('ride lifecycle actions', () => {
     expect(ridesMock.startRide).toHaveBeenCalledWith('ride-6', 'captain-1');
   });
 
-  it('POST /:id/complete forwards distance, duration and drop OTP', async () => {
+  it('POST /:id/complete forwards distance and duration', async () => {
     ridesMock.completeRide.mockResolvedValue({ id: 'ride-6', status: 'completed' });
     const { baseUrl } = await start();
     const res = await api(baseUrl, 'POST', '/captain/rides/ride-6/complete', {
       actualDistanceM: 4200,
       actualDurationS: 900,
-      dropOtp: '1234',
     });
     expect(res.status).toBe(200);
     expect(ridesMock.completeRide).toHaveBeenCalledWith({
@@ -202,14 +201,7 @@ describe('ride lifecycle actions', () => {
       captainId: 'captain-1',
       actualDistanceM: 4200,
       actualDurationS: 900,
-      dropOtp: '1234',
     });
-  });
-
-  it('POST /:id/complete rejects a malformed drop OTP', async () => {
-    const { baseUrl } = await start();
-    const res = await api(baseUrl, 'POST', '/captain/rides/ride-6/complete', { dropOtp: '12a4' });
-    expect(res.status).toBe(400);
   });
 
   it('POST /:id/cancel maps a reasonKey to its label', async () => {
