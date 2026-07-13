@@ -18,6 +18,7 @@ import { adminJobsRouter } from '../jobs/admin-jobs.routes.js';
 import { adminRidesRouter } from '../rides/admin-rides.routes.js';
 import { adminUsersRouter } from './users.routes.js';
 import { adminSettingsRouter } from './settings.routes.js';
+import { adminReleasesRouter } from '../releases/admin-releases.routes.js';
 import { adminDocumentRequirementsRouter } from './document-requirements.routes.js';
 import { getRequiredDocumentTypes } from './document-requirements.service.js';
 import { adminStatsRouter } from './stats.routes.js';
@@ -73,6 +74,8 @@ adminRouter.use(
 );
 // Global settings — super_admin only.
 adminRouter.use('/settings', requireAdminRole(), adminSettingsRouter);
+// Hosted app builds (APK upload + history) — super_admin only.
+adminRouter.use('/app-releases', requireAdminRole(), adminReleasesRouter);
 // Required document types — kyc_reviewer can read, super_admin edits.
 adminRouter.use(
   '/document-requirements',
@@ -198,7 +201,10 @@ adminRouter.get('/captains', requireAdminRole(
         -- Off-ride breadcrumb availability, so the UI can flag who has a
         -- recorded trail without probing /track for all 26 captains.
         COALESCE(tk.pts, 0)::int                AS track_points,
-        tk.last_point                           AS track_last
+        tk.last_point                           AS track_last,
+        -- Captain-reported background-location permission (migration 0068):
+        -- 'denied' = won't ever emit, 'granted' = on, NULL = unknown/old app.
+        cs.track_perm                           AS track_perm
        FROM users u
        LEFT JOIN captains c       ON c.user_id    = u.id
        LEFT JOIN captain_state cs ON cs.captain_id = u.id

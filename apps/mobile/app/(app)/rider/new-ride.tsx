@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator, Alert, Animated, Easing, FlatList, KeyboardAvoidingView, Modal,
-  Platform, Pressable, Text, TextInput, View,
+  Platform, Pressable, ScrollView, Text, TextInput, useWindowDimensions, View,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -60,6 +60,11 @@ export default function NewRideScreen() {
   const { t } = useTranslation();
   const M = getMapbox();
   const cameraRef = useRef<any>(null);
+  // The map lives inside a ScrollView so the pickup/dropoff fields and the
+  // per-type detail inputs (colis/other) can't squeeze it into a sliver on
+  // small phones. Give it a generous, screen-relative fixed height instead.
+  const { height: windowHeight } = useWindowDimensions();
+  const mapHeight = Math.max(280, Math.min(440, Math.round(windowHeight * 0.42)));
 
   // Deep-link params let other screens (e.g. the Restaurants directory) push
   // here with one or both ends already pinned. We just pre-fill the state and
@@ -111,11 +116,14 @@ export default function NewRideScreen() {
   // caller deep-linked us with an explicit kind.
   const [kind, setKind] = useState<RideKind>(prefilledKind ?? 'self');
   // 'other' = course pour quelqu'un d'autre (no app, SMS confirmation)
+  // Phone fields hold ONLY the 8 local digits — the "+222" country code is a
+  // fixed prefix rendered by <PhoneInput> and re-attached at submit time, so
+  // users just type "45 12 34 56" instead of fighting a pre-filled "+222".
   const [passengerName, setPassengerName] = useState('');
-  const [passengerPhone, setPassengerPhone] = useState('+222');
+  const [passengerPhone, setPassengerPhone] = useState('');
   // 'colis' = package delivery
   const [recipientName, setRecipientName] = useState('');
-  const [recipientPhone, setRecipientPhone] = useState('+222');
+  const [recipientPhone, setRecipientPhone] = useState('');
   const [packageDescription, setPackageDescription] = useState('');
 
   const { reports, refresh: refreshReports } = useRoadReports();
@@ -297,11 +305,11 @@ export default function NewRideScreen() {
     if (!isOpen && !dropoff) return { ok: false, reason: t('rider.newRide.missingPoints') };
     if (kind === 'other') {
       if (passengerName.trim().length < 2) return { ok: false, reason: t('rider.newRide.thirdPartyName') };
-      if (passengerPhone.replace(/\D/g, '').length < 11) return { ok: false, reason: t('phonePrompt.invalidBody') };
+      if (passengerPhone.length < 8) return { ok: false, reason: t('phonePrompt.invalidBody') };
     }
     if (kind === 'colis') {
       if (recipientName.trim().length < 2) return { ok: false, reason: t('rider.newRide.recipientName') };
-      if (recipientPhone.replace(/\D/g, '').length < 11) return { ok: false, reason: t('phonePrompt.invalidBody') };
+      if (recipientPhone.length < 8) return { ok: false, reason: t('phonePrompt.invalidBody') };
     }
     return { ok: true };
   }
@@ -325,12 +333,12 @@ export default function NewRideScreen() {
       }
       if (kind === 'other') {
         body.passengerName = passengerName.trim();
-        body.passengerPhone = passengerPhone.trim();
+        body.passengerPhone = `+222${passengerPhone}`;
       }
       if (kind === 'colis') {
         body.recipientName = recipientName.trim();
-        body.recipientPhone = recipientPhone.trim();
-        if (packageDescription.trim()) body.packageDescription = packageDescription.trim();
+        body.recipientPhone = `+222${recipientPhone}`;
+        if (packageDescription) body.packageDescription = `+222${packageDescription}`;
       }
       await api.post('/rider/rides', body);
       router.replace('/(app)/rider/current');
@@ -344,7 +352,8 @@ export default function NewRideScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }} edges={['top']}>
-      <View style={{ padding: 16, gap: 8 }}>
+      {/* Pinned header — stays put while the form + map scroll below it. */}
+      <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: -8 }}>
           <Pressable
             onPress={() => router.back()}
@@ -363,140 +372,148 @@ export default function NewRideScreen() {
             {t('rider.newRide.title')}
           </Text>
         </View>
+      </View>
 
-        <Field
-          color="#2d4fd6"
-          label={t('rider.newRide.pickupLabel')}
-          value={pickup?.label ?? null}
-          onPress={() => setActive('pickup')}
-          onClear={() => setPickup(null)}
-        />
-
-        {isOpen ? (
-          <OpenFareCard quote={openQuote} />
-        ) : (
+      {/* Form + map scroll together so the detail inputs never squeeze the map
+          into a sliver; the map keeps a fixed, comfortable height. */}
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ gap: 8, paddingBottom: 12 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={{ paddingHorizontal: 16, gap: 8 }}>
           <Field
-            color="#dc2626"
-            label={t('rider.newRide.dropoffLabel')}
-            value={dropoff?.label ?? null}
-            onPress={() => setActive('dropoff')}
-            onClear={() => setDropoff(null)}
+            color="#2d4fd6"
+            label={t('rider.newRide.pickupLabel')}
+            value={pickup?.label ?? null}
+            onPress={() => setActive('pickup')}
+            onClear={() => setPickup(null)}
           />
-        )}
 
-        {openQuote?.enabled ? (
-          <OpenRideToggle
-            value={isOpen}
-            onChange={setIsOpen}
-          />
-        ) : null}
-
-        <KindSelector value={kind} onChange={setKind} />
-
-        {kind === 'other' ? (
-          <View style={{ gap: 6, marginTop: 4 }}>
-            <Text style={{ fontSize: 11, color: '#64748b' }}>
-              {t('rider.newRide.thirdPartyHint')}
-            </Text>
-            <TwoCol
-              left={
-                <SmallInput
-                  label={t('rider.newRide.thirdPartyName')}
-                  value={passengerName} onChange={setPassengerName}
-                  placeholder="Aminata"
-                />
-              }
-              right={
-                <SmallInput
-                  label={t('rider.newRide.thirdPartyPhone')}
-                  value={passengerPhone} onChange={setPassengerPhone}
-                  placeholder="+22245…" keyboardType="phone-pad"
-                />
-              }
+          {isOpen ? (
+            <OpenFareCard quote={openQuote} />
+          ) : (
+            <Field
+              color="#dc2626"
+              label={t('rider.newRide.dropoffLabel')}
+              value={dropoff?.label ?? null}
+              onPress={() => setActive('dropoff')}
+              onClear={() => setDropoff(null)}
             />
-          </View>
-        ) : null}
+          )}
 
-        {kind === 'colis' ? (
-          <View style={{ gap: 6, marginTop: 4 }}>
-            <Text style={{ fontSize: 11, color: '#64748b' }}>
-              {t('rider.newRide.colisHint')}
-            </Text>
-            <TwoCol
-              left={
-                <SmallInput
-                  label={t('rider.newRide.recipientName')}
-                  value={recipientName} onChange={setRecipientName}
-                  placeholder="Mohamed"
-                />
-              }
-              right={
-                <SmallInput
-                  label={t('rider.newRide.recipientPhone')}
-                  value={recipientPhone} onChange={setRecipientPhone}
-                  placeholder="+22245…" keyboardType="phone-pad"
-                />
-              }
+          {openQuote?.enabled ? (
+            <OpenRideToggle
+              value={isOpen}
+              onChange={setIsOpen}
             />
-            <SmallInput
-              label={t('rider.newRide.senderPhone')}
-              value={packageDescription} onChange={setPackageDescription}
-              placeholder="…"
-            />
-          </View>
-        ) : null}
-      </View>
+          ) : null}
 
-      <View style={{ flex: 1 }}>
-        <MapShell
-          cameraRef={cameraRef}
-          centerCoordinate={DEFAULT_CENTER}
-          zoomLevel={DEFAULT_ZOOM}
-          onPress={onMapPress}
-          showsUserLocation
-        >
-          {M && routeGeoJson ? (
-            <M.ShapeSource id="ride-route" shape={routeGeoJson}>
-              <M.LineLayer
-                id="ride-route-line"
-                style={{
-                  lineColor: '#2563eb',
-                  lineWidth: 4,
-                  lineOpacity: 0.75,
-                }}
+          <KindSelector value={kind} onChange={setKind} />
+
+          {kind === 'other' ? (
+            <View style={{ gap: 6, marginTop: 4 }}>
+              <Text style={{ fontSize: 11, color: '#64748b' }}>
+                {t('rider.newRide.thirdPartyHint')}
+              </Text>
+              <TwoCol
+                left={
+                  <SmallInput
+                    label={t('rider.newRide.thirdPartyName')}
+                    value={passengerName} onChange={setPassengerName}
+                    placeholder="Aminata"
+                  />
+                }
+                right={
+                  <PhoneInput
+                    label={t('rider.newRide.thirdPartyPhone')}
+                    value={passengerPhone} onChange={setPassengerPhone}
+                  />
+                }
               />
-            </M.ShapeSource>
+            </View>
           ) : null}
-          {M && pickup ? (
-            <M.PointAnnotation
-              id="pickup"
-              coordinate={[pickup.lng, pickup.lat]}
-            >
-              <View style={pinStyle('#2d4fd6')} />
-            </M.PointAnnotation>
+
+          {kind === 'colis' ? (
+            <View style={{ gap: 6, marginTop: 4 }}>
+              <Text style={{ fontSize: 11, color: '#64748b' }}>
+                {t('rider.newRide.colisHint')}
+              </Text>
+              <TwoCol
+                left={
+                  <SmallInput
+                    label={t('rider.newRide.recipientName')}
+                    value={recipientName} onChange={setRecipientName}
+                    placeholder="Mohamed"
+                  />
+                }
+                right={
+                  <PhoneInput
+                    label={t('rider.newRide.recipientPhone')}
+                    value={recipientPhone} onChange={setRecipientPhone}
+                  />
+                }
+              />
+              <PhoneInput
+                label={t('rider.newRide.senderPhone')}
+                value={packageDescription} onChange={setPackageDescription}
+              />
+            </View>
           ) : null}
-          {M && dropoff ? (
-            <M.PointAnnotation
-              id="dropoff"
-              coordinate={[dropoff.lng, dropoff.lat]}
-            >
-              <View style={pinStyle('#dc2626')} />
-            </M.PointAnnotation>
+        </View>
+
+        <View style={{ height: mapHeight, marginTop: 4 }}>
+          <MapShell
+            cameraRef={cameraRef}
+            centerCoordinate={DEFAULT_CENTER}
+            zoomLevel={DEFAULT_ZOOM}
+            onPress={onMapPress}
+            showsUserLocation
+          >
+            {M && routeGeoJson ? (
+              <M.ShapeSource id="ride-route" shape={routeGeoJson}>
+                <M.LineLayer
+                  id="ride-route-line"
+                  style={{
+                    lineColor: '#2563eb',
+                    lineWidth: 4,
+                    lineOpacity: 0.75,
+                  }}
+                />
+              </M.ShapeSource>
+            ) : null}
+            {M && pickup ? (
+              <M.PointAnnotation
+                id="pickup"
+                coordinate={[pickup.lng, pickup.lat]}
+              >
+                <View style={pinStyle('#2d4fd6')} />
+              </M.PointAnnotation>
+            ) : null}
+            {M && dropoff ? (
+              <M.PointAnnotation
+                id="dropoff"
+                coordinate={[dropoff.lng, dropoff.lat]}
+              >
+                <View style={pinStyle('#dc2626')} />
+              </M.PointAnnotation>
+            ) : null}
+            <RoadReportMarkers reports={reports} />
+          </MapShell>
+          <RoadReportButton at={pickup ?? null} onCreated={refreshReports} />
+          {active ? (
+            <View style={{
+              position: 'absolute', top: 12, left: 12, right: 12,
+              backgroundColor: '#0f172a', borderRadius: 10, padding: 10,
+            }}>
+              <Text style={{ color: '#fff', fontSize: 12, textAlign: 'center' }}>
+                {active === 'pickup' ? t('rider.newRide.searchPickupTitle') : t('rider.newRide.searchDropoffTitle')}
+              </Text>
+            </View>
           ) : null}
-          <RoadReportMarkers reports={reports} />
-        </MapShell>
-        <RoadReportButton at={pickup ?? null} onCreated={refreshReports} />
-        {active ? (
-          <View style={{
-            position: 'absolute', top: 12, left: 12, right: 12,
-            backgroundColor: '#0f172a', borderRadius: 10, padding: 10,
-          }}>
-            <Text style={{ color: '#fff', fontSize: 12, textAlign: 'center' }}>
-              {active === 'pickup' ? t('rider.newRide.searchPickupTitle') : t('rider.newRide.searchDropoffTitle')}
-            </Text>
-          </View>
-        ) : null}
-      </View>
+        </View>
+      </ScrollView>
 
       <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: '#e2e8f0' }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
@@ -512,14 +529,14 @@ export default function NewRideScreen() {
         {!isOpen && estimate?.isIntercityPricing ? (
           <View style={{ marginBottom: 10 }}>
             <Text style={{ fontSize: 12, color: '#64748b' }}>
-              Inter-ville solo
+              {t('rider.newRide.interCitySolo')}
             </Text>
           </View>
         ) : null}
         {!isOpen ? (
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <Text style={{ fontSize: 13, color: '#64748b' }}>
-              Distance / Durée
+              {t('rider.newRide.distanceDuration')}
             </Text>
             <Text style={{ fontSize: 13, fontWeight: '600', color: '#0f172a' }}>
               {routeDistanceKm && routeDurationMin
@@ -935,6 +952,48 @@ function SmallInput({
           color: '#0f172a', backgroundColor: '#fff',
         }}
       />
+    </View>
+  );
+}
+
+/**
+ * Local phone entry with a fixed "+222" prefix. The user types only the 8
+ * Mauritanian digits (we strip anything non-numeric and cap at 8), so `value`
+ * always holds the bare local number — the caller re-attaches "+222" when it
+ * builds the request body.
+ */
+function PhoneInput({
+  label, value, onChange,
+}: {
+  label: string; value: string; onChange: (v: string) => void;
+}) {
+  return (
+    <View>
+      <Text style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>{label}</Text>
+      <View style={{
+        flexDirection: 'row', alignItems: 'stretch',
+        borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8,
+        backgroundColor: '#fff', overflow: 'hidden',
+      }}>
+        <View style={{
+          paddingHorizontal: 10, justifyContent: 'center',
+          backgroundColor: '#f1f5f9', borderRightWidth: 1, borderRightColor: '#cbd5e1',
+        }}>
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#475569' }}>+222</Text>
+        </View>
+        <TextInput
+          value={value}
+          onChangeText={(txt) => onChange(txt.replace(/\D/g, '').slice(0, 8))}
+          placeholder="45 12 34 56"
+          placeholderTextColor="#94a3b8"
+          keyboardType="phone-pad"
+          maxLength={8}
+          style={{
+            flex: 1, paddingHorizontal: 10, paddingVertical: 8, fontSize: 14,
+            color: '#0f172a',
+          }}
+        />
+      </View>
     </View>
   );
 }

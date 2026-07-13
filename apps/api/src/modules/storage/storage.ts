@@ -7,6 +7,14 @@ export interface StorageProvider {
   get(key: string): Promise<Buffer>;
   delete(key: string): Promise<void>;
   exists(key: string): Promise<boolean>;
+  /**
+   * Absolute filesystem path backing `key`, when the provider is disk-backed.
+   * Lets callers stream large objects (e.g. APKs via res.download) instead of
+   * loading the whole Buffer into memory. Returns undefined for remote
+   * providers (R2/S3) where no local path exists — callers must fall back to
+   * `get()`.
+   */
+  localPath?(key: string): string | undefined;
 }
 
 /**

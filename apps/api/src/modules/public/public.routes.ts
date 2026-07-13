@@ -4,6 +4,11 @@ import * as rides from '../rides/rides.service.js';
 import { getPricingSettings } from '../admin/app-settings.service.js';
 import { defaultStorage } from '../storage/local-disk.js';
 import { StorageNotFoundError } from '../storage/storage.js';
+import {
+  getLatestRelease,
+  toPublicJson,
+  downloadFilename,
+} from '../releases/releases.service.js';
 
 // Public — NO auth. Used by passengers who don't have an app, only an SMS.
 export const publicRouter = Router();
@@ -161,6 +166,70 @@ publicRouter.get('/car-photos/:filename', async (req, res) => {
   } catch (e) {
     if (e instanceof StorageNotFoundError) {
       return res.status(404).json({ error: { code: 'not_found' } });
+    }
+    throw e;
+  }
+});
+
+/**
+ * GET /public/app/latest
+ *
+ * Public metadata for the most recent hosted Android build (APK), read by the
+ * public download page (and available to the mobile app / anyone). Returns the
+ * version, size, notes and an absolute download URL. 404 when no build has been
+ * uploaded yet.
+ */
+publicRouter.get('/app/latest', async (req, res) => {
+  const release = await getLatestRelease();
+  if (!release) {
+    return res.status(404).json({ error: { code: 'no_release' } });
+  }
+  const downloadUrl = `${req.protocol}://${req.get('host')}/public/app/download`;
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  return res.json(toPublicJson(release, downloadUrl));
+});
+
+/**
+ * GET /public/app/download
+ *
+ * Streams the latest APK as an attachment. No auth — anyone with the link can
+ * install the app. Served from our own domain (same TLS cert as the API) so
+ * there's no third-party host to trust. Large file: streamed from disk via
+ * res.download (supports Range/resume) rather than buffered in memory.
+ */
+publicRouter.get('/app/download', async (req, res, next) => {
+  const release = await getLatestRelease();
+  if (!release) {
+    return res.status(404).json({ error: { code: 'no_release' } });
+  }
+  const filename = downloadFilename(release);
+  const absPath = defaultStorage.localPath?.(release.storageKey);
+
+  if (absPath) {
+    return res.download(absPath, filename, {
+      headers: {
+        'Content-Type': 'application/vnd.android.package-archive',
+        'Cache-Control': 'no-cache',
+        'Cross-Origin-Resource-Policy': 'cross-origin',
+      },
+    }, (err) => {
+      // Missing file / aborted transfer. Only forward if nothing was sent yet.
+      if (err && !res.headersSent) next(err);
+    });
+  }
+
+  // Remote storage provider (R2/S3): fall back to buffering.
+  try {
+    const buf = await defaultStorage.get(release.storageKey);
+    res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    return res.send(buf);
+  } catch (e) {
+    if (e instanceof StorageNotFoundError) {
+      return res.status(404).json({ error: { code: 'no_release' } });
     }
     throw e;
   }

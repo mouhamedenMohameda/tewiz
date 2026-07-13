@@ -1,3 +1,5 @@
+import { mkdirSync } from 'node:fs';
+import path from 'node:path';
 import multer from 'multer';
 import { env } from '../config/env.js';
 
@@ -58,6 +60,37 @@ export const uploadAudio = multer({
       cb(null, true);
     } else {
       cb(new Error(`Unsupported audio type: ${file.mimetype}`));
+    }
+  },
+});
+
+// APK builds are large (tens/hundreds of MB), so unlike photos/audio we do NOT
+// buffer them in memory — multer writes to a temp dir on disk and the route
+// gets a file path. That path is what the APK manifest parser (which reads a
+// file, not a Buffer) and the storage put both consume; the route deletes the
+// temp file afterwards.
+const APK_TMP_DIR = path.join(path.resolve(env.UPLOAD_DIR), 'tmp');
+mkdirSync(APK_TMP_DIR, { recursive: true });
+
+/**
+ * In-memory-safe single-file APK upload for the admin app-release uploader.
+ * Streams straight to disk (APK_TMP_DIR), bounded by MAX_APK_UPLOAD_BYTES.
+ * super_admin-only route — the guard lives on the router, not here.
+ */
+export const uploadApk = multer({
+  storage: multer.diskStorage({ destination: APK_TMP_DIR }),
+  limits: { fileSize: env.MAX_APK_UPLOAD_BYTES, files: 1 },
+  fileFilter(_req, file, cb) {
+    // Android sets application/vnd.android.package-archive; some clients send
+    // application/octet-stream. Fall back to the .apk extension either way.
+    const ok =
+      file.mimetype === 'application/vnd.android.package-archive' ||
+      file.mimetype === 'application/octet-stream' ||
+      file.originalname.toLowerCase().endsWith('.apk');
+    if (ok) {
+      cb(null, true);
+    } else {
+      cb(new Error(`Unsupported file type for APK upload: ${file.mimetype}`));
     }
   },
 });

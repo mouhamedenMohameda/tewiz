@@ -33,6 +33,7 @@ const NAV = [
   { href: '/notifications',  label: 'Notifications', icon: '🔔' },
   { href: '/settings',       label: 'Paramètres',  icon: '⚙️' },
   { href: '/settings/documents', label: 'Documents requis', icon: '📑' },
+  { href: '/app-release',    label: 'Application', icon: '📱' },
 ];
 
 const ADMIN_ROLE_LABEL: Record<string, string> = {
