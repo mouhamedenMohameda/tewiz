@@ -68,6 +68,7 @@ export interface PricingSettings {
   nightPriceStartHour: number;
   nightPriceEndHour: number;
   carpoolingEnabled: boolean;
+  trackOfflineEnabled: boolean;
   carpoolingPublicationFee: number;
   carpoolingBoostFee: number;
   // Migration 0058. Success commission charged from the driver wallet only on a
@@ -178,6 +179,7 @@ interface Row {
   night_price_start_hour: number;
   night_price_end_hour: number;
   carpooling_enabled: boolean;
+  track_offline_enabled: boolean;
   carpooling_publication_fee: number;
   carpooling_boost_fee: number;
   carpooling_commission_bps: number;
@@ -269,6 +271,7 @@ function toSettings(r: Row): PricingSettings {
     nightPriceStartHour: r.night_price_start_hour,
     nightPriceEndHour: r.night_price_end_hour,
     carpoolingEnabled: r.carpooling_enabled,
+    trackOfflineEnabled: r.track_offline_enabled,
     carpoolingPublicationFee: r.carpooling_publication_fee,
     carpoolingBoostFee: r.carpooling_boost_fee,
     carpoolingCommissionBps: r.carpooling_commission_bps,
@@ -351,6 +354,7 @@ export async function getPricingSettings(): Promise<PricingSettings> {
             night_pricing_enabled, night_price_multiplier,
             night_price_start_hour, night_price_end_hour,
             carpooling_enabled, carpooling_publication_fee,
+            track_offline_enabled,
             carpooling_boost_fee, carpooling_commission_bps, carpooling_no_show_limit,
             show_demo_buttons, demo_buttons_allowed_versions,
               captain_alert_sound_mode, captain_alert_repeat_interval_s,
@@ -429,6 +433,7 @@ export interface PricingSettingsPatch {
   nightPriceStartHour?: number;
   nightPriceEndHour?: number;
   carpoolingEnabled?: boolean;
+  trackOfflineEnabled?: boolean;
   carpoolingPublicationFee?: number;
   carpoolingBoostFee?: number;
   carpoolingCommissionBps?: number;
@@ -522,6 +527,7 @@ export async function updatePricingSettings(
           night_price_start_hour            = COALESCE($34, night_price_start_hour),
           night_price_end_hour              = COALESCE($35, night_price_end_hour),
           carpooling_enabled                = COALESCE($50, carpooling_enabled),
+          track_offline_enabled             = COALESCE($87, track_offline_enabled),
           carpooling_publication_fee        = COALESCE($51, carpooling_publication_fee),
           carpooling_boost_fee              = COALESCE($52, carpooling_boost_fee),
           carpooling_commission_bps         = COALESCE($82, carpooling_commission_bps),
@@ -597,6 +603,7 @@ export async function updatePricingSettings(
                 night_pricing_enabled, night_price_multiplier,
                 night_price_start_hour, night_price_end_hour,
                 carpooling_enabled, carpooling_publication_fee,
+                track_offline_enabled,
                 carpooling_boost_fee, carpooling_commission_bps, carpooling_no_show_limit,
                 show_demo_buttons, demo_buttons_allowed_versions,
                 captain_alert_sound_mode, captain_alert_repeat_interval_s,
@@ -713,6 +720,7 @@ export async function updatePricingSettings(
       patch.latestIosUrl ?? null,
       patch.carpoolingNoShowLimit ?? null,
       patch.carRentalNoShowLimit ?? null,
+      patch.trackOfflineEnabled ?? null,
     ],
   );
   cache = null;

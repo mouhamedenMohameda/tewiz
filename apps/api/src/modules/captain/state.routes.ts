@@ -55,27 +55,23 @@ captainStateRouter.post('/online', async (req, res) => {
     throw new HttpError(409, 'on_ride', 'Vous êtes en course, ne peut pas changer manuellement');
   }
 
-  // 4. Update state.
-  const loc = body.lat !== undefined && body.lng !== undefined
-    ? `ST_SetSRID(ST_MakePoint(${Number(body.lng)}, ${Number(body.lat)}), 4326)::geography`
-    : 'location';
+  // 4. Update state. When a fresh location is supplied we also stamp
+  //    location_updated_at — the freshness signal dispatch trusts (see
+  //    migration 0071). When it isn't, we keep the previous position and its
+  //    freshness stamp untouched.
+  const hasLoc = body.lat !== undefined && body.lng !== undefined;
 
   const sql = `
-    INSERT INTO captain_state (captain_id, presence, location, updated_at)
-    VALUES ($1, 'online', ${body.lat !== undefined && body.lng !== undefined
-      ? 'ST_SetSRID(ST_MakePoint($2, $3), 4326)::geography'
-      : 'NULL'}, now())
+    INSERT INTO captain_state (captain_id, presence, location, location_updated_at, updated_at)
+    VALUES ($1, 'online', ${hasLoc ? 'ST_SetSRID(ST_MakePoint($2, $3), 4326)::geography' : 'NULL'}, ${hasLoc ? 'now()' : 'NULL'}, now())
     ON CONFLICT (captain_id) DO UPDATE
       SET presence = 'online',
-          location = ${body.lat !== undefined && body.lng !== undefined
-            ? 'EXCLUDED.location'
-            : 'captain_state.location'},
+          location = ${hasLoc ? 'EXCLUDED.location' : 'captain_state.location'},
+          location_updated_at = ${hasLoc ? 'now()' : 'captain_state.location_updated_at'},
           updated_at = now()
     RETURNING captain_id, presence, updated_at
   `;
-  const params = body.lat !== undefined && body.lng !== undefined
-    ? [userId, body.lng, body.lat]
-    : [userId];
+  const params = hasLoc ? [userId, body.lng, body.lat] : [userId];
 
   const r = await pool.query(sql, params);
   res.json({ ...r.rows[0], balanceMru: balance });
@@ -161,8 +157,9 @@ captainStateRouter.post('/track', async (req, res) => {
   const latest = body.points.reduce((a, b) => (b.recordedAt > a.recordedAt ? b : a));
   await pool.query(
     `UPDATE captain_state
-        SET location   = ST_SetSRID(ST_MakePoint($2, $3), 4326)::geography,
-            updated_at = now()
+        SET location            = ST_SetSRID(ST_MakePoint($2, $3), 4326)::geography,
+            location_updated_at = now(),
+            updated_at          = now()
       WHERE captain_id = $1
         AND presence <> 'offline'`,
     [userId, latest.lng, latest.lat],

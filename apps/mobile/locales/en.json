@@ -409,6 +409,8 @@
       "bgLocationTitle": "Background location",
       "bgLocationBody": "So {{app}} can show your route to support while you're on duty, allow \"Always\" location in settings. Without it, your position isn't shared in the background.",
       "bgLocationLater": "Later",
+      "bgRequiredTitle": "Location tracking required",
+      "bgRequiredBody": "To receive rides near you, {{app}} must track your location continuously (\"Allow all the time\" in settings). Turn it on to go online.",
       "openSettings": "Open settings",
       "fsiTitle": "Full-screen ride alerts",
       "fsiBody": "On Android 14 and later, allow full-screen display so new rides appear over the lock screen, like an incoming call. Without it, you'll only get a plain notification.",

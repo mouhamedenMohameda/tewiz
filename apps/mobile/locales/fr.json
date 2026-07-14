@@ -433,6 +433,8 @@
       "bgLocationTitle": "Localisation en arrière-plan",
       "bgLocationBody": "Pour que {{app}} affiche votre trajet au support pendant votre service, autorisez la localisation « Toujours » dans les réglages. Sans cela, votre position n'est pas partagée en arrière-plan.",
       "bgLocationLater": "Plus tard",
+      "bgRequiredTitle": "Suivi de position requis",
+      "bgRequiredBody": "Pour recevoir les courses près de vous, {{app}} doit suivre votre position en continu (« Toujours autoriser » dans les réglages). Activez-le pour passer en ligne.",
       "openSettings": "Ouvrir les réglages",
       "fsiTitle": "Alertes course en plein écran",
       "fsiBody": "Sur Android 14 et plus, autorisez l'affichage plein écran pour que les nouvelles courses apparaissent par-dessus l'écran verrouillé, comme un appel entrant. Sans cette autorisation, vous ne recevrez qu'une notification simple.",

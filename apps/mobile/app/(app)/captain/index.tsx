@@ -106,42 +106,45 @@ export default function CaptainHome() {
   async function goOnline() {
     setToggling(true);
     try {
+      // 1. Foreground location — required for any GPS fix at all.
       const perm = await Location.requestForegroundPermissionsAsync();
       if (perm.status !== 'granted') {
         Alert.alert(t('captain.state.locationRequiredTitle'),
           t('captain.state.locationRequiredBody', { app: APP_NAME }));
         return;
       }
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      await api.post('/captain/state/online', {
-        lat: loc.coords.latitude,
-        lng: loc.coords.longitude,
-      });
-      // Begin background off-ride tracking (Level B). Prompts for the "Always"
-      // permission; going online still succeeds if it's declined, but we no
-      // longer fail silently: tell the captain why it matters + how to fix it,
-      // and report the permission state so the back-office can see who to nudge.
+
+      // 2. Background ("Always") tracking is now MANDATORY. It's what keeps the
+      //    captain's stored position fresh so dispatch stays relevant — without
+      //    it, a captain who moves keeps an old position and receives the wrong
+      //    rides (or misses nearby ones). If they won't grant it, we do NOT
+      //    bring them online; we point them to the setting instead.
       const tracking = await startOfflineTracking();
       reportTrackPermission(tracking);
       if (!tracking) {
         Alert.alert(
-          t('captain.state.bgLocationTitle'),
-          t('captain.state.bgLocationBody', { app: APP_NAME }),
+          t('captain.state.bgRequiredTitle'),
+          t('captain.state.bgRequiredBody', { app: APP_NAME }),
           [
-            // Chain the full-screen-intent prompt off "Later" so the two system
-            // dialogs never stack; if they open settings we defer it to the next
-            // online session instead.
-            { text: t('captain.state.bgLocationLater'), style: 'cancel',
-              onPress: () => { void ensureFullScreenIntentPermission(); } },
+            { text: t('common.cancel'), style: 'cancel' },
             { text: t('captain.state.openSettings'), onPress: () => { void Linking.openSettings(); } },
           ],
         );
-      } else {
-        // Android 14+: make sure the "incoming ride" alert can take over the
-        // screen like a call (over the lock screen). No-op on iOS / Android < 14
-        // and once the captain has already been guided to the setting.
-        void ensureFullScreenIntentPermission();
+        return; // stay offline until continuous tracking is granted
       }
+
+      // 3. Fresh HIGH-accuracy fix (never a cached one from a previous city),
+      //    then go online.
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      await api.post('/captain/state/online', {
+        lat: loc.coords.latitude,
+        lng: loc.coords.longitude,
+      });
+
+      // Android 14+: make sure the "incoming ride" alert can take over the
+      // screen like a call. No-op on iOS / Android < 14 / once already handled.
+      void ensureFullScreenIntentPermission();
+
       await load();
     } catch (e: any) {
       Alert.alert(t('captain.state.errorTitle'),

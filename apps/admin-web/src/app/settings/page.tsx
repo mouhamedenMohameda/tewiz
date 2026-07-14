@@ -40,6 +40,7 @@ interface PricingSettings {
   nightPriceStartHour: number;
   nightPriceEndHour: number;
   carpoolingEnabled: boolean;
+  trackOfflineEnabled: boolean;
   carpoolingPublicationFee: number;
   carpoolingBoostFee: number;
   carpoolingCommissionBps: number;
@@ -112,6 +113,7 @@ interface FormState {
   nightPriceStartHour: string;
   nightPriceEndHour: string;
   carpoolingEnabled: boolean;
+  trackOfflineEnabled: boolean;
   carpoolingPublicationFee: string;
   carpoolingBoostFee: string;
   carpoolingCommissionPct: string;
@@ -182,6 +184,7 @@ const EMPTY_FORM: FormState = {
   nightPriceStartHour: '0',
   nightPriceEndHour: '5',
   carpoolingEnabled: true,
+  trackOfflineEnabled: false,
   carpoolingPublicationFee: '0',
   carpoolingBoostFee: '200',
   carpoolingCommissionPct: '0',
@@ -253,6 +256,7 @@ function settingsToForm(s: PricingSettings): FormState {
     nightPriceStartHour: String(s.nightPriceStartHour),
     nightPriceEndHour: String(s.nightPriceEndHour),
     carpoolingEnabled: s.carpoolingEnabled,
+    trackOfflineEnabled: s.trackOfflineEnabled,
     carpoolingPublicationFee: String(s.carpoolingPublicationFee),
     carpoolingBoostFee: String(s.carpoolingBoostFee),
     carpoolingCommissionPct: (s.carpoolingCommissionBps / 100).toString(),
@@ -345,6 +349,7 @@ export default function SettingsPage() {
         nightPriceStartHour: parseInt(form.nightPriceStartHour, 10),
         nightPriceEndHour: parseInt(form.nightPriceEndHour, 10),
         carpoolingEnabled: form.carpoolingEnabled,
+        trackOfflineEnabled: form.trackOfflineEnabled,
         carpoolingPublicationFee: parseInt(form.carpoolingPublicationFee, 10),
         carpoolingBoostFee: parseInt(form.carpoolingBoostFee, 10),
         carpoolingCommissionBps: Math.round(parseFloat(form.carpoolingCommissionPct) * 100),
@@ -1026,6 +1031,30 @@ export default function SettingsPage() {
                   step="1"
                 />
               </div>
+            </section>
+
+            <section className="card p-5 mb-4 border border-sky-200 bg-sky-50/30">
+              <div className="flex items-start justify-between mb-1">
+                <h2 className="font-semibold text-slate-900">Suivi de position des chauffeurs</h2>
+                <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.trackOfflineEnabled}
+                    onChange={(e) => setForm({ ...form, trackOfflineEnabled: e.target.checked })}
+                    className="w-4 h-4 accent-sky-600"
+                  />
+                  <span className={form.trackOfflineEnabled ? 'text-sky-700 font-medium' : 'text-slate-500'}>
+                    {form.trackOfflineEnabled ? 'Active' : 'Desactive'}
+                  </span>
+                </label>
+              </div>
+              <p className="text-xs text-slate-500 mb-0">
+                Suit la position des chauffeurs en ligne en continu (meme app fermee). C&apos;est
+                ce qui garde leur position a jour pour un dispatch pertinent : sans lui, un
+                chauffeur qui se deplace garde une ancienne position et recoit les mauvaises
+                courses (ou rate les courses proches). A activer pour que la garde de fraicheur
+                du dispatch fonctionne.
+              </p>
             </section>
 
             <section className="card p-5 mb-4 border border-emerald-200 bg-emerald-50/30">
