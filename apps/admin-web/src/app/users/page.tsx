@@ -72,6 +72,14 @@ export default function UsersPage() {
   const [reveal, setReveal] = useState<PasswordReveal | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [editingRole, setEditingRole] = useState<UserRow | null>(null);
+  const [confirmAction, setConfirmAction] = useState<
+    { user: UserRow; action: 'suspend' | 'reactivate' | 'delete' } | null
+  >(null);
+
+  // Anyone on this page is at least ops_manager. Actions targeting another
+  // admin are super_admin only — mirror the backend guard so the buttons
+  // don't offer something the API will reject.
+  const canManage = (u: UserRow) => u.role !== 'admin' || isSuperAdmin;
 
   const list = useQuery<ListResponse>({
     queryKey: ['admin-users', search, roleFilter, onlineOnly],
@@ -124,7 +132,14 @@ export default function UsersPage() {
               u.online ? 'bg-emerald-500 ring-2 ring-emerald-100' : 'bg-slate-300'
             }`}
           />
-          <span>{u.full_name ?? '—'}</span>
+          <span className={u.status !== 'active' ? 'text-slate-400 line-through' : ''}>
+            {u.full_name ?? '—'}
+          </span>
+          {u.status !== 'active' && (
+            <span className="px-1.5 py-0.5 text-[10px] rounded font-semibold bg-amber-100 text-amber-700 uppercase tracking-wide">
+              {u.status === 'banned' ? 'Banni' : 'Suspendu'}
+            </span>
+          )}
         </div>
       ),
     },
@@ -200,6 +215,31 @@ export default function UsersPage() {
           >
             Régénérer
           </button>
+          {canManage(u) && (
+            u.status === 'active' ? (
+              <button
+                onClick={() => setConfirmAction({ user: u, action: 'suspend' })}
+                className="text-xs text-amber-700 hover:text-amber-900 font-medium"
+              >
+                Suspendre
+              </button>
+            ) : (
+              <button
+                onClick={() => setConfirmAction({ user: u, action: 'reactivate' })}
+                className="text-xs text-emerald-700 hover:text-emerald-900 font-medium"
+              >
+                Réactiver
+              </button>
+            )
+          )}
+          {canManage(u) && (
+            <button
+              onClick={() => setConfirmAction({ user: u, action: 'delete' })}
+              className="text-xs text-red-600 hover:text-red-800 font-medium"
+            >
+              Supprimer
+            </button>
+          )}
         </div>
       ),
     },
@@ -279,13 +319,40 @@ export default function UsersPage() {
             rowKey={(u) => u.id}
             emptyMessage="Aucun utilisateur ne correspond à ce filtre."
             mobileActions={(u) => (
-              <button
-                onClick={() => regenerate.mutate(u)}
-                disabled={regenerate.isPending}
-                className="text-xs text-emerald-700 hover:text-emerald-900 font-medium px-3 py-1.5 bg-emerald-50 rounded-md"
-              >
-                Régénérer le mot de passe
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => regenerate.mutate(u)}
+                  disabled={regenerate.isPending}
+                  className="text-xs text-emerald-700 hover:text-emerald-900 font-medium px-3 py-1.5 bg-emerald-50 rounded-md"
+                >
+                  Régénérer le mot de passe
+                </button>
+                {canManage(u) && (
+                  u.status === 'active' ? (
+                    <button
+                      onClick={() => setConfirmAction({ user: u, action: 'suspend' })}
+                      className="text-xs text-amber-700 hover:text-amber-900 font-medium px-3 py-1.5 bg-amber-50 rounded-md"
+                    >
+                      Suspendre
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmAction({ user: u, action: 'reactivate' })}
+                      className="text-xs text-emerald-700 hover:text-emerald-900 font-medium px-3 py-1.5 bg-emerald-50 rounded-md"
+                    >
+                      Réactiver
+                    </button>
+                  )
+                )}
+                {canManage(u) && (
+                  <button
+                    onClick={() => setConfirmAction({ user: u, action: 'delete' })}
+                    className="text-xs text-red-600 hover:text-red-800 font-medium px-3 py-1.5 bg-red-50 rounded-md"
+                  >
+                    Supprimer
+                  </button>
+                )}
+              </div>
             )}
           />
         )}
@@ -310,6 +377,17 @@ export default function UsersPage() {
             onClose={() => setEditingRole(null)}
             onSaved={() => {
               setEditingRole(null);
+              qc.invalidateQueries({ queryKey: ['admin-users'] });
+            }}
+          />
+        )}
+        {confirmAction && (
+          <UserActionModal
+            user={confirmAction.user}
+            action={confirmAction.action}
+            onClose={() => setConfirmAction(null)}
+            onDone={() => {
+              setConfirmAction(null);
               qc.invalidateQueries({ queryKey: ['admin-users'] });
             }}
           />
@@ -544,6 +622,108 @@ function EditAdminRoleModal({
             className="px-4 py-2 text-sm font-medium bg-purple-600 hover:bg-purple-700 text-white rounded-lg disabled:opacity-50"
           >
             {save.isPending ? 'Enregistrement…' : 'Enregistrer'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Suspend / reactivate / delete confirmation
+// ---------------------------------------------------------------------------
+
+const ACTION_CONFIG = {
+  suspend: {
+    title: 'Suspendre le compte',
+    body: "L'utilisateur sera immédiatement déconnecté et ne pourra plus se connecter tant que le compte reste suspendu. C'est réversible.",
+    confirm: 'Suspendre',
+    danger: false,
+  },
+  reactivate: {
+    title: 'Réactiver le compte',
+    body: "L'utilisateur pourra de nouveau se connecter avec son mot de passe existant.",
+    confirm: 'Réactiver',
+    danger: false,
+  },
+  delete: {
+    title: 'Supprimer le compte',
+    body: "Le compte sera supprimé : numéro et nom effacés, sessions révoquées, notifications coupées. Le numéro pourra être réutilisé. Cette action est irréversible.",
+    confirm: 'Supprimer définitivement',
+    danger: true,
+  },
+} as const;
+
+function UserActionModal({
+  user, action, onClose, onDone,
+}: {
+  user: UserRow;
+  action: 'suspend' | 'reactivate' | 'delete';
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [error, setError] = useState<string | null>(null);
+  const cfg = ACTION_CONFIG[action];
+
+  const run = useMutation({
+    mutationFn: async () => {
+      setError(null);
+      if (action === 'delete') {
+        await api.delete(`/admin/users/${user.id}`);
+      } else {
+        await api.patch(`/admin/users/${user.id}/status`, {
+          status: action === 'suspend' ? 'suspended' : 'active',
+        });
+      }
+    },
+    onSuccess: onDone,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onError: (e: any) => {
+      const code = e.response?.data?.error?.code;
+      const msg = e.response?.data?.error?.message;
+      if (code === 'last_super_admin') {
+        setError('Impossible : ce compte est le dernier super_admin actif.');
+      } else if (code === 'cannot_target_self') {
+        setError('Vous ne pouvez pas effectuer cette action sur votre propre compte.');
+      } else {
+        setError(msg ?? "Erreur lors de l'opération.");
+      }
+    },
+  });
+
+  return (
+    <div className="fixed inset-0 bg-slate-900/40 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+        <h2 className="text-lg font-bold mb-1">{cfg.title}</h2>
+        <p className="text-sm text-slate-500 mb-2">
+          {user.full_name ?? user.phone}
+          {user.full_name ? ` · ${user.phone}` : ''}
+        </p>
+        <p className={`text-sm mb-4 ${cfg.danger ? 'text-red-700' : 'text-slate-600'}`}>
+          {cfg.body}
+        </p>
+
+        {error && <div className="mb-3 text-sm text-red-600">{error}</div>}
+
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg"
+          >
+            Annuler
+          </button>
+          <button
+            onClick={() => run.mutate()}
+            disabled={run.isPending}
+            className={`px-4 py-2 text-sm font-medium text-white rounded-lg disabled:opacity-50 ${
+              cfg.danger
+                ? 'bg-red-600 hover:bg-red-700'
+                : action === 'suspend'
+                ? 'bg-amber-600 hover:bg-amber-700'
+                : 'bg-emerald-600 hover:bg-emerald-700'
+            }`}
+          >
+            {run.isPending ? '…' : cfg.confirm}
           </button>
         </div>
       </div>
