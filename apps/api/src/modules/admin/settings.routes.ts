@@ -73,6 +73,7 @@ const patchBody = z.object({
   nightPriceStartHour:              z.number().int().min(0).max(23).optional(),
   nightPriceEndHour:                z.number().int().min(0).max(23).optional(),
   carpoolingEnabled:                z.boolean().optional(),
+  trackOfflineEnabled:              z.boolean().optional(),
   carpoolingPublicationFee:         z.number().int().min(0).max(10_000).optional(),
   carpoolingBoostFee:               z.number().int().min(0).max(10_000).optional(),
   carpoolingCommissionBps:          z.number().int().min(0).max(10_000).optional(),

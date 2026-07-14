@@ -7,13 +7,17 @@
  *                                                (shown ONCE)
  *   POST   /admin/users/:id/regenerate-password
  *                                              — rotates the password
+ *   PATCH  /admin/users/:id/status             — suspend / ban / reactivate
+ *   DELETE /admin/users/:id                    — soft-delete the account
  *
  * All endpoints require admin role (enforced by the parent adminRouter).
+ * Actions targeting another admin are further restricted to super_admin
+ * inside each handler.
  */
 
 import { Router } from 'express';
 import { z } from 'zod';
-import { pool } from '../../db/pool.js';
+import { pool, withTx } from '../../db/pool.js';
 import { HttpError } from '../../middleware/error.js';
 import { requireAdminRole, type AuthedRequest } from '../../middleware/auth.js';
 import { generatePassword, hashPassword } from '../auth/password.js';
@@ -55,6 +59,9 @@ adminUsersRouter.get('/', async (req, res) => {
   if (q.includeGuests !== 'true') {
     where.push('COALESCE(is_guest, false) = false');
   }
+  // Soft-deleted accounts (status='deleted', phone stripped) are gone from
+  // the operator's point of view — never surface them in the directory.
+  where.push("status <> 'deleted'");
   if (q.role) {
     params.push(q.role);
     where.push(`role = $${params.length}`);
@@ -320,6 +327,181 @@ adminUsersRouter.patch('/:id/admin-role', requireAdminRole(), async (req, res) =
   });
 
   res.json({ ok: true, userId: id, adminRole: newRole });
+});
+
+// ---------------------------------------------------------------------------
+// PATCH /admin/users/:id/status
+// Suspend, ban, or reactivate an account. Suspending/banning cuts access
+// immediately (revokes sessions + drops push tokens) so the change takes
+// effect without waiting for the current access token to expire.
+// ---------------------------------------------------------------------------
+
+const statusBody = z.object({
+  status: z.enum(['active', 'suspended', 'banned']),
+  reason: z.string().trim().max(500).optional(),
+});
+
+adminUsersRouter.patch('/:id/status', async (req, res) => {
+  const { id } = idParam.parse(req.params);
+  const { status, reason } = statusBody.parse(req.body);
+  const actorId = req.user!.id;
+
+  // Never let an admin lock themselves out of their own session.
+  if (id === actorId) {
+    throw new HttpError(
+      400,
+      'cannot_target_self',
+      'Vous ne pouvez pas modifier le statut de votre propre compte.',
+    );
+  }
+
+  const target = await pool.query<{
+    role: string;
+    admin_role: string | null;
+    status: string;
+  }>(
+    `SELECT role, admin_role, status FROM users WHERE id = $1 LIMIT 1`,
+    [id],
+  );
+  const t = target.rows[0];
+  if (!t) throw new HttpError(404, 'user_not_found', 'Utilisateur introuvable');
+  if (t.status === 'deleted') {
+    throw new HttpError(409, 'user_deleted', 'Ce compte a été supprimé.');
+  }
+  // Changing an admin's status could hijack or disable the panel — super_admin only.
+  if (t.role === 'admin' && req.user!.adminRole !== 'super_admin') {
+    throw new HttpError(
+      403,
+      'forbidden',
+      "Seul un super_admin peut modifier le statut d'un administrateur.",
+    );
+  }
+  if (t.status === status) {
+    res.json({ ok: true, userId: id, status });
+    return;
+  }
+
+  // Lock-out guard: never suspend/ban the last remaining active super_admin.
+  if (t.role === 'admin' && t.admin_role === 'super_admin' && status !== 'active') {
+    const { rows } = await pool.query<{ count: string }>(
+      `SELECT COUNT(*)::text AS count FROM users
+        WHERE role = 'admin' AND admin_role = 'super_admin' AND status = 'active'`,
+    );
+    if (parseInt(rows[0]?.count ?? '0', 10) <= 1) {
+      throw new HttpError(
+        409,
+        'last_super_admin',
+        'Impossible de suspendre le dernier super_admin actif.',
+      );
+    }
+  }
+
+  await withTx(async (client) => {
+    await client.query(`UPDATE users SET status = $1 WHERE id = $2`, [status, id]);
+    // Cutting access: on suspend/ban, revoke sessions and stop notifications
+    // immediately. Reactivation just flips the flag — the user logs in again.
+    if (status !== 'active') {
+      await client.query(
+        `UPDATE sessions SET revoked_at = now()
+          WHERE user_id = $1 AND revoked_at IS NULL`,
+        [id],
+      );
+      await client.query(`DELETE FROM push_tokens WHERE user_id = $1`, [id]);
+    }
+  });
+
+  await audit({
+    adminId: actorId,
+    action: 'user.status.update',
+    targetType: 'user',
+    targetId: id,
+    before: { status: t.status },
+    after: { status },
+    reason: reason ?? null,
+  });
+
+  res.json({ ok: true, userId: id, status });
+});
+
+// ---------------------------------------------------------------------------
+// DELETE /admin/users/:id
+// Soft-delete: keeps the row (wallet ledger, rides, audit trail must survive)
+// but strips personal data, frees the phone number for reuse, and cuts all
+// access. Mirrors the in-app DELETE /auth/me flow.
+// ---------------------------------------------------------------------------
+
+adminUsersRouter.delete('/:id', async (req, res) => {
+  const { id } = idParam.parse(req.params);
+  const actorId = req.user!.id;
+
+  if (id === actorId) {
+    throw new HttpError(
+      400,
+      'cannot_target_self',
+      'Vous ne pouvez pas supprimer votre propre compte.',
+    );
+  }
+
+  const target = await pool.query<{
+    role: string;
+    admin_role: string | null;
+    status: string;
+  }>(
+    `SELECT role, admin_role, status FROM users WHERE id = $1 LIMIT 1`,
+    [id],
+  );
+  const t = target.rows[0];
+  if (!t) throw new HttpError(404, 'user_not_found', 'Utilisateur introuvable');
+  if (t.status === 'deleted') {
+    // Already gone — treat as idempotent success.
+    res.json({ ok: true, userId: id, status: 'deleted' });
+    return;
+  }
+  if (t.role === 'admin' && req.user!.adminRole !== 'super_admin') {
+    throw new HttpError(
+      403,
+      'forbidden',
+      'Seul un super_admin peut supprimer un administrateur.',
+    );
+  }
+  if (t.role === 'admin' && t.admin_role === 'super_admin') {
+    const { rows } = await pool.query<{ count: string }>(
+      `SELECT COUNT(*)::text AS count FROM users
+        WHERE role = 'admin' AND admin_role = 'super_admin' AND status = 'active'`,
+    );
+    if (parseInt(rows[0]?.count ?? '0', 10) <= 1) {
+      throw new HttpError(
+        409,
+        'last_super_admin',
+        'Impossible de supprimer le dernier super_admin actif.',
+      );
+    }
+  }
+
+  await withTx(async (client) => {
+    await client.query(
+      `UPDATE users
+          SET status = 'deleted', phone = NULL, full_name = NULL, is_guest = false
+        WHERE id = $1`,
+      [id],
+    );
+    await client.query(
+      `UPDATE sessions SET revoked_at = now()
+        WHERE user_id = $1 AND revoked_at IS NULL`,
+      [id],
+    );
+    await client.query(`DELETE FROM push_tokens WHERE user_id = $1`, [id]);
+  });
+
+  await audit({
+    adminId: actorId,
+    action: 'user.delete',
+    targetType: 'user',
+    targetId: id,
+    before: { role: t.role, adminRole: t.admin_role, status: t.status },
+  });
+
+  res.json({ ok: true, userId: id, status: 'deleted' });
 });
 
 // ---------------------------------------------------------------------------
