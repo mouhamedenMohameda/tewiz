@@ -11,6 +11,7 @@ import { useAuth } from '@/lib/auth';
 import { formatMru } from '@/lib/format';
 import { usePolling } from '@/lib/usePolling';
 import { resumeOfflineTracking, startOfflineTracking, stopOfflineTracking } from '@/lib/track-task';
+import { ensureFullScreenIntentPermission } from '@/lib/fullScreenIntentPermission';
 import { ModeToggle } from '@/components/ModeToggle';
 import { resetRideAlerts } from '@/components/CaptainRideWatcher';
 import { BonusCard } from '@/components/BonusCard';
@@ -127,10 +128,19 @@ export default function CaptainHome() {
           t('captain.state.bgLocationTitle'),
           t('captain.state.bgLocationBody', { app: APP_NAME }),
           [
-            { text: t('captain.state.bgLocationLater'), style: 'cancel' },
+            // Chain the full-screen-intent prompt off "Later" so the two system
+            // dialogs never stack; if they open settings we defer it to the next
+            // online session instead.
+            { text: t('captain.state.bgLocationLater'), style: 'cancel',
+              onPress: () => { void ensureFullScreenIntentPermission(); } },
             { text: t('captain.state.openSettings'), onPress: () => { void Linking.openSettings(); } },
           ],
         );
+      } else {
+        // Android 14+: make sure the "incoming ride" alert can take over the
+        // screen like a call (over the lock screen). No-op on iOS / Android < 14
+        // and once the captain has already been guided to the setting.
+        void ensureFullScreenIntentPermission();
       }
       await load();
     } catch (e: any) {
