@@ -1,6 +1,7 @@
 import { pool } from '../../db/pool.js';
 import { env } from '../../config/env.js';
 import { getPricingSettings } from '../admin/app-settings.service.js';
+import { isTrackingEnabled } from '../captain/track.service.js';
 
 /**
  * Returns nearby searching rides for a captain, scored by:
@@ -164,6 +165,10 @@ export async function captainInbox(input: {
 export async function eligibleCaptainsForRide(rideId: string): Promise<string[]> {
   const radius = env.DISPATCH_RADIUS_M;
   const { longDistanceThresholdM } = await getPricingSettings();
+  // Freshness guard: only trust a captain's stored position while off-ride
+  // tracking is on (that's what keeps it current). When tracking is off we
+  // can't keep positions fresh, so skip the guard to avoid dropping everyone.
+  const enforceFreshness = await isTrackingEnabled();
   const { rows } = await pool.query<{ captain_id: string }>(
     `
     WITH r AS (
@@ -183,12 +188,19 @@ export async function eligibleCaptainsForRide(rideId: string): Promise<string[]>
        )
        AND (COALESCE(r.distance_m, 0) < $3 OR c.accepts_long_distance = true)
        AND s.captain_id <> r.booker_id
+       -- Stale-position guard: skip captains whose location hasn't refreshed
+       -- recently (they may have moved without the tracker catching up).
+       AND (
+         NOT $4::boolean
+         OR s.location_updated_at IS NULL
+         OR s.location_updated_at > now() - make_interval(secs => $5)
+       )
        AND NOT EXISTS (
          SELECT 1 FROM ride_declines d
           WHERE d.ride_id = r.id AND d.captain_id = s.captain_id
        )
     `,
-    [rideId, radius, longDistanceThresholdM],
+    [rideId, radius, longDistanceThresholdM, enforceFreshness, env.DISPATCH_MAX_LOCATION_AGE_S],
   );
   return rows.map((row) => row.captain_id);
 }

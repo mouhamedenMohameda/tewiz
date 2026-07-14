@@ -777,6 +777,15 @@ export async function getRideForUser(
     const enriched = await enrichRideWithAllDetails(withCaptain);
     return enrichWithLiveMeter(enriched);
   }
+  if (role === 'admin') {
+    // The operator console shows the assigned captain (name + phone) plus the
+    // full list of captains who accepted — the winner and everyone who tapped
+    // a moment too late.
+    const withCaptain = await enrichWithCaptain(shaped);
+    const withAcceptances = await enrichWithAcceptances(withCaptain);
+    const enriched = await enrichRideWithAllDetails(withAcceptances);
+    return enrichWithLiveMeter(enriched);
+  }
   const enriched = await enrichRideWithAllDetails(shaped);
   return enrichWithLiveMeter(enriched);
 }
@@ -864,6 +873,49 @@ async function enrichWithCaptain<T extends { captainId: string | null }>(
         ? { plate: row.plate, brand: row.brand!, model: row.model!, color: row.color! }
         : null,
     },
+  };
+}
+
+/**
+ * Adds `acceptances` — the list of every captain who tapped "Accepter" on the
+ * ride, oldest first — onto a ride. Admin-only: it exposes captain contact
+ * details (name + phone) so the operator can see who got the ride AND who else
+ * wanted it (e.g. to re-assign by phone if the winner cancels). `isAssigned`
+ * flags the captain that actually holds the ride (rides.captain_id).
+ */
+interface AcceptanceInfo {
+  captainId: string;
+  fullName: string | null;
+  phone: string;
+  acceptedAt: string;
+  isAssigned: boolean;
+}
+
+async function enrichWithAcceptances<T extends { id: string; captainId: string | null }>(
+  ride: T,
+): Promise<T & { acceptances: AcceptanceInfo[] }> {
+  const r = await pool.query<{
+    id: string;
+    full_name: string | null;
+    phone: string;
+    accepted_at: string;
+  }>(
+    `SELECT u.id, u.full_name, u.phone, ra.accepted_at
+       FROM ride_acceptances ra
+       JOIN users u ON u.id = ra.captain_id
+      WHERE ra.ride_id = $1
+      ORDER BY ra.accepted_at ASC`,
+    [ride.id],
+  );
+  return {
+    ...ride,
+    acceptances: r.rows.map((row) => ({
+      captainId: row.id,
+      fullName: row.full_name,
+      phone: row.phone,
+      acceptedAt: row.accepted_at,
+      isAssigned: row.id === ride.captainId,
+    })),
   };
 }
 
@@ -1264,90 +1316,136 @@ export async function rebroadcastRide(rideId: string): Promise<{ captainsNotifie
 }
 
 export async function acceptRide(rideId: string, captainId: string) {
-  return withTx(async (client) => {
-    const ride = await lockRide(client, rideId);
+  try {
+    return await withTx(async (client) => {
+      const ride = await lockRide(client, rideId);
 
-    if (ride.status !== 'searching') {
-      throw new HttpError(409, 'not_searching',
-        `Ride is ${ride.status}, cannot accept`);
-    }
-
-    // Balance gate: captain cannot accept rides below the minimum threshold.
-    const balance = await getBalance(captainId);
-    if (balance < env.MIN_BALANCE_TO_GO_ONLINE_MRU) {
-      throw new HttpError(402, 'balance_too_low',
-        `Solde insuffisant pour accepter une course (min ${env.MIN_BALANCE_TO_GO_ONLINE_MRU} MRU, actuel ${balance} MRU)`,
-        { balance, minRequired: env.MIN_BALANCE_TO_GO_ONLINE_MRU });
-    }
-
-    // Captain must not have another active ride.
-    const busy = await client.query(
-      `SELECT 1 FROM rides
-        WHERE captain_id = $1
-          AND status IN ('accepted','arrived','in_progress')
-        LIMIT 1`,
-      [captainId],
-    );
-    if ((busy.rowCount ?? 0) > 0) {
-      throw new HttpError(409, 'captain_busy',
-        'You already have an active ride');
-    }
-
-    const cap = await client.query<{ accepts_colis: boolean; vehicle_type: 'car' | 'moto' }>(
-      `SELECT accepts_colis, vehicle_type FROM captains WHERE user_id = $1`,
-      [captainId],
-    );
-    const captain = cap.rows[0];
-    if (!captain) {
-      throw new HttpError(404, 'not_captain', 'Captain not found');
-    }
-
-    // Vehicle gate:
-    // - moto captains can only accept colis
-    // - car captains can accept colis only when opted in
-    if (ride.ride_type === 'colis') {
-      if (captain.vehicle_type === 'car' && !captain.accepts_colis) {
-        throw new HttpError(403, 'colis_not_allowed',
-          "Vous n'acceptez pas les courses colis");
+      if (ride.status !== 'searching') {
+        throw new HttpError(409, 'not_searching',
+          `Ride is ${ride.status}, cannot accept`);
       }
-    } else if (captain.vehicle_type !== 'car') {
-      throw new HttpError(403, 'passenger_not_allowed',
-        'Les motos ne peuvent pas accepter les courses passagers');
-    }
 
-    const upd = await client.query<RideRow>(
-      `UPDATE rides
-          SET captain_id = $1,
-              status = 'accepted',
-              accepted_at = now()
-        WHERE id = $2
-      RETURNING ${RIDE_COLUMNS}`,
-      [captainId, rideId],
-    );
+      // Balance gate: captain cannot accept rides below the minimum threshold.
+      const balance = await getBalance(captainId);
+      if (balance < env.MIN_BALANCE_TO_GO_ONLINE_MRU) {
+        throw new HttpError(402, 'balance_too_low',
+          `Solde insuffisant pour accepter une course (min ${env.MIN_BALANCE_TO_GO_ONLINE_MRU} MRU, actuel ${balance} MRU)`,
+          { balance, minRequired: env.MIN_BALANCE_TO_GO_ONLINE_MRU });
+      }
 
-    // Mark captain on_ride.
-    await client.query(
-      `UPDATE captain_state SET presence = 'on_ride', updated_at = now()
-        WHERE captain_id = $1`,
-      [captainId],
-    );
-
-    // Colis: notify the recipient that a courier is on the way.
-    if (ride.ride_type === 'colis') {
-      const colis = await client.query<{ recipient_phone: string; recipient_name: string }>(
-        `SELECT recipient_phone, recipient_name FROM colis_details WHERE ride_id = $1`,
-        [ride.id],
+      // Captain must not have another active ride.
+      const busy = await client.query(
+        `SELECT 1 FROM rides
+          WHERE captain_id = $1
+            AND status IN ('accepted','arrived','in_progress')
+          LIMIT 1`,
+        [captainId],
       );
-      if (colis.rows[0]) {
-        await sms.send(
-          colis.rows[0].recipient_phone,
-          `Tewiz Colis: un livreur est en route avec votre colis.`,
-        );
+      if ((busy.rowCount ?? 0) > 0) {
+        throw new HttpError(409, 'captain_busy',
+          'You already have an active ride');
       }
-    }
 
-    return shape(upd.rows[0]!, { revealCode: true });
-  });
+      const cap = await client.query<{ accepts_colis: boolean; vehicle_type: 'car' | 'moto' }>(
+        `SELECT accepts_colis, vehicle_type FROM captains WHERE user_id = $1`,
+        [captainId],
+      );
+      const captain = cap.rows[0];
+      if (!captain) {
+        throw new HttpError(404, 'not_captain', 'Captain not found');
+      }
+
+      // Vehicle gate:
+      // - moto captains can only accept colis
+      // - car captains can accept colis only when opted in
+      if (ride.ride_type === 'colis') {
+        if (captain.vehicle_type === 'car' && !captain.accepts_colis) {
+          throw new HttpError(403, 'colis_not_allowed',
+            "Vous n'acceptez pas les courses colis");
+        }
+      } else if (captain.vehicle_type !== 'car') {
+        throw new HttpError(403, 'passenger_not_allowed',
+          'Les motos ne peuvent pas accepter les courses passagers');
+      }
+
+      const upd = await client.query<RideRow>(
+        `UPDATE rides
+            SET captain_id = $1,
+                status = 'accepted',
+                accepted_at = now()
+          WHERE id = $2
+        RETURNING ${RIDE_COLUMNS}`,
+        [captainId, rideId],
+      );
+
+      // Log the winning acceptance. Committed atomically with the assignment so
+      // the ride's captain_id always has a matching ride_acceptances row.
+      await client.query(
+        `INSERT INTO ride_acceptances (ride_id, captain_id)
+         VALUES ($1, $2)
+         ON CONFLICT (ride_id, captain_id) DO NOTHING`,
+        [rideId, captainId],
+      );
+
+      // Mark captain on_ride.
+      await client.query(
+        `UPDATE captain_state SET presence = 'on_ride', updated_at = now()
+          WHERE captain_id = $1`,
+        [captainId],
+      );
+
+      // Colis: notify the recipient that a courier is on the way.
+      if (ride.ride_type === 'colis') {
+        const colis = await client.query<{ recipient_phone: string; recipient_name: string }>(
+          `SELECT recipient_phone, recipient_name FROM colis_details WHERE ride_id = $1`,
+          [ride.id],
+        );
+        if (colis.rows[0]) {
+          await sms.send(
+            colis.rows[0].recipient_phone,
+            `Tewiz Colis: un livreur est en route avec votre colis.`,
+          );
+        }
+      }
+
+      return shape(upd.rows[0]!, { revealCode: true });
+    });
+  } catch (err) {
+    // The captain lost the race: another captain accepted a heartbeat earlier,
+    // so the ride is no longer 'searching' and the transaction above rolled
+    // back. We still record this captain's interest (outside the rolled-back tx)
+    // so the operator sees everyone who wanted the ride, then surface the 409.
+    if (err instanceof HttpError && err.code === 'not_searching') {
+      await recordLateAcceptance(rideId, captainId);
+    }
+    throw err;
+  }
+}
+
+/**
+ * Best-effort log of an acceptance tap that arrived after the ride was already
+ * claimed by another captain. Runs on its own connection because the caller's
+ * transaction has rolled back. Failures here must never mask the original 409,
+ * so any error is swallowed. Recorded only when the ride is genuinely taken by
+ * someone else (accepted/arrived/in_progress) — not when it was cancelled or
+ * completed.
+ */
+async function recordLateAcceptance(rideId: string, captainId: string): Promise<void> {
+  try {
+    await pool.query(
+      `INSERT INTO ride_acceptances (ride_id, captain_id)
+       SELECT $1, $2
+         FROM rides
+        WHERE id = $1
+          AND captain_id IS NOT NULL
+          AND captain_id <> $2
+          AND status IN ('accepted','arrived','in_progress')
+       ON CONFLICT (ride_id, captain_id) DO NOTHING`,
+      [rideId, captainId],
+    );
+  } catch (e) {
+    console.error('[rides] failed to record late acceptance', { rideId, captainId, e });
+  }
 }
 
 export async function arriveRide(rideId: string, captainId: string) {

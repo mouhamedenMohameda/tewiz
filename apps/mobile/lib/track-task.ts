@@ -134,6 +134,12 @@ export async function startOfflineTracking(): Promise<boolean> {
 
   await Location.startLocationUpdatesAsync(OFFLINE_LOCATION_TASK, {
     accuracy: Location.Accuracy.High,
+    // A fix every ~60 s OR every ~50 m of movement, whichever comes first. The
+    // time-based tick is essential: a captain waiting for rides is STATIONARY,
+    // so a distance-only trigger would let his stored position (and its
+    // freshness stamp) go stale and drop him from dispatch. 60 s keeps him well
+    // inside the server's freshness window.
+    timeInterval: 60_000,
     distanceInterval: 50,          // a fix at most every ~50 m of movement
     deferredUpdatesInterval: 30_000, // …and flush the batch at most every 30 s
     deferredUpdatesDistance: 50,

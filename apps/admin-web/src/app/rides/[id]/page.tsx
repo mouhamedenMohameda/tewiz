@@ -14,6 +14,20 @@ type RideStatus =
 
 type RideType = 'passenger' | 'colis';
 
+interface CaptainInfo {
+  id: string;
+  fullName: string | null;
+  phone: string;
+}
+
+interface Acceptance {
+  captainId: string;
+  fullName: string | null;
+  phone: string;
+  acceptedAt: string;
+  isAssigned: boolean;
+}
+
 interface Ride {
   id: string;
   rideType: RideType;
@@ -22,6 +36,8 @@ interface Ride {
   passengerPhone: string | null;
   isForOther: boolean;
   captainId: string | null;
+  captain: CaptainInfo | null;
+  acceptances: Acceptance[];
   pickup: { lat: number; lng: number; label: string | null };
   dropoff: { lat: number; lng: number; label: string | null } | null;
   isOpen?: boolean;
@@ -132,6 +148,10 @@ export default function RideDetailPage({ params }: { params: Promise<{ id: strin
     );
   }
 
+  // Tolerate an older API build that doesn't yet return the acceptances list
+  // (admin-web and the API deploy independently).
+  const acceptances = ride.acceptances ?? [];
+
   const timeline: { label: string; time: string | null }[] = [
     { label: 'Demandée', time: ride.requestedAt },
     { label: 'Acceptée', time: ride.acceptedAt },
@@ -241,13 +261,46 @@ export default function RideDetailPage({ params }: { params: Promise<{ id: strin
             <div className="mt-3">
               <div className="text-xs text-slate-500">Chauffeur</div>
               <div className="text-sm text-slate-900">
-                {ride.captainId ? (
+                {ride.captain ? (
+                  <span>
+                    {ride.captain.fullName ?? 'Chauffeur'}
+                    <span className="text-slate-500"> · {ride.captain.phone}</span>
+                  </span>
+                ) : ride.captainId ? (
                   <span>Assigné · <code className="text-xs">{ride.captainId.slice(0, 8)}</code></span>
                 ) : (
                   <span className="text-slate-400">En attente d'acceptation</span>
                 )}
               </div>
             </div>
+
+            {acceptances.length > 0 ? (
+              <div className="mt-4 pt-4 border-t border-slate-100">
+                <div className="text-xs text-slate-500">
+                  Chauffeurs ayant accepté ({acceptances.length})
+                </div>
+                <ul className="mt-2 space-y-2">
+                  {acceptances.map((a) => (
+                    <li key={a.captainId} className="flex items-center justify-between gap-3 text-sm">
+                      <div className="min-w-0">
+                        <span className="text-slate-900">{a.fullName ?? 'Chauffeur'}</span>
+                        <span className="text-slate-500"> · {a.phone}</span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {a.isAssigned ? (
+                          <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-800">
+                            Attribuée
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-400">Trop tard</span>
+                        )}
+                        <span className="font-mono text-xs text-slate-400">{fmtTime(a.acceptedAt)}</span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
           </div>
         </div>
 
