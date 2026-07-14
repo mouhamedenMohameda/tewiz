@@ -62,6 +62,11 @@ const EnvSchema = z.object({
   // Dispatch
   DISPATCH_RADIUS_M: z.coerce.number().int().default(3000),
   DISPATCH_TOP_N: z.coerce.number().int().default(5),
+  // Freshness guard: a captain whose stored position is older than this is not
+  // dispatched to (their location can no longer be trusted — they may have
+  // moved without the tracker refreshing). Only enforced when off-ride tracking
+  // is enabled, since that's what keeps the position fresh. Default 15 min.
+  DISPATCH_MAX_LOCATION_AGE_S: z.coerce.number().int().default(900),
 
   // Geocoding (Google Places). Falls back to Nominatim when unset.
   GOOGLE_PLACES_API_KEY: z.string().optional(),
