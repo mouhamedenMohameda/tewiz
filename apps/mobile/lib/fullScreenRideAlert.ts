@@ -103,17 +103,38 @@ export async function displayFullScreenRideAlert(data: RideAlertData): Promise<v
  */
 function extractRideAlert(taskData: unknown): RideAlertData | null {
   const d = taskData as any;
-  const content =
-    d?.notification?.request?.content?.data ??
-    d?.notification?.data ??
-    d?.data ??
-    d;
-  if (content && content.type === 'ride_alert') {
-    return {
-      rideId: typeof content.rideId === 'string' ? content.rideId : undefined,
-      title: typeof content.title === 'string' ? content.title : undefined,
-      body: typeof content.body === 'string' ? content.body : undefined,
-    };
+
+  // Candidate "content" objects across the shapes expo-notifications hands us
+  // in foreground / different SDK versions.
+  const candidates: any[] = [
+    d?.notification?.request?.content?.data,
+    d?.notification?.data,
+    d?.data,
+    d,
+  ];
+
+  // Android data-only FCM path (the real one for a killed/backgrounded app):
+  // the payload arrives as a JSON *string* under data.dataString (and data.body).
+  // Parse those and add them as candidates.
+  const stringFields = [d?.data?.dataString, d?.data?.body, d?.dataString, d?.body];
+  for (const s of stringFields) {
+    if (typeof s === 'string') {
+      try {
+        candidates.push(JSON.parse(s));
+      } catch {
+        // not JSON (e.g. a plain notification body) — ignore
+      }
+    }
+  }
+
+  for (const content of candidates) {
+    if (content && content.type === 'ride_alert') {
+      return {
+        rideId: typeof content.rideId === 'string' ? content.rideId : undefined,
+        title: typeof content.title === 'string' ? content.title : undefined,
+        body: typeof content.body === 'string' ? content.body : undefined,
+      };
+    }
   }
   return null;
 }
