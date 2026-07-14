@@ -97,6 +97,21 @@ authRouter.post('/login', async (req, res) => {
     }
   }
 
+  // 2b. Status guard — a suspended/banned account has valid credentials but
+  // must not be able to sign in. Checked AFTER the password so we don't reveal
+  // account status to someone who can't authenticate. (Deleted accounts have
+  // their phone stripped, so they never reach this lookup.)
+  if (userRow!.status !== 'active') {
+    await recordAttempt(phone, false, ip, ua);
+    throw new HttpError(
+      403,
+      'account_suspended',
+      userRow!.status === 'banned'
+        ? 'Votre compte a été banni. Contactez l\'administrateur.'
+        : 'Votre compte est suspendu. Contactez l\'administrateur.',
+    );
+  }
+
   // 3. Role guard — same logic as the legacy OTP verify.
   if (role === 'admin' && userRow!.role !== 'admin') {
     throw new HttpError(403, 'role_mismatch', 'Not an administrator');
@@ -510,11 +525,12 @@ interface UserRow {
 interface UserRowWithPassword extends UserRow {
   password_hash: string | null;
   must_reset_password: boolean;
+  status: 'active' | 'suspended' | 'banned' | 'deleted';
 }
 
 async function findUserByPhoneWithPassword(phone: string): Promise<UserRowWithPassword | null> {
   const { rows } = await pool.query<UserRowWithPassword>(
-    `SELECT id, phone, role, admin_role, full_name, language,
+    `SELECT id, phone, role, admin_role, full_name, language, status,
             password_hash, COALESCE(must_reset_password, false) AS must_reset_password
        FROM users WHERE phone = $1`,
     [phone],
