@@ -30,6 +30,7 @@ interface ApplicationRow {
   address_label: string | null;
   emergency_contact_name: string | null;
   emergency_contact_phone: string | null;
+  whatsapp: string | null;
   vehicle_plate: string | null;
   vehicle_brand: string | null;
   vehicle_model: string | null;
@@ -104,6 +105,7 @@ const PATCH_COLUMNS: Record<string, string> = {
   addressLabel: 'address_label',
   emergencyContactName: 'emergency_contact_name',
   emergencyContactPhone: 'emergency_contact_phone',
+  whatsapp: 'whatsapp',
   vehiclePlate: 'vehicle_plate',
   vehicleBrand: 'vehicle_brand',
   vehicleModel: 'vehicle_model',
@@ -255,27 +257,16 @@ export async function submitApplication(userId: string) {
     if (!app) throw new HttpError(404, 'no_draft', 'No draft application found');
 
     const missing: string[] = [];
+    // Onboarding v2: the captain only provides a WhatsApp number and the
+    // required photos. Everything the riders eventually see (name, plate,
+    // brand, colour…) is filled by the admin at review time by reading the
+    // uploaded papers — so those columns are no longer gated here.
     const requiredFields: [keyof ApplicationRow, string][] = [
-      ['full_name', 'Nom complet'],
-      ['nni', 'NNI'],
-      ['date_of_birth', 'Date de naissance'],
-      ['address_label', 'Adresse'],
-      ['emergency_contact_phone', "Téléphone d'urgence"],
-      ['vehicle_plate', 'Plaque'],
-      ['vehicle_brand', 'Marque'],
-      ['vehicle_model', 'Modèle'],
-      ['vehicle_year', 'Année'],
-      ['vehicle_color', 'Couleur'],
-      ['vehicle_seats', 'Nombre de places'],
-      ['vehicle_type', 'Type de véhicule'],
+      ['whatsapp', 'Numéro WhatsApp'],
     ];
     for (const [col, label] of requiredFields) {
       const v = app[col];
       if (v === null || v === '' || v === undefined) missing.push(label);
-    }
-
-    if (app.vehicle_type === 'moto' && (app.vehicle_seats ?? 0) > 2) {
-      missing.push('Moto: le nombre de places doit etre entre 1 et 2');
     }
 
     const docs = await client.query<{ type: DocumentType }>(
@@ -341,6 +332,7 @@ async function withDocuments(app: ApplicationRow, client?: pg.PoolClient) {
     addressLabel: app.address_label,
     emergencyContactName: app.emergency_contact_name,
     emergencyContactPhone: app.emergency_contact_phone,
+    whatsapp: app.whatsapp,
     vehiclePlate: app.vehicle_plate,
     vehicleBrand: app.vehicle_brand,
     vehicleModel: app.vehicle_model,
