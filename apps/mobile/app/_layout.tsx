@@ -27,6 +27,7 @@ import { loadAppConfig } from '@/lib/appConfig';
 import { CrashBoundary } from '@/components/CrashBoundary';
 import { NotificationTapHandler } from '@/components/NotificationTapHandler';
 import { SplashGate } from '@/components/SplashGate';
+import { AppQueryProvider } from '@/lib/queryClient';
 import { colors, latinFontAssets } from '@/theme';
 
 // Hold the native splash until our custom fonts are ready, so the UI never
@@ -114,24 +115,26 @@ export default function RootLayout() {
 
   return (
     <CrashBoundary>
-      <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.canvas }}>
-        <SafeAreaProvider>
-          <SplashGate>
-            <StatusBar style="dark" />
-            <NotificationTapHandler />
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: colors.canvas },
-              }}
-            >
-              <Stack.Screen name="index" />
-              <Stack.Screen name="(auth)" />
-              <Stack.Screen name="(app)" />
-            </Stack>
-          </SplashGate>
-        </SafeAreaProvider>
-      </GestureHandlerRootView>
+      <AppQueryProvider>
+        <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.canvas }}>
+          <SafeAreaProvider>
+            <SplashGate>
+              <StatusBar style="dark" />
+              <NotificationTapHandler />
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  contentStyle: { backgroundColor: colors.canvas },
+                }}
+              >
+                <Stack.Screen name="index" />
+                <Stack.Screen name="(auth)" />
+                <Stack.Screen name="(app)" />
+              </Stack>
+            </SplashGate>
+          </SafeAreaProvider>
+        </GestureHandlerRootView>
+      </AppQueryProvider>
     </CrashBoundary>
   );
 }

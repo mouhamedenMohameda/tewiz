@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
-import { api } from '@/lib/api';
-import { usePolling } from '@/lib/usePolling';
+import { useApiQuery } from '@/lib/useApiQuery';
 import { getMapbox } from '@/lib/mapbox';
 import { MapShell } from '@/components/MapShell';
 import {
@@ -101,24 +100,18 @@ export default function HeatmapScreen() {
   const { t } = useTranslation();
   const M = getMapbox();
   const cameraRef = useRef<any>(null);
-  const [cells, setCells] = useState<Cell[]>([]);
-  const [loading, setLoading] = useState(true);
   const [myPos, setMyPos] = useState<{ lat: number; lng: number } | null>(null);
   const { reports, refresh: refreshReports } = useRoadReports();
 
-  const load = useCallback(async () => {
-    try {
-      const r = await api.get<Cell[]>('/captain/heatmap');
-      setCells(r.data);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
-  // The server recomputes every 5 min — refetch every minute so a captain
-  // staring at the screen sees the changes without having to pull-to-refresh.
-  usePolling(load, 60_000);
+  // The server recomputes every 5 min — poll every minute (paused off-focus)
+  // so a captain staring at the screen sees changes without pull-to-refresh.
+  // Shares the `['captain','heatmap']` cache with the captain home screen, so
+  // switching between them reuses the same data instead of refetching.
+  const { data: cells = [], isLoading: loading, refetch } = useApiQuery<Cell[]>(
+    ['captain', 'heatmap'],
+    '/captain/heatmap',
+    { pollMs: 60_000, staleMs: 60_000 },
+  );
 
   // Try to centre the map on the captain. Falls back silently to Nouakchott.
   useEffect(() => {
@@ -183,7 +176,7 @@ export default function HeatmapScreen() {
           <AppText variant="h2" style={{ marginTop: 1 }}>{t('captain.heatmap.title')}</AppText>
         </View>
         <Pressable
-          onPress={() => { setLoading(true); void load(); }}
+          onPress={() => { void refetch(); void refreshReports(); }}
           hitSlop={10}
           style={{
             width: 44, height: 44, borderRadius: radius.md,
