@@ -6,8 +6,8 @@ import compression from 'compression';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { pinoHttp } from 'pino-http';
-import pino from 'pino';
 import { env } from './config/env.js';
+import { logger } from './lib/logger.js';
 import { healthRouter } from './modules/health/health.routes.js';
 import { devRouter } from './modules/health/dev.routes.js';
 import { authRouter } from './modules/auth/auth.routes.js';
@@ -32,14 +32,6 @@ import { carRentalRouter } from './modules/car-rental/car-rental.routes.js';
 import { convoyageRouter } from './modules/convoyage/convoyage.routes.js';
 import { freightRouter } from './modules/freight/freight.routes.js';
 import { errorHandler, notFound } from './middleware/error.js';
-
-const logger = pino({
-  level: env.NODE_ENV === 'production' ? 'info' : 'debug',
-  transport:
-    env.NODE_ENV === 'production'
-      ? undefined
-      : { target: 'pino-pretty', options: { colorize: true } },
-});
 
 const app = express();
 
@@ -91,6 +83,26 @@ app.use(
 
 app.use(express.json({ limit: '1mb' }));
 app.use(pinoHttp({ logger }));
+
+// --- Slow-request observability ---
+// Flag any request that takes longer than SLOW_REQUEST_MS at WARN so slow
+// endpoints stand out in the logs without having to eyeball every access line.
+// Measured with a monotonic clock; logs method/path/status/duration only.
+if (env.SLOW_REQUEST_MS > 0) {
+  app.use((req, res, next) => {
+    const start = process.hrtime.bigint();
+    res.on('finish', () => {
+      const ms = Number(process.hrtime.bigint() - start) / 1e6;
+      if (ms >= env.SLOW_REQUEST_MS) {
+        logger.warn(
+          { ms: Math.round(ms), method: req.method, url: req.originalUrl, status: res.statusCode },
+          'slow request',
+        );
+      }
+    });
+    next();
+  });
+}
 
 // --- Rate limiting ---
 // Tight limiter on credential endpoints. The per-phone DB throttle stops a

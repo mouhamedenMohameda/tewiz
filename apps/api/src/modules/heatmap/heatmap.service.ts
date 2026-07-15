@@ -1,5 +1,5 @@
 import { latLngToCell, cellToLatLng } from 'h3-js';
-import { pool } from '../../db/pool.js';
+import { pool, instrumentClient } from '../../db/pool.js';
 
 const H3_RESOLUTION = 9;  // ~170 m hexagons — Nouakchott-sized cells
 // 2-hour window: gives a fuller picture of recent demand, smooths out
@@ -33,7 +33,7 @@ export async function compute() {
   const max = Math.max(1, ...counts.values());
 
   // Replace snapshot atomically.
-  const client = await pool.connect();
+  const client = instrumentClient(await pool.connect());
   try {
     await client.query('BEGIN');
     await client.query('DELETE FROM demand_heatmap');
