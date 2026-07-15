@@ -354,6 +354,7 @@
       "goingHome": "Ko mi ruttoo galle",
       "goingHomeHint": "Priorité e course ɓattinooje galle maa.",
       "goingHomeActiveUntil": "Active haa {{time}}",
+      "recenter": "Recentrer",
       "resetAlerts": "Yiltu alertes",
       "resetTitle": "Yiltu alertes?",
       "resetBody": "Momta course-ɗe njiyɗo-ɗaa e pause kala. Huutoro nde notifications darɗi tawi aɗa e ligne.",

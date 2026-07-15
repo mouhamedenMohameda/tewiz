@@ -354,6 +354,7 @@
       "goingHome": "N ga ka da",
       "goingHomeHint": "Priorité course ka kasa.",
       "goingHomeActiveUntil": "Saxu da {{time}}",
+      "recenter": "Recentrer",
       "resetAlerts": "Alertes yindi",
       "resetTitle": "Alertes yindi?",
       "resetBody": "Course a giruna do pause toxo. Tuga an notifications nta giri ligne do.",

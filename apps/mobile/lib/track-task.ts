@@ -132,7 +132,8 @@ export async function startOfflineTracking(): Promise<boolean> {
   const already = await Location.hasStartedLocationUpdatesAsync(OFFLINE_LOCATION_TASK);
   if (already) return true;
 
-  await Location.startLocationUpdatesAsync(OFFLINE_LOCATION_TASK, {
+  try {
+    await Location.startLocationUpdatesAsync(OFFLINE_LOCATION_TASK, {
     accuracy: Location.Accuracy.High,
     // A fix every ~60 s OR every ~50 m of movement, whichever comes first. The
     // time-based tick is essential: a captain waiting for rides is STATIONARY,
@@ -153,8 +154,17 @@ export async function startOfflineTracking(): Promise<boolean> {
       notificationBody: 'Votre position est partagée avec le support pendant votre service.',
       killServiceOnDestroy: true,
     } : undefined,
-  });
-  return true;
+    });
+    return true;
+  } catch (err) {
+    // The native location service couldn't start — most often a build whose
+    // Info.plist (iOS) / manifest (Android) lacks the background-location
+    // config. Never throw: callers treat `false` as "tracking unavailable" and
+    // degrade gracefully instead of crashing with an unhandled rejection.
+    // eslint-disable-next-line no-console
+    console.warn('[track] startLocationUpdatesAsync failed', err);
+    return false;
+  }
 }
 
 /**

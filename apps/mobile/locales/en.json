@@ -387,6 +387,7 @@
       "goingHome": "Heading home",
       "goingHomeHint": "Priority to rides that take you closer to home.",
       "goingHomeActiveUntil": "Active until {{time}}",
+      "recenter": "Recenter",
       "resetAlerts": "Reset alerts",
       "resetTitle": "Reset alerts?",
       "resetBody": "Clears already-seen rides and any pause. Use this if you stop getting notifications while online.",
