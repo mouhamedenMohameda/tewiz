@@ -5,31 +5,23 @@
  * routes to /(app)/notifications.
  */
 
-import { useCallback, useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { api } from '@/lib/api';
 import { AppText, Icon } from '@/components/ui';
+import { useApiQuery } from '@/lib/useApiQuery';
 import { colors, radius, shadow, spacing } from '@/theme';
 
 export function NotificationsBellButton() {
   const router = useRouter();
-  const [unread, setUnread] = useState(0);
-
-  const refresh = useCallback(async () => {
-    try {
-      const r = await api.get<{ unreadCount: number }>('/notifications?limit=1');
-      setUnread(r.data.unreadCount);
-    } catch {
-      // silent
-    }
-  }, []);
-
-  useEffect(() => {
-    refresh();
-    const id = setInterval(refresh, 60_000);
-    return () => clearInterval(id);
-  }, [refresh]);
+  // Shared `['notifications','unread']` cache: the bell renders on several
+  // screens, so they all read one poll and the badge updates everywhere at
+  // once instead of each mount running its own 60 s timer.
+  const { data } = useApiQuery<{ unreadCount: number }>(
+    ['notifications', 'unread'],
+    '/notifications?limit=1',
+    { pollMs: 60_000, staleMs: 30_000 },
+  );
+  const unread = data?.unreadCount ?? 0;
 
   return (
     <Pressable
