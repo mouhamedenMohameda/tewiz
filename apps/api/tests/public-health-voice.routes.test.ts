@@ -72,6 +72,15 @@ describe('public routes', () => {
     captainAlertSoundMode: 'loop',
     captainAlertRepeatIntervalS: 5,
     captainAlertSoundUrl: 'https://cdn.example.com/alert.mp3',
+    // Per-service availability toggles surfaced under `modules` in the response.
+    carpoolingEnabled: true,
+    privateDriverEnabled: true,
+    convoyageEnabled: false,
+    carRentalEnabled: true,
+    roadsideAssistanceEnabled: false,
+    lightMovingEnabled: true,
+    intercityFreightEnabled: false,
+    equipmentRentalEnabled: true,
   };
 
   it('GET /config exposes the pre-auth feature flags (demo buttons on for the allowed version)', async () => {
@@ -87,6 +96,16 @@ describe('public routes', () => {
       captainAlertSoundMode: 'loop',
       captainAlertRepeatIntervalS: 5,
       captainAlertSoundUrl: 'https://cdn.example.com/alert.mp3',
+      modules: {
+        carpooling: true,
+        private_driver: true,
+        convoyage: false,
+        car_rental: true,
+        roadside_assistance: false,
+        light_moving: true,
+        intercity_freight: false,
+        equipment_rental: true,
+      },
     });
   });
 

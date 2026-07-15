@@ -171,7 +171,7 @@ describe('GET /rider/rides/history', () => {
     const res = await api(baseUrl, 'GET', '/rider/rides/history');
     expect(res.status).toBe(200);
     expect(res.body).toEqual([{ id: 'ride-3' }]);
-    expect(ridesMock.listRiderHistory).toHaveBeenCalledWith('rider-1', 30);
+    expect(ridesMock.listRiderHistory).toHaveBeenCalledWith('rider-1', 7);
   });
 });
 

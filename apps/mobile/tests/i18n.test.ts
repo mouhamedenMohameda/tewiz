@@ -168,11 +168,17 @@ describe('setLanguage', () => {
 });
 
 describe('currentLanguage', () => {
-  it('keeps 3-letter codes intact (snk must not become "sn")', async () => {
+  it('falls back to the default for a disabled 3-letter code (snk must not become "sn")', async () => {
+    // snk (Soninké) is currently wired up but NOT in SUPPORTED_LANGUAGES
+    // (only fr + ar are exposed). Selecting it must fall back to the default
+    // language — and crucially must NOT be truncated to the 2-letter "sn"
+    // (Shona). If snk is re-enabled, this should return 'snk' instead.
     const { mod } = await bootModule({ storedLanguage: 'fr' });
     await mod.initI18n();
     await mod.setLanguage('snk');
-    expect(mod.currentLanguage()).toBe('snk');
+    const lang = mod.currentLanguage();
+    expect(lang).not.toBe('sn');
+    expect(lang).toBe('fr');
   });
 
   it('maps regional variants to their base language (fr-FR → fr)', async () => {
