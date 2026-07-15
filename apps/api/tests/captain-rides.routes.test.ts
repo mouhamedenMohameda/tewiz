@@ -121,7 +121,7 @@ describe('GET current / history / :id', () => {
     const { baseUrl } = await start();
     const res = await api(baseUrl, 'GET', '/captain/rides/history');
     expect(res.status).toBe(200);
-    expect(ridesMock.listCaptainHistory).toHaveBeenCalledWith('captain-1', 30);
+    expect(ridesMock.listCaptainHistory).toHaveBeenCalledWith('captain-1', 7);
   });
 
   it('GET /:id scopes the lookup to the captain role', async () => {
