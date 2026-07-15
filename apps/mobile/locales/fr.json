@@ -638,7 +638,7 @@
   "becomeCaptain": {
     "overline": "Devenir chauffeur",
     "title": "Devenir chauffeur {{app}}",
-    "intro": "Pour conduire pour {{app}}, envoyez 5 photos (CNI, permis, carte grise, assurance et une photo de votre véhicule avec la plaque), puis attendez la validation de l'équipe. Vous pouvez aussi ajouter un numéro WhatsApp — sinon votre numéro de connexion est utilisé.",
+    "intro": "Pour conduire pour {{app}}, renseignez votre nom et votre véhicule, envoyez 5 photos (CNI, permis, carte grise, assurance et une photo de votre véhicule avec la plaque), puis attendez la validation. Le WhatsApp est facultatif — sinon votre numéro de connexion est utilisé.",
     "start": "Commencer le dossier",
     "loadFail": "Impossible de charger le dossier.",
     "createFail": "Impossible de créer le dossier.",
