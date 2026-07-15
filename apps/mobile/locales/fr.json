@@ -638,7 +638,7 @@
   "becomeCaptain": {
     "overline": "Devenir chauffeur",
     "title": "Devenir chauffeur {{app}}",
-    "intro": "Pour conduire pour {{app}}, vous devez fournir vos informations personnelles, 14 photos (NNI, permis, carte grise, assurance, vignette, visite technique, et photos du véhicule) et attendre la validation de l'équipe.",
+    "intro": "Pour conduire pour {{app}}, envoyez 5 photos (CNI, permis, carte grise, assurance et une photo de votre véhicule avec la plaque) et votre numéro WhatsApp, puis attendez la validation de l'équipe.",
     "start": "Commencer le dossier",
     "loadFail": "Impossible de charger le dossier.",
     "createFail": "Impossible de créer le dossier.",
@@ -794,7 +794,7 @@
     "docs": {
       "title": "Documents",
       "intro": "Envoyez les 14 photos requises. Bien éclairées, sans reflet.",
-      "introV2": "Envoyez les photos demandées. Bien éclairées, sans reflet. Les documents marqués « Facultatif » ne sont pas obligatoires.",
+      "introV2": "Envoyez les photos demandées. Bien éclairées, sans reflet.",
       "optionalBadge": "FACULTATIF",
       "tapToAddOptional": "Facultatif · Touchez pour ajouter",
       "expiryTitle": "Date d'expiration",
@@ -833,6 +833,18 @@
       "car_left": "Voiture — gauche",
       "car_right": "Voiture — droite",
       "car_interior": "Voiture — intérieur"
+    },
+    "stepContactTitle": "Contact WhatsApp",
+    "stepContactSub": "Votre numéro WhatsApp",
+    "contact": {
+      "title": "Contact WhatsApp",
+      "intro": "Indiquez le numéro WhatsApp sur lequel l'équipe et les clients pourront vous joindre.",
+      "whatsapp": "Numéro WhatsApp",
+      "whatsappHelper": "Format international, ex. +22245XXXXXXX",
+      "save": "Enregistrer",
+      "invalidTitle": "Numéro invalide",
+      "invalidBody": "Entrez un numéro WhatsApp valide (8 à 15 chiffres).",
+      "saveError": "Impossible d'enregistrer. Réessayez."
     }
   },
   "account": {

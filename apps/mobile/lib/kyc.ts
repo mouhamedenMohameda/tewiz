@@ -63,6 +63,7 @@ export interface ApplicationDto {
   addressLabel: string | null;
   emergencyContactName: string | null;
   emergencyContactPhone: string | null;
+  whatsapp: string | null;
   vehiclePlate: string | null;
   vehicleBrand: string | null;
   vehicleModel: string | null;
@@ -91,6 +92,11 @@ export function requiredDocTypes(a: ApplicationDto): Set<DocumentType> {
 export function isDocRequired(a: ApplicationDto, type: DocumentType): boolean {
   if (!a.documentRequirements) return true;
   return a.documentRequirements.find((r) => r.type === type)?.isRequired ?? true;
+}
+
+/** A WhatsApp number is the only field the captain now types by hand. */
+export function whatsappComplete(a: ApplicationDto): boolean {
+  return !!(a.whatsapp && /^\+?\d{8,15}$/.test(a.whatsapp));
 }
 
 export function personalFieldsComplete(a: ApplicationDto): boolean {
