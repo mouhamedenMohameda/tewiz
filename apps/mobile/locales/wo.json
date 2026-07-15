@@ -354,6 +354,7 @@
       "goingHome": "Dama dem sama kër",
       "goingHomeHint": "Priorité ci course yi jegeel kër.",
       "goingHomeActiveUntil": "Jëkk ba {{time}}",
+      "recenter": "Recentrer",
       "resetAlerts": "Soppi alertes",
       "resetTitle": "Soppi alertes?",
       "resetBody": "Far course yi nga gisoon ak pause bi. Jëfandikoo bu ñu yonnatuwul notifications te nga ngi en ligne.",

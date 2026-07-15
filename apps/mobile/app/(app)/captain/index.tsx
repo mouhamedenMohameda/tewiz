@@ -1,23 +1,29 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert, Animated, Easing, Linking, Pressable, Switch, View,
+  ActivityIndicator, Alert, Animated, Easing, Linking, Pressable, RefreshControl,
+  ScrollView, StyleSheet, Switch, useWindowDimensions, View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { formatMru } from '@/lib/format';
 import { usePolling } from '@/lib/usePolling';
+import { getMapbox, NKC_CENTER } from '@/lib/mapbox';
 import { resumeOfflineTracking, startOfflineTracking, stopOfflineTracking } from '@/lib/track-task';
 import { ensureFullScreenIntentPermission } from '@/lib/fullScreenIntentPermission';
 import { ModeToggle } from '@/components/ModeToggle';
+import { MapShell } from '@/components/MapShell';
+import { BottomSheet } from '@/components/BottomSheet';
+import { DemandHeatmap, type DemandCell } from '@/components/DemandHeatmap';
 import { resetRideAlerts } from '@/components/CaptainRideWatcher';
 import { BonusCard } from '@/components/BonusCard';
 import { NotificationsBellButton } from '@/components/NotificationsBellButton';
 import {
-  AppText, Button, Card, FadeInView, Icon, PressableScale, Screen, type IconName,
+  AppText, Button, Card, FadeInView, Icon, PressableScale, type IconName,
 } from '@/components/ui';
 import { colors, gradients, radius, shadow, spacing } from '@/theme';
 import { APP_NAME } from '@/lib/brand';
@@ -53,10 +59,15 @@ export default function CaptainHome() {
   const router = useRouter();
   const { t, i18n } = useTranslation();
   const user = useAuth((s) => s.user);
+  const insets = useSafeAreaInsets();
+  const { height: winH } = useWindowDimensions();
+  const M = getMapbox();
+  const cameraRef = useRef<any>(null);
 
   const [wallet, setWallet] = useState<WalletSummary | null>(null);
   const [state, setState] = useState<StateRow | null>(null);
   const [goingHome, setGoingHome] = useState<GoingHomeSession | null>(null);
+  const [cells, setCells] = useState<DemandCell[]>([]);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
   const [togglingGoingHome, setTogglingGoingHome] = useState(false);
@@ -90,17 +101,81 @@ export default function CaptainHome() {
   // Refresh balance/state/going-home periodically (battery-friendly cadence).
   usePolling(load, 30_000);
 
-  // Resume background tracking after an app restart if the captain is still
-  // online (Level B). Non-prompting — only starts when permission already
-  // granted, so it never pops a dialog on a passive mount.
-  useEffect(() => {
-    if (state?.presence === 'online' || state?.presence === 'on_ride') {
-      void resumeOfflineTracking();
-      // Keep the server's view of the permission fresh across app restarts.
-      Location.getBackgroundPermissionsAsync()
-        .then((p) => reportTrackPermission(p.status === 'granted'))
-        .catch(() => {});
+  // Demand heatmap shown under the home map so the captain sees where the
+  // rides are the moment they open the app. Best-effort — the map still works
+  // without it. Same cadence as the dedicated heatmap screen.
+  const loadHeatmap = useCallback(async () => {
+    try {
+      const r = await api.get<DemandCell[]>('/captain/heatmap');
+      setCells(r.data);
+    } catch {
+      // silent — no blobs is fine, the map keeps working.
     }
+  }, []);
+
+  useEffect(() => { loadHeatmap(); }, [loadHeatmap]);
+  usePolling(loadHeatmap, 60_000);
+
+  // Centre the map on the captain on mount — NON-prompting, so a passive open
+  // never pops a permission dialog. Falls back silently to Nouakchott.
+  useEffect(() => {
+    (async () => {
+      try {
+        const perm = await Location.getForegroundPermissionsAsync();
+        if (perm.status !== 'granted') return;
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        cameraRef.current?.setCamera({
+          centerCoordinate: [loc.coords.longitude, loc.coords.latitude],
+          zoomLevel: 13,
+          animationDuration: 600,
+        });
+      } catch {}
+    })();
+  }, []);
+
+  // Enforce mandatory tracking on EVERY restored "online" session — not just
+  // when the captain taps "go online". Otherwise a captain reopening the app
+  // (server still says online) would appear online, and be dispatched to,
+  // without ever granting location tracking.
+  useEffect(() => {
+    const presence = state?.presence;
+    if (presence !== 'online' && presence !== 'on_ride') return;
+
+    // Never disturb a captain mid-ride: just resume tracking passively.
+    if (presence === 'on_ride') {
+      void resumeOfflineTracking();
+      return;
+    }
+
+    (async () => {
+      // Same rule as going online: try to start tracking (prompts for the
+      // permission if needed). If it runs, stay online. If the native service
+      // merely fails to start (e.g. an old build), stay online too. Only an
+      // actual REFUSAL of the permission takes the captain back offline.
+      const started = await startOfflineTracking();
+      reportTrackPermission(started);
+      if (started) return;
+
+      const bg = await Location.getBackgroundPermissionsAsync().catch(() => null);
+      if (bg?.status === 'granted') return; // start failed on this build — keep online
+
+      // Phantom-online without the mandatory permission → take them offline and
+      // explain, so "online" always means "trackable".
+      try {
+        await api.post('/captain/state/offline', {});
+        await stopOfflineTracking();
+      } catch {}
+      await load();
+      Alert.alert(
+        t('captain.state.bgRequiredTitle'),
+        t('captain.state.bgRequiredBody', { app: APP_NAME }),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('captain.state.openSettings'), onPress: () => { void Linking.openSettings(); } },
+        ],
+      );
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state?.presence]);
 
   async function goOnline() {
@@ -114,23 +189,35 @@ export default function CaptainHome() {
         return;
       }
 
-      // 2. Background ("Always") tracking is now MANDATORY. It's what keeps the
-      //    captain's stored position fresh so dispatch stays relevant — without
-      //    it, a captain who moves keeps an old position and receives the wrong
-      //    rides (or misses nearby ones). If they won't grant it, we do NOT
-      //    bring them online; we point them to the setting instead.
-      const tracking = await startOfflineTracking();
-      reportTrackPermission(tracking);
-      if (!tracking) {
-        Alert.alert(
-          t('captain.state.bgRequiredTitle'),
-          t('captain.state.bgRequiredBody', { app: APP_NAME }),
-          [
-            { text: t('common.cancel'), style: 'cancel' },
-            { text: t('captain.state.openSettings'), onPress: () => { void Linking.openSettings(); } },
-          ],
-        );
-        return; // stay offline until continuous tracking is granted
+      // 2. Continuous tracking is what keeps the captain's stored position
+      //    fresh so dispatch stays relevant. The PERMISSION is the only part
+      //    that's the captain's to give, so that's what we enforce:
+      //      - startOfflineTracking() returns false when they DECLINE → block
+      //        and send them to settings (this is the "mandatory" part).
+      //      - it THROWS when the permission is granted but the OS service
+      //        can't start (e.g. an old build whose Info.plist/manifest lacks
+      //        the background-location config). We must NOT lock a captain out
+      //        over a build issue, so we let them go online without live
+      //        tracking this session and just log it.
+      const trackingStarted = await startOfflineTracking();
+      reportTrackPermission(trackingStarted);
+      if (!trackingStarted) {
+        // Distinguish a real refusal (→ enforce it, tracking is mandatory) from
+        // "permission granted but the native service couldn't start" (a build
+        // that lacks the background-location config — don't lock the captain
+        // out over that; let them go online without live tracking this session).
+        const bg = await Location.getBackgroundPermissionsAsync();
+        if (bg.status !== 'granted') {
+          Alert.alert(
+            t('captain.state.bgRequiredTitle'),
+            t('captain.state.bgRequiredBody', { app: APP_NAME }),
+            [
+              { text: t('common.cancel'), style: 'cancel' },
+              { text: t('captain.state.openSettings'), onPress: () => { void Linking.openSettings(); } },
+            ],
+          );
+          return; // stay offline until continuous tracking is granted
+        }
       }
 
       // 3. Fresh HIGH-accuracy fix (never a cached one from a previous city),
@@ -141,14 +228,24 @@ export default function CaptainHome() {
         lng: loc.coords.longitude,
       });
 
+      // Recentre the home map on the freshly-online captain.
+      cameraRef.current?.setCamera({
+        centerCoordinate: [loc.coords.longitude, loc.coords.latitude],
+        zoomLevel: 14,
+        animationDuration: 500,
+      });
+
       // Android 14+: make sure the "incoming ride" alert can take over the
       // screen like a call. No-op on iOS / Android < 14 / once already handled.
       void ensureFullScreenIntentPermission();
 
       await load();
     } catch (e: any) {
-      Alert.alert(t('captain.state.errorTitle'),
-        e.response?.data?.error?.message ?? t('captain.state.errorOnline'));
+      // Surface the real cause: an API error carries error.message; a native
+      // exception (GPS / tracking start) carries e.message. Falling straight to
+      // the generic string hid which step actually failed.
+      const detail = e?.response?.data?.error?.message ?? e?.message ?? String(e);
+      Alert.alert(t('captain.state.errorTitle'), detail || t('captain.state.errorOnline'));
     } finally {
       setToggling(false);
     }
@@ -207,159 +304,238 @@ export default function CaptainHome() {
     );
   }
 
+  // Recentre on the captain — this one MAY prompt, since it's an explicit tap.
+  const recenter = useCallback(async () => {
+    try {
+      let perm = await Location.getForegroundPermissionsAsync();
+      if (perm.status !== 'granted') {
+        perm = await Location.requestForegroundPermissionsAsync();
+      }
+      if (perm.status !== 'granted') return;
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      cameraRef.current?.setCamera({
+        centerCoordinate: [loc.coords.longitude, loc.coords.latitude],
+        zoomLevel: 14,
+        animationDuration: 500,
+      });
+    } catch {}
+  }, []);
+
   const presence: Presence = state?.presence ?? 'offline';
   const online = presence === 'online' || presence === 'on_ride';
 
+  // Sheet geometry: leave the header + mode toggle uncovered when expanded, and
+  // keep the online control visible when collapsed.
+  const sheetExpanded = Math.min(winH * 0.86, winH - insets.top - 96);
+  const sheetCollapsed = 340;
+
   return (
-    <Screen scroll onRefresh={load} refreshing={loading}>
-      {/* Header */}
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
+      {/* Map-first home — the map fills the screen; controls live in the sheet. */}
+      <View style={StyleSheet.absoluteFill}>
+        <MapShell
+          cameraRef={cameraRef}
+          centerCoordinate={NKC_CENTER}
+          zoomLevel={12}
+          showsUserLocation
+          style={{ flex: 1 }}
+          // Keep the mandatory Mapbox logo + attribution above the collapsed sheet.
+          logoPosition={{ bottom: sheetCollapsed + spacing.sm, left: spacing.sm }}
+          attributionPosition={{ bottom: sheetCollapsed + spacing.sm, right: spacing.sm }}
+        >
+          {M && cells.length > 0 ? <DemandHeatmap cells={cells} /> : null}
+        </MapShell>
+      </View>
+
+      {/* Floating chrome — header + mode toggle over the map. */}
       <View style={{
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-        marginTop: spacing.sm, marginBottom: spacing.lg,
+        position: 'absolute', top: insets.top + spacing.sm,
+        left: spacing.base, right: spacing.base,
       }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, flex: 1 }}>
+        <View style={{
+          flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+          backgroundColor: colors.surface, borderRadius: radius.xl,
+          paddingVertical: spacing.sm, paddingHorizontal: spacing.sm + 2,
+          ...shadow.card,
+        }}>
           <View style={{
-            width: 46, height: 46, borderRadius: radius.md,
+            width: 42, height: 42, borderRadius: radius.md,
             backgroundColor: colors.espresso, alignItems: 'center', justifyContent: 'center',
           }}>
-            <Icon name="captain" size={26} color={colors.saffron} />
+            <Icon name="captain" size={24} color={colors.saffron} />
           </View>
-          <View style={{ flex: 1 }}>
+          <View style={{ flex: 1, minWidth: 0 }}>
             <AppText variant="overline" color={colors.muted}>{t('captain.home.overline')}</AppText>
-            <AppText variant="title" numberOfLines={1} style={{ marginTop: 1 }}>
+            <AppText variant="bodyStrong" numberOfLines={1} style={{ marginTop: 1 }}>
               {user?.fullName ?? user?.phone}
             </AppText>
           </View>
+          <NotificationsBellButton />
+          <Pressable
+            onPress={() => router.push('/(app)/settings')}
+            hitSlop={10}
+            accessibilityLabel={t('settings.title')}
+            style={{
+              width: 44, height: 44, borderRadius: radius.md,
+              backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <Icon name="tune" size={22} color={colors.ink} />
+          </Pressable>
         </View>
-        <NotificationsBellButton />
-        <Pressable
-          onPress={() => router.push('/(app)/settings')}
-          hitSlop={10}
-          accessibilityLabel={t('settings.title')}
-          style={{
-            width: 44, height: 44, borderRadius: radius.md,
-            backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center',
-            marginLeft: spacing.sm,
-            ...shadow.card,
-          }}
-        >
-          <Icon name="tune" size={22} color={colors.ink} />
-        </Pressable>
+
+        <View style={{
+          marginTop: spacing.sm, borderRadius: radius.pill,
+          backgroundColor: colors.sunken, ...shadow.card,
+        }}>
+          <ModeToggle />
+        </View>
       </View>
 
-      <ModeToggle />
-
-      {/* Online / offline state — the primary control */}
-      <FadeInView style={{ marginTop: spacing.lg }}>
-        <StateCard
-          presence={presence}
-          toggling={toggling}
-          onGoOnline={goOnline}
-          onGoOffline={goOffline}
-          onOpenRide={() => router.push('/(app)/captain/rides')}
-        />
-      </FadeInView>
-
-      {/* Wallet */}
-      <FadeInView delay={70}>
-        <Card
-          onPress={() => router.push('/(app)/captain/wallet')}
-          padding={spacing.lg}
-          style={{ marginTop: spacing.base, flexDirection: 'row', alignItems: 'center', gap: spacing.base }}
-        >
-          <View style={{
-            width: 50, height: 50, borderRadius: radius.md,
-            backgroundColor: colors.saffronSoft, alignItems: 'center', justifyContent: 'center',
-          }}>
-            <Icon name="wallet" size={26} color={colors.warning} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <AppText variant="overline" color={colors.muted}>{t('captain.home.wallet')}</AppText>
-            <AppText variant="h1" style={{ marginTop: 1 }}>
-              {wallet ? formatMru(wallet.balanceMru) : '—'}
-            </AppText>
-          </View>
-          <Icon name="chevron" size={22} color={colors.faint} />
-        </Card>
-      </FadeInView>
-
-      {/* Commission bonus — hidden when disabled and no bonus is in flight */}
-      <FadeInView delay={100}>
-        <BonusCard refreshKey={wallet?.updatedAt} />
-      </FadeInView>
-
-      {/* Going-home */}
-      <FadeInView delay={130}>
-        <Card
-          padding={spacing.lg}
-          style={{ marginTop: spacing.base, flexDirection: 'row', alignItems: 'center', gap: spacing.base }}
-        >
-          <View style={{
-            width: 50, height: 50, borderRadius: radius.md,
-            backgroundColor: colors.emberSoft, alignItems: 'center', justifyContent: 'center',
-          }}>
-            <Icon name="home" size={24} color={colors.ember} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <AppText variant="bodyStrong">{t('captain.home.goingHome')}</AppText>
-            <AppText variant="caption" color={colors.ink2} style={{ marginTop: 2 }}>
-              {t('captain.home.goingHomeHint')}
-            </AppText>
-            {goingHome ? (
-              <AppText variant="caption" color={colors.ember} style={{ marginTop: 3 }}>
-                {t('captain.home.goingHomeActiveUntil', {
-                  time: new Date(goingHome.expiresAt).toLocaleTimeString(i18n.language, {
-                    hour: '2-digit', minute: '2-digit',
-                  }),
-                })}
-              </AppText>
-            ) : null}
-          </View>
-          {togglingGoingHome ? (
-            <ActivityIndicator color={colors.ember} />
-          ) : (
-            <Switch
-              value={!!goingHome}
-              onValueChange={toggleGoingHome}
-              disabled={!online}
-              trackColor={{ false: colors.lineStrong, true: colors.ember }}
-              thumbColor={colors.white}
-              ios_backgroundColor={colors.lineStrong}
-            />
-          )}
-        </Card>
-      </FadeInView>
-
-      {/* Navigation */}
-      <FadeInView delay={190}>
-        <AppText variant="overline" color={colors.muted} style={{ marginTop: spacing.xxl, marginBottom: spacing.md }}>
-          {t('captain.home.manage')}
-        </AppText>
-        <View style={{ gap: spacing.md }}>
-          <NavRow icon="ride" tint={colors.emberSoft} fg={colors.ember}
-            title={t('captain.nav.ridesTitle')} subtitle={t('captain.nav.ridesSubtitle')}
-            onPress={() => router.push('/(app)/captain/rides')} />
-          <NavRow icon="home" tint={colors.saffronSoft} fg={colors.warning}
-            title={t('captain.nav.homeTitle')} subtitle={t('captain.nav.homeSubtitle')}
-            onPress={() => router.push('/(app)/captain/home-location')} />
-          <NavRow icon="heatmap" tint={colors.dangerSoft} fg={colors.danger}
-            title={t('captain.nav.heatmapTitle')} subtitle={t('captain.nav.heatmapSubtitle')}
-            onPress={() => router.push('/(app)/captain/heatmap')} />
-          <NavRow icon="recurring" tint="#E9EFE6" fg={colors.success}
-            title={t('captain.nav.recurringTitle')} subtitle={t('captain.nav.recurringSubtitle')}
-            onPress={() => router.push('/(app)/captain/recurring')} />
-        </View>
-      </FadeInView>
-
-      <Pressable onPress={confirmReset} style={({ pressed }) => ({
-        marginTop: spacing.xl, paddingVertical: spacing.md,
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
-        opacity: pressed ? 0.6 : 1,
-      })}>
-        <Icon name="refresh" size={15} color={colors.muted} />
-        <AppText variant="label" color={colors.muted}>{t('captain.home.resetAlerts')}</AppText>
+      {/* Recentre-on-me, anchored just above the collapsed sheet. */}
+      <Pressable
+        onPress={recenter}
+        hitSlop={8}
+        accessibilityLabel={t('captain.home.recenter')}
+        style={{
+          position: 'absolute', right: spacing.base, bottom: sheetCollapsed + spacing.md,
+          width: 48, height: 48, borderRadius: radius.md,
+          backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center',
+          ...shadow.card,
+        }}
+      >
+        <Icon name="pin" size={22} color={colors.ember} />
       </Pressable>
-    </Screen>
+
+      {/* Controls sheet — everything from the old home, reorganised. */}
+      <BottomSheet expandedHeight={sheetExpanded} collapsedHeight={sheetCollapsed}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingHorizontal: spacing.lg,
+            paddingTop: spacing.xs,
+            paddingBottom: insets.bottom + spacing.huge,
+          }}
+          refreshControl={
+            <RefreshControl
+              refreshing={loading}
+              onRefresh={load}
+              tintColor={colors.ember}
+              colors={[colors.ember]}
+            />
+          }
+        >
+          {/* Online / offline state — the primary control */}
+          <StateCard
+            presence={presence}
+            toggling={toggling}
+            onGoOnline={goOnline}
+            onGoOffline={goOffline}
+            onOpenRide={() => router.push('/(app)/captain/rides')}
+          />
+
+          {/* Wallet */}
+          <FadeInView delay={40}>
+            <Card
+              onPress={() => router.push('/(app)/captain/wallet')}
+              padding={spacing.lg}
+              style={{ marginTop: spacing.base, flexDirection: 'row', alignItems: 'center', gap: spacing.base }}
+            >
+              <View style={{
+                width: 50, height: 50, borderRadius: radius.md,
+                backgroundColor: colors.saffronSoft, alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Icon name="wallet" size={26} color={colors.warning} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <AppText variant="overline" color={colors.muted}>{t('captain.home.wallet')}</AppText>
+                <AppText variant="h1" style={{ marginTop: 1 }}>
+                  {wallet ? formatMru(wallet.balanceMru) : '—'}
+                </AppText>
+              </View>
+              <Icon name="chevron" size={22} color={colors.faint} />
+            </Card>
+          </FadeInView>
+
+          {/* Commission bonus — hidden when disabled and no bonus is in flight */}
+          <FadeInView delay={70}>
+            <BonusCard refreshKey={wallet?.updatedAt} />
+          </FadeInView>
+
+          {/* Going-home */}
+          <FadeInView delay={100}>
+            <Card
+              padding={spacing.lg}
+              style={{ marginTop: spacing.base, flexDirection: 'row', alignItems: 'center', gap: spacing.base }}
+            >
+              <View style={{
+                width: 50, height: 50, borderRadius: radius.md,
+                backgroundColor: colors.emberSoft, alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Icon name="home" size={24} color={colors.ember} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <AppText variant="bodyStrong">{t('captain.home.goingHome')}</AppText>
+                <AppText variant="caption" color={colors.ink2} style={{ marginTop: 2 }}>
+                  {t('captain.home.goingHomeHint')}
+                </AppText>
+                {goingHome ? (
+                  <AppText variant="caption" color={colors.ember} style={{ marginTop: 3 }}>
+                    {t('captain.home.goingHomeActiveUntil', {
+                      time: new Date(goingHome.expiresAt).toLocaleTimeString(i18n.language, {
+                        hour: '2-digit', minute: '2-digit',
+                      }),
+                    })}
+                  </AppText>
+                ) : null}
+              </View>
+              {togglingGoingHome ? (
+                <ActivityIndicator color={colors.ember} />
+              ) : (
+                <Switch
+                  value={!!goingHome}
+                  onValueChange={toggleGoingHome}
+                  disabled={!online}
+                  trackColor={{ false: colors.lineStrong, true: colors.ember }}
+                  thumbColor={colors.white}
+                  ios_backgroundColor={colors.lineStrong}
+                />
+              )}
+            </Card>
+          </FadeInView>
+
+          {/* Navigation */}
+          <FadeInView delay={150}>
+            <AppText variant="overline" color={colors.muted} style={{ marginTop: spacing.xl, marginBottom: spacing.md }}>
+              {t('captain.home.manage')}
+            </AppText>
+            <View style={{ gap: spacing.md }}>
+              <NavRow icon="ride" tint={colors.emberSoft} fg={colors.ember}
+                title={t('captain.nav.ridesTitle')} subtitle={t('captain.nav.ridesSubtitle')}
+                onPress={() => router.push('/(app)/captain/rides')} />
+              <NavRow icon="home" tint={colors.saffronSoft} fg={colors.warning}
+                title={t('captain.nav.homeTitle')} subtitle={t('captain.nav.homeSubtitle')}
+                onPress={() => router.push('/(app)/captain/home-location')} />
+              <NavRow icon="heatmap" tint={colors.dangerSoft} fg={colors.danger}
+                title={t('captain.nav.heatmapTitle')} subtitle={t('captain.nav.heatmapSubtitle')}
+                onPress={() => router.push('/(app)/captain/heatmap')} />
+              <NavRow icon="recurring" tint="#E9EFE6" fg={colors.success}
+                title={t('captain.nav.recurringTitle')} subtitle={t('captain.nav.recurringSubtitle')}
+                onPress={() => router.push('/(app)/captain/recurring')} />
+            </View>
+          </FadeInView>
+
+          <Pressable onPress={confirmReset} style={({ pressed }) => ({
+            marginTop: spacing.xl, paddingVertical: spacing.md,
+            flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
+            opacity: pressed ? 0.6 : 1,
+          })}>
+            <Icon name="refresh" size={15} color={colors.muted} />
+            <AppText variant="label" color={colors.muted}>{t('captain.home.resetAlerts')}</AppText>
+          </Pressable>
+        </ScrollView>
+      </BottomSheet>
+    </View>
   );
 }
 

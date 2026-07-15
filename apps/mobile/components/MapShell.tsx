@@ -14,7 +14,21 @@ interface Props {
   onPress?: (lngLat: [number, number]) => void;
   cameraRef?: React.RefObject<any>;
   style?: object;
+  /**
+   * Override the Mapbox logo / attribution placement. Needed when a bottom
+   * sheet covers the map's bottom edge (the default corner) — Mapbox's terms
+   * require both to stay visible, so callers lift them above the sheet.
+   */
+  logoPosition?: OrnamentPosition;
+  attributionPosition?: OrnamentPosition;
 }
+
+/** Mapbox ornament placement — one vertical + one horizontal anchor. */
+type OrnamentPosition =
+  | { top: number; left: number }
+  | { top: number; right: number }
+  | { bottom: number; left: number }
+  | { bottom: number; right: number };
 
 /**
  * Shared map shell — sets the brand style + access token and renders a
@@ -22,7 +36,10 @@ interface Props {
  * keeps working in development without crashing.
  */
 export const MapShell = forwardRef<any, Props>(function MapShell(
-  { children, centerCoordinate, zoomLevel, showsUserLocation, onPress, cameraRef, style },
+  {
+    children, centerCoordinate, zoomLevel, showsUserLocation, onPress, cameraRef, style,
+    logoPosition, attributionPosition,
+  },
   ref,
 ) {
   const [ready, setReady] = useState(false);
@@ -74,7 +91,9 @@ export const MapShell = forwardRef<any, Props>(function MapShell(
           : undefined
       }
       logoEnabled
+      logoPosition={logoPosition}
       attributionEnabled
+      attributionPosition={attributionPosition}
       compassEnabled={false}
       scaleBarEnabled={false}
     >

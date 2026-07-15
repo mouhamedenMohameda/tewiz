@@ -411,6 +411,7 @@
       "goingHome": "Je rentre chez moi",
       "goingHomeHint": "Priorité aux courses qui vous rapprochent de votre domicile.",
       "goingHomeActiveUntil": "Actif jusqu'à {{time}}",
+      "recenter": "Recentrer",
       "resetAlerts": "Réinitialiser les alertes",
       "resetTitle": "Réinitialiser les alertes ?",
       "resetBody": "Vide la liste des courses déjà vues et lève toute pause. À utiliser si vous ne recevez plus de notifications alors que vous êtes en ligne.",
