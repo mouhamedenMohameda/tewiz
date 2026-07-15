@@ -97,7 +97,10 @@ export default function BecomeCaptainHome() {
   }
 
   const editable = !!app && (app.status === 'draft' || app.status === 'needs_correction');
-  const allComplete = !!app && whatsappComplete(app) && docsComplete(app);
+  // WhatsApp is optional: if the captain doesn't provide one, the server falls
+  // back to their login phone at submit time. Only the required photos gate the
+  // submission.
+  const allComplete = !!app && docsComplete(app);
   const requiredDocsCount = app ? requiredDocTypes(app).size : 0;
 
   return (
@@ -131,19 +134,19 @@ export default function BecomeCaptainHome() {
 
               <StepCard
                 index={1}
-                title={t('becomeCaptain.stepContactTitle')}
-                subtitle={t('becomeCaptain.stepContactSub')}
-                done={whatsappComplete(app)}
-                editable={editable}
-                onPress={() => router.push('/(app)/become-captain/contact')}
-              />
-              <StepCard
-                index={2}
                 title={t('becomeCaptain.stepDocsTitle')}
                 subtitle={t('becomeCaptain.stepDocsSub', { done: app.documents.length, total: requiredDocsCount })}
                 done={docsComplete(app)}
                 editable={editable}
                 onPress={() => router.push('/(app)/become-captain/documents')}
+              />
+              <StepCard
+                index={2}
+                title={t('becomeCaptain.stepContactTitle')}
+                subtitle={t('becomeCaptain.stepContactSub')}
+                done={whatsappComplete(app)}
+                editable={editable}
+                onPress={() => router.push('/(app)/become-captain/contact')}
               />
 
               {editable ? (

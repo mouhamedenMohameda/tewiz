@@ -256,19 +256,26 @@ export async function submitApplication(userId: string) {
     const app = r.rows[0];
     if (!app) throw new HttpError(404, 'no_draft', 'No draft application found');
 
-    const missing: string[] = [];
     // Onboarding v2: the captain only provides a WhatsApp number and the
     // required photos. Everything the riders eventually see (name, plate,
     // brand, colour…) is filled by the admin at review time by reading the
     // uploaded papers — so those columns are no longer gated here.
-    const requiredFields: [keyof ApplicationRow, string][] = [
-      ['whatsapp', 'Numéro WhatsApp'],
-    ];
-    for (const [col, label] of requiredFields) {
-      const v = app[col];
-      if (v === null || v === '' || v === undefined) missing.push(label);
+    //
+    // Backward compatibility: an OLDER app version submits without a WhatsApp
+    // number (the field didn't exist yet, and it has no UI to enter one). Fall
+    // back to the application's phone — which is, in practice, the same WhatsApp
+    // number in Mauritania — so those dossiers stay submittable. The `phone`
+    // column is NOT NULL, so this always yields a value. New app versions set
+    // WhatsApp explicitly on the contact step and this branch is a no-op.
+    if (!app.whatsapp || String(app.whatsapp).trim() === '') {
+      await client.query(
+        `UPDATE captain_applications SET whatsapp = $1 WHERE id = $2`,
+        [app.phone, app.id],
+      );
+      app.whatsapp = app.phone;
     }
 
+    const missing: string[] = [];
     const docs = await client.query<{ type: DocumentType }>(
       `SELECT type FROM application_documents WHERE application_id = $1`,
       [app.id],

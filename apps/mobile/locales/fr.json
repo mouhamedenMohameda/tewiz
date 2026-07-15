@@ -638,7 +638,7 @@
   "becomeCaptain": {
     "overline": "Devenir chauffeur",
     "title": "Devenir chauffeur {{app}}",
-    "intro": "Pour conduire pour {{app}}, envoyez 5 photos (CNI, permis, carte grise, assurance et une photo de votre véhicule avec la plaque) et votre numéro WhatsApp, puis attendez la validation de l'équipe.",
+    "intro": "Pour conduire pour {{app}}, envoyez 5 photos (CNI, permis, carte grise, assurance et une photo de votre véhicule avec la plaque), puis attendez la validation de l'équipe. Vous pouvez aussi ajouter un numéro WhatsApp — sinon votre numéro de connexion est utilisé.",
     "start": "Commencer le dossier",
     "loadFail": "Impossible de charger le dossier.",
     "createFail": "Impossible de créer le dossier.",
@@ -835,11 +835,11 @@
       "car_interior": "Voiture — intérieur"
     },
     "stepContactTitle": "Contact WhatsApp",
-    "stepContactSub": "Votre numéro WhatsApp",
+    "stepContactSub": "Facultatif — sinon votre numéro de connexion est utilisé",
     "contact": {
       "title": "Contact WhatsApp",
-      "intro": "Indiquez le numéro WhatsApp sur lequel l'équipe et les clients pourront vous joindre.",
-      "whatsapp": "Numéro WhatsApp",
+      "intro": "Ce numéro est facultatif : si vous n'en indiquez pas, votre numéro de connexion sera utilisé pour vous joindre.",
+      "whatsapp": "Numéro WhatsApp (facultatif)",
       "whatsappHelper": "Format international, ex. +22245XXXXXXX",
       "save": "Enregistrer",
       "invalidTitle": "Numéro invalide",

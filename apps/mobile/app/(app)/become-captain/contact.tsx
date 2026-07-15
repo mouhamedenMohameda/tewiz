@@ -35,7 +35,14 @@ export default function ContactScreen() {
   }, [user?.phone]);
 
   async function save() {
-    if (!/^\+?\d{8,15}$/.test(whatsapp)) {
+    const trimmed = whatsapp.trim();
+    // WhatsApp is optional. An empty field just means "use my login phone"
+    // (the server falls back to it at submit), so we leave without saving.
+    if (trimmed === '') {
+      router.back();
+      return;
+    }
+    if (!/^\+?\d{8,15}$/.test(trimmed)) {
       Alert.alert(
         t('becomeCaptain.contact.invalidTitle'),
         t('becomeCaptain.contact.invalidBody'),
@@ -44,7 +51,7 @@ export default function ContactScreen() {
     }
     setSaving(true);
     try {
-      await api.patch('/captain/applications/me', { whatsapp });
+      await api.patch('/captain/applications/me', { whatsapp: trimmed });
       router.back();
     } catch (e: any) {
       Alert.alert(t('common.error'), e.response?.data?.error?.message ?? t('becomeCaptain.contact.saveError'));
