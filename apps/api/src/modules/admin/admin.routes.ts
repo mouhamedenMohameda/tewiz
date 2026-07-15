@@ -297,6 +297,90 @@ adminRouter.get('/applications/:id', async (req, res) => {
   res.json({ application: a.rows[0], documents: docs.rows });
 });
 
+// ─── Admin-editable application fields ───────────────────────────────────────
+// Onboarding v2: the captain uploads photos + a WhatsApp number, and the
+// reviewer transcribes the identity / vehicle data from the papers here before
+// approving. These are the only columns the admin may write.
+const ADMIN_EDITABLE_COLUMNS: Record<string, string> = {
+  fullName: 'full_name',
+  nni: 'nni',
+  dateOfBirth: 'date_of_birth',
+  vehiclePlate: 'vehicle_plate',
+  vehicleBrand: 'vehicle_brand',
+  vehicleModel: 'vehicle_model',
+  vehicleYear: 'vehicle_year',
+  vehicleColor: 'vehicle_color',
+  vehicleSeats: 'vehicle_seats',
+  vehicleType: 'vehicle_type',
+  acceptsColis: 'accepts_colis',
+  acceptsLongDistance: 'accepts_long_distance',
+};
+
+// `nullish()` so the admin can both set and clear a field. Empty strings are
+// normalised to NULL below (a blank plate must be missing, not "").
+const adminAppPatchBody = z.object({
+  fullName: z.string().max(100).nullish(),
+  nni: z.string().regex(/^\d{6,15}$/).nullish(),
+  dateOfBirth: z.string().date().nullish(),
+  vehiclePlate: z.string().max(20).nullish(),
+  vehicleBrand: z.string().max(50).nullish(),
+  vehicleModel: z.string().max(50).nullish(),
+  vehicleYear: z.coerce.number().int().min(1980).max(new Date().getFullYear() + 1).nullish(),
+  vehicleColor: z.string().max(30).nullish(),
+  vehicleSeats: z.coerce.number().int().min(1).max(8).nullish(),
+  vehicleType: z.enum(['car', 'moto']).nullish(),
+  acceptsColis: z.boolean().optional(),
+  acceptsLongDistance: z.boolean().optional(),
+});
+
+const ADMIN_APP_EDITABLE_STATUSES = ['draft', 'submitted', 'under_review', 'needs_correction'];
+
+adminRouter.patch('/applications/:id', async (req, res) => {
+  const adminId = req.user!.id;
+  const body = adminAppPatchBody.parse(req.body);
+
+  const cur = await pool.query(
+    `SELECT * FROM captain_applications WHERE id = $1`,
+    [req.params.id],
+  );
+  const before = cur.rows[0];
+  if (!before) throw new HttpError(404, 'not_found', 'Application not found');
+  if (!ADMIN_APP_EDITABLE_STATUSES.includes(before.status)) {
+    throw new HttpError(409, 'not_editable',
+      `Application is ${before.status} and cannot be edited`);
+  }
+
+  const fields: string[] = [];
+  const values: unknown[] = [];
+  for (const [k, v] of Object.entries(body)) {
+    const col = ADMIN_EDITABLE_COLUMNS[k];
+    if (!col || v === undefined) continue;
+    // Blank text clears the column rather than storing an empty string.
+    const value = typeof v === 'string' && v.trim() === '' ? null : v;
+    values.push(value);
+    fields.push(`${col} = $${values.length}`);
+  }
+  if (!fields.length) {
+    res.json(before);
+    return;
+  }
+  values.push(req.params.id);
+  const upd = await pool.query(
+    `UPDATE captain_applications SET ${fields.join(', ')}
+      WHERE id = $${values.length} RETURNING *`,
+    values,
+  );
+  await audit({
+    adminId,
+    action: 'edit_application',
+    targetType: 'captain_application',
+    targetId: req.params.id!,
+    before,
+    after: upd.rows[0],
+  });
+  res.json(upd.rows[0]);
+});
+
 /**
  * Stream a document image to the admin reviewer. Admin only.
  */
@@ -426,6 +510,28 @@ adminRouter.post('/applications/:id/approve', async (req, res) => {
         });
     }
 
+    // Onboarding v2: the captain no longer types the vehicle details — the
+    // reviewer transcribes them from the carte grise / car photo (PATCH above).
+    // They feed the (NOT NULL) vehicles row created below, so refuse approval
+    // with a clear message rather than letting the INSERT blow up on a
+    // constraint violation.
+    const vehicleFields: [string, string][] = [
+      ['vehicle_plate', 'Plaque'],
+      ['vehicle_brand', 'Marque'],
+      ['vehicle_model', 'Modèle'],
+      ['vehicle_year', 'Année'],
+      ['vehicle_color', 'Couleur'],
+      ['vehicle_seats', 'Nombre de places'],
+    ];
+    const missingVehicle = vehicleFields
+      .filter(([col]) => app[col] === null || app[col] === undefined || app[col] === '')
+      .map(([, label]) => label);
+    if (missingVehicle.length > 0) {
+      throw new HttpError(400, 'vehicle_info_incomplete',
+        `Complétez les infos véhicule avant de valider : ${missingVehicle.join(', ')}`,
+        { missing: missingVehicle });
+    }
+
     // Fetch the linked user's current identity so we can backfill name/phone
     // (a guest-originated applicant may have neither on the users row yet) and
     // decide whether to issue login credentials.
@@ -490,6 +596,14 @@ adminRouter.post('/applications/:id/approve', async (req, res) => {
        VALUES ($1, $2, 'active', $3, $4, $5)
        ON CONFLICT (user_id) DO NOTHING`,
       [app.user_id, app.id, vehicleType, acceptsColis, acceptsLongDistance],
+    );
+
+    // Copy the applicant's WhatsApp number onto the approved captain so ops can
+    // reach them without joining back to the application. Runs after the insert
+    // so it also refreshes the value on a re-approval (ON CONFLICT DO NOTHING).
+    await client.query(
+      `UPDATE captains SET whatsapp = $2 WHERE user_id = $1`,
+      [app.user_id, app.whatsapp ?? null],
     );
 
     // Vehicle (one active per captain). `plate` is globally UNIQUE, so a naive

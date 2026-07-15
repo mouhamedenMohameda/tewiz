@@ -59,6 +59,7 @@ const updateBody = z.object({
   addressLabel: z.string().min(2).max(200).optional(),
   emergencyContactName: z.string().min(2).max(100).optional(),
   emergencyContactPhone: z.string().optional(),
+  whatsapp: z.string().regex(/^\+?\d{8,15}$/).optional(),
   vehiclePlate: z.string().min(2).max(20).optional(),
   vehicleBrand: z.string().min(1).max(50).optional(),
   vehicleModel: z.string().min(1).max(50).optional(),
