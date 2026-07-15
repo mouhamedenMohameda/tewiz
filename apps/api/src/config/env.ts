@@ -81,6 +81,13 @@ const EnvSchema = z.object({
   // When empty, CORS stays open but logs a startup warning — set this in
   // production to lock the API down to known origins.
   CORS_ORIGINS: z.string().default(''),
+
+  // Observability — any DB query slower than this (ms) is logged at WARN with
+  // its (parameter-free) SQL and duration, so slow paths surface in the logs
+  // instead of staying invisible. Set to 0 to disable slow-query logging.
+  SLOW_QUERY_MS: z.coerce.number().int().min(0).default(200),
+  // HTTP requests slower than this (ms) are elevated to WARN in the access log.
+  SLOW_REQUEST_MS: z.coerce.number().int().min(0).default(1500),
 });
 
 export const env = EnvSchema.parse(process.env);

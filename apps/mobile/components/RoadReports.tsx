@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getMapbox } from '@/lib/mapbox';
 import { api } from '@/lib/api';
+import { useApiQuery } from '@/lib/useApiQuery';
 
 export type RoadReason =
   | 'sand' | 'flood' | 'construction'
@@ -41,26 +42,16 @@ const REASON_META: Record<RoadReason, { emoji: string; color: string }> = {
  * the screen is open.
  */
 export function useRoadReports() {
-  const [reports, setReports] = useState<RoadReport[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const refresh = useCallback(async () => {
-    try {
-      const r = await api.get<RoadReport[]>('/road-reports');
-      setReports(r.data);
-    } catch {
-      // Network blip — keep last good list.
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void refresh();
-    const id = setInterval(refresh, 60_000);
-    return () => clearInterval(id);
-  }, [refresh]);
-
+  // Shared `['road-reports']` cache: the captain heatmap and the rider new-ride
+  // map both call this hook, so when both are alive they de-duplicate to one
+  // request. React Query keeps the last good list on a failed refetch (same as
+  // the old silent-catch), and polling now pauses off-focus (battery).
+  const { data: reports = [], isLoading: loading, refetch } = useApiQuery<RoadReport[]>(
+    ['road-reports'],
+    '/road-reports',
+    { pollMs: 60_000, staleMs: 60_000 },
+  );
+  const refresh = useCallback(() => refetch().then(() => {}), [refetch]);
   return { reports, loading, refresh };
 }
 

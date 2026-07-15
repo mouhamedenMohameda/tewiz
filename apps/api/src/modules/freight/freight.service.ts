@@ -1,4 +1,4 @@
-import { pool } from '../../db/pool.js';
+import { pool, instrumentClient } from '../../db/pool.js';
 import { HttpError } from '../../middleware/error.js';
 import { sendNotification } from '../notifications/notifications.service.js';
 
@@ -355,7 +355,7 @@ export async function listIncomingBookings(carrierId: string): Promise<CarrierBo
 }
 
 export async function respondBooking(id: string, carrierId: string, action: 'confirm' | 'decline'): Promise<CarrierBookingDTO> {
-  const client = await pool.connect();
+  const client = instrumentClient(await pool.connect());
   try {
     await client.query('BEGIN');
 
