@@ -41,6 +41,7 @@ export interface ApplicationDetail {
     address_label: string | null;
     emergency_contact_name: string | null;
     emergency_contact_phone: string | null;
+    whatsapp: string | null;
     vehicle_plate: string | null;
     vehicle_brand: string | null;
     vehicle_model: string | null;

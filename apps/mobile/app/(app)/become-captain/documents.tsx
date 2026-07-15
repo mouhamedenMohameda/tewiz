@@ -167,10 +167,11 @@ export default function DocumentsScreen() {
         </Text>
 
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 16 }}>
-          {DOCUMENT_ORDER.map((type) => {
+          {/* Onboarding v2: only the documents the admin marked as required are
+              shown — the captain isn't asked for the optional extras anymore. */}
+          {DOCUMENT_ORDER.filter((type) => (app ? isDocRequired(app, type) : true)).map((type) => {
             const doc = byType.get(type);
             const uploading = uploadingType === type;
-            const required = app ? isDocRequired(app, type) : true;
             return (
               <DocCard
                 key={type}
@@ -178,7 +179,7 @@ export default function DocumentsScreen() {
                 doc={doc}
                 uploading={uploading}
                 editable={editable}
-                required={required}
+                required
                 label={docLabel(type)}
                 onPick={() => openPicker(type)}
                 onDelete={() => doc && deleteDoc(doc)}

@@ -11,7 +11,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import {
   type ApplicationDto, type ApplicationStatus,
-  DOCUMENT_ORDER, docsComplete, personalFieldsComplete, vehicleFieldsComplete,
+  docsComplete, requiredDocTypes, whatsappComplete,
 } from '@/lib/kyc';
 import { APP_NAME } from '@/lib/brand';
 
@@ -97,7 +97,8 @@ export default function BecomeCaptainHome() {
   }
 
   const editable = !!app && (app.status === 'draft' || app.status === 'needs_correction');
-  const allComplete = !!app && personalFieldsComplete(app) && vehicleFieldsComplete(app) && docsComplete(app);
+  const allComplete = !!app && whatsappComplete(app) && docsComplete(app);
+  const requiredDocsCount = app ? requiredDocTypes(app).size : 0;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
@@ -130,24 +131,16 @@ export default function BecomeCaptainHome() {
 
               <StepCard
                 index={1}
-                title={t('becomeCaptain.stepPersonalTitle')}
-                subtitle={t('becomeCaptain.stepPersonalSub')}
-                done={personalFieldsComplete(app)}
+                title={t('becomeCaptain.stepContactTitle')}
+                subtitle={t('becomeCaptain.stepContactSub')}
+                done={whatsappComplete(app)}
                 editable={editable}
-                onPress={() => router.push('/(app)/become-captain/personal')}
+                onPress={() => router.push('/(app)/become-captain/contact')}
               />
               <StepCard
                 index={2}
-                title={t('becomeCaptain.stepVehicleTitle')}
-                subtitle={t('becomeCaptain.stepVehicleSub')}
-                done={vehicleFieldsComplete(app)}
-                editable={editable}
-                onPress={() => router.push('/(app)/become-captain/vehicle')}
-              />
-              <StepCard
-                index={3}
                 title={t('becomeCaptain.stepDocsTitle')}
-                subtitle={t('becomeCaptain.stepDocsSub', { done: app.documents.length, total: DOCUMENT_ORDER.length })}
+                subtitle={t('becomeCaptain.stepDocsSub', { done: app.documents.length, total: requiredDocsCount })}
                 done={docsComplete(app)}
                 editable={editable}
                 onPress={() => router.push('/(app)/become-captain/documents')}
