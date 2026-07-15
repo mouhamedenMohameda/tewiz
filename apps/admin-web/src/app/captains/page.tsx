@@ -2,10 +2,26 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import dynamic from 'next/dynamic';
 import clsx from 'clsx';
 import { AppShell } from '@/components/AppShell';
 import { api } from '@/lib/api';
-import { CaptainsMap, type CaptainMarker, type TrackPoint } from './CaptainsMap';
+import type { CaptainMarker, TrackPoint } from './CaptainsMap';
+
+// Mapbox (mapbox-gl + react-map-gl, ~230 KB gzip) is the heaviest thing on this
+// page. Load it lazily and client-only so the captain list/table paints and
+// becomes interactive immediately, with the map streaming in right after.
+const CaptainsMap = dynamic(
+  () => import('./CaptainsMap').then((m) => m.CaptainsMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-full w-full grid place-items-center bg-slate-100 text-sm text-slate-400">
+        Chargement de la carte…
+      </div>
+    ),
+  },
+);
 
 type CaptainStatus = 'active' | 'suspended' | 'banned' | 'pending';
 

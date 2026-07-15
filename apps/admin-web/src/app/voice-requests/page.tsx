@@ -2,10 +2,24 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import dynamic from 'next/dynamic';
 import clsx from 'clsx';
 import { AppShell } from '@/components/AppShell';
 import { api, fetchBlobUrl } from '@/lib/api';
-import { VoiceRequestMap } from './VoiceRequestMap';
+
+// Load Mapbox lazily + client-only: the request list paints immediately and the
+// map (heavy mapbox-gl bundle) streams in only when this page is opened.
+const VoiceRequestMap = dynamic(
+  () => import('./VoiceRequestMap').then((m) => m.VoiceRequestMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-full w-full grid place-items-center bg-slate-100 text-sm text-slate-400">
+        Chargement de la carte…
+      </div>
+    ),
+  },
+);
 import type {
   VoiceRideRequest,
   VoiceRideStatus,
