@@ -71,12 +71,25 @@ export function CaptainsMap({ captains, selectedId, onSelect, track, replayIndex
     fittedRef.current = true;
   }, [visible]);
 
-  // Pan to selected captain.
+  // Pan to selected captain — ONCE per selection, not on every render.
+  //
+  // `visible` is a fresh array on each render (plain .filter), and the page
+  // re-renders often: every 10 s refetch AND every 350 ms while a trail replay
+  // is playing. Depending on `visible` here re-ran the flyTo on each of those
+  // renders, yanking the map back to the captain and making it impossible to
+  // zoom out or pan during playback. Guard on the captain id we last flew to so
+  // we only recenter when the *selection itself* changes.
+  const flownToRef = useRef<string | null>(null);
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !selectedId) return;
+    if (!map || !selectedId) {
+      if (!selectedId) flownToRef.current = null;
+      return;
+    }
+    if (flownToRef.current === selectedId) return;
     const c = visible.find((x) => x.id === selectedId);
-    if (!c) return;
+    if (!c) return; // coords not loaded yet — retry on next render
+    flownToRef.current = selectedId;
     const currentZoom = map.getZoom();
     map.flyTo({
       center: [c.lng!, c.lat!],
