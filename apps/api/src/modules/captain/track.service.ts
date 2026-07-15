@@ -11,6 +11,7 @@
 import type pg from 'pg';
 import { pool } from '../../db/pool.js';
 import { haversineM } from '../../lib/geo.js';
+import { getPricingSettings } from '../admin/app-settings.service.js';
 
 // Same gates as the ride meter, tuned for the coarser off-ride cadence
 // (~50 m / 30 s). See meter.service for the rationale.
@@ -31,12 +32,16 @@ export interface TrackSample {
   recordedAt: number;
 }
 
-/** True when off-ride tracking is switched on in app_settings. */
+/**
+ * True when off-ride tracking is switched on in app_settings.
+ *
+ * Reads through the cached pricing-settings getter (30 s TTL, busted whenever
+ * admin saves) instead of its own query: this runs on the hottest paths — every
+ * captain GPS batch (state.routes) and every ride dispatch — so avoiding a DB
+ * round-trip per call matters, while the app_settings row itself changes rarely.
+ */
 export async function isTrackingEnabled(): Promise<boolean> {
-  const r = await pool.query<{ on: boolean }>(
-    `SELECT track_offline_enabled AS on FROM app_settings LIMIT 1`,
-  );
-  return r.rows[0]?.on ?? false;
+  return (await getPricingSettings()).trackOfflineEnabled;
 }
 
 /**
