@@ -57,6 +57,9 @@ const userRow = {
   admin_role: null,
   full_name: 'Test Rider',
   language: 'fr',
+  // Login now guards on account status (403 account_suspended for anything
+  // other than 'active'); the happy-path fixture must be active.
+  status: 'active',
   password_hash: null as string | null,
   must_reset_password: false,
   is_guest: false,

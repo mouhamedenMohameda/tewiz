@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Fix #2 (transactional confirm with FOR UPDATE) + Fix #3 (respondBooking
-// returns via a targeted get-by-id query, not by re-listing everything).
+// Transactional confirm (FOR UPDATE) + targeted get-by-id read-back
+// (respondBooking returns via a single get-by-id, not by re-listing everything).
 //
-// We drive the service with a fake pool whose `connect()` hands out a client
-// that records the exact query sequence, so we can assert BEGIN → FOR UPDATE →
-// clash-guard → UPDATE → COMMIT ordering and ROLLBACK on conflict.
+// respondBooking runs inside the shared `withTx` helper, so we mock pool.js to
+// expose a withTx that drives the same fake client used for the transaction.
+// That client records the exact query sequence, letting us assert
+// BEGIN → FOR UPDATE → clash-guard → UPDATE → get-by-id → COMMIT ordering and
+// ROLLBACK on conflict.
 
 const { sendNotificationMock, fakeClient, state } = vi.hoisted(() => {
   const state = {
@@ -33,6 +35,23 @@ vi.mock('../src/db/pool.js', () => ({
       return state.poolResponder(sql);
     }),
   },
+  // Mirror the real withTx: check out a client, BEGIN, run fn, COMMIT (or
+  // ROLLBACK on throw), always release. Runs against the same fakeClient so
+  // the BEGIN/COMMIT/ROLLBACK land in state.clientQueries alongside the
+  // service's own statements.
+  withTx: async (fn: (client: typeof fakeClient) => Promise<unknown>) => {
+    await fakeClient.query('BEGIN');
+    try {
+      const result = await fn(fakeClient);
+      await fakeClient.query('COMMIT');
+      return result;
+    } catch (err) {
+      await fakeClient.query('ROLLBACK').catch(() => {});
+      throw err;
+    } finally {
+      fakeClient.release();
+    }
+  },
 }));
 
 vi.mock('../src/modules/notifications/notifications.service.js', () => ({
@@ -44,6 +63,9 @@ import { respondBooking } from '../src/modules/car-rental/car-rental.service.js'
 const OWNER = 'owner-1';
 const pendingRow = {
   listing_id: 'car-1',
+  // lockOwnerBooking joins car_listings and rejects (403 not_your_car) unless
+  // the locked row's owner matches the acting owner.
+  owner_id: OWNER,
   start_date: new Date('2026-07-10'),
   end_date: new Date('2026-07-14'),
   status: 'pending',
@@ -59,6 +81,12 @@ const ownerBookingRow = {
   status: 'confirmed',
   created_at: new Date('2026-07-01'),
   car_title: 'Toyota',
+  city: 'Nouakchott',
+  // BOOKING_SELECT returns these array columns; toOwnerBooking reads photos[0]
+  // and passes the pickup/return arrays straight through.
+  photos: ['car.webp'],
+  pickup_photos: [],
+  return_photos: [],
   renter_name: 'Ali',
   renter_phone: '22200000',
 };
@@ -76,9 +104,10 @@ describe('car-rental respondBooking — transaction + get-by-id', () => {
     state.clientResponder = (sql) => {
       if (sql.includes('FOR UPDATE OF b')) return { rows: [pendingRow] };
       if (sql.includes('daterange')) return { rows: [] }; // no clash
+      if (sql.includes('WHERE b.id = $1')) return { rows: [ownerBookingRow] }; // get-by-id
       return { rows: [] };
     };
-    state.poolResponder = () => ({ rows: [ownerBookingRow] });
+    state.poolResponder = () => ({ rows: [] });
 
     const result = await respondBooking('bk-1', OWNER, 'confirm');
 
@@ -90,9 +119,13 @@ describe('car-rental respondBooking — transaction + get-by-id', () => {
     expect(state.clientQueries).not.toContain('ROLLBACK');
     expect(fakeClient.release).toHaveBeenCalledTimes(1);
 
-    // Fix #3: return value comes from a single targeted get-by-id, no re-list.
-    expect(state.poolQueries).toHaveLength(1);
-    expect(state.poolQueries[0]).toContain('WHERE b.id = $1 AND c.owner_id = $2');
+    // Return value comes from a single targeted get-by-id run on the SAME
+    // transaction client — no separate pool round-trip, no re-list.
+    expect(state.poolQueries).toHaveLength(0);
+    const getById = state.clientQueries.filter(
+      (q) => q.includes('WHERE b.id = $1') && !q.includes('FOR UPDATE'),
+    );
+    expect(getById).toHaveLength(1);
     expect(result.id).toBe('bk-1');
     expect(result.status).toBe('confirmed');
   });

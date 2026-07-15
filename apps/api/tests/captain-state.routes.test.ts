@@ -80,7 +80,9 @@ describe('POST /captain/state/online', () => {
 
   it('returns 402 when the balance is below the go-online floor', async () => {
     dispatchSql(queryMock, [[/SELECT status FROM captains/, rows([{ status: 'active' }])]]);
-    getBalanceMock.mockResolvedValue(0);
+    // The floor (MIN_BALANCE_TO_GO_ONLINE_MRU) defaults to -10 MRU, so the
+    // balance has to be below that — 0 is now allowed online.
+    getBalanceMock.mockResolvedValue(-20);
     const { baseUrl } = await start();
     const res = await api(baseUrl, 'POST', '/captain/state/online', {});
     expect(res.status).toBe(402);

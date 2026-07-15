@@ -3,6 +3,7 @@ import { api, startTestApp, type TestAppHandle } from './helpers/app.js';
 
 const {
   svcMock,
+  menuMock,
   auditMock,
   txQueryMock,
   storageGetMock,
@@ -20,6 +21,7 @@ const {
     softDeleteRestaurant: vi.fn(),
     fromOsmSeed: vi.fn(),
   },
+  menuMock: { getRestaurantMenu: vi.fn() },
   auditMock: vi.fn(),
   txQueryMock: vi.fn(),
   storageGetMock: vi.fn(),
@@ -31,6 +33,7 @@ const {
 }));
 
 vi.mock('../src/modules/restaurants/restaurants.service.js', () => svcMock);
+vi.mock('../src/modules/restaurants/dishes.service.js', () => menuMock);
 vi.mock('../src/modules/admin/audit.js', () => ({ audit: auditMock }));
 vi.mock('../src/modules/storage/local-disk.js', () => ({
   defaultStorage: {
@@ -64,6 +67,10 @@ let handle: TestAppHandle | null = null;
 
 beforeEach(() => {
   for (const fn of Object.values(svcMock)) fn.mockReset();
+  menuMock.getRestaurantMenu.mockReset();
+  // GET /rider/restaurants/:id also loads the (available-only) menu; default
+  // to an empty menu so tests that don't care about dishes still pass.
+  menuMock.getRestaurantMenu.mockResolvedValue([]);
   auditMock.mockReset();
   auditMock.mockResolvedValue(undefined);
   storageGetMock.mockReset();
@@ -259,7 +266,11 @@ describe('admin restaurants', () => {
       mockFileB64: raw.toString('base64'),
     });
     expect(res.status).toBe(200);
-    expect(res.body.url).toMatch(/^\/admin\/restaurants\/photos\/[a-f0-9-]+\.webp$/i);
+    // The endpoint now returns an ABSOLUTE URL to the public (no-auth) photo
+    // route so the mobile <Image> / admin <img> can load it directly.
+    expect(res.body.url).toMatch(
+      /^https?:\/\/[^/]+\/public\/restaurant-photos\/[a-f0-9-]+\.webp$/i,
+    );
     expect(sharpMock).toHaveBeenCalledWith(raw);
     expect(sharpResizeMock).toHaveBeenCalledWith(800, 800, {
       fit: 'cover',
