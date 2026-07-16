@@ -99,11 +99,14 @@ export default function SettingsScreen() {
 
   async function pickLanguage(next: AppLanguage) {
     if (next === lang) return;
+    // Best-effort server sync — failure is fine, the local pref is what
+    // drives the UI from now on. Fired BEFORE setLanguage: a direction change
+    // reloads the whole JS bundle and nothing after it would run.
+    void api.patch('/auth/me', { language: next }).catch(() => undefined);
     const { needsRestart } = await setLanguage(next);
     setLang(next);
-    // Best-effort server sync — failure is fine, the local pref is what
-    // drives the UI from now on.
-    void api.patch('/auth/me', { language: next }).catch(() => undefined);
+    // Only reachable when the direction didn't change or the automatic
+    // reload wasn't available — ask for a manual restart then.
     if (needsRestart) {
       Alert.alert(t('settings.preferences.restartTitle'), t('settings.preferences.restartBody'));
     }
@@ -457,7 +460,10 @@ function LanguageRow({
       onPress={onPress}
       scaleTo={0.98}
       style={{
-        flexDirection: rtl ? 'row-reverse' : 'row', alignItems: 'center', gap: spacing.md,
+        // Plain `row`: the native direction mirrors it already, a manual
+        // row-reverse would double-flip under RTL. Only the label's text
+        // direction follows the row's own language.
+        flexDirection: 'row', alignItems: 'center', gap: spacing.md,
         paddingVertical: spacing.md, paddingHorizontal: spacing.md,
         borderRadius: radius.md,
         backgroundColor: active ? colors.emberSoft : colors.surface,

@@ -240,7 +240,7 @@ export default function MyCarsScreen() {
                     <Icon name="car" size={28} color={colors.faint} />
                   </View>
                 )}
-                <View style={{ flex: 1, paddingVertical: spacing.md, paddingRight: spacing.md, gap: 2 }}>
+                <View style={{ flex: 1, paddingVertical: spacing.md, paddingEnd: spacing.md, gap: 2 }}>
                   <AppText variant="label" color={colors.ink}>{c.title}</AppText>
                   <AppText variant="caption" color={colors.muted}>{c.city} · {t('carRental.pricePerDay', { price: formatMru(c.pricePerDayMru) })}</AppText>
                   {c.status === 'paused' ? <AppText variant="caption" color={colors.warning}>{t('carRental.mine.pausedLabel')}</AppText> : null}

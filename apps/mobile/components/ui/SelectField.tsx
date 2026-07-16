@@ -18,6 +18,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { colors, fonts, radius, spacing } from '@/theme';
+import { currentLanguage, isRTL } from '@/lib/i18n';
 import { AppText } from './Text';
 import { Icon, type IconName } from './Icon';
 
@@ -60,6 +61,10 @@ export function SelectField({
 }: SelectFieldProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
+  // Arabic search input must render in Cairo (Sora lacks Arabic glyphs). The
+  // selected value / placeholder / option labels go through AppText, which
+  // already handles the Cairo swap.
+  const ar = isRTL(currentLanguage());
 
   const selected = useMemo(
     () => options.find((o) => o.value === value) ?? null,
@@ -187,7 +192,7 @@ export function SelectField({
                     paddingVertical: 12,
                     fontSize: 16,
                     color: colors.ink,
-                    fontFamily: fonts.text.medium,
+                    fontFamily: ar ? fonts.arabic.medium : fonts.text.medium,
                   }}
                 />
               </View>

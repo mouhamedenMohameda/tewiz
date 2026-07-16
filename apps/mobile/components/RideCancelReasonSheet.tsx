@@ -1,5 +1,6 @@
-import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { PlainText as Text } from '@/components/ui';
 
 export interface RideCancelReasonOption {
   key: string;

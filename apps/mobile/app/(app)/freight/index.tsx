@@ -7,6 +7,7 @@ import { browseTrips, type FreightTrip } from '@/lib/freight';
 import { formatMru } from '@/lib/format';
 import { AppText, Button, Card, Icon, ScreenHeader, TextField } from '@/components/ui';
 import { colors, spacing } from '@/theme';
+import { wrapRow } from '@/components/ui';
 
 export default function FreightScreen() {
   const router = useRouter();
@@ -58,7 +59,7 @@ export default function FreightScreen() {
                 <AppText variant="label" color={colors.ink} style={{ flex: 1 }}>{item.originCity} → {item.destinationCity}</AppText>
                 <AppText variant="label" color={colors.ember}>{formatMru(item.pricePerKgMru)}/kg</AppText>
               </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, flexWrap: 'wrap' }}>
+              <View style={{ flexDirection: wrapRow, alignItems: 'center', gap: spacing.md, flexWrap: 'wrap' }}>
                 <Meta icon="calendar" text={item.departureDate} />
                 <Meta icon="parcel" text={t('freight.kgAvail', { kg: item.remainingKg })} />
                 {item.vehicleType ? <Meta icon="ride" text={item.vehicleType} /> : null}

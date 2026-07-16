@@ -8,11 +8,11 @@ import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
-import { currentLanguage } from '@/lib/i18n';
 import { ModeToggle } from '@/components/ModeToggle';
 import { NotificationsBellButton } from '@/components/NotificationsBellButton';
 import {
-  AppText, Button, Card, FadeInView, Icon, PressableScale, Screen, TextField, type IconName,
+  AppText, Button, Card, FadeInView, Icon, PressableScale, Screen, TextField, wrapRow,
+  type IconName,
 } from '@/components/ui';
 import { colors, gradients, radius, shadow, spacing } from '@/theme';
 import { APP_NAME } from '@/lib/brand';
@@ -38,8 +38,6 @@ export default function RiderHome() {
   const { t } = useTranslation();
   const user = useAuth((s) => s.user);
   const setUser = useAuth((s) => s.setUser);
-  const lang = currentLanguage();
-  const isArabic = lang === 'ar' || lang === 'hs';
 
   const [application, setApplication] = useState<ApplicationDto | null>(null);
   const [loadingApp, setLoadingApp] = useState(true);
@@ -147,14 +145,16 @@ export default function RiderHome() {
 
   return (
     <Screen scroll onRefresh={loadApp}>
-      {/* Header */}
+      {/* Header — plain `row` everywhere: Yoga already mirrors rows when the
+          native direction is RTL, so a manual row-reverse double-flips the
+          layout back to LTR. Never hand-flip direction in screens. */}
       <View style={{
-        flexDirection: isArabic ? 'row-reverse' : 'row',
+        flexDirection: 'row',
         alignItems: 'center', justifyContent: 'space-between',
         marginTop: spacing.sm, marginBottom: spacing.lg,
       }}>
         <View style={{
-          flexDirection: isArabic ? 'row-reverse' : 'row',
+          flexDirection: 'row',
           alignItems: 'center', gap: spacing.md, flex: 1,
         }}>
           <View style={{
@@ -171,7 +171,7 @@ export default function RiderHome() {
           </View>
         </View>
         <View style={{
-          flexDirection: isArabic ? 'row-reverse' : 'row',
+          flexDirection: 'row',
           alignItems: 'center', gap: spacing.sm,
         }}>
           <NotificationsBellButton />
@@ -216,7 +216,8 @@ export default function RiderHome() {
         <AppText variant="overline" color={colors.muted} style={{ marginTop: spacing.xxl, marginBottom: spacing.md }}>
           {t('rider.home.shortcuts')}
         </AppText>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md }}>
+        {/* wrapRow: Yoga doesn't reverse flexWrap fill order under RTL. */}
+        <View style={{ flexDirection: wrapRow, flexWrap: 'wrap', gap: spacing.md }}>
           {visibleModules.map((m) => (
             <QuickTile
               key={m.key}
@@ -224,7 +225,6 @@ export default function RiderHome() {
               label={t(m.label as any)}
               tint={m.tint}
               fg={m.fg}
-              isArabic={isArabic}
               onPress={() => router.push(m.route as any)}
             />
           ))}
@@ -356,7 +356,13 @@ function Hero({ blocked, onVoice, onMap }: { blocked: boolean; onVoice: () => vo
       style={{ borderRadius: radius.xxl, padding: spacing.xl, ...shadow.ember }}
     >
       <AppText variant="overline" color="#FFF1DD">{t('rider.hero.overline')}</AppText>
-      <AppText variant="h1" color={colors.white} style={{ marginTop: spacing.xs, maxWidth: 240 }}>
+      {/* alignSelf pins the width-capped title to the reading edge (logical:
+          left in LTR, right in RTL) — without it the 240pt box floats. */}
+      <AppText
+        variant="h1"
+        color={colors.white}
+        style={{ marginTop: spacing.xs, maxWidth: 240, alignSelf: 'flex-start' }}
+      >
         {t('rider.hero.title')}
       </AppText>
 
@@ -396,10 +402,11 @@ function Hero({ blocked, onVoice, onMap }: { blocked: boolean; onVoice: () => vo
 }
 
 function QuickTile({
-  icon, label, tint, fg, isArabic, onPress,
-}: { icon: IconName; label: string; tint: string; fg: string; isArabic: boolean; onPress: () => void }) {
+  icon, label, tint, fg, onPress,
+}: { icon: IconName; label: string; tint: string; fg: string; onPress: () => void }) {
   return (
-    <Card onPress={onPress} padding={spacing.base} style={{ flexBasis: '47%', flexGrow: 1, alignItems: isArabic ? 'flex-end' : 'flex-start' }}>
+    // `flex-start` is logical: Yoga resolves it to the right edge under RTL.
+    <Card onPress={onPress} padding={spacing.base} style={{ flexBasis: '47%', flexGrow: 1, alignItems: 'flex-start' }}>
       <View style={{
         width: 46, height: 46, borderRadius: radius.md,
         backgroundColor: tint, alignItems: 'center', justifyContent: 'center',

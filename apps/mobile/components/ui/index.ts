@@ -1,4 +1,5 @@
 export { AppText, type AppTextProps } from './Text';
+export { PlainText } from './PlainText';
 export { Button, type ButtonProps } from './Button';
 export { Card, type CardProps } from './Card';
 export { Screen, type ScreenProps } from './Screen';
@@ -9,3 +10,4 @@ export { Icon, type IconName, type IconProps } from './Icon';
 export { PressableScale, type PressableScaleProps } from './PressableScale';
 export { FadeInView, type FadeInViewProps } from './FadeInView';
 export { ScreenHeader, type ScreenHeaderProps } from './ScreenHeader';
+export { wrapRow } from './rtl';

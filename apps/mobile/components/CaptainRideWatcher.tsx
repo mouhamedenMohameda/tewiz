@@ -19,6 +19,7 @@ import { formatMru } from '@/lib/format';
 import { useAuth } from '@/lib/auth';
 import { i18n } from '@/lib/i18n';
 import { colors, gradients, radius, shadow, spacing } from '@/theme';
+import { wrapRow } from '@/components/ui';
 
 type RideType = 'passenger' | 'colis';
 
@@ -525,7 +526,7 @@ export function CaptainRideWatcher() {
                   ...shadow.ember,
                 }}
               >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <View style={{ flexDirection: wrapRow, alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   <View style={{
                     backgroundColor: 'rgba(255,255,255,0.22)',
                     paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill,
@@ -757,7 +758,7 @@ function SectionTitle({ iconName, title, hint, tint }: {
       </View>
       <Text variant="title" color={colors.ink}>{title}</Text>
       {hint ? (
-        <Text variant="caption" color={colors.muted} style={{ marginLeft: 'auto' }}>{hint}</Text>
+        <Text variant="caption" color={colors.muted} style={{ marginStart: 'auto' }}>{hint}</Text>
       ) : null}
     </View>
   );
@@ -1073,7 +1074,7 @@ function RiderCard({
                 </Text>
               </View>
             ) : (
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md }}>
+              <View style={{ flexDirection: wrapRow, flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md }}>
                 <RiderChip icon="🛣️" value={String(rider.totalRides)} label={t('captainAlert.rider.rides')} variant="neutral" />
                 {rider.avgRating !== null ? (
                   <RiderChip

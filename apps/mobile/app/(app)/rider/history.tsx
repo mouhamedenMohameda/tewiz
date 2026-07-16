@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator, FlatList, RefreshControl, Text, View,
+  ActivityIndicator, FlatList, RefreshControl, View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ScreenHeader } from '@/components/ui';
+import { PlainText as Text, ScreenHeader } from '@/components/ui';
 import { api } from '@/lib/api';
 import { formatMru } from '@/lib/format';
 

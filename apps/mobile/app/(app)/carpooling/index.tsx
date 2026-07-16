@@ -20,7 +20,8 @@ import {
   ScreenHeader,
   SelectField,
 } from '@/components/ui';
-import { colors, radius, shadow, spacing } from '@/theme';
+import { colors, fonts, radius, shadow, spacing } from '@/theme';
+import { currentLanguage, isRTL } from '@/lib/i18n';
 import { useAuth } from '@/lib/auth';
 import { MAURITANIA_CITIES } from '@/lib/cities';
 import {
@@ -149,6 +150,7 @@ function RatingModal({ visible, name, busy, onSubmit, onClose }: {
               minHeight: 64,
               textAlignVertical: 'top',
               color: colors.ink,
+              fontFamily: isRTL(currentLanguage()) ? fonts.arabic.regular : undefined,
             }}
           />
           <Button title={t('carpooling.rate.submitBtn')} icon="check" busy={busy} onPress={() => onSubmit(stars, comment)} />
@@ -830,9 +832,12 @@ function DriverView() {
                 paddingHorizontal: spacing.base,
                 paddingVertical: spacing.md,
                 fontSize: 24,
-                letterSpacing: 4,
+                // Arabic placeholder is cursive: letterSpacing breaks its
+                // shaping, so only space out the typed digits.
+                letterSpacing: isRTL(currentLanguage()) && !otp ? 0 : 4,
                 textAlign: 'center',
                 color: colors.ink,
+                fontFamily: isRTL(currentLanguage()) ? fonts.arabic.regular : undefined,
               }}
             />
             <Button

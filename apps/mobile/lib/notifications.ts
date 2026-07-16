@@ -34,9 +34,12 @@ Notifications.setNotificationHandler({
 });
 
 /**
- * Sets up the Android "ride-alerts" channel with high importance.
- * Required for Android 8+ — without a channel, Android uses defaults
- * and ignores per-message sound settings.
+ * Sets up the Android notification channels. Required for Android 8+ —
+ * a push referencing a channel that doesn't exist on-device is silently
+ * dropped by the OS whenever the app isn't in the foreground (in the
+ * foreground our JS notification handler shows it regardless, which is
+ * why a missing channel only shows up as "notifications don't arrive
+ * when the app is closed").
  */
 async function ensureAndroidChannel() {
   if (Platform.OS !== 'android') return;
@@ -49,6 +52,15 @@ async function ensureAndroidChannel() {
       : [0, 400, 250, 400],
     lightColor: '#10a35e',
     enableVibrate: true,
+    lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+    sound: 'default',
+  });
+  // Used by admin/bonus/info broadcasts (notifications.service.ts) — a
+  // lower-key channel than ride-alerts since these aren't time-critical.
+  await Notifications.setNotificationChannelAsync('general', {
+    name: 'Notifications générales',
+    importance: Notifications.AndroidImportance.DEFAULT,
+    lightColor: '#10a35e',
     lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
     sound: 'default',
   });

@@ -7,6 +7,7 @@ import { getCar, requestBooking, type Car } from '@/lib/carRental';
 import { formatMru } from '@/lib/format';
 import { AppText, Button, Card, DateField, Icon, ScreenHeader } from '@/components/ui';
 import { colors, radius, spacing } from '@/theme';
+import { wrapRow } from '@/components/ui';
 
 function dayCount(start: string, end: string): number {
   if (!start || !end) return 0;
@@ -81,7 +82,7 @@ export default function CarDetailScreen() {
             <AppText variant="h2" color={colors.ember}>{t('carRental.pricePerDay', { price: formatMru(car.pricePerDayMru) })}</AppText>
           </View>
 
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md }}>
+          <View style={{ flexDirection: wrapRow, flexWrap: 'wrap', gap: spacing.md }}>
             <Spec icon="pin" label={car.city} />
             {car.year ? <Spec icon="calendar" label={String(car.year)} /> : null}
             {car.seats ? <Spec icon="person" label={t('carRental.seatsLabel', { count: car.seats })} /> : null}

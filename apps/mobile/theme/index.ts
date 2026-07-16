@@ -164,13 +164,15 @@ export const fonts = {
     bold: 'Sora_700Bold',
     extrabold: 'Sora_800ExtraBold',
   },
-  // Arabic — same Sora family. System falls back for Arabic glyphs Sora lacks.
+  // Arabic — Cairo. Geometric, pairs with Sora, and matches the brand
+  // marketing typography. Applied for ar/hs by <AppText>; Sora has no Arabic
+  // glyphs so this is what actually renders Arabic UI text.
   arabic: {
-    regular: 'Sora_400Regular',
-    medium: 'Sora_500Medium',
-    semibold: 'Sora_600SemiBold',
-    bold: 'Sora_700Bold',
-    extrabold: 'Sora_800ExtraBold',
+    regular: 'Cairo_400Regular',
+    medium: 'Cairo_500Medium',
+    semibold: 'Cairo_600SemiBold',
+    bold: 'Cairo_700Bold',
+    extrabold: 'Cairo_800ExtraBold',
   },
   mono: 'Sora_600SemiBold',
 } as const;
@@ -272,7 +274,7 @@ export const motion = {
 } as const;
 
 /* Font assets to feed `useFonts` in the root layout. */
-export { default as fontAssets, latinFontAssets } from './fontAssets';
+export { default as fontAssets, latinFontAssets, arabicFontAssets } from './fontAssets';
 
 export const theme = { colors, gradients, spacing, radius, shadow, type, fonts, motion } as const;
 export type Theme = typeof theme;

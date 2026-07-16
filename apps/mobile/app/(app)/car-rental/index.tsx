@@ -7,6 +7,7 @@ import { browseCars, type Car } from '@/lib/carRental';
 import { formatMru } from '@/lib/format';
 import { AppText, Button, Card, Icon, ScreenHeader, TextField } from '@/components/ui';
 import { colors, radius, spacing } from '@/theme';
+import { wrapRow } from '@/components/ui';
 
 export default function CarRentalScreen() {
   const router = useRouter();
@@ -81,7 +82,7 @@ export default function CarRentalScreen() {
                   <AppText variant="label" color={colors.ink} style={{ flex: 1 }}>{item.title}</AppText>
                   <AppText variant="label" color={colors.ember}>{t('carRental.pricePerDay', { price: formatMru(item.pricePerDayMru) })}</AppText>
                 </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' }}>
+                <View style={{ flexDirection: wrapRow, alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' }}>
                   <Meta icon="pin" text={item.city} />
                   {item.seats ? <Meta icon="person" text={t('carRental.seatsLabel', { count: item.seats })} /> : null}
                   {item.withDriver ? (

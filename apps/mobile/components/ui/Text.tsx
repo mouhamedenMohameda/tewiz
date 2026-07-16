@@ -5,13 +5,22 @@
  *   <AppText variant="caption" color={colors.muted}>…</AppText>
  *
  * `variant` selects a ramp from theme.type; `color` and `style` override.
- * Uses Sora for every script — Arabic glyphs Sora lacks fall back to system.
+ * Latin scripts render in Sora; Arabic (ar/hs) renders in Cairo — chosen at
+ * the weight the caller asked for, even if that weight was expressed as a Sora
+ * face or a fontWeight in `style`.
  */
 
 import { useTranslation } from 'react-i18next';
-import { Text as RNText, type TextProps as RNTextProps, type TextStyle } from 'react-native';
+import {
+  I18nManager,
+  Platform,
+  Text as RNText,
+  type TextProps as RNTextProps,
+  type TextStyle,
+} from 'react-native';
 import { colors, type } from '@/theme';
-import { currentLanguage } from '@/lib/i18n';
+import { currentLanguage, isRTL } from '@/lib/i18n';
+import { arabicFaceForStyle, arabicLineHeight } from './arabicFont';
 
 type Variant = keyof typeof type;
 
@@ -35,10 +44,9 @@ export function AppText({
   // Trigger re-render when language changes.
   useTranslation();
 
-  const lang = currentLanguage();
-  const isArabic = lang === 'ar' || lang === 'hs';
-
+  const isArabic = isRTL(currentLanguage());
   const preset = type[variant];
+  const arFace = isArabic ? arabicFaceForStyle(style, preset.fontWeight) : undefined;
 
   return (
     <RNText
@@ -46,20 +54,44 @@ export function AppText({
       style={[
         preset,
         { color },
-        // Arabic reads right-to-left: default text alignment must be `right`
-        // even when the native layout direction is still LTR (the user hasn't
-        // restarted after switching to Arabic yet). Placed before `align` and
-        // `style` so an explicit caller override still wins.
-        isArabic ? { textAlign: 'right' as const, writingDirection: 'rtl' as const } : null,
+        // Text alignment always follows the LANGUAGE, not the (possibly stale)
+        // native direction. On iOS an explicit 'left'/'right' interacts with
+        // the RTL left↔right swap differently depending on the container the
+        // text ends up in (the home greeting vs the hero card resolve
+        // opposite ways), so iOS gets NO explicit textAlign: the paragraph's
+        // base `writingDirection` drives natural alignment, which is
+        // deterministic everywhere — Arabic → right, Latin languages → left,
+        // even for Latin fragments ("Medn", "MRU 0") inside an Arabic UI.
+        // Android has no writingDirection: keep explicit physical alignment
+        // (the left↔right swap is disabled at boot, see initI18n).
+        // Placed before `align` and `style` so an explicit override still wins.
+        isArabic
+          ? Platform.OS === 'ios'
+            ? { writingDirection: 'rtl' as const }
+            : { textAlign: 'right' as const, writingDirection: 'rtl' as const }
+          : I18nManager.isRTL
+            ? Platform.OS === 'ios'
+              ? { writingDirection: 'ltr' as const }
+              : { textAlign: 'left' as const, writingDirection: 'ltr' as const }
+            : null,
         align ? { textAlign: align } : null,
         tracking != null ? { letterSpacing: tracking } : null,
         style,
-        // Arabic is cursive: any letterSpacing — whether from the preset, a
-        // `tracking` prop, or a caller `style` override — is applied as CoreText
-        // kerning on iOS and breaks the shaping. The i'jam dots drop (متّصل
-        // renders as مصل) and joined letters split apart. So spacing is forced
-        // off last for Arabic scripts; its textTransform is meaningless too.
-        isArabic ? { letterSpacing: 0, textTransform: 'none' as const } : null,
+        // Arabic: force the weight-matched Cairo face (Sora can't render Arabic)
+        // and kill letterSpacing. Applied LAST so it wins over any caller
+        // `style.fontFamily` — including a Sora face passed only to set a weight.
+        // letterSpacing on iOS is applied as CoreText kerning and breaks Arabic
+        // shaping (i'jam dots drop, joined letters split); textTransform is moot.
+        // The raised lineHeight keeps Cairo's high dots inside the line box
+        // instead of overlapping whatever sits above the text.
+        isArabic
+          ? {
+              fontFamily: arFace,
+              letterSpacing: 0,
+              textTransform: 'none' as const,
+              lineHeight: arabicLineHeight(style, preset.fontSize, preset.lineHeight),
+            }
+          : null,
       ]}
     >
       {children}

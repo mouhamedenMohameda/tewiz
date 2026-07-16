@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator, Alert, Modal, Pressable, Text, TextInput, View,
+  ActivityIndicator, Alert, Modal, Pressable, TextInput, View,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { PlainText as Text } from '@/components/ui';
+import { fonts } from '@/theme';
+import { currentLanguage, isRTL } from '@/lib/i18n';
 import { getMapbox } from '@/lib/mapbox';
 import { api } from '@/lib/api';
 import { useApiQuery } from '@/lib/useApiQuery';
+import { wrapRow } from '@/components/ui';
 
 export type RoadReason =
   | 'sand' | 'flood' | 'construction'
@@ -204,6 +208,7 @@ function ReportSheet({
   onCreated: () => void;
 }) {
   const { t } = useTranslation();
+  const ar = isRTL(currentLanguage());
   const [reason, setReason] = useState<RoadReason | null>(null);
   const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -252,7 +257,7 @@ function ReportSheet({
               {t('roadReports.sheetHint')}
             </Text>
 
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            <View style={{ flexDirection: wrapRow, flexWrap: 'wrap', gap: 8 }}>
               {(Object.keys(REASON_META) as RoadReason[]).map((r) => {
                 const m = REASON_META[r];
                 const active = reason === r;
@@ -290,6 +295,7 @@ function ReportSheet({
                 paddingHorizontal: 12, paddingVertical: 10, fontSize: 14,
                 color: '#0f172a', backgroundColor: '#f8fafc',
                 minHeight: 60, textAlignVertical: 'top',
+                fontFamily: ar ? fonts.arabic.regular : undefined,
               }}
             />
 

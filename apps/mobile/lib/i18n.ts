@@ -3,11 +3,14 @@
  *
  * Supported languages: French (default), Arabic (RTL), English.
  *
- * RTL note: the native layout direction is applied ONLY at boot, inside
- * initI18n() and before the first paint. Toggling to/from Arabic mid-session
- * therefore *requires an app restart* before mirrored layouts kick in — the
- * Settings screen warns the user. Never call forceRTL after the first render:
- * it mirrors only the views that re-render, so the UI jumps around.
+ * RTL note: the native layout direction (I18nManager) is the SINGLE source of
+ * truth for mirroring — screens must never hand-flip rows with `row-reverse`,
+ * Yoga already mirrors `row` when the direction is RTL. The direction is
+ * applied at boot (initI18n, before the first paint); when the user switches
+ * to/from Arabic mid-session, setLanguage() flips it and immediately reloads
+ * the JS bundle (lib/restart.ts) so the whole tree rebuilds in one consistent
+ * direction. Never call forceRTL without reloading: it mirrors only the views
+ * created afterwards, so the UI ends up half-mirrored ("dancing" layouts).
  */
 
 import 'intl-pluralrules';
@@ -15,6 +18,8 @@ import { I18nManager, NativeModules, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
+
+import { reloadApp } from './restart';
 
 import fr from '@/locales/fr.json';
 import ar from '@/locales/ar.json';
@@ -90,14 +95,13 @@ export function isRTL(lang: AppLanguage): boolean {
 
 /**
  * Force the RN layout direction to match the active language. Returns true
- * iff the direction actually changed — caller should warn the user that
- * mirrored layouts only take effect after a full app restart.
+ * iff the direction actually changed.
  *
- * ONLY call this before the first paint (i.e. from initI18n, which the root
- * layout awaits before rendering). Flipping `I18nManager.forceRTL` while
- * views are already mounted re-resolves the direction only for nodes that
- * happen to re-render, so the UI ends up half-mirrored — the home header and
- * the hero title visibly jump between LTR and RTL. See tests/i18n.test.ts.
+ * Only call this before the first paint (initI18n) or immediately before a
+ * full JS reload (setLanguage). Flipping `I18nManager.forceRTL` while views
+ * stay mounted re-resolves the direction only for nodes that happen to
+ * re-render, so the UI ends up half-mirrored — the home header and the hero
+ * title visibly jump between LTR and RTL. See tests/i18n.test.ts.
  */
 export function applyLayoutDirection(lang: AppLanguage): boolean {
   const wantRTL = isRTL(lang);
@@ -116,6 +120,12 @@ export function initI18n(): Promise<typeof i18n> {
   initPromise = (async () => {
     const stored = await readStoredLanguage();
     const lang = stored ?? detectDeviceLanguage();
+    // Android swaps `left`/`right` styles in RTL by default; iOS never does.
+    // Disable the swap so physical left/right mean the same thing on both
+    // platforms — mirrored spacing must use the logical start/end props.
+    try {
+      I18nManager.swapLeftAndRightInRTL(false);
+    } catch {}
     applyLayoutDirection(lang);
     const resources = Object.fromEntries(
       SUPPORTED_LANGUAGES.map((code) => [code, { translation: LANGUAGE_RESOURCES[code] }]),
@@ -134,19 +144,26 @@ export function initI18n(): Promise<typeof i18n> {
 }
 
 /**
- * Persist and apply a new language. Returns true if the app must be restarted
- * to fully apply the layout direction change (i.e. switched to/from Arabic).
+ * Persist and apply a new language.
  *
- * The native layout direction is deliberately NOT flipped here: forceRTL on a
- * running app mirrors only the views that re-render next, leaving the rest in
- * the old direction (header/hero "jumping" bug). The stored language drives
- * applyLayoutDirection at the next boot, before anything is painted.
+ * When the layout direction changes (switched to/from Arabic) the native
+ * direction is flipped and the JS bundle reloads immediately: forceRTL on a
+ * running app mirrors only the views created afterwards, so the only clean
+ * way to apply the flip is to rebuild the whole tree — the next boot re-reads
+ * the stored language and paints everything in the right direction from the
+ * first frame.
+ *
+ * Returns { needsRestart: true } ONLY when the automatic reload was not
+ * available — the caller should then ask the user to restart manually.
  */
 export async function setLanguage(lang: AppLanguage): Promise<{ needsRestart: boolean }> {
   await AsyncStorage.setItem(STORAGE_KEY, lang);
-  const needsRestart = isRTL(lang) !== I18nManager.isRTL;
+  const directionChanged = isRTL(lang) !== I18nManager.isRTL;
   await i18n.changeLanguage(lang);
-  return { needsRestart };
+  if (!directionChanged) return { needsRestart: false };
+  applyLayoutDirection(lang);
+  const reloaded = await reloadApp();
+  return { needsRestart: !reloaded };
 }
 
 export function currentLanguage(): AppLanguage {

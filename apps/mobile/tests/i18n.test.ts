@@ -2,23 +2,29 @@
  * Regression tests for the i18n bootstrap — above all the layout-direction
  * rules. The home header ("Bonjour <name>") and the hero title ("Commander
  * une course") used to jump between LTR and RTL mid-session because
- * setLanguage() called I18nManager.forceRTL() while the app was running:
- * on the new architecture only the views that re-render pick up the new
- * direction, so the UI ends up half-mirrored.
+ * setLanguage() called I18nManager.forceRTL() while the app kept running:
+ * only the views created afterwards pick up the new direction, so the UI
+ * ends up half-mirrored.
  *
- * Invariant pinned here: the native direction is only ever touched during
- * boot (initI18n, before the first paint) — never after.
+ * Invariant pinned here: whenever the native direction is flipped outside of
+ * boot (setLanguage), the JS bundle MUST reload in the same breath so the
+ * whole tree rebuilds in one consistent direction. A direction flip without
+ * a reload is the bug.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const storage = vi.hoisted(() => new Map<string, string>());
+
+vi.stubGlobal('__DEV__', true);
 
 vi.mock('react-native', () => ({
   I18nManager: {
     isRTL: false,
     allowRTL: vi.fn(),
     forceRTL: vi.fn(),
+    swapLeftAndRightInRTL: vi.fn(),
   },
+  DevSettings: { reload: vi.fn() },
   NativeModules: { SettingsManager: { settings: { AppleLocale: 'fr_FR' } } },
   Platform: { OS: 'ios' },
 }));
@@ -42,6 +48,10 @@ interface MockedI18nManager {
   isRTL: boolean;
   allowRTL: ReturnType<typeof vi.fn>;
   forceRTL: ReturnType<typeof vi.fn>;
+  swapLeftAndRightInRTL: ReturnType<typeof vi.fn>;
+}
+interface MockedDevSettings {
+  reload: ReturnType<typeof vi.fn>;
 }
 
 /**
@@ -52,14 +62,17 @@ async function bootModule(opts?: { storedLanguage?: string; nativeRTL?: boolean 
   vi.resetModules();
   storage.clear();
   if (opts?.storedLanguage) storage.set(STORAGE_KEY, opts.storedLanguage);
-  const { I18nManager } = (await import('react-native')) as unknown as {
+  const { I18nManager, DevSettings } = (await import('react-native')) as unknown as {
     I18nManager: MockedI18nManager;
+    DevSettings: MockedDevSettings;
   };
   I18nManager.isRTL = opts?.nativeRTL ?? false;
   I18nManager.allowRTL.mockClear();
   I18nManager.forceRTL.mockClear();
+  DevSettings.reload.mockClear();
+  DevSettings.reload.mockImplementation(() => {});
   const mod: I18nModule = await import('../lib/i18n');
-  return { mod, I18nManager };
+  return { mod, I18nManager, DevSettings };
 }
 
 beforeEach(() => {
@@ -118,52 +131,83 @@ describe('initI18n', () => {
 });
 
 describe('setLanguage', () => {
-  it('NEVER flips the native direction mid-session (regression: header/hero jumping)', async () => {
-    const { mod, I18nManager } = await bootModule({ storedLanguage: 'fr', nativeRTL: false });
+  it('flips the direction AND reloads the bundle in the same breath (fr → ar)', async () => {
+    const { mod, I18nManager, DevSettings } = await bootModule({
+      storedLanguage: 'fr',
+      nativeRTL: false,
+    });
     await mod.initI18n();
     I18nManager.allowRTL.mockClear();
     I18nManager.forceRTL.mockClear();
 
     const { needsRestart } = await mod.setLanguage('ar');
 
-    // The whole point of the fix: no live forceRTL/allowRTL — the direction
-    // change is deferred to the next boot, so mounted views never half-mirror.
-    expect(I18nManager.forceRTL).not.toHaveBeenCalled();
-    expect(I18nManager.allowRTL).not.toHaveBeenCalled();
-    // But the user is told a restart is needed, the language itself switches
-    // immediately and the choice is persisted for the next boot.
-    expect(needsRestart).toBe(true);
-    expect(mod.i18n.language).toBe('ar');
+    // A forceRTL without an immediate reload half-mirrors the mounted UI —
+    // the two must always happen together.
+    expect(I18nManager.forceRTL).toHaveBeenCalledWith(true);
+    expect(DevSettings.reload).toHaveBeenCalledTimes(1);
+    // Reload succeeded → no manual restart to ask for; the choice is
+    // persisted so the next boot repaints in RTL from the first frame.
+    expect(needsRestart).toBe(false);
     expect(storage.get(STORAGE_KEY)).toBe('ar');
   });
 
-  it('same invariant when leaving Arabic for French on an RTL layout', async () => {
-    const { mod, I18nManager } = await bootModule({ storedLanguage: 'ar', nativeRTL: true });
+  it('same contract when leaving Arabic for French on an RTL layout', async () => {
+    const { mod, I18nManager, DevSettings } = await bootModule({
+      storedLanguage: 'ar',
+      nativeRTL: true,
+    });
     await mod.initI18n();
     I18nManager.allowRTL.mockClear();
     I18nManager.forceRTL.mockClear();
 
     const { needsRestart } = await mod.setLanguage('fr');
 
-    expect(I18nManager.forceRTL).not.toHaveBeenCalled();
-    expect(needsRestart).toBe(true);
-    expect(mod.i18n.language).toBe('fr');
+    expect(I18nManager.forceRTL).toHaveBeenCalledWith(false);
+    expect(DevSettings.reload).toHaveBeenCalledTimes(1);
+    expect(needsRestart).toBe(false);
+    expect(storage.get(STORAGE_KEY)).toBe('fr');
   });
 
-  it('reports no restart when the direction is unchanged (fr → en)', async () => {
-    const { mod, I18nManager } = await bootModule({ storedLanguage: 'fr', nativeRTL: false });
+  it('falls back to asking for a manual restart when no reload mechanism works', async () => {
+    const { mod, I18nManager, DevSettings } = await bootModule({
+      storedLanguage: 'fr',
+      nativeRTL: false,
+    });
+    await mod.initI18n();
+    DevSettings.reload.mockImplementation(() => {
+      throw new Error('unavailable');
+    });
+
+    const { needsRestart } = await mod.setLanguage('ar');
+
+    expect(I18nManager.forceRTL).toHaveBeenCalledWith(true);
+    expect(needsRestart).toBe(true);
+    expect(mod.i18n.language).toBe('ar');
+  });
+
+  it('neither flips nor reloads when the direction is unchanged (fr → en)', async () => {
+    const { mod, I18nManager, DevSettings } = await bootModule({
+      storedLanguage: 'fr',
+      nativeRTL: false,
+    });
     await mod.initI18n();
     const { needsRestart } = await mod.setLanguage('en');
     expect(needsRestart).toBe(false);
     expect(I18nManager.forceRTL).not.toHaveBeenCalled();
+    expect(DevSettings.reload).not.toHaveBeenCalled();
   });
 
-  it('reports no restart between two RTL languages (ar → hs)', async () => {
-    const { mod, I18nManager } = await bootModule({ storedLanguage: 'ar', nativeRTL: true });
+  it('neither flips nor reloads between two RTL languages (ar → hs)', async () => {
+    const { mod, I18nManager, DevSettings } = await bootModule({
+      storedLanguage: 'ar',
+      nativeRTL: true,
+    });
     await mod.initI18n();
     const { needsRestart } = await mod.setLanguage('hs');
     expect(needsRestart).toBe(false);
     expect(I18nManager.forceRTL).not.toHaveBeenCalled();
+    expect(DevSettings.reload).not.toHaveBeenCalled();
   });
 });
 

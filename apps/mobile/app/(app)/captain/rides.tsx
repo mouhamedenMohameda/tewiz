@@ -1,6 +1,6 @@
 import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert, Animated, Linking, Pressable, Text, View,
+  ActivityIndicator, Alert, Animated, Linking, Pressable, View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -12,9 +12,11 @@ import { CAPTAIN_RIDE_CANCEL_REASONS } from '@/lib/rideCancelReasons';
 import { usePolling } from '@/lib/usePolling';
 import { keepIfEqual } from '@/lib/sameData';
 import {
-  AppText, Button, Card, Icon, PressableScale, Screen, ScreenHeader, type IconName,
+  AppText, Button, Card, Icon, PlainText as Text, PressableScale, Screen, ScreenHeader,
+  type IconName,
 } from '@/components/ui';
 import { colors, radius, spacing } from '@/theme';
+import { wrapRow } from '@/components/ui';
 
 // Note: the new-ride alert (modal + ringing) is handled globally by
 // <CaptainRideWatcher /> mounted in the captain layout, so this screen
@@ -538,7 +540,7 @@ function InboxList({ items, onAccepted }: { items: InboxItem[]; onAccepted: () =
               <View style={{ width: 5, backgroundColor: accent }} />
               <View style={{ flex: 1, padding: spacing.base }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  <View style={{ flexDirection: wrapRow, alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                     <Chip icon={isColis ? 'parcel' : it.rideType === 'private_driver' ? 'clock' : it.rideType === 'convoyage' ? 'ride' : 'ride'}
                       label={isColis ? t('captain.rides.colis') : it.rideType === 'private_driver' ? `Chauffeur · ${it.bookedDurationH}h` : it.rideType === 'convoyage' ? `Convoyage${it.vehiclePlate ? ` · ${it.vehiclePlate}` : ''}` : t('captain.rides.passenger')}
                       bg={isColis ? colors.espresso : it.rideType === 'private_driver' ? '#dbeafe' : it.rideType === 'convoyage' ? '#ede9fe' : colors.emberSoft}
@@ -849,7 +851,7 @@ function Route({
   const strong = onDark ? colors.onEspresso : colors.ink;
   return (
     <View style={[{ flexDirection: 'row' }, style]}>
-      <View style={{ alignItems: 'center', marginRight: spacing.md, paddingTop: 4 }}>
+      <View style={{ alignItems: 'center', marginEnd: spacing.md, paddingTop: 4 }}>
         <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colors.ember }} />
         <View style={{ width: 2, flex: 1, minHeight: 18, backgroundColor: onDark ? colors.espressoAlt : colors.line, marginVertical: 3 }} />
         <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: colors.sun }} />

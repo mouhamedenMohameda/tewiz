@@ -11,6 +11,7 @@ import { colors, gradients, radius, shadow, spacing } from '@/theme';
 import { CUISINE_CATEGORIES, fetchRestaurants, type Restaurant } from '@/lib/restaurants';
 import { cuisineCounts, filterRestaurants } from '@/lib/restaurantFilter';
 import { resolveRestaurantCover } from '@/lib/restaurantPhotos';
+import { wrapRow } from '@/components/ui';
 
 type CuisineKey = (typeof CUISINE_CATEGORIES)[number]['key'];
 
@@ -358,7 +359,7 @@ function RestaurantCard({ restaurant, onPress }: { restaurant: Restaurant; onPre
       </View>
 
       {restaurant.tags.length > 0 ? (
-        <View style={{ padding: spacing.base, flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+        <View style={{ padding: spacing.base, flexDirection: wrapRow, flexWrap: 'wrap', gap: 6 }}>
           {restaurant.tags.slice(0, 3).map((tag) => (
             <View
               key={tag}
