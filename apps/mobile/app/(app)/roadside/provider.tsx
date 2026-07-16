@@ -18,6 +18,7 @@ import {
 } from '@/lib/roadside';
 import { AppText, Button, Card, Screen, ScreenHeader } from '@/components/ui';
 import { colors, radius, spacing } from '@/theme';
+import { wrapRow } from '@/components/ui';
 
 export default function RoadsideProviderScreen() {
   const router = useRouter();
@@ -154,7 +155,7 @@ export default function RoadsideProviderScreen() {
               <AppText variant="caption" color={colors.ink2} style={{ marginBottom: spacing.sm }}>
                 {t('roadside.provider.specialtiesLabel')}
               </AppText>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs }}>
+              <View style={{ flexDirection: wrapRow, flexWrap: 'wrap', gap: spacing.xs }}>
                 {PROBLEM_ORDER.map((p) => {
                   const on = specialties.includes(p);
                   return (

@@ -25,10 +25,10 @@ import {
   Modal,
   Pressable,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { PlainText as Text } from '@/components/ui';
 import type { Candidate, SideBlock, Side } from '@/lib/voiceLocation';
 
 interface Props {
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
     width: 8, height: 8, borderRadius: 4,
   },
   sep: {
-    height: 1, backgroundColor: '#f1f5f9', marginLeft: 40,
+    height: 1, backgroundColor: '#f1f5f9', marginStart: 40,
   },
   cancel: {
     marginTop: 12, alignItems: 'center', paddingVertical: 12,

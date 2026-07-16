@@ -1,5 +1,6 @@
 import { forwardRef, ReactNode, useEffect, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { PlainText as Text } from '@/components/ui';
 import {
   getMapbox, initMapbox, MAPBOX_STYLE_URL, MAPBOX_TOKEN, NKC_CENTER, DEFAULT_ZOOM,
 } from '@/lib/mapbox';

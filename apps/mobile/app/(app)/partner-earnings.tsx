@@ -203,7 +203,7 @@ export default function PartnerEarningsScreen() {
                     marginTop: spacing.md,
                   }}
                 >
-                  <View style={{ flex: 1, paddingRight: spacing.sm }}>
+                  <View style={{ flex: 1, paddingEnd: spacing.sm }}>
                     <AppText numberOfLines={1}>{t(`partner.roles.${e.role}`)}</AppText>
                     <AppText variant="caption" color={colors.muted} numberOfLines={1}>
                       {fmtDate(e.createdAt)}

@@ -11,7 +11,8 @@ import { api } from '@/lib/api';
 import { MapShell } from '@/components/MapShell';
 import { getMapbox, NKC_CENTER } from '@/lib/mapbox';
 import { AppText, Button, Card, Icon, Screen, ScreenHeader } from '@/components/ui';
-import { colors, radius, shadow, spacing } from '@/theme';
+import { colors, fonts, radius, shadow, spacing } from '@/theme';
+import { currentLanguage, isRTL } from '@/lib/i18n';
 import { APP_NAME } from '@/lib/brand';
 
 interface Home {
@@ -246,6 +247,7 @@ export default function HomeLocationScreen() {
                   borderWidth: 1, borderColor: colors.line, borderRadius: radius.md,
                   paddingHorizontal: spacing.base, paddingVertical: spacing.md,
                   fontSize: 15, color: colors.ink, backgroundColor: colors.canvas,
+                  fontFamily: isRTL(currentLanguage()) ? fonts.arabic.regular : undefined,
                 }}
                 maxLength={200}
               />

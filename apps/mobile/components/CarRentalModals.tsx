@@ -14,7 +14,8 @@ import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
 import { AppText, Button, Icon } from '@/components/ui';
 import { uploadCarPhoto } from '@/lib/carRental';
-import { colors, radius, spacing } from '@/theme';
+import { colors, fonts, radius, spacing } from '@/theme';
+import { currentLanguage, isRTL } from '@/lib/i18n';
 
 export function RatingModal({ visible, name, busy, onSubmit, onClose }: {
   visible: boolean;
@@ -54,6 +55,7 @@ export function RatingModal({ visible, name, busy, onSubmit, onClose }: {
               borderWidth: 1, borderColor: colors.sunken, borderRadius: radius.md,
               paddingHorizontal: spacing.base, paddingVertical: spacing.md,
               minHeight: 64, textAlignVertical: 'top', color: colors.ink,
+              fontFamily: isRTL(currentLanguage()) ? fonts.arabic.regular : undefined,
             }}
           />
           <Button title={t('carRental.rate.submitBtn')} icon="check" busy={busy} onPress={() => onSubmit(stars, comment)} />
@@ -122,7 +124,11 @@ export function BookingActionModal({
               style={{
                 borderWidth: 1, borderColor: colors.sunken, borderRadius: radius.md,
                 paddingHorizontal: spacing.base, paddingVertical: spacing.md,
-                fontSize: 24, letterSpacing: 4, textAlign: 'center', color: colors.ink,
+                // Arabic placeholder is cursive: letterSpacing breaks its
+                // shaping, so only space out the typed digits.
+                fontSize: 24, letterSpacing: isRTL(currentLanguage()) && !otp ? 0 : 4,
+                textAlign: 'center', color: colors.ink,
+                fontFamily: isRTL(currentLanguage()) ? fonts.arabic.regular : undefined,
               }}
             />
           )}

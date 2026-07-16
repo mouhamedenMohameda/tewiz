@@ -76,6 +76,21 @@ function parseExperienceGroups(body: string): string[][] | null {
   }
 }
 
+interface PushTicket {
+  status: 'ok' | 'error';
+  message?: string;
+  details?: { error?: string };
+}
+
+/**
+ * Removes push tokens Expo reports as permanently dead (app uninstalled /
+ * token rotated) so we stop wasting sends on them.
+ */
+async function pruneDeadTokens(tokens: string[]): Promise<void> {
+  if (tokens.length === 0) return;
+  await pool.query(`DELETE FROM push_tokens WHERE token = ANY($1::text[])`, [tokens]);
+}
+
 /**
  * Sends one push message (which may target many tokens via `to`).
  * Fire-and-forget. Errors are logged, never thrown.
@@ -91,8 +106,8 @@ export async function sendPush(message: PushMessage, isRetry = false): Promise<v
       },
       body: JSON.stringify(message),
     });
+    const text = await res.text().catch(() => '');
     if (!res.ok) {
-      const text = await res.text().catch(() => '');
       const groups = isRetry ? null : parseExperienceGroups(text);
       if (groups) {
         for (const tokens of groups) {
@@ -102,7 +117,23 @@ export async function sendPush(message: PushMessage, isRetry = false): Promise<v
       }
       // eslint-disable-next-line no-console
       console.warn('[push] expo push API responded', res.status, text);
+      return;
     }
+
+    // A 200 only means Expo accepted the request — each token gets its own
+    // ticket, and an individual ticket can still fail (bad credentials,
+    // stale token, etc). Surface those instead of failing silently.
+    const parsed = JSON.parse(text) as { data?: PushTicket[] };
+    const tickets = parsed.data ?? [];
+    const tokens = Array.isArray(message.to) ? message.to : [message.to];
+    const deadTokens: string[] = [];
+    tickets.forEach((ticket, i) => {
+      if (ticket.status !== 'error') return;
+      // eslint-disable-next-line no-console
+      console.warn('[push] ticket error', ticket.details?.error ?? ticket.message, tokens[i]);
+      if (ticket.details?.error === 'DeviceNotRegistered') deadTokens.push(tokens[i]!);
+    });
+    await pruneDeadTokens(deadTokens);
   } catch (err) {
     // eslint-disable-next-line no-console
     console.warn('[push] failed to send', err);

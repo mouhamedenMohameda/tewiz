@@ -66,7 +66,7 @@ export function Button({
   const inner = (
     <View style={[styles.row, { paddingVertical: pad.v, paddingHorizontal: pad.h }]}>
       {busy ? (
-        <ActivityIndicator color={t.fg} style={{ marginRight: spacing.sm }} />
+        <ActivityIndicator color={t.fg} style={{ marginEnd: spacing.sm }} />
       ) : icon ? (
         <Icon name={icon} size={pad.icon} color={t.fg} />
       ) : null}
@@ -75,8 +75,9 @@ export function Button({
           ...typo.title,
           fontSize: pad.font,
           color: t.fg,
-          marginLeft: icon || busy ? spacing.sm : 0,
-          marginRight: iconRight ? spacing.sm : 0,
+          // Logical start/end so icon spacing mirrors correctly under RTL.
+          marginStart: icon || busy ? spacing.sm : 0,
+          marginEnd: iconRight ? spacing.sm : 0,
         }}
       >
         {title}

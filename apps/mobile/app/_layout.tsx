@@ -28,7 +28,7 @@ import { CrashBoundary } from '@/components/CrashBoundary';
 import { NotificationTapHandler } from '@/components/NotificationTapHandler';
 import { SplashGate } from '@/components/SplashGate';
 import { AppQueryProvider } from '@/lib/queryClient';
-import { colors, latinFontAssets } from '@/theme';
+import { colors, fontAssets } from '@/theme';
 
 // Hold the native splash until our custom fonts are ready, so the UI never
 // flashes the system font and re-flows.
@@ -37,7 +37,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 export default function RootLayout() {
   const hydrate = useAuth((s) => s.hydrate);
   const [crashShown, setCrashShown] = useState(false);
-  const [fontsLoaded, fontError] = useFonts(latinFontAssets);
+  const [fontsLoaded, fontError] = useFonts(fontAssets);
   const [i18nReady, setI18nReady] = useState(false);
 
   useEffect(() => {

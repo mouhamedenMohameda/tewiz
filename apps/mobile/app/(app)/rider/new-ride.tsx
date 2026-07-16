@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator, Alert, Animated, Easing, FlatList, KeyboardAvoidingView, Modal,
-  Platform, Pressable, ScrollView, Text, TextInput, useWindowDimensions, View,
+  Platform, Pressable, ScrollView, TextInput, useWindowDimensions, View,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
+import { PlainText as Text } from '@/components/ui';
+import { fonts } from '@/theme';
+import { currentLanguage, isRTL } from '@/lib/i18n';
 import { api } from '@/lib/api';
 import { formatMru } from '@/lib/format';
 import { getMapbox, MAPBOX_TOKEN } from '@/lib/mapbox';
@@ -354,7 +357,7 @@ export default function NewRideScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }} edges={['top']}>
       {/* Pinned header — stays put while the form + map scroll below it. */}
       <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: -8 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginStart: -8 }}>
           <Pressable
             onPress={() => router.back()}
             hitSlop={12}
@@ -640,6 +643,7 @@ function SearchSheet({
   useEffect(() => { if (!visible) { setQ(''); setResults([]); } }, [visible]);
 
   const { t } = useTranslation();
+  const ar = isRTL(currentLanguage());
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
@@ -667,6 +671,7 @@ function SearchSheet({
                 borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 10,
                 paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, color: '#0f172a',
                 backgroundColor: '#f8fafc',
+                fontFamily: ar ? fonts.arabic.medium : undefined,
               }}
               returnKeyType="search"
             />
@@ -937,6 +942,7 @@ function SmallInput({
   label: string; value: string; onChange: (v: string) => void;
   placeholder?: string; keyboardType?: 'default' | 'phone-pad';
 }) {
+  const ar = isRTL(currentLanguage());
   return (
     <View>
       <Text style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>{label}</Text>
@@ -950,6 +956,7 @@ function SmallInput({
           borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8,
           paddingHorizontal: 10, paddingVertical: 8, fontSize: 14,
           color: '#0f172a', backgroundColor: '#fff',
+          fontFamily: ar ? fonts.arabic.regular : undefined,
         }}
       />
     </View>
@@ -967,6 +974,7 @@ function PhoneInput({
 }: {
   label: string; value: string; onChange: (v: string) => void;
 }) {
+  const ar = isRTL(currentLanguage());
   return (
     <View>
       <Text style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>{label}</Text>
@@ -991,6 +999,7 @@ function PhoneInput({
           style={{
             flex: 1, paddingHorizontal: 10, paddingVertical: 8, fontSize: 14,
             color: '#0f172a',
+            fontFamily: ar ? fonts.arabic.regular : undefined,
           }}
         />
       </View>

@@ -279,7 +279,7 @@ export default function CarpoolingPublishScreen() {
                 backgroundColor: boost ? '#FFFBEB' : colors.surface,
               }}
             >
-              <View style={{ flex: 1, paddingRight: spacing.md }}>
+              <View style={{ flex: 1, paddingEnd: spacing.md }}>
                 <AppText variant="bodyStrong">{t('carpooling.publish.boostTitle', { price: BOOST_FEE_MRU })}</AppText>
                 <AppText variant="caption" color={colors.ink2}>
                   {t('carpooling.publish.boostDesc')}

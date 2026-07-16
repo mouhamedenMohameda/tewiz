@@ -15,6 +15,7 @@ import {
 } from '@/lib/roadside';
 import { AppText, Button, Card, ScreenHeader } from '@/components/ui';
 import { colors, radius, spacing } from '@/theme';
+import { wrapRow } from '@/components/ui';
 
 export default function RoadsideScreen() {
   const router = useRouter();
@@ -112,7 +113,7 @@ function PickProblem({ problem, onPick, submitting, onRequest }: {
         <AppText variant="body" color={colors.ink2} style={{ marginBottom: spacing.lg }}>
           {t('roadside.pick.prompt')}
         </AppText>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+        <View style={{ flexDirection: wrapRow, flexWrap: 'wrap', gap: spacing.sm }}>
           {PROBLEM_ORDER.map((p) => {
             const active = problem === p;
             return (

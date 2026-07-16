@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator, Alert, Animated, KeyboardAvoidingView, Linking, Modal, Platform,
-  Pressable, RefreshControl, ScrollView, Text, TextInput, View,
+  Pressable, RefreshControl, ScrollView, TextInput, View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { PlainText as Text } from '@/components/ui';
+import { fonts } from '@/theme';
+import { currentLanguage, isRTL } from '@/lib/i18n';
 import { api } from '@/lib/api';
 import { RideCancelReasonSheet } from '@/components/RideCancelReasonSheet';
 import { formatMru } from '@/lib/format';
@@ -250,6 +253,7 @@ function RatingSheet({
   onDone: () => void;
 }) {
   const { t } = useTranslation();
+  const ar = isRTL(currentLanguage());
   const [stars, setStars] = useState(0);
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -380,6 +384,7 @@ function RatingSheet({
                   paddingHorizontal: 12, paddingVertical: 10, fontSize: 14,
                   color: '#0f172a', backgroundColor: '#f8fafc',
                   minHeight: 60, textAlignVertical: 'top',
+                  fontFamily: ar ? fonts.arabic.regular : undefined,
                 }}
                 maxLength={500}
               />

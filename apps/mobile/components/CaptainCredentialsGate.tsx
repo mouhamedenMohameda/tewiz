@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator, Alert, Modal, Pressable, ScrollView, Text, View,
+  ActivityIndicator, Alert, Modal, Pressable, ScrollView, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { PlainText as Text } from '@/components/ui';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import * as Clipboard from 'expo-clipboard';

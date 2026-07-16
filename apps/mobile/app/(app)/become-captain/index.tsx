@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform,
-  Pressable, RefreshControl, ScrollView, Text, View,
+  Pressable, RefreshControl, ScrollView, View,
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
-import { DateField, ScreenHeader, SelectField, type SelectOption } from '@/components/ui';
+import { DateField, PlainText as Text, ScreenHeader, SelectField, type SelectOption } from '@/components/ui';
 import { Field } from '@/lib/form';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -18,6 +18,7 @@ import {
 } from '@/lib/kyc';
 import { VEHICLE_BRANDS, VEHICLE_COLORS } from '@/lib/vehicle-options';
 import { APP_NAME } from '@/lib/brand';
+import { wrapRow } from '@/components/ui';
 
 interface FormState {
   fullName: string;
@@ -386,7 +387,7 @@ export default function BecomeCaptainHome() {
                   <Text style={{ fontSize: 13, color: '#64748b', marginBottom: 4 }}>
                     {t('becomeCaptain.docs.introV2')}
                   </Text>
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 12 }}>
+                  <View style={{ flexDirection: wrapRow, flexWrap: 'wrap', gap: 12, marginTop: 12 }}>
                     {requiredDocs.map((type) => (
                       <DocCard
                         key={type}

@@ -10,6 +10,7 @@ import { colors, gradients, radius, shadow, spacing } from '@/theme';
 import { formatMru } from '@/lib/format';
 import { fetchRestaurantById, type MenuItem, type Restaurant } from '@/lib/restaurants';
 import { resolveRestaurantCover } from '@/lib/restaurantPhotos';
+import { wrapRow } from '@/components/ui';
 
 export default function RestaurantDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -225,7 +226,7 @@ export default function RestaurantDetailScreen() {
           </AppText>
 
           {restaurant.tags.length > 0 ? (
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: spacing.md }}>
+            <View style={{ flexDirection: wrapRow, flexWrap: 'wrap', gap: 6, marginTop: spacing.md }}>
               {restaurant.tags.map((tag) => (
                 <View
                   key={tag}

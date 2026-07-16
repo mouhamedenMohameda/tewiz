@@ -8,6 +8,8 @@
 
 import { useState, type ReactNode } from 'react';
 import {
+  I18nManager,
+  Platform,
   Pressable,
   TextInput,
   View,
@@ -16,6 +18,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { colors, fonts, radius, spacing, type as typo } from '@/theme';
+import { currentLanguage, isRTL } from '@/lib/i18n';
 import { AppText } from './Text';
 import { Icon, type IconName } from './Icon';
 
@@ -41,6 +44,9 @@ export function TextField({
 }: TextFieldProps) {
   const [focused, setFocused] = useState(false);
   const [hidden, setHidden] = useState(true);
+  // Arabic input text/placeholder must render in Cairo — Sora has no Arabic
+  // glyphs (codes stay monospace/Latin regardless).
+  const ar = isRTL(currentLanguage());
 
   return (
     <View style={containerStyle}>
@@ -77,8 +83,23 @@ export function TextField({
             paddingVertical: 15,
             fontSize: 16,
             color: colors.ink,
-            fontFamily: mono ? fonts.mono : fonts.text.medium,
+            fontFamily: mono ? fonts.mono : ar ? fonts.arabic.medium : fonts.text.medium,
             letterSpacing: mono ? 2 : 0,
+            // Same rule as <AppText>: alignment follows the language. On iOS
+            // an explicit 'right' is only safe when the container is LTR
+            // (mismatch/transition); in a mirrored container the natural RTL
+            // alignment already puts the caret on the right. Android keeps
+            // explicit physical alignment (swap disabled at boot). Codes
+            // (mono) stay Latin and keep their natural alignment.
+            textAlign: mono
+              ? undefined
+              : ar
+                ? Platform.OS === 'ios' && I18nManager.isRTL
+                  ? undefined
+                  : 'right'
+                : I18nManager.isRTL
+                  ? 'left'
+                  : undefined,
           }}
         />
 

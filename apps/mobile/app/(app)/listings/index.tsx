@@ -88,7 +88,7 @@ export default function ListingsBrowseScreen() {
             return (
               <Card padding={spacing.lg} style={{ gap: spacing.sm }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <AppText variant="label" color={colors.ink} style={{ flex: 1, paddingRight: spacing.sm }}>
+                  <AppText variant="label" color={colors.ink} style={{ flex: 1, paddingEnd: spacing.sm }}>
                     {item.title}
                   </AppText>
                   <AppText variant="label" color={colors.ember}>

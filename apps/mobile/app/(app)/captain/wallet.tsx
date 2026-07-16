@@ -15,6 +15,7 @@ import {
 } from '@/components/ui';
 import { colors, gradients, radius, shadow, spacing } from '@/theme';
 import { APP_NAME } from '@/lib/brand';
+import { wrapRow } from '@/components/ui';
 
 type Provider = 'bankily' | 'masrvi' | 'sedad' | 'cash_office';
 type TopupStatus = 'pending' | 'approved' | 'partial' | 'rejected' | 'duplicate';
@@ -338,7 +339,7 @@ function TopupModal({
           <AppText variant="label" color={colors.ink2} style={{ marginTop: spacing.xl, marginBottom: spacing.sm }}>
             {t('captain.wallet.topupModal.providerLabel')}
           </AppText>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md }}>
+          <View style={{ flexDirection: wrapRow, flexWrap: 'wrap', gap: spacing.md }}>
             {(Object.keys(PROVIDER_LABELS) as Provider[]).map((p) => {
               const active = provider === p;
               return (
