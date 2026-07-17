@@ -18,6 +18,7 @@ import { colors, gradients, radius, shadow, spacing } from '@/theme';
 import { APP_NAME } from '@/lib/brand';
 import { useModulePreferences } from '@/lib/modulePreferences';
 import { useAppConfig } from '@/lib/appConfig';
+import type { AppModule } from '@/lib/modules';
 import type { ApplicationDto, ApplicationStatus } from '@/lib/kyc';
 
 type RideStatus =
@@ -52,6 +53,24 @@ export default function RiderHome() {
   // visible). Fail-closed: hidden until the server confirms they're enabled.
   const { modules: moduleFlags } = useAppConfig();
   const visibleModules = enabledModules.filter((m) => moduleFlags[m.key] !== false);
+
+  // Home-screen hierarchy: not every module is worth the same visual weight.
+  // Spotlight = the 1-2 services we push hardest. Transport/logistics/food are
+  // secondary services tucked behind category tabs. Utility (history,
+  // favorites, recurring) are personal shortcuts, bundled into one low-key
+  // card so they never compete with actual services for attention.
+  const spotlightModules = visibleModules.filter((m) => m.tier === 'spotlight');
+  const utilityModules = visibleModules.filter((m) => m.tier === 'utility');
+  const categories = ([
+    { key: 'transport', label: t('rider.home.tabs.transport') },
+    { key: 'logistics', label: t('rider.home.tabs.logistics') },
+    { key: 'food', label: t('rider.home.tabs.food') },
+  ] as const)
+    .map((c) => ({ ...c, modules: visibleModules.filter((m) => m.tier === c.key) }))
+    .filter((c) => c.modules.length > 0);
+  const [activeCategory, setActiveCategory] = useState<string>('transport');
+  const currentCategory = categories.find((c) => c.key === activeCategory) ?? categories[0];
+
   const [pending, setPending] = useState<Intent | null>(null);
   const [phoneInput, setPhoneInput] = useState('+222');
   const [savingPhone, setSavingPhone] = useState(false);
@@ -211,29 +230,61 @@ export default function RiderHome() {
         />
       </FadeInView>
 
-      {/* Quick actions */}
-      <FadeInView delay={140}>
-        <AppText variant="overline" color={colors.muted} style={{ marginTop: spacing.xxl, marginBottom: spacing.md }}>
-          {t('rider.home.shortcuts')}
-        </AppText>
-        {/* wrapRow: Yoga doesn't reverse flexWrap fill order under RTL. */}
-        <View style={{ flexDirection: wrapRow, flexWrap: 'wrap', gap: spacing.md }}>
-          {visibleModules.map((m) => (
-            <QuickTile
-              key={m.key}
-              icon={m.icon}
-              label={t(m.label as any)}
-              tint={m.tint}
-              fg={m.fg}
-              onPress={() => router.push(m.route as any)}
-            />
-          ))}
-        </View>
-      </FadeInView>
+      {/* Spotlight — the services we push hardest get a full-size featured card. */}
+      {spotlightModules.length > 0 ? (
+        <FadeInView delay={140}>
+          <AppText variant="overline" color={colors.muted} style={{ marginTop: spacing.xxl, marginBottom: spacing.md }}>
+            {t('rider.home.discover')}
+          </AppText>
+          <View style={{ flexDirection: wrapRow, gap: spacing.md }}>
+            {spotlightModules.map((m) => (
+              <SpotlightCard
+                key={m.key}
+                icon={m.icon}
+                label={t(m.label as any)}
+                subtitle={t(`rider.home.spotlightSubtitle.${m.key}` as any)}
+                tint={m.tint}
+                fg={m.fg}
+                onPress={() => router.push(m.route as any)}
+              />
+            ))}
+          </View>
+        </FadeInView>
+      ) : null}
+
+      {/* Secondary services — grouped behind category tabs instead of one flat grid. */}
+      {categories.length > 0 && currentCategory ? (
+        <FadeInView delay={190} style={{ marginTop: spacing.xxl }}>
+          <CategoryTabs
+            categories={categories}
+            active={currentCategory.key}
+            onChange={setActiveCategory}
+          />
+          <View style={{ flexDirection: wrapRow, flexWrap: 'wrap', gap: spacing.md }}>
+            {currentCategory.modules.map((m) => (
+              <QuickTile
+                key={m.key}
+                icon={m.icon}
+                label={t(m.label as any)}
+                tint={m.tint}
+                fg={m.fg}
+                onPress={() => router.push(m.route as any)}
+              />
+            ))}
+          </View>
+        </FadeInView>
+      ) : null}
+
+      {/* Personal shortcuts — bundled into one low-emphasis card, not services. */}
+      {utilityModules.length > 0 ? (
+        <FadeInView delay={230} style={{ marginTop: spacing.xxl }}>
+          <QuickAccessBundle modules={utilityModules} onPress={(route) => router.push(route as any)} />
+        </FadeInView>
+      ) : null}
 
       {/* Become a captain — riders only */}
       {user?.role === 'rider' ? (
-        <FadeInView delay={220} style={{ marginTop: spacing.xxl }}>
+        <FadeInView delay={270} style={{ marginTop: spacing.xxl }}>
           <BecomeCaptainCard
             loading={loadingApp}
             application={application}
@@ -414,6 +465,82 @@ function QuickTile({
         <Icon name={icon} size={24} color={fg} />
       </View>
       <AppText variant="label" style={{ marginTop: spacing.md }} numberOfLines={1}>{label}</AppText>
+    </Card>
+  );
+}
+
+function SpotlightCard({
+  icon, label, subtitle, tint, fg, onPress,
+}: { icon: IconName; label: string; subtitle: string; tint: string; fg: string; onPress: () => void }) {
+  return (
+    <Card onPress={onPress} padding={spacing.lg} style={{ flex: 1, alignItems: 'center' }}>
+      <View style={{
+        width: 56, height: 56, borderRadius: radius.lg,
+        backgroundColor: tint, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md,
+      }}>
+        <Icon name={icon} size={26} color={fg} />
+      </View>
+      <AppText variant="title" align="center" numberOfLines={1}>{label}</AppText>
+      <AppText variant="caption" color={colors.muted} align="center" style={{ marginTop: 3 }} numberOfLines={1}>
+        {subtitle}
+      </AppText>
+    </Card>
+  );
+}
+
+function CategoryTabs({
+  categories, active, onChange,
+}: { categories: { key: string; label: string }[]; active: string; onChange: (key: string) => void }) {
+  return (
+    <View style={{ flexDirection: wrapRow, flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.md }}>
+      {categories.map((c) => {
+        const isActive = c.key === active;
+        return (
+          <PressableScale
+            key={c.key}
+            onPress={() => onChange(c.key)}
+            style={{
+              paddingVertical: 8, paddingHorizontal: 14, borderRadius: radius.pill,
+              backgroundColor: isActive ? colors.ember : colors.surfaceAlt,
+            }}
+          >
+            <AppText variant="label" color={isActive ? colors.white : colors.ink2}>{c.label}</AppText>
+          </PressableScale>
+        );
+      })}
+    </View>
+  );
+}
+
+function QuickAccessBundle({
+  modules, onPress,
+}: { modules: AppModule[]; onPress: (route: string) => void }) {
+  const { t } = useTranslation();
+  return (
+    <Card padding={spacing.base}>
+      <AppText variant="overline" color={colors.muted} style={{ marginBottom: spacing.md }}>
+        {t('rider.home.quickAccess')}
+      </AppText>
+      <View style={{ flexDirection: wrapRow }}>
+        {modules.map((m, i) => (
+          <Pressable
+            key={m.key}
+            onPress={() => onPress(m.route)}
+            style={{
+              flex: 1, alignItems: 'center', gap: 6,
+              borderStartWidth: i === 0 ? 0 : 1, borderStartColor: colors.line,
+            }}
+          >
+            <View style={{
+              width: 30, height: 30, borderRadius: radius.sm,
+              backgroundColor: m.tint, alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Icon name={m.icon} size={15} color={m.fg} />
+            </View>
+            <AppText variant="caption" numberOfLines={1}>{t(m.label as any)}</AppText>
+          </Pressable>
+        ))}
+      </View>
     </Card>
   );
 }

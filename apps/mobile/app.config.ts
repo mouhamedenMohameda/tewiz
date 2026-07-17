@@ -35,20 +35,20 @@ const config: ExpoConfig = {
     bundleIdentifier: BUNDLE_ID,
     infoPlist: {
       NSLocationWhenInUseUsageDescription:
-        'Pour commander une course et — en mode chauffeur — recevoir des courses proches.',
+        'Pour commander une course et — en mode Captain — recevoir des courses proches.',
       // Background location (Level B): a captain who is ONLINE shares their
       // position continuously so the support/back-office can see and replay
       // their route, even when the app is backgrounded. Only active while
       // online; stops on offline. This backs the Always usage declaration
       // below (App Store guideline 5.1.1 — the runtime usage now exists).
       NSLocationAlwaysAndWhenInUseUsageDescription:
-        'En mode chauffeur en ligne, votre position est partagée en continu avec le support pour la sécurité et le suivi de vos trajets, même en arrière-plan.',
+        'En mode Captain en ligne, votre position est partagée en continu avec le support pour la sécurité et le suivi de vos trajets, même en arrière-plan.',
       // Allow location delivery while backgrounded.
       UIBackgroundModes: ['location'],
       NSCameraUsageDescription:
-        'Pour prendre les photos requises pour votre dossier de chauffeur.',
+        'Pour prendre les photos requises pour votre dossier de Captain.',
       NSPhotoLibraryUsageDescription:
-        'Pour joindre vos documents à votre dossier de chauffeur.',
+        'Pour joindre vos documents à votre dossier de Captain.',
       NSMicrophoneUsageDescription:
         'Pour dicter votre départ et votre destination par la voix (en français, hassaniya ou arabe).',
       ITSAppUsesNonExemptEncryption: false,
@@ -95,12 +95,12 @@ const config: ExpoConfig = {
     [
       'expo-location',
       {
-        locationWhenInUsePermission: `${APP_NAME} utilise votre position pour commander ou — en mode chauffeur — recevoir des courses.`,
+        locationWhenInUsePermission: `${APP_NAME} utilise votre position pour commander ou — en mode Captain — recevoir des courses.`,
         // Level B background tracking: a background TaskManager collects the
         // online captain's location for the back-office route view. This turns
         // on the Android background-location + foreground-service wiring and the
         // iOS Always permission string.
-        locationAlwaysAndWhenInUsePermission: `${APP_NAME}, en mode chauffeur en ligne, partage votre position en continu avec le support, même en arrière-plan.`,
+        locationAlwaysAndWhenInUsePermission: `${APP_NAME}, en mode Captain en ligne, partage votre position en continu avec le support, même en arrière-plan.`,
         isAndroidBackgroundLocationEnabled: true,
         isAndroidForegroundServiceEnabled: true,
       },
@@ -108,7 +108,7 @@ const config: ExpoConfig = {
     [
       'expo-image-picker',
       {
-        photosPermission: `${APP_NAME} a besoin d'accéder à vos photos pour votre dossier de chauffeur.`,
+        photosPermission: `${APP_NAME} a besoin d'accéder à vos photos pour votre dossier de Captain.`,
         cameraPermission: `${APP_NAME} a besoin de la caméra pour photographier vos documents et votre véhicule.`,
       },
     ],

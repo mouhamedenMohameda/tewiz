@@ -76,7 +76,7 @@ export async function getOrCreateDraft(userId: string) {
   // yet — the mobile app prompts for it first, this is the server-side backstop.
   if (!user.rows[0].phone) {
     throw new HttpError(400, 'phone_required',
-      'Ajoutez votre numéro de téléphone avant de postuler comme chauffeur.');
+      'Ajoutez votre numéro de téléphone avant de postuler comme Captain.');
   }
 
   const created = await pool.query<ApplicationRow>(

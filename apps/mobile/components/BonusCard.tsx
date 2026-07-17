@@ -123,7 +123,7 @@ function BonusProgressCard({ data }: { data: BonusProgress }) {
           <Icon name="gift" size={26} color={colors.warning} />
         </View>
         <View style={{ flex: 1 }}>
-          <AppText variant="overline" color={colors.muted}>BONUS CHAUFFEUR</AppText>
+          <AppText variant="overline" color={colors.muted}>BONUS Captain</AppText>
           <AppText variant="bodyStrong" style={{ marginTop: 1 }}>
             {data.counterMru} / {data.thresholdMru} MRU
           </AppText>

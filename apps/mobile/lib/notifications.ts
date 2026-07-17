@@ -68,9 +68,10 @@ async function ensureAndroidChannel() {
 
 /**
  * Asks for notification permission, retrieves the Expo Push Token, and
- * sends it to the backend. Called after captain login / after captain
- * promotion. Safe to call multiple times — backend upserts on
- * (user_id, device_id).
+ * sends it to the backend. Called from RootLayout whenever a signed-in
+ * user id is present (cold start with a persisted session, or a fresh
+ * login/signup during the current app session). Safe to call multiple
+ * times — backend upserts on (user_id, device_id).
  *
  * Returns true if we have a valid token registered, false otherwise.
  */

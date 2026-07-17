@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { balanceTooLowMessage } from '@/lib/apiError';
 import { formatMru } from '@/lib/format';
 import { usePolling } from '@/lib/usePolling';
 import { getMapbox, NKC_CENTER } from '@/lib/mapbox';
@@ -116,12 +117,12 @@ export default function CaptainHome() {
   useEffect(() => { loadHeatmap(); }, [loadHeatmap]);
   usePolling(loadHeatmap, 60_000);
 
-  // Centre the map on the captain on mount — NON-prompting, so a passive open
-  // never pops a permission dialog. Falls back silently to Nouakchott.
+  // Centre the map on the captain on mount. Falls back silently to
+  // Nouakchott if the permission is denied.
   useEffect(() => {
     (async () => {
       try {
-        const perm = await Location.getForegroundPermissionsAsync();
+        const perm = await Location.requestForegroundPermissionsAsync();
         if (perm.status !== 'granted') return;
         const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
         cameraRef.current?.setCamera({
@@ -244,7 +245,7 @@ export default function CaptainHome() {
       // Surface the real cause: an API error carries error.message; a native
       // exception (GPS / tracking start) carries e.message. Falling straight to
       // the generic string hid which step actually failed.
-      const detail = e?.response?.data?.error?.message ?? e?.message ?? String(e);
+      const detail = balanceTooLowMessage(e, t) ?? e?.response?.data?.error?.message ?? e?.message ?? String(e);
       Alert.alert(t('captain.state.errorTitle'), detail || t('captain.state.errorOnline'));
     } finally {
       setToggling(false);
@@ -280,7 +281,7 @@ export default function CaptainHome() {
       if (msg.toLowerCase().includes('going-home') && msg.includes('24')) {
         Alert.alert(t('captain.state.goingHomeCooldownTitle'), t('captain.state.goingHomeCooldownBody'));
       } else {
-        Alert.alert(t('captain.state.errorTitle'), msg || t('captain.state.errorGoingHome'));
+        Alert.alert(t('captain.state.errorTitle'), balanceTooLowMessage(e, t) ?? (msg || t('captain.state.errorGoingHome')));
       }
     } finally {
       setTogglingGoingHome(false);

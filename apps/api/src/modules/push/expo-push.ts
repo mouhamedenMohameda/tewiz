@@ -158,7 +158,7 @@ export async function notifyCaptainsNewRide(
   // (Android: notification channel; iOS: a sound file in the app bundle).
   // In Expo Go, the default system sound plays — that's acceptable for dev.
   const title = ride.rideType === 'colis' ? '📦 Nouveau colis'
-    : ride.rideType === 'private_driver' ? '🕐 Chauffeur Privé'
+    : ride.rideType === 'private_driver' ? '🕐 Captain Privé'
     : ride.rideType === 'convoyage' ? '🚗 Convoyage'
     : ride.rideType === 'car_rental' ? '🚗 Location Auto'
     : ride.rideType === 'roadside_assistance' ? '🛠️ Assistance Routière'
@@ -167,7 +167,7 @@ export async function notifyCaptainsNewRide(
     : ride.rideType === 'equipment_rental' ? '🔧 Location Équipement'
     : '🚖 Nouvelle course';
   const body = ride.fareEstimateMru
-    ? `Tarif estimé : ${ride.fareEstimateMru} MRU — accepter avant qu'un autre chauffeur ne prenne.`
+    ? `Tarif estimé : ${ride.fareEstimateMru} MRU — accepter avant qu'un autre Captain ne prenne.`
     : 'Une nouvelle course est disponible près de vous.';
 
   // Expo accepts up to 100 tokens per request; chunk to stay safe.
@@ -265,7 +265,7 @@ export async function notifyVoiceRideConfirmed(
       to: tokens.slice(i, i + 100),
       sound: 'default',
       title: '✅ Course confirmée',
-      body: 'Votre course est confirmée — un chauffeur arrive bientôt.',
+      body: 'Votre course est confirmée — un Captain arrive bientôt.',
       data: {
         type: 'voice_ride_confirmed',
         voiceRequestId: payload.voiceRequestId,

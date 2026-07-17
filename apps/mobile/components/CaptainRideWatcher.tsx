@@ -96,7 +96,6 @@ const RING_DURATION_MS = 15_000; // 15 s
 
 const seenRides = new Map<string, number>();
 const SEEN_STORAGE_KEY = '@tewiz/captain-seen-rides';
-const PAUSE_STORAGE_KEY = '@tewiz/captain-pause-until';
 
 function isSeen(rideId: string): boolean {
   const ts = seenRides.get(rideId);
@@ -153,32 +152,14 @@ async function persistSeen() {
   } catch {}
 }
 
-// Pause-notifications timestamp (ms since epoch). When `Date.now() < pausedUntil`,
-// the watcher polls but doesn't open the modal or ring. Persisted across reloads.
-let pausedUntil = 0;
-async function loadPauseFromStorage() {
-  try {
-    const raw = await AsyncStorage.getItem(PAUSE_STORAGE_KEY);
-    if (raw) pausedUntil = Number(raw) || 0;
-  } catch {}
-}
-async function setPauseFor(minutes: number) {
-  pausedUntil = Date.now() + minutes * 60_000;
-  try {
-    await AsyncStorage.setItem(PAUSE_STORAGE_KEY, String(pausedUntil));
-  } catch {}
-}
-
 /**
- * Public utility: wipe both the "seen rides" set and the "pause" timer.
- * Called from the captain home button when notifications appear stuck.
+ * Public utility: wipe the "seen rides" set. Called from the captain home
+ * button when notifications appear stuck.
  */
 export async function resetRideAlerts() {
   seenRides.clear();
-  pausedUntil = 0;
   try {
     await AsyncStorage.removeItem(SEEN_STORAGE_KEY);
-    await AsyncStorage.removeItem(PAUSE_STORAGE_KEY);
   } catch {}
 }
 
@@ -212,8 +193,6 @@ export function CaptainRideWatcher() {
   // on iOS when the user taps quickly and polling ticks at the same time.
   const acceptPendingRef = useRef(false);
 
-  const [, forceRerender] = useState(0);
-
   const customRingtoneUrl = (() => {
     const url = appConfig.captainAlertSoundUrl?.trim();
     if (!url) return null;
@@ -225,7 +204,7 @@ export function CaptainRideWatcher() {
   })();
 
   // Configure audio + request notification permission on mount.
-  // Also hydrate the persisted seen-rides set and pause timestamp.
+  // Also hydrate the persisted seen-rides set.
   useEffect(() => {
     Audio.setAudioModeAsync({
       playsInSilentModeIOS: true,
@@ -234,7 +213,6 @@ export function CaptainRideWatcher() {
     }).catch(() => {});
 
     void loadSeenFromStorage();
-    void loadPauseFromStorage();
 
     (async () => {
       try {
@@ -260,7 +238,11 @@ export function CaptainRideWatcher() {
           title: ride.rideType === 'colis' ? tt('captainAlert.newColis') : tt('captainAlert.newRide'),
           body: tt('captainAlert.kmFormat', {
             km: (ride.distanceToPickupM / 1000).toFixed(1),
-            fare: ride.fareEstimateMru ? formatMru(ride.fareEstimateMru) : tt('captainAlert.fareUnknown'),
+            fare: ride.fareEstimateMru
+              ? formatMru(ride.fareEstimateMru)
+              : ride.isOpen
+                ? tt('captainAlert.openFare')
+                : tt('captainAlert.fareUnknown'),
           }),
           sound: 'default',
           interruptionLevel: appConfig.captainAlertSoundMode === 'critical' ? 'critical' : 'active',
@@ -344,13 +326,6 @@ export function CaptainRideWatcher() {
 
         const inb = await api.get<InboxItem[]>('/captain/rides/inbox');
         if (cancelled) return;
-
-        // Honor the "Pause notifications" timer: poll continues silently so
-        // the inbox is fresh when the pause ends, but no modal pops.
-        if (Date.now() < pausedUntil) {
-          forceRerender((c) => c + 1); // keep banner countdown live
-          return;
-        }
 
         // If a modal is currently showing for a ride that's no longer in the
         // inbox (i.e. another captain accepted it, or it was cancelled), close
@@ -455,57 +430,13 @@ export function CaptainRideWatcher() {
     }
   }, [alertRide, stopRinging]);
 
-  const pauseFiveMin = useCallback(async () => {
-    await stopRinging();
-    await setPauseFor(5);
-    setAlertRide(null);
-    forceRerender((c) => c + 1);
-  }, [stopRinging]);
-
-  const resumeNotifications = useCallback(async () => {
-    pausedUntil = 0;
-    try { await AsyncStorage.removeItem(PAUSE_STORAGE_KEY); } catch {}
-    forceRerender((c) => c + 1);
-  }, []);
-
-  const isPaused = Date.now() < pausedUntil;
-  const pauseMinsLeft = isPaused
-    ? Math.max(1, Math.ceil((pausedUntil - Date.now()) / 60_000))
-    : 0;
-
   return (
-    <>
-      {isPaused ? (
-        <View
-          pointerEvents="box-none"
-          style={{
-            position: 'absolute', left: 0, right: 0, bottom: 24,
-            alignItems: 'center', zIndex: 50,
-          }}
-        >
-          <Pressable
-            onPress={resumeNotifications}
-            style={({ pressed }) => ({
-              backgroundColor: pressed ? colors.emberDeep : colors.warning,
-              paddingHorizontal: spacing.base, paddingVertical: 10, borderRadius: radius.pill,
-              flexDirection: 'row', alignItems: 'center', gap: 8,
-              ...shadow.ember,
-            })}
-          >
-            <Icon name="alert" size={14} color={colors.white} />
-            <Text variant="label" color={colors.white}>
-              {t('captainAlert.pausedBadge', { mins: pauseMinsLeft })}
-            </Text>
-          </Pressable>
-        </View>
-      ) : null}
-
-      <Modal
-        visible={!!alertRide}
-        animationType="slide"
-        transparent={false}
-        onRequestClose={refuseAlert}
-      >
+    <Modal
+      visible={!!alertRide}
+      animationType="slide"
+      transparent={false}
+      onRequestClose={refuseAlert}
+    >
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }} edges={['top', 'left', 'right']}>
         {alertRide ? (
           <View style={{ flex: 1 }}>
@@ -623,50 +554,29 @@ export function CaptainRideWatcher() {
                 busy={accepting}
                 onPress={acceptAlert}
               />
-              <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-                <Pressable
-                  disabled={accepting}
-                  onPress={refuseAlert}
-                  style={({ pressed }) => ({
-                    flex: 1, opacity: accepting ? 0.5 : 1,
-                    backgroundColor: pressed ? colors.surfaceAlt : colors.surface,
-                    paddingVertical: spacing.md, borderRadius: radius.lg,
-                    borderWidth: 1.5, borderColor: colors.lineStrong,
-                    alignItems: 'center',
-                  })}
-                >
-                  <Text variant="bodyStrong" color={colors.ink}>
-                    {t('captainAlert.refuse')}
-                  </Text>
-                  <Text variant="caption" color={colors.muted}>
-                    {t('captainAlert.refuseSub')}
-                  </Text>
-                </Pressable>
-                <Pressable
-                  disabled={accepting}
-                  onPress={pauseFiveMin}
-                  style={({ pressed }) => ({
-                    flex: 1, opacity: accepting ? 0.5 : 1,
-                    backgroundColor: pressed ? colors.surfaceAlt : colors.surface,
-                    paddingVertical: spacing.md, borderRadius: radius.lg,
-                    borderWidth: 1.5, borderColor: colors.lineStrong,
-                    alignItems: 'center',
-                  })}
-                >
-                  <Text variant="bodyStrong" color={colors.ink}>
-                    {t('captainAlert.pause5')}
-                  </Text>
-                  <Text variant="caption" color={colors.muted}>
-                    {t('captainAlert.pauseSub')}
-                  </Text>
-                </Pressable>
-              </View>
+              <Pressable
+                disabled={accepting}
+                onPress={refuseAlert}
+                style={({ pressed }) => ({
+                  opacity: accepting ? 0.5 : 1,
+                  backgroundColor: pressed ? colors.surfaceAlt : colors.surface,
+                  paddingVertical: spacing.md, borderRadius: radius.lg,
+                  borderWidth: 1.5, borderColor: colors.lineStrong,
+                  alignItems: 'center',
+                })}
+              >
+                <Text variant="bodyStrong" color={colors.ink}>
+                  {t('captainAlert.refuse')}
+                </Text>
+                <Text variant="caption" color={colors.muted} style={{ marginTop: 2 }}>
+                  {t('captainAlert.refuseSub')}
+                </Text>
+              </Pressable>
             </View>
           </View>
         ) : null}
       </SafeAreaView>
     </Modal>
-    </>
   );
 }
 

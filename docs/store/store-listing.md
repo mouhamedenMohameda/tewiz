@@ -10,7 +10,7 @@ Tout ce qui doit être copié-collé dans **App Store Connect** et **Google Play
 |---|---|
 | Nom de l'app (Apple, 30 car. max) | `Aloo` |
 | Nom de l'app (Google, 30 car. max) | `Aloo` |
-| Sous-titre App Store (30 car. max) | `Course et chauffeur en Mauritanie` |
+| Sous-titre App Store (30 car. max) | `Course et Captain en Mauritanie` |
 | Bundle ID iOS / Package Android | `mr.tewiz.app` |
 | Catégorie principale | **Voyages** *(Travel)* |
 | Catégorie secondaire (Apple) | **Cartes et navigation** *(Navigation)* |
@@ -24,7 +24,7 @@ Tout ce qui doit être copié-collé dans **App Store Connect** et **Google Play
 
 ```
 Commandez une course en français, hassaniya ou arabe — à la voix.
-Payez en cash, suivez votre chauffeur sur la carte, et roulez.
+Payez en cash, suivez votre Captain sur la carte, et roulez.
 ```
 
 **Google Play — "Short description"** (80 caractères) :
@@ -40,21 +40,21 @@ Course en VTC partout en Mauritanie. Commande vocale, paiement cash.
 ```
 Aloo, c'est l'application de VTC pensée pour la Mauritanie.
 
-POUR LES PASSAGERS
+POUR LES ClientS
 • Commandez une course en quelques secondes — au texte ou à la voix.
 • Parlez en français, en hassaniya ou en arabe : on comprend.
 • Choisissez vos lieux par nom (« Marché Capitale », « Aéroport Oum Tounsi »…)
   ou en touchant la carte.
-• Suivez votre chauffeur en temps réel, et confirmez l'arrivée avec un code à
+• Suivez votre Captain en temps réel, et confirmez l'arrivée avec un code à
   4 chiffres.
-• Marquez vos chauffeurs préférés et vos trajets habituels pour aller plus vite
+• Marquez vos Captains préférés et vos trajets habituels pour aller plus vite
   la prochaine fois.
 
-POUR LES CHAUFFEURS
+POUR LES CaptainS
 • Recevez les courses proches de vous dès que vous passez en ligne.
 • Wallet intégré : suivez votre solde et vos commissions en temps réel.
 • Mode « rentre à la maison » : ne recevez plus que des courses sur votre route.
-• Heatmap : voyez où sont les passagers en ce moment.
+• Heatmap : voyez où sont les Clients en ce moment.
 • Acceptez vos courses récurrentes (école, travail) en un appui.
 
 POURQUOI ALOO
@@ -85,7 +85,7 @@ Aide     : https://tewiz-api.radar-mr.com/legal/support.html
 ## 4. Mots-clés App Store (100 caractères, virgules, sans espace)
 
 ```
-vtc,taxi,course,mauritanie,nouakchott,chauffeur,trajet,voix,arabe,hassaniya
+vtc,taxi,course,mauritanie,nouakchott,Captain,trajet,voix,arabe,hassaniya
 ```
 
 *Évite les mots déjà présents dans le nom et le sous-titre (Apple les indexe automatiquement).*
@@ -110,9 +110,9 @@ Recommandé : 5 captures dans cet ordre, chacune avec un texte court superposé.
 
 1. **Écran d'accueil rider** — titre : « Une course en 10 secondes »
 2. **Commande vocale** — titre : « Parlez en français, hassaniya, arabe »
-3. **Carte avec trajet** — titre : « Suivez votre chauffeur en direct »
+3. **Carte avec trajet** — titre : « Suivez votre Captain en direct »
 4. **Wallet captain** — titre : « Gérez vos gains, payez en cash »
-5. **Heatmap captain** — titre : « Trouvez les passagers en un coup d'œil »
+5. **Heatmap captain** — titre : « Trouvez les Clients en un coup d'œil »
 
 ### Google Play (téléphone, min 2)
 Même set que ci-dessus. Mêmes dimensions acceptées (Google est plus souple).
@@ -131,14 +131,14 @@ Bonjour, et merci pour la revue de Aloo.
 
 CE QU'EST L'APPLICATION
 Aloo est un service de VTC (transport de personnes) opérant en Mauritanie.
-Les passagers commandent une course, un chauffeur l'accepte, et la course est
+Les Clients commandent une course, un Captain l'accepte, et la course est
 réglée en espèces à la fin du trajet — exactement comme un taxi traditionnel.
 
 POURQUOI LA CRÉATION DE COMPTE SE FAIT HORS DE L'APP
 L'inscription est administrée par notre équipe pour deux raisons :
 1. Vérification anti-fraude — la Mauritanie n'a pas d'écosystème SMS fiable,
    nous validons donc chaque numéro via WhatsApp.
-2. KYC chauffeur — chaque chauffeur fournit ses papiers d'identité et de
+2. KYC Captain — chaque Captain fournit ses papiers d'identité et de
    véhicule avant d'être autorisé à conduire.
 
 Cela signifie qu'un nouvel utilisateur ne peut PAS créer son compte depuis l'app.
@@ -147,20 +147,20 @@ C'est documenté dans l'app (lien « Pas de compte ? » sur l'écran de connexio
 et sur notre page support : https://tewiz-api.radar-mr.com/legal/support.html
 
 COMPTES DE TEST FOURNIS
-- Passager :  +22244000001  /  Demo2026!
-- Chauffeur : +22244000002  /  Demo2026!  (KYC déjà validé, véhicule actif)
+- Client :  +22244000001  /  Demo2026!
+- Captain : +22244000002  /  Demo2026!  (KYC déjà validé, véhicule actif)
 
-Le compte chauffeur a accès au mode « Captain » (bouton en haut à droite de
+Le compte Captain a accès au mode « Captain » (bouton en haut à droite de
 l'accueil), au wallet, à la heatmap, et peut accepter des courses.
 
 PAIEMENT — PAS D'IN-APP PURCHASE
 Les courses sont des services réels du monde physique (transport de personnes),
 explicitement exemptés de l'obligation d'IAP par App Store Review Guideline
-3.1.5(a) et la politique de paiement Google Play. Les chauffeurs sont payés en
+3.1.5(a) et la politique de paiement Google Play. Les Captains sont payés en
 espèces à la fin de la course, hors de l'application.
 
-Le rechargement du portefeuille chauffeur (top-up wallet) se fait également
-en dehors de l'application : le chauffeur envoie une capture du virement à
+Le rechargement du portefeuille Captain (top-up wallet) se fait également
+en dehors de l'application : le Captain envoie une capture du virement à
 notre équipe via l'app, et nous créditons son solde manuellement.
 
 SUPPRESSION DE COMPTE
@@ -184,11 +184,11 @@ Merci !
 
 | Catégorie | Donnée | Pourquoi | Lié à l'utilisateur ? | Utilisé pour tracking ? |
 |---|---|---|---|---|
-| Identifiants | Numéro de téléphone | Authentification, contact chauffeur ↔ passager | Oui | Non |
+| Identifiants | Numéro de téléphone | Authentification, contact Captain ↔ Client | Oui | Non |
 | Identifiants | ID utilisateur interne | Authentification | Oui | Non |
 | Identifiants | Device ID *(IDFV iOS / ANDROID_ID)* | Dédoublonnage des tokens push | Oui | Non |
-| Localisation | Position GPS précise | Trouver chauffeurs proches, calculer trajet | Oui | Non |
-| Contenu utilisateur | Photos *(documents KYC chauffeur uniquement)* | Vérification d'identité chauffeur | Oui | Non |
+| Localisation | Position GPS précise | Trouver Captains proches, calculer trajet | Oui | Non |
+| Contenu utilisateur | Photos *(documents KYC Captain uniquement)* | Vérification d'identité Captain | Oui | Non |
 | Contenu utilisateur | Enregistrement audio *(commande vocale)* | Transcription vers texte (Whisper OpenAI), puis supprimé | Non *(non stocké)* | Non |
 | Diagnostics | Logs de crash | Stabilité de l'app | Oui *(via Sentry)* | Non |
 | Diagnostics | Logs d'utilisation *(API logs)* | Diagnostic, sécurité | Oui | Non |
@@ -219,7 +219,7 @@ Réponses au questionnaire IARC (Google) et App Store Connect (Apple) :
 | Échange d'informations utilisateur | Oui *(localisation pour le service de course)* |
 | Achats numériques | Non |
 | Utilisation partagée d'informations | Non |
-| Localisation partagée avec autres utilisateurs | Oui *(le chauffeur voit la position du passager, et vice versa, pendant la course)* |
+| Localisation partagée avec autres utilisateurs | Oui *(le Captain voit la position du Client, et vice versa, pendant la course)* |
 
 Note résultante attendue : **4+** sur App Store, **PEGI 3 / Everyone** sur Play.
 

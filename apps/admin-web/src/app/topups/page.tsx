@@ -34,7 +34,7 @@ export default function TopupsPage() {
   const columns: Column<TopupListItem>[] = [
     {
       key: 'captain',
-      header: 'Chauffeur',
+      header: 'Captain',
       mobilePrimary: true,
       cell: (t) => (
         <div>
@@ -84,7 +84,7 @@ export default function TopupsPage() {
       <div className="p-4 md:p-6 max-w-7xl mx-auto">
         <h1 className="text-2xl font-bold text-slate-900 mb-1">Recharges Bankily / Masrivi</h1>
         <p className="text-sm text-slate-500 mb-6">
-          Vérifie la capture du chauffeur contre ton compte Bankily/Masrivi avant d'approuver.
+          Vérifie la capture du Captain contre ton compte Bankily/Masrivi avant d'approuver.
         </p>
 
         <div className="flex gap-1 mb-6 border-b border-slate-200 overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">

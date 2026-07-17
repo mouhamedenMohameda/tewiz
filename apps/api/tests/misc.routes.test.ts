@@ -83,10 +83,10 @@ describe('rider favorites', () => {
     const { baseUrl } = await start();
     const res = await api(baseUrl, 'POST', '/rider/favorites', {
       captainId: CAPTAIN_UUID,
-      nickname: 'Mon chauffeur',
+      nickname: 'Mon Captain',
     });
     expect(res.status).toBe(200);
-    expect(favoritesMock.addFavorite).toHaveBeenCalledWith('rider-1', CAPTAIN_UUID, 'Mon chauffeur');
+    expect(favoritesMock.addFavorite).toHaveBeenCalledWith('rider-1', CAPTAIN_UUID, 'Mon Captain');
   });
 
   it('POST / rejects a non-uuid captainId (400)', async () => {

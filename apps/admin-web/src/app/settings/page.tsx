@@ -450,7 +450,7 @@ export default function SettingsPage() {
         {query.data && (
           <>
             <section className="card p-5 mb-4">
-              <h2 className="font-semibold text-slate-900 mb-1">Tarification passagers</h2>
+              <h2 className="font-semibold text-slate-900 mb-1">Tarification Clients</h2>
               <p className="text-xs text-slate-500 mb-4">
                 Formule : <code className="font-mono">prix = max(course minimum, frais de départ + km × prix/km)</code>
               </p>
@@ -481,7 +481,7 @@ export default function SettingsPage() {
               <h2 className="font-semibold text-slate-900 mb-1">Tarification colis</h2>
               <p className="text-xs text-slate-500 mb-4">
                 Même formule, appliquée aux livraisons de colis (généralement moins
-                chères qu&apos;une course passager).
+                chères qu&apos;une course Client).
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -509,13 +509,13 @@ export default function SettingsPage() {
             <section className="card p-5 mb-4">
               <h2 className="font-semibold text-slate-900 mb-1">Commission plateforme</h2>
               <p className="text-xs text-slate-500 mb-4">
-                Pourcentage débité du portefeuille chauffeur à la fin de chaque
+                Pourcentage débité du portefeuille Captain à la fin de chaque
                 course auto-réservée depuis l&apos;app (ex. 7 = 7 %).
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field
-                  label="Courses passagers"
+                  label="Courses Clients"
                   suffix="%"
                   value={form.defaultCommissionPct}
                   onChange={(v) => setForm({ ...form, defaultCommissionPct: v })}
@@ -534,13 +534,13 @@ export default function SettingsPage() {
             <section className="card p-5 mb-4">
               <h2 className="font-semibold text-slate-900 mb-1">Commission call-center</h2>
               <p className="text-xs text-slate-500 mb-4">
-                Pourcentage appliqué aux courses créées par un opérateur (passager
+                Pourcentage appliqué aux courses créées par un opérateur (Client
                 ayant appelé). Permet de couvrir le temps du call-center.
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field
-                  label="Passagers (call-center)"
+                  label="Clients (call-center)"
                   suffix="%"
                   value={form.operatorPassengerCommissionPct}
                   onChange={(v) => setForm({ ...form, operatorPassengerCommissionPct: v })}
@@ -560,7 +560,7 @@ export default function SettingsPage() {
               <h2 className="font-semibold text-slate-900 mb-1">Courses inter-villes</h2>
               <p className="text-xs text-slate-500 mb-4">
                 Au-dessus de ce seuil, une course est considérée longue distance.
-                Elle n&apos;est proposée qu&apos;aux chauffeurs ayant activé
+                Elle n&apos;est proposée qu&apos;aux Captains ayant activé
                 « J&apos;accepte les courses inter-villes » dans leurs préférences.
               </p>
 
@@ -592,9 +592,9 @@ export default function SettingsPage() {
               </div>
               <p className="text-xs text-slate-500 mb-4">
                 Course sans destination fixée à l&apos;avance. Le tarif est calculé au
-                compteur côté serveur (à partir du GPS du chauffeur) :{' '}
+                compteur côté serveur (à partir du GPS du Captain) :{' '}
                 <code className="font-mono">fare = max(min, départ + km × prix/km + min × prix/min)</code>.
-                Seul le chauffeur peut terminer la course.
+                Seul le Captain peut terminer la course.
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
@@ -627,7 +627,7 @@ export default function SettingsPage() {
 
             <section className="card p-5 mb-4 border border-blue-200 bg-blue-50/30">
               <div className="flex items-start justify-between mb-1">
-                <h2 className="font-semibold text-slate-900">Chauffeur Privé</h2>
+                <h2 className="font-semibold text-slate-900">Captain Privé</h2>
                 <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
                   <input
                     type="checkbox"
@@ -641,7 +641,7 @@ export default function SettingsPage() {
                 </label>
               </div>
               <p className="text-xs text-slate-500 mb-4">
-                Réservation d&apos;un chauffeur à l&apos;heure (3h, 6h, 12h, 24h).
+                Réservation d&apos;un Captain à l&apos;heure (3h, 6h, 12h, 24h).
                 Tarif forfaitaire sans destination fixe.
               </p>
 
@@ -686,7 +686,7 @@ export default function SettingsPage() {
                 </label>
               </div>
               <p className="text-xs text-slate-500 mb-4">
-                Un chauffeur conduit le véhicule du client de A vers B.
+                Un Captain conduit le véhicule du client de A vers B.
                 Tarification distance (base + km × prix/km, minimum garanti).
               </p>
 
@@ -968,7 +968,7 @@ export default function SettingsPage() {
 
             <section className="card p-5 mb-4">
               <div className="flex items-start justify-between mb-1">
-                <h2 className="font-semibold text-slate-900">Bonus chauffeur</h2>
+                <h2 className="font-semibold text-slate-900">Bonus Captain</h2>
                 <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
                   <input
                     type="checkbox"
@@ -982,11 +982,11 @@ export default function SettingsPage() {
                 </label>
               </div>
               <p className="text-xs text-slate-500 mb-4">
-                Quand un chauffeur paie <strong>{form.commissionBonusThresholdMru || 'X'} MRU</strong> de
+                Quand un Captain paie <strong>{form.commissionBonusThresholdMru || 'X'} MRU</strong> de
                 commission en <strong>{form.commissionBonusWindowDays || 'Y'} jours</strong>, sa commission
                 est divisée par 2 pendant <strong>{form.commissionBonusRewardDays || 'Z'} jours</strong>,
                 sur toutes les courses (in-app, colis, call-center). Tout changement déclenche
-                automatiquement une notification à tous les chauffeurs.
+                automatiquement une notification à tous les Captains.
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -1035,7 +1035,7 @@ export default function SettingsPage() {
 
             <section className="card p-5 mb-4 border border-sky-200 bg-sky-50/30">
               <div className="flex items-start justify-between mb-1">
-                <h2 className="font-semibold text-slate-900">Suivi de position des chauffeurs</h2>
+                <h2 className="font-semibold text-slate-900">Suivi de position des Captains</h2>
                 <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
                   <input
                     type="checkbox"
@@ -1049,9 +1049,9 @@ export default function SettingsPage() {
                 </label>
               </div>
               <p className="text-xs text-slate-500 mb-0">
-                Suit la position des chauffeurs en ligne en continu (meme app fermee). C&apos;est
+                Suit la position des Captains en ligne en continu (meme app fermee). C&apos;est
                 ce qui garde leur position a jour pour un dispatch pertinent : sans lui, un
-                chauffeur qui se deplace garde une ancienne position et recoit les mauvaises
+                Captain qui se deplace garde une ancienne position et recoit les mauvaises
                 courses (ou rate les courses proches). A activer pour que la garde de fraicheur
                 du dispatch fonctionne.
               </p>
@@ -1110,7 +1110,7 @@ export default function SettingsPage() {
             <section className="card p-5 mb-4 border-2 border-dashed border-amber-300 bg-amber-50">
               <h2 className="font-semibold text-slate-900 mb-1">Alerte nouvelle course</h2>
               <p className="text-xs text-slate-600 mb-4">
-                Reglez l&apos;intensite de la sonnerie cote chauffeur. Le mode critique
+                Reglez l&apos;intensite de la sonnerie cote Captain. Le mode critique
                 rend l&apos;alerte iPhone plus agressive; la repetition controle tous les
                 combien de secondes l&apos;app relance l&apos;alerte tant que la course n&apos;est pas vue.
               </p>
@@ -1155,7 +1155,7 @@ export default function SettingsPage() {
                   className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg bg-white"
                 />
                 <p className="text-[11px] text-slate-500 mt-1">
-                  Utilisee par l&apos;app chauffeur quand elle est ouverte (alerte modale).
+                  Utilisee par l&apos;app Captain quand elle est ouverte (alerte modale).
                   Si vide ou inaccessible, l&apos;app retombe automatiquement sur la sonnerie par defaut.
                 </p>
               </label>
@@ -1199,7 +1199,7 @@ export default function SettingsPage() {
               </div>
               <p className="text-xs text-slate-600 mb-3">
                 Affiche des boutons de connexion en un tap sur l&apos;écran d&apos;accueil de l&apos;app
-                (comptes démo passager + capitaine). À activer avant une soumission App Store / Google Play,
+                (comptes démo Client + capitaine). À activer avant une soumission App Store / Google Play,
                 à désactiver après approbation.
               </p>
               <label className="block text-sm text-slate-700 mb-1">

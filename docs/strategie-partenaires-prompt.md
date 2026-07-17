@@ -46,7 +46,7 @@ lui-même depuis l'app, la course ne passe plus par le restaurant.
 
 Des particuliers recrutés via les réseaux sociaux apprennent à lancer des
 courses depuis l'app pour leur entourage, et touchent un pourcentage de
-notre commission sur chaque course qu'ils créent et qu'un chauffeur termine.
+notre commission sur chaque course qu'ils créent et qu'un Captain termine.
 
 *Conditions de fin certaines (doubles)* :
 1. **Quota** : le membre touche sa part sur ses **100 premières courses
@@ -62,14 +62,14 @@ notre commission sur chaque course qu'ils créent et qu'un chauffeur termine.
 ### Règles transversales
 
 - **Cumul** : une course peut avoir DEUX partenaires — un côté création
-  (restaurant ou membre qui a lancé la course) et un côté chauffeur (agence
+  (restaurant ou membre qui a lancé la course) et un côté Captain (agence
   du livreur). Chacun touche sa part de la commission plateforme,
   indépendamment, mais la somme des parts versées sur une course ne doit
   jamais dépasser un plafond global configurable (défaut : 50 % de la
   commission).
 - **Transparence** : chaque partenaire voit ses courses attribuées et ses
   gains en quasi temps réel (dashboard), le paiement reste mensuel.
-- **Anti-fraude dès le jour 1** : détection des paires client↔chauffeur
+- **Anti-fraude dès le jour 1** : détection des paires client↔Captain
   récurrentes, courses anormalement courtes, rafales de création. Les gains
   suspects sont gelés (`on_hold`), pas supprimés — un admin tranche.
 - Tous les pourcentages sont en **basis points** (100 bps = 1 %), tous les
@@ -83,7 +83,7 @@ notre commission sur chaque course qu'ils créent et qu'un chauffeur termine.
   Acquis réutilisables :
   - `0006_rides.sql` : `rides.commission_rate_bps` (snapshot à la création),
     `rides.commission_khoums` (calculé à la complétion).
-  - `0005_wallet.sql` + `0017_money_in_mru.sql` : wallet chauffeur,
+  - `0005_wallet.sql` + `0017_money_in_mru.sql` : wallet Captain,
     `wallet_transactions` typées (`commission`, `commission_refund`),
     montants en khoums.
   - `0022_long_distance_and_operator_commission.sql` : `app_settings` porte
@@ -180,7 +180,7 @@ queries typées).
      earnings `ride_creator` < `quota_courses` ET `created_at` du partenaire
      + `quota_months` non dépassé), sinon ne rien créditer. Insérer une
      ligne `partner_earnings(role='ride_creator')`.
-   - *Côté chauffeur* : chercher `captain_partner_links` du captain ; si la
+   - *Côté Captain* : chercher `captain_partner_links` du captain ; si la
      fenêtre est ouverte, insérer `partner_earnings(role='captain_provider')`
      et incrémenter `courses_counted` **dans la même transaction**. Si le
      compteur atteint `window_max_courses` (ou si `expires_at` est dépassé
@@ -291,5 +291,5 @@ Le système est correct quand :
    conversion une seule fois, et ses courses suivantes ne créditent plus
    personne.
 7. Un échec dans l'attribution ne bloque jamais la complétion de la course
-   (le chauffeur est payé quoi qu'il arrive).
+   (le Captain est payé quoi qu'il arrive).
 8. Les montants sont en khoums, les taux en bps, partout.

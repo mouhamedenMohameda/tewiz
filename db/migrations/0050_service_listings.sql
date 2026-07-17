@@ -19,7 +19,7 @@ CREATE TABLE listing_categories (
 );
 
 INSERT INTO listing_categories (category, label, enabled, publication_fee_mru) VALUES
-  ('private_driver',      'Chauffeur Privé',      true, 200),
+  ('private_driver',      'Captain Privé',      true, 200),
   ('convoyage',           'Convoyage',            true, 200),
   ('car_rental',          'Location Auto',        true, 300),
   ('roadside_assistance', 'Assistance Routière',  true, 150),

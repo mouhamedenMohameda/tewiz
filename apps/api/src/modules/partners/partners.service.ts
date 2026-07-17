@@ -260,6 +260,6 @@ export async function assertCaptainNeverLinked(userId: string): Promise<void> {
   );
   if ((r.rowCount ?? 0) > 0) {
     throw new HttpError(409, 'window_already_used',
-      'Ce chauffeur a déjà bénéficié d\'une fenêtre agence (une seule par personne, à vie)');
+      'Ce Captain a déjà bénéficié d\'une fenêtre agence (une seule par personne, à vie)');
   }
 }

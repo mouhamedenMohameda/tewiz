@@ -13,7 +13,7 @@ interface SplashGateProps {
 
 export const SplashGate: React.FC<SplashGateProps> = ({
   children,
-  showDuration = 4000,
+  showDuration = 30000,
 }) => {
   const [showSplash, setShowSplash] = useState(true);
 

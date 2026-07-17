@@ -25,6 +25,7 @@ export const PAGE_PERMS: Record<string, AdminRole[]> = {
   '/notifications':      ['super_admin', 'ops_manager'],
   '/settings':           ['super_admin'],
   '/settings/documents': ['super_admin', 'kyc_reviewer'],
+  '/settings/translations': ['super_admin'],
   '/app-release':        ['super_admin'],
 };
 

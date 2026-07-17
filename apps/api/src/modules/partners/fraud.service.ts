@@ -29,7 +29,7 @@ export async function scanPartnerEarnings(): Promise<FraudScanResult> {
   const pair = await pool.query(
     `UPDATE partner_earnings pe
         SET status = 'on_hold',
-            hold_reason = 'pair_recurrence: paire client-chauffeur > '
+            hold_reason = 'pair_recurrence: paire client-Captain > '
                           || $1 || ' courses sur 7 jours'
        FROM rides r
       WHERE pe.ride_id = r.id

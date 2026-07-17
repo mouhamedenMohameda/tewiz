@@ -161,7 +161,7 @@ export default function CaptainsPage() {
         <div className="px-4 md:px-6 py-3 md:py-4 border-b border-slate-200 bg-white">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
-              <h1 className="text-xl md:text-2xl font-bold text-slate-900">Chauffeurs</h1>
+              <h1 className="text-xl md:text-2xl font-bold text-slate-900">Captains</h1>
               <p className="text-xs md:text-sm text-slate-500">
                 Vue temps réel · rafraîchi toutes les 10 s
               </p>
@@ -244,7 +244,7 @@ export default function CaptainsPage() {
                 <div className="p-6 text-sm text-slate-500">Chargement…</div>
               )}
               {!isLoading && visible.length === 0 && (
-                <div className="p-6 text-sm text-slate-500">Aucun chauffeur.</div>
+                <div className="p-6 text-sm text-slate-500">Aucun Captain.</div>
               )}
               <ul className="divide-y divide-slate-100">
                 {visible.map((c) => (
@@ -306,7 +306,7 @@ export default function CaptainsPage() {
             )}
             {selected && selected.track_points === 0 && (
               <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 px-4 py-2 rounded-lg bg-white/95 shadow-lg border border-slate-200 text-xs text-slate-500">
-                Aucun trajet enregistré pour ce chauffeur (24 h).
+                Aucun trajet enregistré pour ce Captain (24 h).
               </div>
             )}
           </div>
@@ -494,7 +494,7 @@ function CaptainDetailPill({
       <button
         onClick={onOpen}
         className="flex items-center gap-2 pl-2 pr-1 py-1 rounded-full hover:bg-slate-50"
-        title="Afficher la fiche du chauffeur"
+        title="Afficher la fiche du Captain"
       >
         <PresenceDot presence={c.presence} />
         <span className="text-sm font-medium text-slate-800 truncate max-w-[160px]">
@@ -505,7 +505,7 @@ function CaptainDetailPill({
       <button
         onClick={onClose}
         className="w-7 h-7 grid place-items-center rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 text-lg leading-none shrink-0"
-        aria-label="Désélectionner le chauffeur"
+        aria-label="Désélectionner le Captain"
         title="Désélectionner — masque le trajet"
       >
         ×

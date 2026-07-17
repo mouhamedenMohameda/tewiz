@@ -139,7 +139,7 @@ function genOtp(): string {
 
 export async function createCar(ownerId: string, input: CarInput): Promise<CarDetail> {
   if (input.withDriver && (input.driverDayRateMru == null || input.driverDayRateMru < 0)) {
-    throw new HttpError(400, 'driver_rate_required', 'Indiquez le tarif chauffeur/jour');
+    throw new HttpError(400, 'driver_rate_required', 'Indiquez le tarif Captain/jour');
   }
   const { rows } = await pool.query<CarRow>(
     `WITH ins AS (
@@ -441,7 +441,7 @@ export async function requestBooking(renterId: string, input: BookingInput): Pro
     if (!c || c.status !== 'active') throw new HttpError(404, 'car_unavailable', 'Voiture indisponible');
     if (c.owner_id === renterId) throw new HttpError(400, 'own_car', 'Vous ne pouvez pas réserver votre propre voiture');
     const withDriver = input.withDriver === true;
-    if (withDriver && !c.with_driver) throw new HttpError(400, 'no_driver', 'Cette voiture est sans chauffeur');
+    if (withDriver && !c.with_driver) throw new HttpError(400, 'no_driver', 'Cette voiture est sans Captain');
 
     // No-show / no-return deterrent: block a renter who piled up absences or
     // non-returns in the last 30 days. Rolling window, so it clears itself.

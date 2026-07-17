@@ -7,14 +7,14 @@
 |--------|------|-------------|-------------|
 | Ref: 12km/33min | **290 MRU** | 300 MRU | 285 MRU |
 | Commission | 8% | 15% | 10% |
-| Chauffeur reçoit | 266.8 MRU | 255 MRU | 256.5 MRU |
+| Captain reçoit | 266.8 MRU | 255 MRU | 256.5 MRU |
 | Offre | Prix transparent | Surge possible | Limité |
 
-✅ **Nous**: Prix compétitif + Chauffeurs mieux payés = meilleur service
+✅ **Nous**: Prix compétitif + Captains mieux payés = meilleur service
 
 ---
 
-### CHAUFFEURS
+### CaptainS
 | Aspect | Nous | Concurrent A | Concurrent B |
 |--------|------|-------------|-------------|
 | Commission de base | **8%** | 15% | 10% |
@@ -42,7 +42,7 @@ Arrondi au 5 MRU supérieur
 
 ---
 
-## Rémunération chauffeur
+## Rémunération Captain
 
 ### Commission fixe
 - **8% pour tous** (pas de variation secrète)
@@ -56,7 +56,7 @@ Arrondi au 5 MRU supérieur
 | **Créneaux** | Heures rush 7-9h, 17-20h | +120 MRU/créneau |
 | **Parrainage** | 60 trajets filleul | +500 MRU |
 
-### Budget total chauffeur (4 scénarios)
+### Budget total Captain (4 scénarios)
 - Faible (40 trajets/semaine): 23,040 MRU/mois
 - Moyen (80 trajets/semaine): 50,800 MRU/mois
 - Actif (100+ trajets/semaine): 65,800 MRU/mois
@@ -69,9 +69,9 @@ Arrondi au 5 MRU supérieur
 ### Riders choisissent Tewiz car:
 1. Prix transparent (estimé avant)
 2. Prix souvent < concurrent A
-3. Chauffeurs motivés = service rapide
+3. Captains motivés = service rapide
 
-### Chauffeurs choisissent Tewiz car:
+### Captains choisissent Tewiz car:
 1. Commission simple et juste (8%, tous pareil)
 2. Bonus généreux (volume, fidélité, créneaux)
 3. Paiement rapide (lundi)
@@ -90,7 +90,7 @@ Arrondi au 5 MRU supérieur
 ```
 /docs/pricing/
 ├── TARIFICATION_RIDERS.md           (affiche dans l'app riders)
-├── REMUNERATION_CHAUFFEURS.md       (affiche dans l'app chauffeurs)
+├── REMUNERATION_CaptainS.md       (affiche dans l'app Captains)
 └── CONDITIONS_COMMISSION_BONUS.md   (contrat officiel interne)
 ```
 
@@ -99,9 +99,9 @@ Arrondi au 5 MRU supérieur
 ## Checklist implémentation
 
 - [ ] Ajouter TARIFICATION_RIDERS.md à l'écran "Tarifs" de l'app rider
-- [ ] Ajouter REMUNERATION_CHAUFFEURS.md à la page "Gagner avec nous"
-- [ ] Signer CONDITIONS_COMMISSION_BONUS.md avec les chauffeurs (onboarding)
-- [ ] Dashboard chauffeur affiche "Gains" en temps réel (commission + bonus)
+- [ ] Ajouter REMUNERATION_CaptainS.md à la page "Gagner avec nous"
+- [ ] Signer CONDITIONS_COMMISSION_BONUS.md avec les Captains (onboarding)
+- [ ] Dashboard Captain affiche "Gains" en temps réel (commission + bonus)
 - [ ] Dashboard rider affiche l'estimation avec détail du prix
 - [ ] Paiement automatisé lundi matin (API bancaire)
 - [ ] Audit fraude automatisé (annulations, geoloc, trajets fictifs)
@@ -111,8 +111,8 @@ Arrondi au 5 MRU supérieur
 ## Communication d'lancement (marketing)
 
 **Tagline riders**: "Tarif juste, prix clair, pas de surprise"
-**Tagline chauffeurs**: "8% de commission + bonus motivants, c'est rentable"
-**Tagline brand**: "Tewiz: équilibre client-chauffeur, service durable"
+**Tagline Captains**: "8% de commission + bonus motivants, c'est rentable"
+**Tagline brand**: "Tewiz: équilibre client-Captain, service durable"
 
 ---
 

@@ -18,6 +18,7 @@ import { adminJobsRouter } from '../jobs/admin-jobs.routes.js';
 import { adminRidesRouter } from '../rides/admin-rides.routes.js';
 import { adminUsersRouter } from './users.routes.js';
 import { adminSettingsRouter } from './settings.routes.js';
+import { adminTranslationsRouter } from './translations.routes.js';
 import { adminReleasesRouter } from '../releases/admin-releases.routes.js';
 import { adminDocumentRequirementsRouter } from './document-requirements.routes.js';
 import { getRequiredDocumentTypes } from './document-requirements.service.js';
@@ -74,6 +75,8 @@ adminRouter.use(
 );
 // Global settings — super_admin only.
 adminRouter.use('/settings', requireAdminRole(), adminSettingsRouter);
+// Editable i18n strings — super_admin only.
+adminRouter.use('/translations', requireAdminRole(), adminTranslationsRouter);
 // Hosted app builds (APK upload + history) — super_admin only.
 adminRouter.use('/app-releases', requireAdminRole(), adminReleasesRouter);
 // Required document types — kyc_reviewer can read, super_admin edits.
@@ -168,7 +171,7 @@ adminRouter.delete(
 /**
  * GET /admin/captains
  * Returns EVERY user with role='captain' (approved or not) with their live
- * presence + last known location. Used by the back-office "Chauffeurs" page
+ * presence + last known location. Used by the back-office "Captains" page
  * to show who is connected on the map.
  *
  * Presence resolution:
@@ -547,7 +550,7 @@ adminRouter.post('/applications/:id/approve', async (req, res) => {
     const finalPhone = u.phone ?? app.phone ?? null;
     if (!finalPhone) {
       throw new HttpError(400, 'captain_needs_phone',
-        'Le chauffeur doit avoir un numéro de téléphone avant validation.');
+        'Le Captain doit avoir un numéro de téléphone avant validation.');
     }
     if (!u.phone) {
       const dup = await client.query<{ id: string }>(
@@ -622,7 +625,7 @@ adminRouter.post('/applications/:id/approve', async (req, res) => {
     );
     if (existingPlate.rows[0] && existingPlate.rows[0].captain_id !== app.user_id) {
       throw new HttpError(409, 'plate_taken',
-        `La plaque ${app.vehicle_plate} est déjà associée à un autre chauffeur.`);
+        `La plaque ${app.vehicle_plate} est déjà associée à un autre Captain.`);
     }
     await client.query(
       `UPDATE vehicles SET is_active = false WHERE captain_id = $1`,

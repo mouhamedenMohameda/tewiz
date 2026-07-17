@@ -54,14 +54,14 @@ function fmtTime(iso: string) {
 }
 
 const STATUS_PILL: Record<RideStatus, { label: string; cls: string }> = {
-  pending_passenger_confirm: { label: 'Attente passager',  cls: 'bg-amber-100  text-amber-800' },
+  pending_passenger_confirm: { label: 'Attente Client',  cls: 'bg-amber-100  text-amber-800' },
   searching:                 { label: 'Recherche',          cls: 'bg-blue-100   text-blue-800' },
   accepted:                  { label: 'Acceptée',           cls: 'bg-indigo-100 text-indigo-800' },
   arrived:                   { label: 'Arrivé',             cls: 'bg-indigo-100 text-indigo-800' },
   in_progress:               { label: 'En cours',           cls: 'bg-emerald-100 text-emerald-800' },
   completed:                 { label: 'Terminée',           cls: 'bg-green-100  text-green-800' },
-  cancelled_by_rider:        { label: 'Annulée (passager)', cls: 'bg-rose-100   text-rose-800' },
-  cancelled_by_captain:      { label: 'Annulée (chauffeur)', cls: 'bg-rose-100  text-rose-800' },
+  cancelled_by_rider:        { label: 'Annulée (Client)', cls: 'bg-rose-100   text-rose-800' },
+  cancelled_by_captain:      { label: 'Annulée (Captain)', cls: 'bg-rose-100  text-rose-800' },
   cancelled_by_system:       { label: 'Annulée (système)',  cls: 'bg-rose-100   text-rose-800' },
   no_show:                   { label: 'No-show',            cls: 'bg-slate-200  text-slate-700' },
 };
@@ -82,8 +82,8 @@ export default function RidesPage() {
     onSuccess: (data) => {
       alert(
         data.captainsNotified > 0
-          ? `Course relancée — ${data.captainsNotified} chauffeur${data.captainsNotified > 1 ? 's' : ''} notifié${data.captainsNotified > 1 ? 's' : ''}.`
-          : 'Aucun chauffeur en ligne à proximité.',
+          ? `Course relancée — ${data.captainsNotified} Captain${data.captainsNotified > 1 ? 's' : ''} notifié${data.captainsNotified > 1 ? 's' : ''}.`
+          : 'Aucun Captain en ligne à proximité.',
       );
     },
     onError: (err: unknown) => {
@@ -171,7 +171,7 @@ export default function RidesPage() {
     },
     {
       key: 'passenger',
-      header: 'Passager',
+      header: 'Client',
       cell: (r) => (
         <div className="text-slate-700">
           <div className="font-medium">{r.passengerName ?? '—'}</div>

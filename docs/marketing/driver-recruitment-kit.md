@@ -59,8 +59,8 @@ Drivers already on Yango/Heetch/local apps **already have the car, the papers, a
 
 ### B. Facebook — search these terms, join the groups
 FB is where Nouakchott drivers organize. Search (FR + Arabic) and request to join:
-- `Chauffeur Nouakchott` · `Taxi Nouakchott` · `سائقين نواكشوط` · `تاكسي نواكشوط`
-- `Yango Nouakchott` / `Yango chauffeurs Mauritanie` (multi-app drivers)
+- `Captain Nouakchott` · `Taxi Nouakchott` · `كابتنين نواكشوط` · `تاكسي نواكشوط`
+- `Yango Nouakchott` / `Yango Captains Mauritanie` (multi-app drivers)
 - `Covoiturage Nouakchott` · `VTC Mauritanie`
 - `Vente voiture Nouakchott` / `سوق السيارات نواكشوط` (car owners = potential drivers)
 - Neighborhood buy/sell groups for Tevragh Zeina, Ksar, Sebkha, Arafat
@@ -84,7 +84,7 @@ A single partnership with a taxi cooperative can onboard dozens at once. Slower 
 
 ### D1 — Facebook / group post (pin it)
 **FR**
-> 🚖 **Chauffeurs de Nouakchott — Aloo recrute (places fondateurs limitées).**
+> 🚖 **Captains de Nouakchott — Aloo recrute (places fondateurs limitées).**
 > ✅ Tu gardes **~93% de ta course** — commission basse.
 > ✅ Payé **cash**, chaque jour.
 > ✅ Tes **clients reviennent** vers toi (favoris).
@@ -93,7 +93,7 @@ A single partnership with a taxi cooperative can onboard dozens at once. Slower 
 > 📲 Inscription en 2 min sur WhatsApp : **+222 …**
 
 **AR**
-> 🚖 **سائقي نواكشوط — "ألو" تبحث عنكم (أماكن المؤسّسين محدودة).**
+> 🚖 **كابتني نواكشوط — "ألو" تبحث عنكم (أماكن المؤسّسين محدودة).**
 > ✅ تحتفظ بـ**~93% من المشوار** — عمولة منخفضة.
 > ✅ مدفوع **كاش** كل يوم.
 > ✅ **زبائنك يرجعون ليك**.
@@ -102,7 +102,7 @@ A single partnership with a taxi cooperative can onboard dozens at once. Slower 
 > 📲 سجّل في دقيقتين على واتساب: **+222 …**
 
 ### D2 — WhatsApp first message (1-to-1)
-> Salam [prénom] 👋 On lance **Aloo**, la nouvelle app de course mauritanienne, et on cherche de bons chauffeurs sur Nouakchott.
+> Salam [prénom] 👋 On lance **Aloo**, la nouvelle app de course mauritanienne, et on cherche de bons Captains sur Nouakchott.
 > Tu gardes l'essentiel de ta course, payé cash chaque jour, et tes clients reviennent vers toi. L'inscription prend 2 min et on valide ton dossier nous-mêmes.
 > Tu veux que je t'explique ? Réponds **OUI** 🚗
 
@@ -147,7 +147,7 @@ Documents to collect from each captain (from the app's `become-captain` flow):
 - [ ] Phone number + name confirmed
 
 Process:
-1. Driver submits docs via WhatsApp (or in-app `Devenir chauffeur`).
+1. Driver submits docs via WhatsApp (or in-app `Devenir Captain`).
 2. Team reviews → approve/reject per document. **SLA: 24–72h** (faster = fewer drop-offs — aim same-day during launch).
 3. On approval: driver gets login, a **window sticker + vest**, and a 2-min "how to go online / accept a ride / read the heatmap" walkthrough.
 4. Set expiry reminders for assurance / vignette / visite technique (the app auto-suspends on expiry — warn them first).
