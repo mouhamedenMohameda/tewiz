@@ -51,7 +51,7 @@ Prix final: 455 MRU
 | Situation | Frais |
 |-----------|-------|
 | Attente après 2 min | 2 MRU/min |
-| Annulation (si chauffeur en route) | 30 MRU |
+| Annulation (si Captain en route) | 30 MRU |
 | Attente à destination | Gratuit (premiers 2 min), puis 2 MRU/min |
 
 ---
@@ -60,7 +60,7 @@ Prix final: 455 MRU
 
 1. **Prix transparent**: estimation affichée avant de confirmer
 2. **Prix compétitif**: souvent plus bas que le marché (12 km/33 min = 290 MRU vs 300 MRU ailleurs)
-3. **Chauffeurs motivés**: commission juste = meilleurs chauffeurs = service plus rapide
+3. **Captains motivés**: commission juste = meilleurs Captains = service plus rapide
 4. **Pas de surprise**: tous les tarifs arrondis proprement
 
 ---
@@ -76,7 +76,7 @@ Prix final: 455 MRU
 ## Questions?
 
 - Prix visibles AVANT de confirmer votre trajet
-- Chauffeur assigné = prix VERROUILLÉ (pas de surge pendant la course)
+- Captain assigné = prix VERROUILLÉ (pas de surge pendant la course)
 - Reçu détaillé après chaque course
 
 **Tewiz Rides: Tarif juste, service rapide.**

@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { api } from '@/lib/api';
 import { AppText, Card, Icon, PressableScale, Screen, ScreenHeader } from '@/components/ui';
 import { colors, radius, spacing } from '@/theme';
@@ -40,6 +41,7 @@ const TYPE_ACCENT: Record<string, { tint: string; fg: string }> = {
 
 export default function NotificationsScreen() {
   const router = useRouter();
+  const { t, i18n } = useTranslation();
   const [data, setData] = useState<InboxResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -85,11 +87,11 @@ export default function NotificationsScreen() {
   return (
     <Screen>
       <ScreenHeader
-        title="Notifications"
+        title={t('inbox.title')}
         onBack={() => router.back()}
         right={data && data.unreadCount > 0 ? (
           <PressableScale onPress={markAllRead}>
-            <AppText variant="label" color={colors.ember}>Tout lire</AppText>
+            <AppText variant="label" color={colors.ember}>{t('inbox.markAllRead')}</AppText>
           </PressableScale>
         ) : null}
       />
@@ -115,10 +117,10 @@ export default function NotificationsScreen() {
           <View style={{ alignItems: 'center', marginTop: spacing.xxl }}>
             <Icon name="bell" size={56} color={colors.faint} />
             <AppText variant="bodyStrong" color={colors.muted} style={{ marginTop: spacing.base }}>
-              Aucune notification
+              {t('inbox.emptyTitle')}
             </AppText>
             <AppText variant="caption" color={colors.ink2} style={{ marginTop: spacing.xs, textAlign: 'center' }}>
-              Les annonces et les bonus apparaîtront ici.
+              {t('inbox.emptyHint')}
             </AppText>
           </View>
         )}
@@ -157,7 +159,7 @@ export default function NotificationsScreen() {
                   {item.body}
                 </AppText>
                 <AppText variant="caption" color={colors.muted} style={{ marginTop: spacing.xs }}>
-                  {new Date(item.createdAt).toLocaleString('fr-FR', {
+                  {new Date(item.createdAt).toLocaleString(i18n.language, {
                     day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
                   })}
                 </AppText>

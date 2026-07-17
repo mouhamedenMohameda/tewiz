@@ -17,6 +17,8 @@
     "seed:store-test": "tsx scripts/seed-store-test-accounts.ts",
     "seed:restaurants": "tsx scripts/seed-restaurants.ts",
     "seed:heatmap": "tsx scripts/seed-heatmap-demo.ts",
+    "seed:translations": "tsx scripts/seed-translations.ts",
+    "export:translations": "tsx scripts/export-translations.ts",
     "fetch:food-pois": "tsx scripts/fetch-food-pois.ts",
     "clean:test-captain": "tsx scripts/clean-test-captain.ts",
     "clean:test-rider": "tsx scripts/clean-test-rider.ts"

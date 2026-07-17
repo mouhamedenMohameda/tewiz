@@ -46,7 +46,7 @@
 | **11** | Voice goes viral | Push the **voice-demo** hard on TikTok/Reels (P7). Reply to every comment & DM within minutes. |
 | **12** | Heart | Post the **"ride for a loved one"** piece (P8). Radio spot airs. |
 | **13** | Social proof | **Driver earnings** spotlight (P9, also recruits more drivers) + a **rider testimonial** (P10). |
-| **14** | Recap | Share first numbers — *X courses, Y chauffeurs, Z quartiers* (P11). Thank the community. Tease the next zone. Review metrics. |
+| **14** | Recap | Share first numbers — *X courses, Y Captains, Z quartiers* (P11). Thank the community. Tease the next zone. Review metrics. |
 
 ---
 
@@ -69,7 +69,7 @@
 
 ### D1 — Driver recruitment (Day 1, PIN this) · FB groups / WhatsApp
 **FR**
-> 🚖 **Chauffeurs de Nouakchott — Aloo recrute.**
+> 🚖 **Captains de Nouakchott — Aloo recrute.**
 > **Gagne plus. Le reste, dans ta poche.**
 > ✅ **Commission basse** — tu gardes l'essentiel de tes gains.
 > ✅ Paiement **cash**, chaque jour.
@@ -77,10 +77,10 @@
 > ✅ Mode **"je rentre chez moi"** : des courses sur ta route.
 > ✅ La **heatmap** te montre où sont les clients.
 > 📲 Inscris-toi en 2 min : WhatsApp +222 …
-> #ChauffeurNouakchott #Aloo
+> #CaptainNouakchott #Aloo
 
 **AR / Hassaniya**
-> 🚖 **سائقي نواكشوط — "ألو" تبحث عنكم.**
+> 🚖 **كابتني نواكشوط — "ألو" تبحث عنكم.**
 > **ربح أكثر. والباقي في جيبك.** · *rbah aktar · w lba9i f lbntk*
 > ✅ **عمولة منخفضة** — تحتفظ بأغلب مدخولك.
 > ✅ الدفع **كاش** كل يوم.
@@ -90,14 +90,14 @@
 > 📲 سجّل في دقيقتين: واتساب +222 …
 
 ### D2 — WhatsApp broadcast to drivers (Day 2)
-> Salam, [prénom] 👋 On lance **Aloo**, la nouvelle app de course mauritanienne, et on cherche des bons chauffeurs sur Nouakchott.
+> Salam, [prénom] 👋 On lance **Aloo**, la nouvelle app de course mauritanienne, et on cherche des bons Captains sur Nouakchott.
 > **Gagne plus. Le reste, dans ta poche.** Commission basse, paiement cash, tes clients reviennent vers toi. L'inscription prend 2 minutes et c'est nous qui validons ton dossier.
 > Ça t'intéresse ? Réponds **OUI** et je t'explique tout. 🚗
 
 ### D3 — Driver referral (Day 3)
 **FR**
-> 🤝 **Parraine un chauffeur, gagne un bonus.**
-> Tu connais un bon chauffeur ? Fais-le venir sur Aloo. Quand il termine ses premières courses, **tu reçois un bonus**, lui aussi.
+> 🤝 **Parraine un Captain, gagne un bonus.**
+> Tu connais un bon Captain ? Fais-le venir sur Aloo. Quand il termine ses premières courses, **tu reçois un bonus**, lui aussi.
 > Envoie son numéro sur WhatsApp +222 …
 
 ### P2 — Voice demo teaser (Day 4) · TikTok / Reels
@@ -126,7 +126,7 @@
 > 🚀 **Aloo est lancée à Nouakchott.**
 > 🎙️ **Ta voix suffit** — hassaniya, français, arabe, pulaar, wolof, soninké.
 > 💵 Paie en **cash**.
-> 📍 Suis ton chauffeur en direct.
+> 📍 Suis ton Captain en direct.
 > Ta première course est **offerte**. Crée ton compte en 2 min 👇
 > 📲 WhatsApp +222 …
 > **Parle. On t'amène.**
@@ -135,7 +135,7 @@
 > 🚀 **"ألو" أطلقت في نواكشوط.**
 > 🎙️ **صوتك يكفي** — حسانية، فرنسية، عربية، بولارية، ولفية، سوننكية.
 > 💵 خلّص **كاش**.
-> 📍 تابع سائقك مباشرة.
+> 📍 تابع كابتنك مباشرة.
 > أول مشوار **مجاني**. أنشئ حسابك في دقيقتين 👇
 > 📲 واتساب +222 …
 > **احكي... ونوصّلوك.** · *tkellem · wnwasslouk*
@@ -147,19 +147,19 @@
 ### P8 — Ride for a loved one (Day 12) · FB / IG ❤️ the hero post
 **FR**
 > 👵🧡 **Une course pour un proche — depuis ton téléphone.**
-> Elle n'a pas l'app ? Pas grave. **Commande pour elle**, où que tu sois. Le chauffeur l'appelle, l'amène, **et toi, tu paies depuis ton compte. Elle n'a même pas à le savoir.**
+> Elle n'a pas l'app ? Pas grave. **Commande pour elle**, où que tu sois. Le Captain l'appelle, l'amène, **et toi, tu paies depuis ton compte. Elle n'a même pas à le savoir.**
 > Parce que prendre soin des siens, ça commence par un appel.
 > *Aloo.* 🧡
 
 **AR / Hassaniya**
 > 👵🧡 **مشوار لشخص تحبّه — من تيلفونك.** · *mchwar llwalde*
-> ما عندها التطبيق؟ ما عليه. **اطلب ليها انت**، من أي بلاصة. السائق يكلّمها، يوصّلها، **وانت تخلّص من حسابك — هي ما تعلم.**
+> ما عندها التطبيق؟ ما عليه. **اطلب ليها انت**، من أي بلاصة. الكابتن يكلّمها، يوصّلها، **وانت تخلّص من حسابك — هي ما تعلم.**
 > *6leb lha · nte t5allas · hiy ma 3lmet ila b9yt*
 > لأن العناية بأهلك تبدأ بمكالمة.
 
 ### P9 — Driver earnings spotlight (Day 13) · FB (recruits + reassures)
 **FR**
-> 💼 **"En une semaine sur Aloo, j'ai gardé plus que d'habitude."** — [Prénom], chauffeur à Ksar.
+> 💼 **"En une semaine sur Aloo, j'ai gardé plus que d'habitude."** — [Prénom], Captain à Ksar.
 > **Gagne plus. Le reste, dans ta poche.** Commission basse, clients qui reviennent, cash chaque jour. Toi aussi, conduis avec nous 👇 WhatsApp +222 …
 
 ### P10 — Rider testimonial (Day 13) · IG / FB
@@ -168,16 +168,16 @@
 
 ### P11 — Week-1 recap (Day 14) · ALL
 **FR**
-> Merci Nouakchott. 🧡 En quelques jours : **[X] courses**, **[Y] chauffeurs**, **[Z] quartiers**.
+> Merci Nouakchott. 🧡 En quelques jours : **[X] courses**, **[Y] Captains**, **[Z] quartiers**.
 > On continue, quartier par quartier. Prochain arrêt : **[zone]**. 🚗
 > Pas encore inscrit ? 👇 +222 …
 
 ### Evergreen posts (reuse anytime you need content)
 - **How to sign up:** "Pas de compte ? C'est normal — on valide chaque utilisateur à la main pour ta sécurité. Écris-nous sur WhatsApp, ton compte est prêt en 2 min." *(turns your manual-onboarding constraint into a trust feature.)*
 - **Cash:** "Pas de carte ? Pas de souci. Chez Aloo, on paie comme toujours : **en cash**. 💵"
-- **Favorites:** "Un chauffeur que tu aimes bien ? Mets-le en **favori** — il viendra en priorité la prochaine fois. ⭐"
+- **Favorites:** "Un Captain que tu aimes bien ? Mets-le en **favori** — il viendra en priorité la prochaine fois. ⭐"
 - **Recurring (save for rentrée scolaire):** "École, travail, même trajet chaque jour ? Programme ta **course récurrente** et oublie le stress du matin. 📅"
-- **Safety/trust:** "Code à 4 chiffres pour confirmer ton chauffeur, suivi en direct, dossiers vérifiés. On roule en confiance. 🛡️"
+- **Safety/trust:** "Code à 4 chiffres pour confirmer ton Captain, suivi en direct, dossiers vérifiés. On roule en confiance. 🛡️"
 
 ---
 

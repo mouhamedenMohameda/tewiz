@@ -86,7 +86,7 @@ Refresh the cover for big moments: **public launch day**, **new zone**, **the vo
 >
 > 🎙️ **Ta voix suffit.** Tu commandes à la voix, dans n'importe laquelle de tes 6 langues.
 > 💵 Tu paies **cash**, à la fin, comme d'habitude.
-> 📍 Tu suis ton chauffeur en direct.
+> 📍 Tu suis ton Captain en direct.
 >
 > Pas une app étrangère adaptée à la va-vite. **La nôtre.**
 >
@@ -100,7 +100,7 @@ Refresh the cover for big moments: **public launch day**, **new zone**, **the vo
 >
 > 🎙️ **صوتك يكفي.** اطلب بصوتك، بأي لغة من لغاتك الست.
 > 💵 خلّص **كاش** في النهاية، كي بقيت.
-> 📍 تابع سائقك مباشرة.
+> 📍 تابع كابتنك مباشرة.
 >
 > ليس تطبيقاً أجنبياً مُكيّفاً على عجل. **تطبيقنا نحن.**
 >
@@ -144,7 +144,7 @@ Refresh the cover for big moments: **public launch day**, **new zone**, **the vo
 >
 > Aloo connaît tes quartiers, parle **tes langues** (les six), et se règle en **cash** — comme tu fais depuis toujours.
 >
-> Pas de carte bancaire. Pas de compte en ligne. Juste un trajet, ton chauffeur, ton billet.
+> Pas de carte bancaire. Pas de compte en ligne. Juste un trajet, ton Captain, ton billet.
 >
 > Marché Capitale, Ksar, Tevragh Zeina, Oum Tounsi… on parle le même langage. 🚗
 
@@ -153,7 +153,7 @@ Refresh the cover for big moments: **public launch day**, **new zone**, **the vo
 >
 > ألو تعرف أحياءك، تحكي **لغاتك** (الست)، وتخلّصو فيها **كاش** — كي بقيت ديما.
 >
-> لا بطاقة بنكية. لا حساب على الإنترنت. مشوار، سائقك، وفلوسك.
+> لا بطاقة بنكية. لا حساب على الإنترنت. مشوار، كابتنك، وفلوسك.
 >
 > سوق العاصمة، الكصر، تفرغ زينة، أم التونسي… نحكيو نفس اللغة. 🚗
 
@@ -169,7 +169,7 @@ Refresh the cover for big moments: **public launch day**, **new zone**, **the vo
 >
 > Elle doit sortir. Tu n'es pas là. Elle n'a pas l'app.
 >
-> Pas grave. **Tu commandes pour elle.** Le chauffeur l'appelle, l'amène. Et toi, **tu paies depuis ton compte — elle n'a même pas à le savoir.**
+> Pas grave. **Tu commandes pour elle.** Le Captain l'appelle, l'amène. Et toi, **tu paies depuis ton compte — elle n'a même pas à le savoir.**
 >
 > Parce que prendre soin des siens, ça commence par un appel.
 >
@@ -180,7 +180,7 @@ Refresh the cover for big moments: **public launch day**, **new zone**, **the vo
 >
 > هي لازم تخرج. انت بعيد. ما عندها التطبيق.
 >
-> ما عليه. **اطلب ليها انت.** السائق يكلّمها، يقلّها. وانت **تخلّص من حسابك — هي ما تعلم.**
+> ما عليه. **اطلب ليها انت.** الكابتن يكلّمها، يقلّها. وانت **تخلّص من حسابك — هي ما تعلم.**
 >
 > لأن العناية بأهلك تبدا بمكالمة.
 >
@@ -195,20 +195,20 @@ Refresh the cover for big moments: **public launch day**, **new zone**, **the vo
 > **Where to also push it:** every Nouakchott driver Facebook group + the printable flyer ([driver-flyer.html](./assets/driver-flyer.html)).
 
 **🇫🇷 French**
-> 🚖 **Chauffeurs de Nouakchott — Aloo recrute.**
+> 🚖 **Captains de Nouakchott — Aloo recrute.**
 >
 > **Gagne plus. Le reste, dans ta poche.**
 >
 > ✅ Commission basse — cash chaque jour
 > ✅ Tes clients reviennent vers toi
 > ✅ Mode « je rentre chez moi » — des courses sur ta route
-> ✅ Heatmap : tu vois où sont les passagers, en direct
+> ✅ Heatmap : tu vois où sont les Clients, en direct
 >
 > Inscription en 2 minutes sur WhatsApp +222 … 👇
 > *Les 50 premiers ont des avantages.*
 
 **🇲🇷 Arabic / Hassaniya**
-> 🚖 **سائقي نواكشوط — ألو تبحث عنكم.**
+> 🚖 **كابتني نواكشوط — ألو تبحث عنكم.**
 >
 > **ربح أكثر. والباقي في جيبك.**
 >
@@ -231,18 +231,18 @@ You hand off to [`launch-14-day-sprint.md`](./launch-14-day-sprint.md). The spri
 ## 6. About / Long description (paste into the page's About section)
 
 **🇫🇷**
-> Aloo est l'application de course (VTC) pensée et faite pour la Mauritanie. **Parle. On t'amène.** — tu commandes ton trajet à la voix, dans n'importe laquelle des six langues du pays (hassaniya, français, arabe, pulaar, wolof, soninké), tu suis ton chauffeur en direct sur la carte, et tu paies en cash à la fin de la course, comme tu as toujours fait.
+> Aloo est l'application de course (VTC) pensée et faite pour la Mauritanie. **Parle. On t'amène.** — tu commandes ton trajet à la voix, dans n'importe laquelle des six langues du pays (hassaniya, français, arabe, pulaar, wolof, soninké), tu suis ton Captain en direct sur la carte, et tu paies en cash à la fin de la course, comme tu as toujours fait.
 >
-> L'app propose aussi la commande pour un proche qui n'a pas l'application *(« Une course pour un proche »)*, les chauffeurs favoris, les courses récurrentes, et la livraison de colis.
+> L'app propose aussi la commande pour un proche qui n'a pas l'application *(« Une course pour un proche »)*, les Captains favoris, les courses récurrentes, et la livraison de colis.
 >
 > Lancée à Nouakchott. **Faite en Mauritanie. 🇲🇷**
 >
 > 📲 Crée ton compte en 2 minutes : WhatsApp +222 …
 
 **🇲🇷 Arabic**
-> ألو هو تطبيق المشاوير المُصمَّم هنا، لأجلنا، في موريتانيا. **احكي... ونوصّلوك.** — تطلب مشوارك بصوتك، بأي لغة من لغات البلد الست (الحسانية، الفرنسية، العربية، البولارية، الولفية، السوننكية)، تتابع سائقك مباشرة على الخريطة، وتخلّص كاش في النهاية كي بقيت ديما.
+> ألو هو تطبيق المشاوير المُصمَّم هنا، لأجلنا، في موريتانيا. **احكي... ونوصّلوك.** — تطلب مشوارك بصوتك، بأي لغة من لغات البلد الست (الحسانية، الفرنسية، العربية، البولارية، الولفية، السوننكية)، تتابع كابتنك مباشرة على الخريطة، وتخلّص كاش في النهاية كي بقيت ديما.
 >
-> التطبيق يوفّر كذلك خاصية «مشوار لشخص تحبّه، من تيلفونك» للأشخاص اللي ما عندهم التطبيق، السائقين المفضّلين، المشاوير المتكرّرة، وتوصيل الطرود.
+> التطبيق يوفّر كذلك خاصية «مشوار لشخص تحبّه، من تيلفونك» للأشخاص اللي ما عندهم التطبيق، الكابتنين المفضّلين، المشاوير المتكرّرة، وتوصيل الطرود.
 >
 > أُطلق في نواكشوط. **صُنع في موريتانيا. 🇲🇷**
 >

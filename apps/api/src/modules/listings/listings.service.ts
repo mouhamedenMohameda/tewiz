@@ -168,7 +168,7 @@ export async function publishListing(providerId: string, input: PublishListingIn
       throw new HttpError(404, 'user_not_found', 'Utilisateur introuvable');
     }
     if (user.role !== 'captain') {
-      throw new HttpError(403, 'captain_only', 'Seuls les chauffeurs peuvent publier une annonce');
+      throw new HttpError(403, 'captain_only', 'Seuls les Captains peuvent publier une annonce');
     }
 
     const phone = input.providerPhone?.trim() || user.phone;

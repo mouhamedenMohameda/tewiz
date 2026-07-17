@@ -11,7 +11,7 @@ import { creditWallet } from '../src/modules/wallet/wallet.service.js';
 
 const AMOUNT_MRU = 100;
 const LIMIT = 100;
-const REASON = 'Welcome bonus - 100 premiers chauffeurs';
+const REASON = 'Welcome bonus - 100 premiers Captains';
 
 async function main() {
   const dryRun = process.argv.includes('--dry-run');

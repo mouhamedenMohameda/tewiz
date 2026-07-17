@@ -55,16 +55,16 @@ interface Ride {
 }
 
 const STATUS_LABEL: Record<RideStatus, string> = {
-  pending_passenger_confirm: 'Confirmation passager en attente',
-  searching: 'Recherche d\'un chauffeur',
-  accepted: 'Acceptée — chauffeur en route',
-  arrived: 'Chauffeur arrivé',
+  pending_passenger_confirm: 'Confirmation Client en attente',
+  searching: 'Recherche d\'un Captain',
+  accepted: 'Acceptée — Captain en route',
+  arrived: 'Captain arrivé',
   in_progress: 'Course en cours',
   completed: 'Terminée',
   cancelled_by_rider: 'Annulée par le client',
-  cancelled_by_captain: 'Annulée par le chauffeur',
+  cancelled_by_captain: 'Annulée par le Captain',
   cancelled_by_system: 'Annulée par le système',
-  no_show: 'Passager absent',
+  no_show: 'Client absent',
 };
 
 const STATUS_COLOR: Record<RideStatus, string> = {
@@ -155,7 +155,7 @@ export default function RideDetailPage({ params }: { params: Promise<{ id: strin
   const timeline: { label: string; time: string | null }[] = [
     { label: 'Demandée', time: ride.requestedAt },
     { label: 'Acceptée', time: ride.acceptedAt },
-    { label: 'Chauffeur arrivé', time: ride.arrivedAt },
+    { label: 'Captain arrivé', time: ride.arrivedAt },
     { label: 'Démarrée', time: ride.startedAt },
     { label: 'Terminée', time: ride.completedAt },
   ];
@@ -172,7 +172,7 @@ export default function RideDetailPage({ params }: { params: Promise<{ id: strin
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Course #{ride.id.slice(0, 8)}</h1>
             <p className="text-sm text-slate-500 mt-1">
-              {ride.rideType === 'colis' ? '📦 Colis' : '🚖 Passager'}
+              {ride.rideType === 'colis' ? '📦 Colis' : '🚖 Client'}
               {' · '}
               Demandée à {fmtTime(ride.requestedAt)}
             </p>
@@ -252,18 +252,18 @@ export default function RideDetailPage({ params }: { params: Promise<{ id: strin
               Personnes
             </h2>
             <div>
-              <div className="text-xs text-slate-500">Passager</div>
+              <div className="text-xs text-slate-500">Client</div>
               <div className="text-sm text-slate-900">
                 {ride.passengerName ?? '—'}
                 {ride.passengerPhone ? <span className="text-slate-500"> · {ride.passengerPhone}</span> : null}
               </div>
             </div>
             <div className="mt-3">
-              <div className="text-xs text-slate-500">Chauffeur</div>
+              <div className="text-xs text-slate-500">Captain</div>
               <div className="text-sm text-slate-900">
                 {ride.captain ? (
                   <span>
-                    {ride.captain.fullName ?? 'Chauffeur'}
+                    {ride.captain.fullName ?? 'Captain'}
                     <span className="text-slate-500"> · {ride.captain.phone}</span>
                   </span>
                 ) : ride.captainId ? (
@@ -277,13 +277,13 @@ export default function RideDetailPage({ params }: { params: Promise<{ id: strin
             {acceptances.length > 0 ? (
               <div className="mt-4 pt-4 border-t border-slate-100">
                 <div className="text-xs text-slate-500">
-                  Chauffeurs ayant accepté ({acceptances.length})
+                  Captains ayant accepté ({acceptances.length})
                 </div>
                 <ul className="mt-2 space-y-2">
                   {acceptances.map((a) => (
                     <li key={a.captainId} className="flex items-center justify-between gap-3 text-sm">
                       <div className="min-w-0">
-                        <span className="text-slate-900">{a.fullName ?? 'Chauffeur'}</span>
+                        <span className="text-slate-900">{a.fullName ?? 'Captain'}</span>
                         <span className="text-slate-500"> · {a.phone}</span>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">

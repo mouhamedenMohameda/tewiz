@@ -1,4 +1,4 @@
--- "Mes chauffeurs" (favorite captains) and recurring rides.
+-- "Mes Captains" (favorite captains) and recurring rides.
 
 CREATE TABLE favorite_captains (
   rider_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,

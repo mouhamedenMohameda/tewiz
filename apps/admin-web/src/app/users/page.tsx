@@ -290,7 +290,7 @@ export default function UsersPage() {
             >
               <option value="all">Tous les rôles</option>
               <option value="rider">Riders</option>
-              <option value="captain">Chauffeurs</option>
+              <option value="captain">Captains</option>
               <option value="admin">Admins</option>
             </select>
             <button
@@ -503,8 +503,8 @@ function CreateUserModal({
               onChange={(e) => setRole(e.target.value as 'rider' | 'captain' | 'admin')}
               className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white"
             >
-              <option value="rider">Rider (passager)</option>
-              <option value="captain">Chauffeur</option>
+              <option value="rider">Rider (Client)</option>
+              <option value="captain">Captain</option>
               {isSuperAdmin && (
                 <option value="admin">Administrateur</option>
               )}

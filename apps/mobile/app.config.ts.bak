@@ -25,15 +25,15 @@ const config: ExpoConfig = {
     bundleIdentifier: BUNDLE_ID,
     infoPlist: {
       NSLocationWhenInUseUsageDescription:
-        'Pour commander une course et — en mode chauffeur — recevoir des courses proches.',
+        'Pour commander une course et — en mode Captain — recevoir des courses proches.',
       // No NSLocationAlwaysAndWhenInUseUsageDescription: the app only uses
       // foreground location (getCurrentPositionAsync). Declaring Always
       // without runtime usage triggers App Store rejection under
       // guideline 5.1.1 (data collection scope).
       NSCameraUsageDescription:
-        'Pour prendre les photos requises pour votre dossier de chauffeur.',
+        'Pour prendre les photos requises pour votre dossier de Captain.',
       NSPhotoLibraryUsageDescription:
-        'Pour joindre vos documents à votre dossier de chauffeur.',
+        'Pour joindre vos documents à votre dossier de Captain.',
       NSMicrophoneUsageDescription:
         'Pour dicter votre départ et votre destination par la voix (en français, hassaniya ou arabe).',
       ITSAppUsesNonExemptEncryption: false,
@@ -78,13 +78,13 @@ const config: ExpoConfig = {
         // Foreground-only — see comment on NSLocationWhenInUseUsageDescription
         // above. Switch to `locationAlwaysAndWhenInUsePermission` only if we
         // actually start a background TaskManager for ride tracking.
-        locationWhenInUsePermission: `${APP_NAME} utilise votre position pour commander ou — en mode chauffeur — recevoir des courses.`,
+        locationWhenInUsePermission: `${APP_NAME} utilise votre position pour commander ou — en mode Captain — recevoir des courses.`,
       },
     ],
     [
       'expo-image-picker',
       {
-        photosPermission: `${APP_NAME} a besoin d'accéder à vos photos pour votre dossier de chauffeur.`,
+        photosPermission: `${APP_NAME} a besoin d'accéder à vos photos pour votre dossier de Captain.`,
         cameraPermission: `${APP_NAME} a besoin de la caméra pour photographier vos documents et votre véhicule.`,
       },
     ],

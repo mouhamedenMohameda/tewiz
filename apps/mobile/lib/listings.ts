@@ -47,8 +47,8 @@ export const CATEGORY_META: Record<string, {
   descPlaceholder: string;
 }> = {
   private_driver: {
-    label: 'Chauffeur Privé', priceUnit: 'per_hour', unitSuffix: '/h', pricePrompt: 'Tarif horaire',
-    titlePlaceholder: 'Ex: Chauffeur dispo soir & week-end',
+    label: 'Captain Privé', priceUnit: 'per_hour', unitSuffix: '/h', pricePrompt: 'Tarif horaire',
+    titlePlaceholder: 'Ex: Captain dispo soir & week-end',
     descPlaceholder: 'Ex: Berline climatisée, +5 ans d\'expérience, Nouakchott et environs',
   },
   convoyage: {
@@ -59,7 +59,7 @@ export const CATEGORY_META: Record<string, {
   car_rental: {
     label: 'Location Auto', priceUnit: 'per_day', unitSuffix: '/jour', pricePrompt: 'Tarif journalier',
     titlePlaceholder: 'Ex: Toyota Corolla 2020 à louer',
-    descPlaceholder: 'Ex: Climatisée, avec ou sans chauffeur, caution demandée',
+    descPlaceholder: 'Ex: Climatisée, avec ou sans Captain, caution demandée',
   },
   roadside_assistance: {
     label: 'Assistance Routière', priceUnit: 'fixed', unitSuffix: '', pricePrompt: 'Tarif de base',

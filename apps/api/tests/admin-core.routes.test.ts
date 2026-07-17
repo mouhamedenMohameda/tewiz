@@ -285,7 +285,7 @@ describe('POST /admin/applications/:id/approve', () => {
     status: 'submitted',
     user_id: 'user-9',
     phone: '+22245123456',
-    full_name: 'Nouveau Chauffeur',
+    full_name: 'Nouveau Captain',
     vehicle_type: 'car',
     accepts_colis: false,
     accepts_long_distance: false,

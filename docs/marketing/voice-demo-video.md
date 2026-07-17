@@ -32,7 +32,7 @@ Show the magic literally: a person **speaks**, a car **comes**. No typing, no ap
 ## Version B — 30s explainer (the "why")
 Same spine as A, expanded:
 - After shot 2, add **two more bookings** — one in French, one in pulaar or wolof — with the line: **« Hassaniya, français, arabe, pulaar, wolof, soninké — on comprend toutes tes langues. »**
-- Add **live tracking** (finger following the car on the map) → **« Suis ton chauffeur en direct. »**
+- Add **live tracking** (finger following the car on the map) → **« Suis ton Captain en direct. »**
 - Add the **4-digit code** confirmation at pickup → **« Tu confirmes avec ton code. »**
 - Keep the cash + end card. Total ~30s.
 
@@ -44,7 +44,7 @@ The emotional cut — this is the brand's soul.
 | 1 | 0–3s | A young man at work / in the street looks at his phone, a little worried | **Elle doit sortir. Tu n'es pas là.** |
 | 2 | 3–8s | He opens Aloo, books **for her** (enters her number), speaks her destination | **Commande pour elle.** / *اطلب ليها انت* |
 | 3 | 8–13s | Cut to the mother at home; her phone rings (the captain calls); a car waits | *(captain, kindly)* « Je suis là, j'arrive. » |
-| 4 | 13–17s | Captain helps her into the car; she smiles; son watching his phone, relieved | **Le chauffeur l'appelle, l'amène. Toi, tu paies — elle n'a même pas à le savoir.** / *وانت تخلّص من حسابك* |
+| 4 | 13–17s | Captain helps her into the car; she smiles; son watching his phone, relieved | **Le Captain l'appelle, l'amène. Toi, tu paies — elle n'a même pas à le savoir.** / *وانت تخلّص من حسابك* |
 | 5 | 17–20s | End card | **Une course pour un proche, depuis ton tel.** / *مشوار لشخص تحبّه، من تيلفونك.* / *mchwar llwalde* · *Aloo.* 🧡 |
 
 ---

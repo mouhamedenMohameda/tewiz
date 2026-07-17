@@ -19,6 +19,28 @@ type Phase = 'record' | 'uploading' | 'waiting' | 'rejected';
 
 const MIN_RECORD_MS = 1200;
 
+// Waiting-phase staged progress: purely cosmetic, driven by elapsed time since
+// the request was created. Each threshold (ms) is when that step becomes
+// active; the last step holds once reached. Past SLOW_THRESHOLD_MS we switch
+// to an honest "this is taking longer than usual" message instead of a made-up
+// reason — the request is still genuinely being worked, just slower than usual.
+const STEP_THRESHOLDS_MS = [0, 5_000, 13_000, 24_000];
+const SLOW_THRESHOLD_MS = 100_000;
+const PROCESSING_STEPS: { icon: 'sparkle' | 'pin' | 'captain'; key: string }[] = [
+  { icon: 'sparkle', key: 'processingStep1' },
+  { icon: 'sparkle', key: 'processingStep2' },
+  { icon: 'pin', key: 'processingStep3' },
+  { icon: 'captain', key: 'processingStep4' },
+];
+
+function stepIndexForElapsed(elapsedMs: number): number {
+  let idx = 0;
+  STEP_THRESHOLDS_MS.forEach((threshold, i) => {
+    if (elapsedMs >= threshold) idx = i;
+  });
+  return idx;
+}
+
 export default function VoiceRideScreen() {
   const router = useRouter();
   const { t } = useTranslation();
@@ -171,7 +193,7 @@ export default function VoiceRideScreen() {
         )}
 
         {phase === 'waiting' && (
-          <WaitingView onCancel={onCancel} />
+          <WaitingView request={request} onCancel={onCancel} />
         )}
 
         {phase === 'rejected' && (
@@ -262,8 +284,27 @@ function RecordView({
 }
 
 // ── Waiting phase ────────────────────────────────────────────────────────────
-function WaitingView({ onCancel }: { onCancel: () => void }) {
+function WaitingView({ request, onCancel }: { request: VoiceRideRequest | null; onCancel: () => void }) {
   const { t } = useTranslation();
+
+  // Recomputed on every render (each ~4 s poll re-renders this while waiting),
+  // never memoized — elapsed time must advance even though `createdAt` itself
+  // never changes for a given request.
+  const createdMs = request?.createdAt ? Date.parse(request.createdAt) : NaN;
+  const elapsedMs = Number.isNaN(createdMs) ? 0 : Math.max(0, Date.now() - createdMs);
+
+  const stepIndex = stepIndexForElapsed(elapsedMs);
+  const step = PROCESSING_STEPS[stepIndex] ?? PROCESSING_STEPS[0]!;
+  const isSlow = elapsedMs >= SLOW_THRESHOLD_MS;
+
+  // Fade the label in on each step change so it reads as progress, not a
+  // single static line.
+  const fade = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    fade.setValue(0);
+    Animated.timing(fade, { toValue: 1, duration: 320, useNativeDriver: true }).start();
+  }, [stepIndex, fade]);
+
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
       <View style={{
@@ -275,8 +316,16 @@ function WaitingView({ onCancel }: { onCancel: () => void }) {
       <AppText variant="h1" color={colors.onEspresso} align="center" style={{ marginTop: spacing.xl }}>
         {t('rider.voiceRide.waitingTitle')}
       </AppText>
+
+      <Animated.View style={{ opacity: fade, flexDirection: 'row', alignItems: 'center', marginTop: spacing.md }}>
+        <Icon name={step.icon} size={18} color={colors.saffron} />
+        <AppText variant="bodyStrong" color={colors.onEspresso} style={{ marginStart: spacing.sm }}>
+          {t(`rider.voiceRide.${step.key}`)}
+        </AppText>
+      </Animated.View>
+
       <AppText variant="body" color={colors.onEspressoMuted} align="center" style={{ marginTop: spacing.md, maxWidth: 300 }}>
-        {t('rider.voiceRide.waitingBody')}
+        {isSlow ? t('rider.voiceRide.waitingSlow') : t('rider.voiceRide.waitingBody')}
       </AppText>
 
       <Pressable

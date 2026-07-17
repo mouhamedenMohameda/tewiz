@@ -143,7 +143,7 @@ export async function publishTrip(driverId: string, input: PublishTripInput): Pr
       throw new HttpError(404, 'user_not_found', 'Utilisateur introuvable');
     }
     if (user.role !== 'captain') {
-      throw new HttpError(403, 'captain_only', 'Seuls les chauffeurs peuvent publier un trajet');
+      throw new HttpError(403, 'captain_only', 'Seuls les Captains peuvent publier un trajet');
     }
 
     const phone = input.driverPhone?.trim() || user.phone;
@@ -443,7 +443,7 @@ function mapBookingRow(row: BookingRow, viewer: 'driver' | 'passenger'): Booking
     departureAt: row.departure_at.toISOString(),
     pricePerSeatMru: row.price_per_seat_mru,
     driverName: row.driver_name ?? 'Conducteur',
-    passengerName: row.passenger_name ?? 'Passager',
+    passengerName: row.passenger_name ?? 'Client',
     // Passenger sees the driver phone; driver sees the passenger phone — only
     // once accepted.
     driverPhone: viewer === 'passenger' && revealed ? row.driver_phone : null,

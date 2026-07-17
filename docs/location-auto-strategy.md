@@ -22,7 +22,7 @@ migrations `0045_car_rental.sql` (legacy sur `rides`) et `0053_car_rental.sql`
 
 **Déjà en place :**
 - `car_listings` : le propriétaire liste une voiture (prix/jour, `deposit_mru`,
-  avec/sans chauffeur, photos, statut). **La mise en ligne est déjà gratuite**
+  avec/sans Captain, photos, statut). **La mise en ligne est déjà gratuite**
   (aucun frais de publication) → le levier « pas de pay-to-post » est acquis.
 - `car_bookings` : le locataire réserve des dates (`start_date`, `end_date`,
   `days`, `total_mru`), statuts `pending → confirmed / declined / cancelled /

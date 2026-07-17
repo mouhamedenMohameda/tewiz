@@ -145,7 +145,7 @@ export default function NewRideScreen() {
         const p: Point = {
           lat: loc.coords.latitude,
           lng: loc.coords.longitude,
-          label: 'Ma position',
+          label: t('rider.newRide.myPositionLabel'),
         };
         if (!pickup) setPickup(p);
         else if (!dropoff) setDropoff(p);
@@ -985,7 +985,10 @@ function PhoneInput({
       }}>
         <View style={{
           paddingHorizontal: 10, justifyContent: 'center',
-          backgroundColor: '#f1f5f9', borderRightWidth: 1, borderRightColor: '#cbd5e1',
+          backgroundColor: '#f1f5f9',
+          ...(ar
+            ? { borderLeftWidth: 1, borderLeftColor: '#cbd5e1' }
+            : { borderRightWidth: 1, borderRightColor: '#cbd5e1' }),
         }}>
           <Text style={{ fontSize: 14, fontWeight: '600', color: '#475569' }}>+222</Text>
         </View>

@@ -1,4 +1,4 @@
--- Private Driver (Chauffeur Privé): hourly booking of a captain.
+-- Private Driver (Captain Privé): hourly booking of a captain.
 --
 -- The rider books a captain for a fixed number of hours (3, 6, 12, or 24)
 -- at a flat hourly rate. No destination required. At completion the fare is

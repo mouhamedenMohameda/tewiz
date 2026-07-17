@@ -3,7 +3,7 @@
 ## Concept
 
 Service de visibilité payante pour conducteurs inter-villes.
-Le conducteur paye un frais fixe pour publier son trajet. Le passager cherche, trouve, clique pour voir le numéro, et appelle lui-même. Aucun paiement côté passager.
+Le conducteur paye un frais fixe pour publier son trajet. Le Client cherche, trouve, clique pour voir le numéro, et appelle lui-même. Aucun paiement côté Client.
 
 ---
 
@@ -12,7 +12,7 @@ Le conducteur paye un frais fixe pour publier son trajet. Le passager cherche, t
 - **Revenu** : frais de publication payé par le conducteur (débité du wallet Tewiz)
 - **Montant** : configurable par admin (défaut: 100 MRU)
 - **Option boost** : mise en avant payante (200 MRU) → trajet affiché en premier pendant 24h
-- Le passager ne paye rien
+- Le Client ne paye rien
 
 ---
 
@@ -290,7 +290,7 @@ Ajouter dans la page settings existante:
 
 ### Notification future (quand il y a du volume)
 
-Enregistrer les recherches des passagers. Quand un nouveau trajet est publié qui match une recherche récente → notifier le passager:
+Enregistrer les recherches des Clients. Quand un nouveau trajet est publié qui match une recherche récente → notifier le Client:
 "Nouveau trajet Nouakchott → Atar demain à 7h — 1500 MRU/place"
 
 (Implémentation: table `carpooling_search_alerts` avec user_id, origin, destination. Job qui vérifie les nouveaux trips toutes les 30min.)

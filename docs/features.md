@@ -18,7 +18,7 @@
 - 4-digit OTP confirms delivery
 - Higher commission (10%)
 
-### 👨‍👩‍👧 Mes chauffeurs (favorite captains)
+### 👨‍👩‍👧 Mes Captains (favorite captains)
 - Rider prompts to add captain after 5-star rating
 - Dispatch tries favorites first (30s window) before falling back
 - Captain sees "Vous êtes favori de X clients"

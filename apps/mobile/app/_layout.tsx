@@ -22,7 +22,7 @@ import { registerBackgroundRideAlertTask } from '@/lib/fullScreenRideAlert';
 // OS can invoke it once the captain starts tracking (Level B).
 import '@/lib/track-task';
 import { readAndClearCrash } from '@/lib/crash-reporter';
-import { initI18n } from '@/lib/i18n';
+import { initI18n, startTranslationSync } from '@/lib/i18n';
 import { loadAppConfig } from '@/lib/appConfig';
 import { CrashBoundary } from '@/components/CrashBoundary';
 import { NotificationTapHandler } from '@/components/NotificationTapHandler';
@@ -36,19 +36,24 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
   const hydrate = useAuth((s) => s.hydrate);
+  const userId = useAuth((s) => s.user?.id);
   const [crashShown, setCrashShown] = useState(false);
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const [i18nReady, setI18nReady] = useState(false);
 
   useEffect(() => {
     let mounted = true;
+    let stopTranslationSync: (() => void) | undefined;
     initI18n().finally(() => {
       if (mounted) setI18nReady(true);
+      // Pull any admin-side translation corrections published since the JSON
+      // bundled in this binary was built, then keep checking on foreground.
+      stopTranslationSync = startTranslationSync();
     });
     // Fire-and-forget: populate the in-memory + AsyncStorage config cache.
     // The auth screens read it synchronously via getAppConfig() once i18n is ready.
     void loadAppConfig();
-    return () => { mounted = false; };
+    return () => { mounted = false; stopTranslationSync?.(); };
   }, []);
 
   // Show the previous crash (if any) as an Alert on first mount.
@@ -93,15 +98,24 @@ export default function RootLayout() {
           await setUser(fresh);
         }
       } catch {}
-      // Push registration: safe to call every launch (server upserts).
-      // Useful even for riders (future ride status updates).
-      void registerForPushNotifications();
-      // Android-only: register the headless task that pops the full-screen
-      // "incoming ride" screen when a ride push lands while the app is
-      // backgrounded or killed. No-op on iOS / old builds.
-      void registerBackgroundRideAlertTask();
     })();
   }, [hydrate]);
+
+  // Push registration: reactive to the signed-in user rather than only
+  // firing on cold start. `hydrate()` above only populates `user` from a
+  // previously *persisted* session — a fresh login during the current app
+  // session (phone.tsx / guest.ts) never re-runs the effect above, so
+  // without this a just-logged-in user could go a whole session with no
+  // push token registered. Safe to call every time the user id appears/
+  // changes: the server upserts by (user_id, device_id).
+  useEffect(() => {
+    if (!userId) return;
+    void registerForPushNotifications();
+    // Android-only: register the headless task that pops the full-screen
+    // "incoming ride" screen when a ride push lands while the app is
+    // backgrounded or killed. No-op on iOS / old builds.
+    void registerBackgroundRideAlertTask();
+  }, [userId]);
 
   // Don't render the app shell until fonts resolve (or fail) — avoids a
   // flash-of-system-font. On font error we still proceed (system fallback).

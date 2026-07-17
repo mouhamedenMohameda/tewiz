@@ -61,7 +61,7 @@ const PROVIDER_LOGOS: Record<Provider, any> = {
   cash_office: require('@/assets/icon.png'),
 };
 
-// Numéros officiels où le chauffeur doit envoyer la recharge. Affichés
+// Numéros officiels où le Captain doit envoyer la recharge. Affichés
 // dans la modale dès qu'il sélectionne le fournisseur correspondant.
 const PROVIDER_PHONES: Partial<Record<Provider, string>> = {
   bankily: '42986738',

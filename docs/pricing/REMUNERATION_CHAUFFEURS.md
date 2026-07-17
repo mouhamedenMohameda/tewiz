@@ -1,4 +1,4 @@
-# Rémunération Chauffeurs - Tewiz Rides
+# Rémunération Captains - Tewiz Rides
 
 ## Votre commission: simple et juste
 
@@ -65,8 +65,8 @@ TOTAL NET/SEMAINE: 11,740 MRU
 ✓ Rester avec nous, c'est rentable
 
 ### 4. Bonus parrainage
-- **Vous parrainez un chauffeur**: prime si votre ami complète 60 trajets
-- **Prime**: 500 MRU par chauffeur parrainé
+- **Vous parrainez un Captain**: prime si votre ami complète 60 trajets
+- **Prime**: 500 MRU par Captain parrainé
 - **Maximum**: 5 parrainages/mois = +2,500 MRU
 
 ✓ Créez votre réseau, gagnez plus
@@ -81,7 +81,7 @@ TOTAL NET/SEMAINE: 11,740 MRU
 - **Délai**: 24h après la fin de la semaine
 
 ### Transparence
-- **Dashboard chauffeur**: revenus réels en temps réel
+- **Dashboard Captain**: revenus réels en temps réel
 - **Historique**: détail de chaque trajet et bonus
 - **Estimation**: bonus cumulés visibles avant la semaine
 - **Réclamations**: résolu en 48h max
@@ -90,13 +90,13 @@ TOTAL NET/SEMAINE: 11,740 MRU
 
 ## Comparaison marché
 
-| Plateforme | Prix client (12km/33min) | Commission | Revenu chauffeur |
+| Plateforme | Prix client (12km/33min) | Commission | Revenu Captain |
 |------------|--------------------------|------------|------------------|
 | Concurrent A | 300 MRU | 15% | 255 MRU |
 | Concurrent B | 285 MRU | 10% | 256.5 MRU |
 | **Tewiz Rides** | **290 MRU** | **8%** | **266.8 MRU** |
 
-✓ **Nous:** tarif client compétitif + revenu chauffeur supérieur
+✓ **Nous:** tarif client compétitif + revenu Captain supérieur
 
 ---
 
@@ -113,7 +113,7 @@ Pour accéder à tous les bonus, respectez:
 
 ---
 
-## Devenir chauffeur
+## Devenir Captain
 
 1. **Inscription rapide**: 5 min
 2. **Documents requis**: permis, assurance, ID

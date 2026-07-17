@@ -3,7 +3,7 @@
 React Native (Expo) app for Tewiz — single app for **riders** and **captains**.
 
 Every user signs up as a rider. A rider can submit a captain application
-("Devenir chauffeur"); once approved, the user gets a second profile and
+("Devenir Captain"); once approved, the user gets a second profile and
 can toggle between **rider mode** (request rides) and **captain mode**
 (accept rides) at any time.
 
@@ -32,7 +32,7 @@ and Expo web). For a physical device on the same Wi-Fi, set
 ## Flow
 
 1. **Auth** — phone entry → OTP code. New users get `role: 'rider'`.
-2. **Rider home** — request a ride, history, favorites, "Devenir chauffeur" CTA.
+2. **Rider home** — request a ride, history, favorites, "Devenir Captain" CTA.
 3. **Become captain (KYC)** — opt-in flow: personal info → vehicle → 14
    document photos → submit. Admin approves/rejects per document. On
    approval, the user's role flips to `captain` and the mode toggle appears.

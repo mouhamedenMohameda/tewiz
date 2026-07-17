@@ -64,7 +64,7 @@ export default function StatsPage() {
         <h1 className="text-2xl font-bold text-slate-900 mb-1">Statistiques</h1>
         <p className="text-sm text-slate-500 mb-6">
           Activité des 7 derniers jours — répartition app vs call-center, taux
-          d&apos;acceptation et temps moyen avant qu&apos;un chauffeur prenne la course.
+          d&apos;acceptation et temps moyen avant qu&apos;un Captain prenne la course.
         </p>
 
         {isLoading && <div className="text-slate-500">Chargement…</div>}

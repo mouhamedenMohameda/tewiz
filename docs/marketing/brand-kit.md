@@ -158,12 +158,12 @@ Grab the **same handle everywhere** before someone else does.
 > Parle. On t'amène. 🎙️🚗 *tkellem · wnwasslouk* · cash · WhatsApp 👇
 
 **WhatsApp Business — short description:**
-> Aloo — l'app de course mauritanienne. Écris-nous pour créer ton compte (2 min) ou devenir chauffeur. 🚗
+> Aloo — l'app de course mauritanienne. Écris-nous pour créer ton compte (2 min) ou devenir Captain. 🚗
 
 **WhatsApp auto-reply (greeting):**
 > Salam ! 👋 Bienvenue chez Aloo. *Parle. On t'amène.*
-> 1️⃣ Créer mon compte passager
-> 2️⃣ Devenir chauffeur
+> 1️⃣ Créer mon compte Client
+> 2️⃣ Devenir Captain
 > 3️⃣ Une question
 > Réponds avec le numéro 🙏 / اكتب الرقم
 
@@ -180,7 +180,7 @@ Grab the **same handle everywhere** before someone else does.
 > Aloo is the Mauritanian ride-hailing app you can book by voice — in hassaniya, French, Arabic, pulaar, wolof or soninké — and pay for in cash.
 
 **Boilerplate (FR):**
-> Aloo est l'application de course (VTC) pensée et faite pour la Mauritanie. On commande un trajet en quelques secondes, à la voix ou au texte, dans n'importe laquelle des six langues du pays — hassaniya, français, arabe, pulaar, wolof ou soninké ; on suit son chauffeur en direct ; et on paie en espèces. Lancée à Nouakchott, l'app propose aussi la livraison de colis, les chauffeurs favoris et la commande pour un proche qui n'a pas l'application.
+> Aloo est l'application de course (VTC) pensée et faite pour la Mauritanie. On commande un trajet en quelques secondes, à la voix ou au texte, dans n'importe laquelle des six langues du pays — hassaniya, français, arabe, pulaar, wolof ou soninké ; on suit son Captain en direct ; et on paie en espèces. Lancée à Nouakchott, l'app propose aussi la livraison de colis, les Captains favoris et la commande pour un proche qui n'a pas l'application.
 
 **Contacts:** WhatsApp +222 …
 

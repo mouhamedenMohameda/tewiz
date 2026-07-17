@@ -652,7 +652,7 @@ function PrivateDriverTimerCard({
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: isOvertime ? '#ef4444' : '#10a35e' }} />
         <Text style={{ fontSize: 11, fontWeight: '700', color: isOvertime ? '#ef4444' : '#10a35e', letterSpacing: 0.6 }}>
-          {isOvertime ? 'TEMPS DÉPASSÉ' : 'CHAUFFEUR PRIVÉ'}
+          {isOvertime ? 'TEMPS DÉPASSÉ' : 'Captain PRIVÉ'}
         </Text>
       </View>
 

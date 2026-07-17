@@ -53,7 +53,7 @@ export default function DocumentRequirementsPage() {
           <h1 className="text-2xl font-bold text-slate-900">Documents requis</h1>
           <p className="text-sm text-slate-500 mt-1">
             Choisissez quels documents sont obligatoires pour valider un dossier
-            chauffeur. Les documents non requis peuvent toujours être envoyés,
+            Captain. Les documents non requis peuvent toujours être envoyés,
             mais ne bloquent pas l&apos;approbation.
           </p>
         </div>

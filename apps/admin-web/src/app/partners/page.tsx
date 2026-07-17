@@ -288,7 +288,7 @@ function CreatePartnerModal({
               onChange={(e) => switchType(e.target.value as PartnerType)}
               className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white"
             >
-              <option value="agency">Agence de livraison (côté chauffeurs)</option>
+              <option value="agency">Agence de livraison (côté Captains)</option>
               <option value="restaurant">Restaurant (crée des courses)</option>
               <option value="individual">Membre particulier (crée des courses)</option>
             </select>

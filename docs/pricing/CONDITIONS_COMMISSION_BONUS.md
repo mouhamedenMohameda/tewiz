@@ -7,13 +7,13 @@
 
 ### Commission fixe
 - **Taux**: 8% sur le prix final du trajet TTC
-- **Applicable à**: TOUS les chauffeurs (pas d'exceptions individuelles)
+- **Applicable à**: TOUS les Captains (pas d'exceptions individuelles)
 - **Calcul**: Commission = Prix final × 0.08
-- **Exemple**: 290 MRU trajet → 23.2 MRU commission → 266.8 MRU payout chauffeur
+- **Exemple**: 290 MRU trajet → 23.2 MRU commission → 266.8 MRU payout Captain
 
 ### Prix minimum garanti
 - **Minimum client**: 100 MRU
-- **Minimum payout**: chauffeur reçoit min 92 MRU (100 × 92%)
+- **Minimum payout**: Captain reçoit min 92 MRU (100 × 92%)
 
 ### Frais non-commissionés
 Les bonus, frais d'attente, et frais d'annulation sont exclus de la base commission.
@@ -38,7 +38,7 @@ Calculé chaque lundi matin sur les trajets de la semaine précédente (lun-dim)
 
 ### Calcul
 - Comptage strict: 1 trajet = 1 déplacement payé complété
-- Annulations par chauffeur = non comptabilisées
+- Annulations par Captain = non comptabilisées
 - Trajets avec litiges = en attente de résolution (pris en compte après confirmation)
 
 ---
@@ -54,17 +54,17 @@ Paiement hebdomadaire, chaque lundi.
 | Soir rush | 17h-20h | 120 MRU |
 
 ### Conditions pour débloquer
-- Chauffeur doit être actif au moins 50% du créneau (ex: 60 min sur 120 min pour le matin)
+- Captain doit être actif au moins 50% du créneau (ex: 60 min sur 120 min pour le matin)
 - Minimum 3 trajets complétés durant le créneau
 - Taux d'annulation ≤ 10% ce créneau
 
 ### Budget cap
 - Max 2 créneaux/jour
-- Max +2,400 MRU/mois par chauffeur (si tous les jours couverts)
+- Max +2,400 MRU/mois par Captain (si tous les jours couverts)
 
 ### Réinitialisation
 - Bonus reset chaque semaine (lundi)
-- Chauffeur doit se réincrire pour la semaine suivante
+- Captain doit se réincrire pour la semaine suivante
 
 ---
 
@@ -86,13 +86,13 @@ Calculé mensuellement, paiement intégré au virement mensuel supplémentaire.
 
 ### Application
 - Bonus versé le 1er du mois suivant
-- Droit acquis = appliqué au paiement même si le chauffeur démissionne en fin de mois
+- Droit acquis = appliqué au paiement même si le Captain démissionne en fin de mois
 
 ---
 
 ## 5. BONUS PARRAINAGE
 
-Promotion interne pour croissance chauffeurs.
+Promotion interne pour croissance Captains.
 
 ### Prime versée
 - **Par parrain**: 500 MRU
@@ -127,7 +127,7 @@ Promotion interne pour croissance chauffeurs.
 
 ### Cas graves (fraude confirmée)
 - Trajets fictifs → rembourse la plateforme + suspension
-- Collusion rider-chauffeur → perte des 3 derniers mois de commissions
+- Collusion rider-Captain → perte des 3 derniers mois de commissions
 - Faux documents → compte supprimé
 
 ---
@@ -153,20 +153,20 @@ Bonus fidélité (si eligible): AA MRU
 
 ### Minimum payout
 - Paiement minimum/semaine: 0 MRU si 0 trajets
-- Frais bancaires: absorbés par Tewiz (gratuit pour chauffeur)
+- Frais bancaires: absorbés par Tewiz (gratuit pour Captain)
 
 ---
 
 ## 8. RÉVISION ET AJUSTEMENT
 
 ### Révision politique
-- Tous les 3 mois (audit rentabilité + satisfaction chauffeurs)
+- Tous les 3 mois (audit rentabilité + satisfaction Captains)
 - Changements notifiés 14 jours à l'avance
 - Changements ne rétroactivent pas (appliqués à partir du lundi suivant la notification)
 
 ### Cas d'ajustement
 - Si marge plateforme < 5%: bonus volume baissé (ex: 70+ = 500 MRU au lieu de 700)
-- Si offre chauffeurs insuffisante: bonus créneaux augmentés temporairement
+- Si offre Captains insuffisante: bonus créneaux augmentés temporairement
 - Si fraude détectée: taux bonus global peut baisser 1 mois
 
 ---
@@ -205,9 +205,9 @@ Bonus fidélité (6 mois): +250 MRU/semaine
 
 ## 10. SIGNATURE & ACCEPTATION
 
-Cette politique lie Tewiz Rides et le chauffeur.
+Cette politique lie Tewiz Rides et le Captain.
 
-**Chauffeur accepte en cochant** ✓ lors de l'onboarding.
+**Captain accepte en cochant** ✓ lors de l'onboarding.
 
 **Tewiz Rides s'engage à**:
 - Paiement à l'heure (chaque lundi)
@@ -215,7 +215,7 @@ Cette politique lie Tewiz Rides et le chauffeur.
 - Pas de commission cachée
 - Révision trimestrielle juste
 
-**Chauffeur s'engage à**:
+**Captain s'engage à**:
 - Respecter les conditions anti-fraude
 - Comportement professionnel
 - Maintenance du véhicule

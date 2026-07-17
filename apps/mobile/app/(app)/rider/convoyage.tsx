@@ -93,7 +93,7 @@ export default function ConvoyageScreen() {
       <View style={{ flex: 1, padding: spacing.lg, justifyContent: 'space-between' }}>
         <View>
           <AppText variant="body" color={colors.ink2} style={{ marginBottom: spacing.lg }}>
-            Un chauffeur conduira votre véhicule de A vers B
+            Un Captain conduira votre véhicule de A vers B
           </AppText>
 
           <Card padding={spacing.lg} style={{ gap: spacing.md }}>

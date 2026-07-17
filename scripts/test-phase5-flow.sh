@@ -61,7 +61,7 @@ ok "Captain id: $CAPT_ID"
 
 R=$(curl -sX POST "$API/rider/favorites" \
      -H "Authorization: Bearer $RIDER_TOKEN" -H 'Content-Type: application/json' \
-     -d "{\"captainId\":\"$CAPT_ID\",\"nickname\":\"Mohamed mon chauffeur\"}")
+     -d "{\"captainId\":\"$CAPT_ID\",\"nickname\":\"Mohamed mon Captain\"}")
 echo "$R" | grep -q "$CAPT_ID" && ok "Favorite added" || fail "Add favorite failed: $R"
 
 N=$(curl -sX GET "$API/rider/favorites" -H "Authorization: Bearer $RIDER_TOKEN" | pyjson 'print(len(d))')

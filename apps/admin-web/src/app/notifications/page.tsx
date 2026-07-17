@@ -20,8 +20,8 @@ type GroupKey = 'active_captains' | 'bonus_active';
 
 const TARGET_LABELS: Record<TargetType, string> = {
   all_users:    'Tous les utilisateurs',
-  all_captains: 'Tous les chauffeurs',
-  all_riders:   'Tous les passagers',
+  all_captains: 'Tous les Captains',
+  all_riders:   'Tous les Clients',
   all_guests:   'Tous les invités',
   group:        'Un groupe',
   user:         'Un utilisateur précis',
@@ -51,8 +51,8 @@ interface Campaign {
 }
 
 const GROUP_LABELS: Record<GroupKey, string> = {
-  active_captains: 'Chauffeurs actifs (en ligne ou vus < 7 j)',
-  bonus_active:    'Chauffeurs avec bonus en cours',
+  active_captains: 'Captains actifs (en ligne ou vus < 7 j)',
+  bonus_active:    'Captains avec bonus en cours',
 };
 
 export default function NotificationsPage() {
@@ -191,7 +191,7 @@ export default function NotificationsPage() {
           <h1 className="text-2xl font-bold text-slate-900 mb-1">Notifications</h1>
           <p className="text-sm text-slate-500">
             Envoie une notification push + inbox à un utilisateur, un groupe, aux
-            chauffeurs, aux passagers, ou à tout le monde. Une notification déjà
+            Captains, aux Clients, ou à tout le monde. Une notification déjà
             envoyée peut être modifiée ou supprimée à distance depuis l’historique.
           </p>
         </div>
@@ -467,8 +467,8 @@ export default function NotificationsPage() {
 }
 
 function targetLabel(targetType: string, value: string | null): string {
-  if (targetType === 'all_captains') return 'Tous les chauffeurs';
-  if (targetType === 'all_riders') return 'Tous les passagers';
+  if (targetType === 'all_captains') return 'Tous les Captains';
+  if (targetType === 'all_riders') return 'Tous les Clients';
   if (targetType === 'all_guests') return 'Tous les invités';
   if (targetType === 'all_users') return 'Tous les utilisateurs';
   if (targetType === 'group') return GROUP_LABELS[value as GroupKey] ?? value ?? 'Groupe';

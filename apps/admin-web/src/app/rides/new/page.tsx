@@ -214,7 +214,7 @@ export default function NewRidePage() {
       return;
     }
     if (!passengerName.trim() || !passengerPhone.trim()) {
-      setErrorMsg('Nom et téléphone du passager requis.');
+      setErrorMsg('Nom et téléphone du Client requis.');
       return;
     }
     if (rideType === 'colis') {
@@ -259,8 +259,8 @@ export default function NewRidePage() {
         <h1 className="text-2xl font-bold text-slate-900 mb-1">Nouvelle course</h1>
         <p className="text-sm text-slate-500 mb-6">
           Réservez pour un client qui a appelé par téléphone. La course part directement
-          à la recherche d'un chauffeur. Notez le code de vérification (affiché après création)
-          et lisez-le au passager : il l'utilisera pour confirmer son identité au chauffeur.
+          à la recherche d'un Captain. Notez le code de vérification (affiché après création)
+          et lisez-le au Client : il l'utilisera pour confirmer son identité au Captain.
         </p>
 
         <div className="grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-6">
@@ -331,7 +331,7 @@ export default function NewRidePage() {
 
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">
-                {rideType === 'colis' ? "Nom de l'expéditeur" : 'Nom du passager'}
+                {rideType === 'colis' ? "Nom de l'expéditeur" : 'Nom du Client'}
               </label>
               <input
                 className="input"
@@ -343,7 +343,7 @@ export default function NewRidePage() {
 
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">
-                {rideType === 'colis' ? "Téléphone de l'expéditeur" : 'Téléphone du passager'}
+                {rideType === 'colis' ? "Téléphone de l'expéditeur" : 'Téléphone du Client'}
               </label>
               <input
                 className="input"
@@ -353,8 +353,8 @@ export default function NewRidePage() {
               />
               <p className="text-xs text-slate-500 mt-1">
                 {rideType === 'colis'
-                  ? "Personne qui remet le colis au chauffeur au point de départ."
-                  : "Servira au chauffeur s'il a besoin d'appeler le passager."}
+                  ? "Personne qui remet le colis au Captain au point de départ."
+                  : "Servira au Captain s'il a besoin d'appeler le Client."}
               </p>
             </div>
 
@@ -372,7 +372,7 @@ export default function NewRidePage() {
                         : 'border-slate-300 text-slate-700 hover:bg-slate-50',
                     )}
                   >
-                    {t === 'passenger' ? 'Passager' : 'Colis'}
+                    {t === 'passenger' ? 'Client' : 'Colis'}
                   </button>
                 ))}
               </div>
@@ -472,7 +472,7 @@ export default function NewRidePage() {
                   {' + '}{openQuote.perMinuteMru}/min
                 </div>
                 <div className="text-xs text-slate-400 mt-1">
-                  Course minimum {openQuote.minFareMru} MRU. Le chauffeur termine la course.
+                  Course minimum {openQuote.minFareMru} MRU. Le Captain termine la course.
                 </div>
               </div>
             ) : null}
@@ -480,7 +480,7 @@ export default function NewRidePage() {
               <div className="bg-slate-100 rounded-lg p-3">
                 <div className="text-xs text-slate-500">
                   Tarif estimé{estimateKm != null ? ` · ${estimateKm.toFixed(1)} km` : ''}
-                  {' '}({rideType === 'colis' ? 'colis' : 'passager'})
+                  {' '}({rideType === 'colis' ? 'colis' : 'Client'})
                 </div>
                 <div className="text-2xl font-bold text-slate-900">
                   {estimating || estimateMru == null ? '…' : `${estimateMru} MRU`}
@@ -637,7 +637,7 @@ function OpenTariffCard({
         <Cell value={`${quote.perMinuteMru}`} unit="MRU/min" label="Temps" />
       </div>
       <div className="mt-2 text-[11px] text-slate-400">
-        Course minimum {quote.minFareMru} MRU. Seul le chauffeur peut terminer la course.
+        Course minimum {quote.minFareMru} MRU. Seul le Captain peut terminer la course.
       </div>
     </div>
   );

@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import * as Location from 'expo-location';
 import { api } from '@/lib/api';
 import { RideCancelReasonSheet } from '@/components/RideCancelReasonSheet';
+import { balanceTooLowMessage } from '@/lib/apiError';
 import { formatMru } from '@/lib/format';
 import { CAPTAIN_RIDE_CANCEL_REASONS } from '@/lib/rideCancelReasons';
 import { usePolling } from '@/lib/usePolling';
@@ -510,7 +511,8 @@ function InboxList({ items, onAccepted }: { items: InboxItem[]; onAccepted: () =
         Alert.alert(t('captainAlert.alreadyTakenTitle'), t('captainAlert.alreadyTaken'));
         onAccepted();
       } else {
-        Alert.alert(t('common.impossible'), e.response?.data?.error?.message ?? t('errors.generic'));
+        Alert.alert(t('common.impossible'),
+          balanceTooLowMessage(e, t) ?? e.response?.data?.error?.message ?? t('errors.generic'));
       }
     } finally {
       setAccepting(null);
@@ -542,7 +544,7 @@ function InboxList({ items, onAccepted }: { items: InboxItem[]; onAccepted: () =
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <View style={{ flexDirection: wrapRow, alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                     <Chip icon={isColis ? 'parcel' : it.rideType === 'private_driver' ? 'clock' : it.rideType === 'convoyage' ? 'ride' : 'ride'}
-                      label={isColis ? t('captain.rides.colis') : it.rideType === 'private_driver' ? `Chauffeur · ${it.bookedDurationH}h` : it.rideType === 'convoyage' ? `Convoyage${it.vehiclePlate ? ` · ${it.vehiclePlate}` : ''}` : t('captain.rides.passenger')}
+                      label={isColis ? t('captain.rides.colis') : it.rideType === 'private_driver' ? `Captain · ${it.bookedDurationH}h` : it.rideType === 'convoyage' ? `Convoyage${it.vehiclePlate ? ` · ${it.vehiclePlate}` : ''}` : t('captain.rides.passenger')}
                       bg={isColis ? colors.espresso : it.rideType === 'private_driver' ? '#dbeafe' : it.rideType === 'convoyage' ? '#ede9fe' : colors.emberSoft}
                       fg={isColis ? colors.saffron : it.rideType === 'private_driver' ? '#1e40af' : it.rideType === 'convoyage' ? '#7c3aed' : colors.ember} />
                     {it.isFavorite ? <Chip icon="star" label={t('captain.rides.favorite')} bg={colors.saffronSoft} fg={colors.warning} /> : null}
@@ -596,7 +598,8 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
 
   function errorMessage(e: any) {
     return (
-      e?.response?.data?.error?.message
+      balanceTooLowMessage(e, t)
+      ?? e?.response?.data?.error?.message
       ?? e?.response?.data?.message
       ?? e?.message
       ?? t('errors.generic')
@@ -662,7 +665,7 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
         } else if (gps.action === 'recovery_suspend') {
           Alert.alert(
             'Compte suspendu',
-            `Recidive GPS detectee. Votre compte chauffeur a ete suspendu.${gps.recoveryDebitMru > 0 ? ` Recuperation appliquee: ${formatMru(gps.recoveryDebitMru)}.` : ''}`,
+            `Recidive GPS detectee. Votre compte Captain a ete suspendu.${gps.recoveryDebitMru > 0 ? ` Recuperation appliquee: ${formatMru(gps.recoveryDebitMru)}.` : ''}`,
           );
         }
       }
@@ -690,7 +693,7 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
             {ride.rideType === 'colis'
               ? t('captain.rides.colis')
               : ride.rideType === 'private_driver'
-                ? `Chauffeur Privé · ${ride.privateDriverDetails?.bookedDurationH ?? '?'}h`
+                ? `Captain Privé · ${ride.privateDriverDetails?.bookedDurationH ?? '?'}h`
                 : ride.rideType === 'convoyage'
                   ? 'Convoyage'
                   : (ride.rider?.fullName ?? ride.passengerName ?? t('captain.rides.passengerFallback'))}
@@ -807,12 +810,14 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
         />
       ) : null}
 
-      <Button
-        title={t('captain.rides.cancelRide')}
-        variant="danger"
-        onPress={() => setCancelSheetVisible(true)}
-        style={{ marginTop: spacing.md }}
-      />
+      {ride.status !== 'in_progress' ? (
+        <Button
+          title={t('captain.rides.cancelRide')}
+          variant="danger"
+          onPress={() => setCancelSheetVisible(true)}
+          style={{ marginTop: spacing.md }}
+        />
+      ) : null}
 
       <RideCancelReasonSheet
         visible={cancelSheetVisible}
@@ -955,7 +960,7 @@ function CaptainPrivateDriverCard({ ride }: { ride: Ride }) {
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
         <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: isOvertime ? '#ef4444' : '#10a35e' }} />
         <Text style={{ fontSize: 11, fontWeight: '700', color: isOvertime ? '#ef4444' : '#10a35e', letterSpacing: 0.6 }}>
-          {isOvertime ? 'DÉPASSEMENT' : 'CHAUFFEUR PRIVÉ EN COURS'}
+          {isOvertime ? 'DÉPASSEMENT' : 'Captain PRIVÉ EN COURS'}
         </Text>
       </View>
       <Text style={{

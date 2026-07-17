@@ -275,7 +275,7 @@ export async function createRide(input: CreateRideInput) {
   } else if (rideType === 'private_driver') {
     if (!settings.privateDriverEnabled) {
       throw new HttpError(403, 'private_driver_disabled',
-        'Le service Chauffeur Privé est désactivé');
+        'Le service Captain Privé est désactivé');
     }
     if (!input.privateDriverDurationH ||
         ![3, 6, 12, 24].includes(input.privateDriverDurationH)) {
@@ -284,7 +284,7 @@ export async function createRide(input: CreateRideInput) {
     }
     if (input.dropoff) {
       throw new HttpError(400, 'private_driver_no_dropoff',
-        'Chauffeur Privé: pas de destination fixe');
+        'Captain Privé: pas de destination fixe');
     }
   } else if (rideType === 'convoyage') {
     if (!settings.convoyageEnabled) {
@@ -1365,7 +1365,7 @@ export async function acceptRide(rideId: string, captainId: string) {
         }
       } else if (captain.vehicle_type !== 'car') {
         throw new HttpError(403, 'passenger_not_allowed',
-          'Les motos ne peuvent pas accepter les courses passagers');
+          'Les motos ne peuvent pas accepter les courses Clients');
       }
 
       const upd = await client.query<RideRow>(
@@ -1948,7 +1948,7 @@ export async function cancelRide(input: CancelInput) {
       && ride.status !== 'searching'
     ) {
       throw new HttpError(403, 'rider_cancel_open_forbidden',
-        'Cette course ne peut être annulée que par le chauffeur');
+        'Cette course ne peut être annulée que par le Captain');
     }
 
     if (!['searching', 'accepted', 'arrived'].includes(ride.status)) {

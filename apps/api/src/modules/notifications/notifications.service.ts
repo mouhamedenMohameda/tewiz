@@ -222,8 +222,8 @@ export async function notifyCaptainsBonusConfigChanged(args: {
   adminId: string;
 }): Promise<void> {
   const title = args.enabled
-    ? '🎁 Nouveau bonus chauffeur'
-    : 'ℹ️ Bonus chauffeur désactivé';
+    ? '🎁 Nouveau bonus Captain'
+    : 'ℹ️ Bonus Captain désactivé';
   const body = args.enabled
     ? `Atteins ${args.thresholdMru} MRU de commission en ${args.windowDays} jours et ta commission est divisée par 2 pendant ${args.rewardDays} jours.`
     : 'Le programme de bonus est désactivé pour le moment.';

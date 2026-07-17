@@ -21,7 +21,7 @@ const NAV = [
   { href: '/applications',   label: 'Dossiers KYC', icon: '📋' },
   { href: '/topups',         label: 'Recharges',   icon: '💰' },
   { href: '/users',          label: 'Utilisateurs', icon: '👥' },
-  { href: '/captains',       label: 'Chauffeurs',  icon: '🚕' },
+  { href: '/captains',       label: 'Captains',  icon: '🚕' },
   { href: '/voice-requests', label: 'Demandes vocales', icon: '🎙️' },
   { href: '/rides',          label: 'Courses',     icon: '🛣️' },
   { href: '/rides/new',      label: 'Nouvelle course', icon: '🗺️' },
@@ -33,6 +33,7 @@ const NAV = [
   { href: '/notifications',  label: 'Notifications', icon: '🔔' },
   { href: '/settings',       label: 'Paramètres',  icon: '⚙️' },
   { href: '/settings/documents', label: 'Documents requis', icon: '📑' },
+  { href: '/settings/translations', label: 'Traductions', icon: '🌐' },
   { href: '/app-release',    label: 'Application', icon: '📱' },
 ];
 

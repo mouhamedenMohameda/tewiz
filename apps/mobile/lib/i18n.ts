@@ -14,12 +14,13 @@
  */
 
 import 'intl-pluralrules';
-import { I18nManager, NativeModules, Platform } from 'react-native';
+import { AppState, I18nManager, NativeModules, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
 import { reloadApp } from './restart';
+import { API_URL } from './env';
 
 import fr from '@/locales/fr.json';
 import ar from '@/locales/ar.json';
@@ -60,6 +61,74 @@ const LANGUAGE_RESOURCES: Record<AppLanguage, Resource> = {
 
 const STORAGE_KEY = '@tewiz/language';
 const RTL_LANGUAGES = new Set<AppLanguage>(['ar', 'hs']);
+
+// --- Admin-editable translation overrides -----------------------------------
+// Corrections made from the admin (apps/admin-web /settings/translations) are
+// layered on top of the JSON bundled in this binary — the bundle stays the
+// offline/first-launch fallback, never replaced outright. Each override fetch
+// returns the FULL current override map for a language (not a diff), so a
+// re-merge always starts clean from the bundled base; nothing can accumulate
+// stale keys. See apps/api/src/modules/public/public.routes.ts (GET /public/i18n/:lang).
+const OVERRIDES_KEY_PREFIX = '@tewiz/i18n-overrides:';
+const FOREGROUND_SYNC_MIN_INTERVAL_MS = 60 * 60 * 1000; // 1h
+
+interface CachedOverrides {
+  version: string;
+  data: Record<string, string>;
+}
+
+async function readCachedOverrides(lang: AppLanguage): Promise<CachedOverrides | null> {
+  try {
+    const raw = await AsyncStorage.getItem(OVERRIDES_KEY_PREFIX + lang);
+    return raw ? (JSON.parse(raw) as CachedOverrides) : null;
+  } catch {
+    return null;
+  }
+}
+
+async function writeCachedOverrides(
+  lang: AppLanguage,
+  version: string,
+  data: Record<string, string>,
+): Promise<void> {
+  try {
+    await AsyncStorage.setItem(OVERRIDES_KEY_PREFIX + lang, JSON.stringify({ version, data }));
+  } catch {}
+}
+
+// Applies dot-notation overrides (e.g. "rider.home.title") onto a deep clone
+// of a nested resource object. Keys are always pre-existing (the admin only
+// edits values, never adds/removes keys — see translations.routes.ts), so this
+// never needs to invent structure beyond what a dotted path implies.
+function applyOverrides(base: Resource, overrides: Record<string, string>): Resource {
+  if (Object.keys(overrides).length === 0) return base;
+  const out = JSON.parse(JSON.stringify(base)) as Record<string, unknown>;
+  for (const [key, value] of Object.entries(overrides)) {
+    const parts = key.split('.');
+    let node = out;
+    for (let i = 0; i < parts.length - 1; i++) {
+      const part = parts[i]!;
+      if (typeof node[part] !== 'object' || node[part] === null) node[part] = {};
+      node = node[part] as Record<string, unknown>;
+    }
+    node[parts[parts.length - 1]!] = value;
+  }
+  return out;
+}
+
+async function fetchOverrides(
+  lang: AppLanguage,
+  since: string | null,
+): Promise<{ version: string; overrides: Record<string, string> | null } | null> {
+  try {
+    const qs = since ? `?since=${encodeURIComponent(since)}` : '';
+    const res = await fetch(`${API_URL}/public/i18n/${lang}${qs}`);
+    if (!res.ok) return null;
+    return (await res.json()) as { version: string; overrides: Record<string, string> | null };
+  } catch {
+    return null;
+  }
+}
 
 function detectDeviceLanguage(): AppLanguage {
   try {
@@ -127,8 +196,18 @@ export function initI18n(): Promise<typeof i18n> {
       I18nManager.swapLeftAndRightInRTL(false);
     } catch {}
     applyLayoutDirection(lang);
+    // Layer any previously-fetched admin corrections on top of the bundled
+    // JSON before i18next ever sees it, so a fix shows up from the first
+    // frame — not just after this session's background sync completes.
+    const cached = await Promise.all(SUPPORTED_LANGUAGES.map(readCachedOverrides));
     const resources = Object.fromEntries(
-      SUPPORTED_LANGUAGES.map((code) => [code, { translation: LANGUAGE_RESOURCES[code] }]),
+      SUPPORTED_LANGUAGES.map((code, i) => {
+        const overrides = cached[i];
+        const translation = overrides
+          ? applyOverrides(LANGUAGE_RESOURCES[code], overrides.data)
+          : LANGUAGE_RESOURCES[code];
+        return [code, { translation }];
+      }),
     );
     await i18n.use(initReactI18next).init({
       resources,
@@ -173,6 +252,49 @@ export function currentLanguage(): AppLanguage {
   if (SUPPORTED_LANGUAGES.includes(raw as AppLanguage)) return raw as AppLanguage;
   const base = raw.slice(0, 2) as AppLanguage;
   return SUPPORTED_LANGUAGES.includes(base) ? base : DEFAULT_LANGUAGE;
+}
+
+/**
+ * Fetch the latest admin-edited overrides for every supported language,
+ * merge any that changed into the running i18next instance (existing screens
+ * re-render via react-i18next's subscription to addResourceBundle), and cache
+ * them for the next cold start. Safe to call anytime — network failures are
+ * swallowed, since the bundled JSON is always a complete fallback on its own.
+ */
+export async function syncTranslationOverrides(): Promise<void> {
+  for (const lang of SUPPORTED_LANGUAGES) {
+    try {
+      const cached = await readCachedOverrides(lang);
+      const result = await fetchOverrides(lang, cached?.version ?? null);
+      if (!result?.overrides) continue; // fetch failed or nothing changed
+      await writeCachedOverrides(lang, result.version, result.overrides);
+      if (i18n.hasResourceBundle(lang, 'translation')) {
+        const merged = applyOverrides(LANGUAGE_RESOURCES[lang], result.overrides);
+        i18n.addResourceBundle(lang, 'translation', merged, true, true);
+      }
+    } catch {}
+  }
+}
+
+let lastForegroundSyncAt = 0;
+
+/**
+ * Call once after initI18n() settles. Runs an immediate sync (covers the
+ * cold-start case) and re-syncs whenever the app returns to the foreground,
+ * throttled to once an hour so a fix published from the admin shows up within
+ * a session without polling on every tab switch. Returns an unsubscribe.
+ */
+export function startTranslationSync(): () => void {
+  lastForegroundSyncAt = Date.now();
+  void syncTranslationOverrides();
+  const sub = AppState.addEventListener('change', (state) => {
+    if (state !== 'active') return;
+    const now = Date.now();
+    if (now - lastForegroundSyncAt < FOREGROUND_SYNC_MIN_INTERVAL_MS) return;
+    lastForegroundSyncAt = now;
+    void syncTranslationOverrides();
+  });
+  return () => sub.remove();
 }
 
 export { i18n };

@@ -196,12 +196,12 @@ describe('POST /admin/rides/:id/cancel', () => {
     ridesMock.adminCancelRide.mockResolvedValue({ id: 'ride-5', status: 'cancelled_by_system' });
     const { baseUrl } = await start();
     const res = await api(baseUrl, 'POST', '/admin/rides/ride-5/cancel', {
-      reason: 'Passager injoignable',
+      reason: 'Client injoignable',
     });
     expect(res.status).toBe(200);
     expect(ridesMock.adminCancelRide).toHaveBeenCalledWith({
       rideId: 'ride-5',
-      reason: 'Passager injoignable',
+      reason: 'Client injoignable',
     });
     expect(auditMock).toHaveBeenCalledWith(expect.objectContaining({ action: 'cancel_ride' }));
   });

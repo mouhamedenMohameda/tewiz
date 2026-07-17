@@ -56,7 +56,7 @@ export default function PrivateDriverScreen() {
   if (!quote.enabled) {
     return (
       <Screen>
-        <ScreenHeader title="Chauffeur Privé" onBack={() => router.back()} />
+        <ScreenHeader title="Captain Privé" onBack={() => router.back()} />
         <AppText color={colors.muted} style={{ padding: spacing.lg }}>
           Cette service est actuellement indisponible.
         </AppText>
@@ -68,12 +68,12 @@ export default function PrivateDriverScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-      <ScreenHeader title="Chauffeur Privé" onBack={() => router.back()} />
+      <ScreenHeader title="Captain Privé" onBack={() => router.back()} />
 
       <View style={{ flex: 1, padding: spacing.lg, justifyContent: 'space-between' }}>
         <View>
           <AppText variant="body" color={colors.ink2} style={{ marginBottom: spacing.lg }}>
-            Réservez un chauffeur pour une durée fixe
+            Réservez un Captain pour une durée fixe
           </AppText>
 
           <Card padding={spacing.lg} style={{ gap: spacing.lg }}>

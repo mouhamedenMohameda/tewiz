@@ -2,8 +2,8 @@
  * SplashScreen — "Lever de Soleil"
  *
  * Minimal cinematic splash: warm gradient → logo fades in with a soft
- * radial glow → brand name types on → the Arabic slogan blooms in Amiri
- * script → a taxi drives in on the horizon → everything fades.
+ * radial glow → brand name and Arabic slogan bloom in the app's own
+ * typefaces → a car drives in on the horizon → everything fades.
  */
 
 import React, { useEffect, useRef } from 'react';
@@ -117,7 +117,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
         }),
       ]),
 
-      // Phase 3: Slogan blooms in Amiri
+      // Phase 3: Slogan blooms
       Animated.parallel([
         Animated.timing(sloganOpacity, {
           toValue: 1,
@@ -146,7 +146,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
         }),
       ]),
 
-      // Phase 5: Taxi drives in on the horizon
+      // Phase 5: Car drives in on the horizon
       Animated.parallel([
         Animated.timing(carOpacity, {
           toValue: 1,
@@ -240,7 +240,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
         <Text style={styles.brandName}>Aloo</Text>
       </Animated.View>
 
-      {/* Slogan in Amiri, sized as a real headline */}
+      {/* Slogan, sized as a real headline */}
       <Animated.Text
         style={[
           styles.slogan,
@@ -282,11 +282,19 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
           },
         ]}
       />
+
+      {/* Footer credit */}
+      <Text style={styles.footer}>صُنع بحب ❤️ في نواكشوط، لكل الموريتانيين</Text>
     </Animated.View>
   );
 };
 
 const HORIZON_TOP = H * 0.88;
+const CAR_WIDTH = W * 0.95;
+// react-native-web doesn't reliably derive height from `aspectRatio` on
+// Animated.Image, so the height is computed explicitly from the asset's
+// own ratio (449×275) instead of relying on that CSS property.
+const CAR_HEIGHT = CAR_WIDTH * (275 / 449);
 
 const styles = StyleSheet.create({
   container: {
@@ -358,8 +366,8 @@ const styles = StyleSheet.create({
   },
 
   brandName: {
+    fontFamily: 'Sora_700Bold',
     fontSize: 42,
-    fontWeight: '700',
     letterSpacing: 1.5,
     color: colors.ink,
   },
@@ -367,7 +375,7 @@ const styles = StyleSheet.create({
   slogan: {
     position: 'absolute',
     top: H * 0.22 + 96 + 20 + 56,
-    fontFamily: 'Amiri_700Bold',
+    fontFamily: 'Cairo_700Bold',
     fontSize: 34,
     lineHeight: 48,
     color: colors.ink,
@@ -391,10 +399,25 @@ const styles = StyleSheet.create({
 
   car: {
     position: 'absolute',
-    // Wheels sit just above the horizon line
-    top: HORIZON_TOP - W * 0.95 * (387 / 520) + 12,
-    width: W * 0.95,
-    aspectRatio: 520 / 387,
+    // Image includes a soft ground shadow below the wheels (~75% down is
+    // where the tires touch), so the wheels — not the image edge — sit
+    // just above the horizon line, with extra clearance so the shadow
+    // doesn't crowd the footer credit below it.
+    top: HORIZON_TOP - CAR_HEIGHT * 0.75 - 50,
+    width: CAR_WIDTH,
+    height: CAR_HEIGHT,
+  },
+
+  footer: {
+    position: 'absolute',
+    bottom: 28,
+    width: W,
+    fontFamily: 'Cairo_700Bold',
+    fontSize: 20,
+    lineHeight: 30,
+    color: colors.muted,
+    textAlign: 'center',
+    writingDirection: 'rtl',
   },
 });
 

@@ -474,7 +474,7 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
                 <p className="text-sm text-slate-500">
                   Pour des raisons de sécurité, le mot de passe actuel n&apos;est pas
                   consultable. Vous pouvez en générer un nouveau et le transmettre
-                  au chauffeur.
+                  au Captain.
                 </p>
               </div>
               <button
@@ -512,7 +512,7 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
 
         {showCorrModal && (
           <Modal title="Demander des corrections" onClose={() => setShowCorrModal(false)}>
-            <label className="block text-sm text-slate-700 mb-1">Message au chauffeur</label>
+            <label className="block text-sm text-slate-700 mb-1">Message au Captain</label>
             <textarea
               autoFocus rows={6} value={corrNotes} onChange={(e) => setCorrNotes(e.target.value)}
               className="input mb-2" placeholder="Veuillez re-uploader le NNI lisible..."
@@ -547,9 +547,9 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
         )}
 
         {captainPassword && (
-          <Modal title="Chauffeur approuvé" onClose={() => router.replace('/applications')}>
+          <Modal title="Captain approuvé" onClose={() => router.replace('/applications')}>
             <p className="text-sm text-slate-600 mb-3">
-              {app.full_name ?? 'Le chauffeur'} peut maintenant se connecter sur l&apos;app.
+              {app.full_name ?? 'Le Captain'} peut maintenant se connecter sur l&apos;app.
               Transmettez-lui ce mot de passe (affiché une seule fois) :
             </p>
             <div className="flex items-center gap-2 mb-4">
@@ -564,7 +564,7 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
             <div className="flex justify-end gap-2">
               <a
                 href={`https://wa.me/${app.phone.replace(/[^\d]/g, '')}?text=${encodeURIComponent(
-                  `Bonjour ${app.full_name ?? ''}, votre compte chauffeur ${APP_NAME} est validé. Mot de passe : ${captainPassword}`,
+                  `Bonjour ${app.full_name ?? ''}, votre compte Captain ${APP_NAME} est validé. Mot de passe : ${captainPassword}`,
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -578,7 +578,7 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
         {regeneratedPassword && (
           <Modal title="Nouveau mot de passe" onClose={() => setRegeneratedPassword(null)}>
             <p className="text-sm text-slate-600 mb-3">
-              Le mot de passe de {app.full_name ?? 'ce chauffeur'} a été régénéré.
+              Le mot de passe de {app.full_name ?? 'ce Captain'} a été régénéré.
               Toutes ses sessions ont été déconnectées. Transmettez-lui ce nouveau
               mot de passe (affiché une seule fois) :
             </p>
@@ -689,7 +689,7 @@ function parseApiError(e: unknown): ParsedApiError {
 const ERROR_PRESETS: Record<string, { title: string; hint?: string }> = {
   plate_taken: {
     title: 'Plaque déjà utilisée',
-    hint: 'Vérifie dans la liste Chauffeurs qui possède déjà cette plaque, ou demande au chauffeur de corriger sa plaque.',
+    hint: 'Vérifie dans la liste Captains qui possède déjà cette plaque, ou demande au Captain de corriger sa plaque.',
   },
   phone_taken: {
     title: 'Numéro de téléphone déjà utilisé',
@@ -697,11 +697,11 @@ const ERROR_PRESETS: Record<string, { title: string; hint?: string }> = {
   },
   captain_needs_phone: {
     title: 'Numéro de téléphone manquant',
-    hint: "Le chauffeur doit avoir un numéro de téléphone avant validation.",
+    hint: "Le Captain doit avoir un numéro de téléphone avant validation.",
   },
   no_user_id: {
     title: 'Aucun compte lié au dossier',
-    hint: "Ce dossier n'est lié à aucun utilisateur. Demande au chauffeur de se reconnecter à l'app puis ressoumettre.",
+    hint: "Ce dossier n'est lié à aucun utilisateur. Demande au Captain de se reconnecter à l'app puis ressoumettre.",
   },
   wrong_status: {
     title: 'Statut du dossier incompatible',

@@ -29,12 +29,12 @@ The store **indexes your title and subtitle most heavily.** Put your top search 
 ## 2. Keyword field (Apple, 100 chars, comma-separated, no spaces)
 Don't repeat words already in your name/subtitle (Apple auto-indexes those). Fill the rest:
 ```
-vtc,chauffeur,trajet,voiture,yango,voix,hassaniya,pulaar,wolof,soninke,colis,livraison,nouadhibou,mauritanie
+vtc,Captain,trajet,voiture,yango,voix,hassaniya,pulaar,wolof,soninke,colis,livraison,nouadhibou,mauritanie
 ```
 *(Apple also indexes your locale. Submit a separate Arabic keyword set — see §4.)*
 
 ## 3. Long description = your Google ranking text
-Google indexes the **full long description**, so weave keywords in *naturally* (Apple ignores it for ranking but users read it). Make sure these phrases appear once or twice, in real sentences: **taxi Nouakchott · course en Mauritanie · VTC · commande vocale · hassaniya, français, arabe, pulaar, wolof, soninké · livraison de colis · paiement en espèces · chauffeur**. Your existing long description already covers most — just confirm "taxi", "Nouakchott", and the 6-language line all appear in the first 2 lines (the part shown before "read more"), and that the lead sentence is *« Parle. On t'amène. — l'app de course mauritanienne où ta voix suffit. »*
+Google indexes the **full long description**, so weave keywords in *naturally* (Apple ignores it for ranking but users read it). Make sure these phrases appear once or twice, in real sentences: **taxi Nouakchott · course en Mauritanie · VTC · commande vocale · hassaniya, français, arabe, pulaar, wolof, soninké · livraison de colis · paiement en espèces · Captain**. Your existing long description already covers most — just confirm "taxi", "Nouakchott", and the 6-language line all appear in the first 2 lines (the part shown before "read more"), and that the lead sentence is *« Parle. On t'amène. — l'app de course mauritanienne où ta voix suffit. »*
 
 ---
 
@@ -43,7 +43,7 @@ Both stores let you localize the listing per language. **Add an Arabic (`ar`) li
 - Name: `ألو: مشاوير وتاكسي`
 - Subtitle: `احكي... ونوصّلوك — نواكشوط`
 - Short desc: `تطبيق المشاوير الموريتاني: صوتك يكفي، خلّص كاش. تاكسي في نواكشوط.`
-- Keywords: `تاكسي,مشوار,سائق,نواكشوط,موريتانيا,صوت,حساني,بولاري,ولفي,سوننكي,توصيل,طرد,يانغو`
+- Keywords: `تاكسي,مشوار,كابتن,نواكشوط,موريتانيا,صوت,حساني,بولاري,ولفي,سوننكي,توصيل,طرد,يانغو`
 - Long desc: the Arabic translation of your FR long description (the app already ships full Arabic — reuse that tone). Lead with *« احكي... ونوصّلوك. تطبيق المشاوير الموريتاني — صوتك يكفي. »* and list all 6 languages.
 
 Also keep French as primary and consider an English listing later for completeness.
@@ -57,9 +57,9 @@ Most installs are decided by the **first 2–3 screenshots**, not the text. You 
 |---|---|---|---|
 | 1 | Voice command | **Parle. On t'amène. — Ta voix suffit.** | **احكي... ونوصّلوك — صوتك يكفي** |
 | 2 | Rider home | Une course en 10 secondes | مشوار في 10 ثوانٍ |
-| 3 | Map / tracking | Suis ton chauffeur en direct | تابع سائقك مباشرة |
+| 3 | Map / tracking | Suis ton Captain en direct | تابع كابتنك مباشرة |
 | 4 | Multilingue | Hassaniya, français, arabe, pulaar, wolof, soninké | بكل لغاتك — 6 لغات |
-| 5 | Captain wallet | Chauffeur ? **Gagne plus. Le reste, dans ta poche.** | سائق؟ ربح أكثر، والباقي في جيبك |
+| 5 | Captain wallet | Captain ? **Gagne plus. Le reste, dans ta poche.** | كابتن؟ ربح أكثر، والباقي في جيبك |
 
 > Lead with the **voice screen**, not the home screen — it's what makes you different. (Your store-listing.md currently leads with the home screen; swap them.)
 

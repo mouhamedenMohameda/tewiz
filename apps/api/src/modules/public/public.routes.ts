@@ -4,6 +4,7 @@ import * as rides from '../rides/rides.service.js';
 import { getPricingSettings } from '../admin/app-settings.service.js';
 import { defaultStorage } from '../storage/local-disk.js';
 import { StorageNotFoundError } from '../storage/storage.js';
+import { pool } from '../../db/pool.js';
 import {
   getLatestRelease,
   toPublicJson,
@@ -86,6 +87,48 @@ publicRouter.get('/config', async (req, res) => {
       equipment_rental: s.equipmentRentalEnabled,
     },
   });
+});
+
+// Mirrors AppLanguage in apps/mobile/lib/i18n.ts.
+const I18N_LANGS = ['fr', 'ar', 'en', 'hs', 'ff', 'wo', 'snk'] as const;
+
+/**
+ * GET /public/i18n/:lang?since=<version>
+ *
+ * Delta sync for admin-editable translation overrides (see
+ * apps/api/src/modules/admin/translations.routes.ts). `version` is an opaque
+ * token — the max updated_at across that language's rows, as an ISO string —
+ * not something the client interprets, only echoes back. Client sends the
+ * version it last cached; if unchanged, `overrides` comes back null so the
+ * app skips re-merging and keeps what it already has (which is itself layered
+ * on top of the JSON bundled in the binary, so this endpoint being unreachable
+ * never breaks the app, it just means corrections don't show up yet).
+ */
+publicRouter.get('/i18n/:lang', async (req, res) => {
+  const lang = req.params.lang;
+  if (!(I18N_LANGS as readonly string[]).includes(lang)) {
+    return res.status(404).json({ error: { code: 'unsupported_language' } });
+  }
+  const { rows } = await pool.query<{ latest: Date | null }>(
+    'SELECT MAX(updated_at) AS latest FROM translations WHERE lang = $1',
+    [lang],
+  );
+  const latest = rows[0]?.latest;
+  res.setHeader('Cache-Control', 'no-store');
+  if (!latest) {
+    return res.json({ version: null, overrides: null });
+  }
+  const version = latest.toISOString();
+  if (req.query.since === version) {
+    return res.json({ version, overrides: null });
+  }
+  const { rows: all } = await pool.query<{ key: string; value: string }>(
+    'SELECT key, value FROM translations WHERE lang = $1',
+    [lang],
+  );
+  const overrides: Record<string, string> = {};
+  for (const r of all) overrides[r.key] = r.value;
+  res.json({ version, overrides });
 });
 
 /**

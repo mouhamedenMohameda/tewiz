@@ -13,7 +13,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, Platform, Pressable, Switch, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Linking, Platform, Pressable, Switch, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import * as Application from 'expo-application';
@@ -346,32 +346,42 @@ export default function SettingsScreen() {
       </Section>
 
       {/* Download the latest build — links managed from the admin panel. Each
-          button is hidden when its URL is not configured. */}
+          store card is hidden when its URL is not configured. */}
       {latestAndroidUrl || latestIosUrl ? (
         <Section title={t('settings.download.section')}>
-          <Card padding={spacing.lg} style={{ gap: spacing.md }}>
-            <AppText variant="caption" color={colors.muted} style={{ lineHeight: 18 }}>
-              {t('settings.download.hint')}
-            </AppText>
+          <AppText variant="caption" color={colors.muted} style={{ lineHeight: 18, marginBottom: spacing.md }}>
+            {t('settings.download.hint')}
+          </AppText>
+          <View style={{ flexDirection: 'row', gap: spacing.md }}>
             {latestAndroidUrl ? (
-              <Button
-                title={t('settings.download.android')}
-                icon="power"
-                iconRight="arrow"
-                variant="dark"
+              <PressableScale
                 onPress={() => openDownload(latestAndroidUrl)}
-              />
+                style={[shadow.card, { flex: 1, aspectRatio: 1, borderRadius: radius.xl }]}
+              >
+                <View style={{ flex: 1, borderRadius: radius.xl, overflow: 'hidden' }}>
+                  <Image
+                    source={require('@/assets/stores/playstore.png')}
+                    style={{ width: '100%', height: '100%' }}
+                    resizeMode="cover"
+                  />
+                </View>
+              </PressableScale>
             ) : null}
             {latestIosUrl ? (
-              <Button
-                title={t('settings.download.ios')}
-                icon="sparkle"
-                iconRight="arrow"
-                variant="secondary"
+              <PressableScale
                 onPress={() => openDownload(latestIosUrl)}
-              />
+                style={[shadow.card, { flex: 1, aspectRatio: 1, borderRadius: radius.xl }]}
+              >
+                <View style={{ flex: 1, borderRadius: radius.xl, overflow: 'hidden' }}>
+                  <Image
+                    source={require('@/assets/stores/appstore.png')}
+                    style={{ width: '100%', height: '100%' }}
+                    resizeMode="cover"
+                  />
+                </View>
+              </PressableScale>
             ) : null}
-          </Card>
+          </View>
         </Section>
       ) : null}
     </Screen>
