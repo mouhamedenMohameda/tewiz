@@ -101,7 +101,7 @@ export async function displayFullScreenRideAlert(data: RideAlertData): Promise<v
  * hands the background task across platforms/SDK versions. Defensive because
  * the exact nesting isn't guaranteed.
  */
-function extractRideAlert(taskData: unknown): RideAlertData | null {
+export function extractRideAlert(taskData: unknown): RideAlertData | null {
   const d = taskData as any;
 
   // Candidate "content" objects across the shapes expo-notifications hands us

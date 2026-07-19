@@ -31,6 +31,13 @@ const withRideFullScreenIntent = (config) => {
     };
     ensurePerm('android.permission.USE_FULL_SCREEN_INTENT');
     ensurePerm('android.permission.WAKE_LOCK');
+    // "Superposition": display over other apps. Beyond drawing overlays, this
+    // permission lifts the Android 10+ background-activity-start restriction, so
+    // the incoming-ride fullScreenAction can take over the screen even while the
+    // captain is UNLOCKED and using another app — not just over the keyguard.
+    // The captain still grants it once in system settings (see
+    // lib/overlayPermission.ts); declaring it here is what makes that toggle exist.
+    ensurePerm('android.permission.SYSTEM_ALERT_WINDOW');
 
     // 3. MainActivity flags.
     const mainActivity = AndroidConfig.Manifest.getMainActivityOrThrow(manifest);

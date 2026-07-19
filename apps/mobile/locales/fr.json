@@ -438,6 +438,9 @@
       "onlineBody": "Vous recevez les courses proches de vous.",
       "openRide": "Ouvrir la course actuelle",
       "openSettings": "Ouvrir les réglages",
+      "overlayBody": "Pour que les nouvelles courses s'affichent par-dessus les autres applications (comme un appel entrant), autorisez « Afficher par-dessus d'autres applis » pour {{app}}. Sans cela, une course reçue pendant que vous utilisez une autre application n'ouvrira pas l'écran automatiquement.",
+      "overlayEnable": "Autoriser",
+      "overlayTitle": "Affichage par-dessus les applis",
       "youAre": "Vous êtes"
     },
     "wallet": {

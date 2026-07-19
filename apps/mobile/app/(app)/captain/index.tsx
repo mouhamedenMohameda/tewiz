@@ -16,6 +16,7 @@ import { usePolling } from '@/lib/usePolling';
 import { getMapbox, NKC_CENTER } from '@/lib/mapbox';
 import { resumeOfflineTracking, startOfflineTracking, stopOfflineTracking } from '@/lib/track-task';
 import { ensureFullScreenIntentPermission } from '@/lib/fullScreenIntentPermission';
+import { ensureOverlayPermission } from '@/lib/overlayPermission';
 import { ModeToggle } from '@/components/ModeToggle';
 import { MapShell } from '@/components/MapShell';
 import { BottomSheet } from '@/components/BottomSheet';
@@ -239,6 +240,10 @@ export default function CaptainHome() {
       // Android 14+: make sure the "incoming ride" alert can take over the
       // screen like a call. No-op on iOS / Android < 14 / once already handled.
       void ensureFullScreenIntentPermission();
+      // Android: "superposition" (display over other apps). Lets the incoming
+      // ride take over the screen even while the captain is using another app,
+      // not just over the lock screen. No-op on iOS / once already handled.
+      void ensureOverlayPermission({ appName: APP_NAME });
 
       await load();
     } catch (e: any) {

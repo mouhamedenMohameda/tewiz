@@ -17,6 +17,12 @@ const GOOGLE_SERVICES_FILE =
   process.env.GOOGLE_SERVICES_JSON ?? './google-services.json';
 const HAS_GOOGLE_SERVICES = existsSync(GOOGLE_SERVICES_FILE);
 
+// The iOS Live Activity widget target is wired via @bacons/apple-targets (reads
+// ./targets/rideactivity). Only enable the plugin once the dep is installed so
+// `expo start` / config eval keeps working before `npx expo install
+// @bacons/apple-targets` is run. Same defensive pattern as HAS_GOOGLE_SERVICES.
+const HAS_APPLE_TARGETS = existsSync('./node_modules/@bacons/apple-targets');
+
 /**
  * Expo config is dynamic so the app name comes from the single source of
  * truth in ./lib/brand.ts. Rebrand = change APP_NAME there, nothing here.
@@ -33,6 +39,14 @@ const config: ExpoConfig = {
   ios: {
     supportsTablet: false,
     bundleIdentifier: BUNDLE_ID,
+    entitlements: {
+      // Time Sensitive Notifications capability. Required for the "new ride"
+      // push (interruptionLevel: 'time-sensitive', set in the API's expo-push.ts)
+      // to break through Focus / Do-Not-Disturb and light the lock screen —
+      // the conformant iOS stand-in for Android's full-screen incoming-ride
+      // intent. Unlike Critical Alerts, this needs no Apple approval.
+      'com.apple.developer.usernotifications.time-sensitive': true,
+    },
     infoPlist: {
       NSLocationWhenInUseUsageDescription:
         'Pour commander une course et — en mode Captain — recevoir des courses proches.',
@@ -51,6 +65,10 @@ const config: ExpoConfig = {
         'Pour joindre vos documents à votre dossier de Captain.',
       NSMicrophoneUsageDescription:
         'Pour dicter votre départ et votre destination par la voix (en français, hassaniya ou arabe).',
+      // Enables the ride Live Activity (course en cours) on the lock screen and
+      // Dynamic Island. Widget UI lives in ./targets/rideactivity, driven by the
+      // local Expo module in ./modules/live-activity (see lib/liveActivity.ts).
+      NSSupportsLiveActivities: true,
       ITSAppUsesNonExemptEncryption: false,
     },
   },
@@ -143,6 +161,9 @@ const config: ExpoConfig = {
     // "incoming call"-style screen over the lock screen (see
     // lib/fullScreenRideAlert.ts). No-op on iOS.
     './plugins/withRideFullScreenIntent',
+    // iOS: build the ride Live Activity widget extension from ./targets/rideactivity.
+    // Guarded so config still evaluates before the dep is installed.
+    ...(HAS_APPLE_TARGETS ? ['@bacons/apple-targets' as const] : []),
   ],
   experiments: {
     typedRoutes: true,

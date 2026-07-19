@@ -22,6 +22,12 @@ export interface PushMessage {
   channelId?: string;
   priority?: 'default' | 'normal' | 'high';
   ttl?: number;
+  // iOS 15+ interruption level. 'time-sensitive' lets the notification break
+  // through Focus / Do-Not-Disturb and light the lock screen WITHOUT needing
+  // the Apple-approved Critical Alerts entitlement. Requires the app to declare
+  // the Time Sensitive Notifications capability (see app.config.ts iOS
+  // entitlements). Ignored by Android, which uses channel importance instead.
+  interruptionLevel?: 'passive' | 'active' | 'time-sensitive' | 'critical';
 }
 
 /**
@@ -183,6 +189,11 @@ export async function notifyCaptainsNewRide(
       data: { type: 'ride_alert', rideId: ride.id },
       channelId: 'ride-alerts',
       priority: 'high',
+      // iOS: break through Focus/DND and light the lock screen for an incoming
+      // ride. This is the iOS counterpart to Android's full-screen intent —
+      // Apple forbids third-party full-screen takeovers, so Time-Sensitive is
+      // the strongest conformant signal. No-op on Android.
+      interruptionLevel: 'time-sensitive',
       ttl: 60,
     });
   }

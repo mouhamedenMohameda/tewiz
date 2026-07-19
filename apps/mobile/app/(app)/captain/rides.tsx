@@ -12,6 +12,7 @@ import { formatMru } from '@/lib/format';
 import { CAPTAIN_RIDE_CANCEL_REASONS } from '@/lib/rideCancelReasons';
 import { usePolling } from '@/lib/usePolling';
 import { keepIfEqual } from '@/lib/sameData';
+import { useRideLiveActivity } from '@/lib/liveActivity';
 import {
   AppText, Button, Card, Icon, PlainText as Text, PressableScale, Screen, ScreenHeader,
   type IconName,
@@ -223,6 +224,11 @@ export default function RidesScreen() {
   // open ride in_progress; pushes the sample to the API which trusts it
   // (after gating against teleports / bad accuracy) for the metered fare.
   useOpenRideMeterPinger(current);
+
+  // iOS Live Activity for the active ride: shows pickup → dropoff, phase and
+  // fare on the lock screen / Dynamic Island, started/updated/ended off the
+  // polled `current` ride. No-op on Android and iOS < 16.2.
+  useRideLiveActivity(current);
 
   return (
     <Screen scroll onRefresh={refreshAll} refreshing={loading}>
