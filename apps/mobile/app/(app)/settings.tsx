@@ -349,39 +349,37 @@ export default function SettingsScreen() {
           store card is hidden when its URL is not configured. */}
       {latestAndroidUrl || latestIosUrl ? (
         <Section title={t('settings.download.section')}>
-          <AppText variant="caption" color={colors.muted} style={{ lineHeight: 18, marginBottom: spacing.md }}>
-            {t('settings.download.hint')}
-          </AppText>
-          <View style={{ flexDirection: 'row', gap: spacing.md }}>
-            {latestAndroidUrl ? (
-              <PressableScale
-                onPress={() => openDownload(latestAndroidUrl)}
-                style={[shadow.card, { flex: 1, aspectRatio: 1, borderRadius: radius.xl }]}
-              >
-                <View style={{ flex: 1, borderRadius: radius.xl, overflow: 'hidden' }}>
+          <Card padding={spacing.lg} style={{ alignItems: 'center', gap: spacing.base }}>
+            <AppText variant="caption" color={colors.muted} style={{ lineHeight: 18, textAlign: 'center' }}>
+              {t('settings.download.hint')}
+            </AppText>
+            <View style={{ flexDirection: 'row', justifyContent: 'center', gap: spacing.xl }}>
+              {latestAndroidUrl ? (
+                <PressableScale
+                  onPress={() => openDownload(latestAndroidUrl)}
+                  style={{ width: 80, height: 80, borderRadius: radius.lg, overflow: 'hidden' }}
+                >
                   <Image
                     source={require('@/assets/stores/playstore.png')}
                     style={{ width: '100%', height: '100%' }}
                     resizeMode="cover"
                   />
-                </View>
-              </PressableScale>
-            ) : null}
-            {latestIosUrl ? (
-              <PressableScale
-                onPress={() => openDownload(latestIosUrl)}
-                style={[shadow.card, { flex: 1, aspectRatio: 1, borderRadius: radius.xl }]}
-              >
-                <View style={{ flex: 1, borderRadius: radius.xl, overflow: 'hidden' }}>
+                </PressableScale>
+              ) : null}
+              {latestIosUrl ? (
+                <PressableScale
+                  onPress={() => openDownload(latestIosUrl)}
+                  style={{ width: 80, height: 80, borderRadius: radius.lg, overflow: 'hidden' }}
+                >
                   <Image
                     source={require('@/assets/stores/appstore.png')}
                     style={{ width: '100%', height: '100%' }}
                     resizeMode="cover"
                   />
-                </View>
-              </PressableScale>
-            ) : null}
-          </View>
+                </PressableScale>
+              ) : null}
+            </View>
+          </Card>
         </Section>
       ) : null}
     </Screen>

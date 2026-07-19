@@ -426,6 +426,9 @@
       "onlineBody": "You are receiving nearby rides.",
       "openRide": "Open current ride",
       "openSettings": "Open settings",
+      "overlayBody": "So new rides appear over other apps (like an incoming call), allow \"Display over other apps\" for {{app}}. Without it, a ride that arrives while you're using another app won't open the screen automatically.",
+      "overlayEnable": "Allow",
+      "overlayTitle": "Display over other apps",
       "youAre": "You are"
     },
     "wallet": {

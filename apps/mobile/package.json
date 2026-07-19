@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@bacons/apple-targets": "^5.0.0",
     "@expo-google-fonts/amiri": "^0.4.1",
     "@expo-google-fonts/cairo": "^0.4.2",
     "@expo-google-fonts/sora": "^0.4.2",

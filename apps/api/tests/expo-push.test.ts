@@ -5,14 +5,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../src/db/pool.js', () => ({ pool: { query: vi.fn(), on: vi.fn() }, withTx: vi.fn() }));
 vi.mock('../src/modules/admin/app-settings.service.js', () => ({ getPricingSettings: vi.fn() }));
 
-import { sendPush } from '../src/modules/push/expo-push.js';
+import { notifyCaptainsNewRide, sendPush } from '../src/modules/push/expo-push.js';
+import { pool } from '../src/db/pool.js';
+import { getPricingSettings } from '../src/modules/admin/app-settings.service.js';
 
 const EXPO_URL = 'https://exp.host/--/api/v2/push/send';
 
 type FetchResponse = { ok: boolean; status: number; text: () => Promise<string> };
 
 function ok(): FetchResponse {
-  return { ok: true, status: 200, text: async () => '' };
+  // A 200 body is JSON with a per-token ticket array. sendPush JSON.parses it on
+  // the success path, so an empty string would throw and warn — return the
+  // minimal valid shape (no tickets = nothing to prune).
+  return { ok: true, status: 200, text: async () => '{"data":[]}' };
 }
 function fail(status: number, body: string): FetchResponse {
   return { ok: false, status, text: async () => body };
@@ -131,5 +136,77 @@ describe('sendPush — other failures are logged, never retried or thrown', () =
     await expect(sendPush({ to: ['tok-a'] })).resolves.toBeUndefined();
 
     expect(warnSpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+// The platform-split that makes the incoming-ride alert behave like Uber:
+//   - EVERYONE gets a visible push flagged interruptionLevel 'time-sensitive'
+//     (the iOS-conformant stand-in for Android's full-screen intent);
+//   - ANDROID captains get an ADDITIONAL data-only push (no title/body) that
+//     wakes the headless task to pop the full-screen "incoming ride" screen.
+describe('notifyCaptainsNewRide — platform split', () => {
+  const RIDE = { id: 'ride-1', rideType: 'passenger', fareEstimateMru: 1200 };
+
+  function mockTokens(rows: { token: string; platform: string }[]) {
+    vi.mocked(pool.query).mockResolvedValue({ rows } as never);
+  }
+
+  beforeEach(() => {
+    fetchMock.mockResolvedValue(ok());
+    vi.mocked(getPricingSettings).mockResolvedValue({ captainAlertSoundMode: 'default' } as never);
+  });
+
+  it('sends a time-sensitive visible push AND an Android data-only push', async () => {
+    mockTokens([
+      { token: 'ios-1', platform: 'ios' },
+      { token: 'and-1', platform: 'android' },
+    ]);
+
+    await notifyCaptainsNewRide(['u1', 'u2'], RIDE);
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    // 1. Visible push to everyone, iOS Time-Sensitive.
+    const visible = sentBody(0);
+    expect(visible.to).toEqual(['ios-1', 'and-1']);
+    expect(visible.interruptionLevel).toBe('time-sensitive');
+    expect(visible.title).toBeTruthy();
+    expect(visible.body).toBeTruthy();
+    expect(visible.data).toMatchObject({ type: 'ride_alert', rideId: 'ride-1' });
+    expect(visible.channelId).toBe('ride-alerts');
+
+    // 2. Android-only data-only push: no title/body so the OS runs our JS.
+    const dataOnly = sentBody(1);
+    expect(dataOnly.to).toEqual(['and-1']);
+    expect(dataOnly.title).toBeUndefined();
+    expect(dataOnly.body).toBeUndefined();
+    expect(dataOnly.data).toMatchObject({ type: 'ride_alert', rideId: 'ride-1' });
+  });
+
+  it('sends only the visible push for an iOS-only cohort', async () => {
+    mockTokens([
+      { token: 'ios-1', platform: 'ios' },
+      { token: 'ios-2', platform: 'ios' },
+    ]);
+
+    await notifyCaptainsNewRide(['u1'], RIDE);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(sentBody(0).interruptionLevel).toBe('time-sensitive');
+  });
+
+  it('sends nothing when no captain has a token', async () => {
+    mockTokens([]);
+    await notifyCaptainsNewRide(['u1'], RIDE);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('escalates the sound to critical when configured', async () => {
+    vi.mocked(getPricingSettings).mockResolvedValue({ captainAlertSoundMode: 'critical' } as never);
+    mockTokens([{ token: 'ios-1', platform: 'ios' }]);
+
+    await notifyCaptainsNewRide(['u1'], RIDE);
+
+    expect(sentBody(0).sound).toMatchObject({ name: 'default', critical: true, volume: 1 });
   });
 });
