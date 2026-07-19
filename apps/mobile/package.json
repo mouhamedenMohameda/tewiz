@@ -1,12 +1,12 @@
 {
   "name": "@tewiz/mobile",
-  "version": "1.2.0",
+  "version": "1.2.3",
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
-    "ios": "expo start --ios",
-    "android": "expo start --android",
+    "ios": "expo run:ios",
+    "android": "expo run:android",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
