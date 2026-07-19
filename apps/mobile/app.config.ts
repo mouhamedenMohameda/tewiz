@@ -19,9 +19,13 @@ const HAS_GOOGLE_SERVICES = existsSync(GOOGLE_SERVICES_FILE);
 
 // The iOS Live Activity widget target is wired via @bacons/apple-targets (reads
 // ./targets/rideactivity). Only enable the plugin once the dep is installed so
-// `expo start` / config eval keeps working before `npx expo install
-// @bacons/apple-targets` is run. Same defensive pattern as HAS_GOOGLE_SERVICES.
-const HAS_APPLE_TARGETS = existsSync('./node_modules/@bacons/apple-targets');
+// `expo start` / config eval keeps working before it is. NOTE: under pnpm /
+// workspaces the package is hoisted to the MONOREPO ROOT node_modules, not this
+// package's — so check both, otherwise the widget target is silently skipped at
+// prebuild even though the dep is installed.
+const HAS_APPLE_TARGETS =
+  existsSync('./node_modules/@bacons/apple-targets') ||
+  existsSync('../../node_modules/@bacons/apple-targets');
 
 /**
  * Expo config is dynamic so the app name comes from the single source of
@@ -30,7 +34,7 @@ const HAS_APPLE_TARGETS = existsSync('./node_modules/@bacons/apple-targets');
 const config: ExpoConfig = {
   name: APP_NAME,
   slug: APP_SLUG,
-  version: '1.2.0',
+  version: '1.2.3',
   orientation: 'portrait',
   userInterfaceStyle: 'light',
   icon: './assets/icon.png',
@@ -39,6 +43,12 @@ const config: ExpoConfig = {
   ios: {
     supportsTablet: false,
     bundleIdentifier: BUNDLE_ID,
+    // @bacons/apple-targets needs the Apple Team ID to sign the Live Activity
+    // widget extension (its own bundle id <BUNDLE_ID>.RideActivity). Read from
+    // env so it isn't hardcoded — set APPLE_TEAM_ID (your 10-char team, shown by
+    // `eas credentials -p ios` or Xcode → Signing). Without it prebuild warns and
+    // the extension may fail to sign at build time.
+    ...(process.env.APPLE_TEAM_ID ? { appleTeamId: process.env.APPLE_TEAM_ID } : {}),
     entitlements: {
       // Time Sensitive Notifications capability. Required for the "new ride"
       // push (interruptionLevel: 'time-sensitive', set in the API's expo-push.ts)
