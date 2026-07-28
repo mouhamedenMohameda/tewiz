@@ -409,7 +409,8 @@
         "in_progress": "Course en cours"
       },
       "title": "Courses",
-      "wallet": "Wallet"
+      "wallet": "Wallet",
+      "bubbleHint": "Touchez pour ouvrir"
     },
     "state": {
       "bgLocationBody": "Pour que {{app}} affiche votre trajet au support pendant votre service, autorisez la localisation « Toujours » dans les réglages. Sans cela, votre position n'est pas partagée en arrière-plan.",
@@ -1430,7 +1431,9 @@
       "uploading": "Envoi de votre demande…",
       "waitingBody": "Votre demande est en cours de traitement. Vous serez notifié dès qu'elle est confirmée.",
       "waitingSlow": "Cela prend plus de temps que prévu, merci de patienter encore un peu.",
-      "waitingTitle": "Demande envoyée"
+      "waitingTitle": "Demande envoyée",
+      "permissionDenied": "Permission micro refusée.",
+      "micUnavailable": "Micro momentanément indisponible. Appuyez à nouveau."
     }
   },
   "roadReports": {
@@ -1608,5 +1611,76 @@
     "Octobre",
     "Novembre",
     "Décembre"
-  ]
+  ],
+  "terms": {
+    "title": "Conditions générales d'utilisation",
+    "subtitle": "Entrée en vigueur : 28/09/2024 · Dernière mise à jour : 14/07/2026",
+    "intro": "Bienvenue sur l'application {{app}}. Veuillez lire attentivement ces conditions générales avant d'utiliser l'application. En l'utilisant, vous acceptez d'être lié par ces conditions. Si vous ne les acceptez pas, veuillez ne pas utiliser l'application.",
+    "checkbox": "J'accepte les :",
+    "checkboxLink": "conditions générales",
+    "read": "Lire les conditions générales",
+    "accept": "J'accepte les conditions générales",
+    "close": "Fermer",
+    "scrollHint": "Faites défiler jusqu'à la fin pour activer le bouton",
+    "acceptedAt": "Accepté le {{date}}",
+    "mustAcceptTitle": "Acceptation requise",
+    "mustAcceptBody": "Vous devez accepter les conditions générales avant d'envoyer votre dossier. Vos documents ne seront pas envoyés sans votre acceptation.",
+    "acceptFail": "Impossible d'enregistrer votre acceptation. Vérifiez votre connexion et réessayez.",
+    "updateRequired": "Les conditions générales ont été mises à jour. Veuillez mettre à jour l'application pour continuer.",
+    "gate": {
+      "title": "Conditions générales mises à jour",
+      "intro": "Nous avons mis à jour les conditions générales des capitaines. Pour continuer à utiliser votre compte capitaine, vous devez les lire et les accepter.",
+      "logout": "Se déconnecter"
+    },
+    "sections": [
+      {
+        "title": "1. Définitions",
+        "body": "• L'application : désigne l'application {{app}} et l'ensemble de ses services.\n• Le client : toute personne qui utilise les services de l'application, que ce soit pour acheter des produits, demander des services ou une livraison.\n• Les partenaires : comprend les capitaines, les livreurs, les vendeurs, les prestataires de services et les courtiers."
+      },
+      {
+        "title": "2. Utilisation",
+        "body": "• Vous devez être âgé de 18 ans ou plus pour utiliser l'application.\n• Vous acceptez d'utiliser l'application uniquement à des fins légales et de respecter l'ensemble des lois et règlements applicables."
+      },
+      {
+        "title": "3. Services proposés",
+        "body": "L'application {{app}} propose un ensemble de services comprenant :\n• Services de taxi : services de transport assurés par les capitaines.\n• Services de livraison : livraison de marchandises et de produits aux clients par les livreurs.\n• Livraison de produits : y compris les produits de consommation et pharmaceutiques depuis les restaurants et les pharmacies.\n• Livraison de diverses marchandises et articles commerciaux depuis les vendeurs.\n• Services divers assurés par des prestataires spécialisés.\n• Location et vente : services fournis par des courtiers, dans l'immobilier et d'autres domaines."
+      },
+      {
+        "title": "4. Inscription et compte",
+        "body": "• Pour utiliser certains services de l'application, vous pouvez avoir besoin de créer un compte.\n• Vous êtes responsable de la confidentialité des informations de votre compte et de votre mot de passe.\n• Vous devez nous informer immédiatement de toute utilisation non autorisée de votre compte.\n• Vous assumez l'entière responsabilité de tout dommage résultant de l'utilisation de votre compte par un tiers."
+      },
+      {
+        "title": "5. Paiement",
+        "body": "• Certains services proposés via l'application peuvent être payants.\n• Vous êtes responsable de tous les paiements résultant de votre utilisation de l'application.\n• Différents moyens de paiement peuvent être utilisés ; vos informations de paiement doivent être exactes et à jour.\n• {{app}} est responsable de créditer sur les portefeuilles les montants qui lui sont transférés pour les recharger et d'en permettre l'utilisation, sans garantir leur remboursement en espèces."
+      },
+      {
+        "title": "6. Règles et principes d'utilisation de l'application",
+        "body": "6.1 Respect des lois\nLe chauffeur et le passager s'engagent à utiliser l'application dans le respect des lois et règlements en vigueur en République Islamique de Mauritanie. Chaque partie est responsable de toute infraction légale commise pendant l'utilisation du service.\n\n6.2 Propreté du véhicule\nLe chauffeur s'engage à maintenir la propreté du véhicule à l'intérieur comme à l'extérieur, et à garantir son bon état technique et son apparence lors de la prestation du service, conformément aux standards adoptés par la société. Tout manquement constitue une infraction pouvant donner lieu aux mesures appropriées.\n\n6.3 Bon comportement envers le passager\nLe chauffeur s'engage à faire preuve de politesse, de respect et de neutralité pendant la prestation, et à s'abstenir de tout comportement ou propos susceptible de gêner ou d'offenser le passager. Il s'engage également à n'engager aucune discussion personnelle, politique, religieuse ou sociale avec le passager, sauf si celui-ci en prend l'initiative de son plein gré.\n\n6.4 Mise en marche de la climatisation\nLe chauffeur s'engage à mettre en marche la climatisation avant la montée du passager lorsque le véhicule en est équipé et qu'elle est en état de fonctionnement. La société est en droit de vérifier toute réclamation relative à l'absence ou à l'insuffisance de la climatisation et de prendre les mesures appropriées en cas d'infraction avérée.\n\n6.5 Interdiction des accords hors application\nIl est interdit au chauffeur comme au passager de convenir d'effectuer une course en dehors de l'application après s'être rencontrés via celle-ci. Cela constitue une infraction grave en raison du préjudice causé à la société, aux dispositifs de protection et d'assurance et à la qualité du service. La société peut prendre les mesures qu'elle juge appropriées.\n\n6.6 Interdiction de promouvoir les concurrents\nIl est interdit au chauffeur comme au passager d'utiliser les courses ou les moyens de communication fournis par l'application afin de :\n• Promouvoir des applications concurrentes.\n• Distribuer des numéros ou des cartes de concurrents.\n• Inviter les utilisateurs à quitter l'application {{app}}.\n• Démarcher des clients au profit d'un concurrent.\nCela constitue une infraction grave.\n\n6.7 Interdiction de la diffamation et des abus\nIl est interdit à tout utilisateur de :\n• Diffuser de fausses informations sur la société.\n• Porter atteinte à la réputation de l'application, de ses employés ou de ses utilisateurs.\n• Publier des allégations dont il sait qu'elles sont fausses.\n• Inciter à nuire à la société.\nCela n'empêche pas le dépôt de réclamations ou de critiques réelles formulées de bonne foi.\n\n6.8 Fraude et tricherie\nToute opération frauduleuse est formellement interdite, notamment :\n• Créer des comptes fictifs.\n• Utiliser des données inexactes.\n• Demander des courses fictives.\n• Convenir de courses simulées pour obtenir des primes ou des incitations.\n• Exploiter les offres de manière frauduleuse.\n• Contourner le système de parrainage ou de fidélité.\nCela entraîne l'annulation des primes et la suspension du compte, la société se réservant le droit de réclamer une indemnisation.\n\n6.9 Respect de l'itinéraire\nLe chauffeur s'engage à effectuer la course selon l'itinéraire approprié, sauf demande contraire du passager ou conditions de circulation imposant un changement d'itinéraire.\n\n6.10 Confidentialité\nTous les utilisateurs s'engagent à ne divulguer aucune information obtenue via l'application, y compris les données des clients ou des chauffeurs et les informations opérationnelles.\n\n6.11 Interdiction de l'usage abusif des données\nIl est interdit d'utiliser les numéros de téléphone ou les données des clients ou des chauffeurs à toute fin étrangère à la course, notamment :\n• Le démarchage.\n• Le harcèlement.\n• Le contact personnel.\n• La constitution de bases de données privées.\n\n6.12 Sécurité du compte\nChaque utilisateur est responsable de la préservation de ses identifiants de connexion. Il est interdit de vendre, louer ou céder son compte, ou d'en permettre l'usage par un tiers.\n\n6.13 Coopération avec la société\nLe chauffeur s'engage à coopérer avec la société lorsqu'une vérification est demandée à la suite d'une réclamation, d'un accident ou d'une infraction, et à fournir les informations demandées dans le délai imparti.\n\n6.14 Droit de vérification de la société\nLa société peut examiner les courses, les communications et les enregistrements électroniques liés au service, vérifier les réclamations et prendre les mesures nécessaires conformément à la réglementation en vigueur.\n\n6.15 Sanctions\nSelon la nature, la gravité et la récurrence de l'infraction, la société peut prendre une ou plusieurs des mesures suivantes :\n• L'avertissement.\n• La mise en demeure.\n• La suspension de certains avantages.\n• La suspension temporaire du compte.\n• La clôture définitive du compte.\n• La privation des incitations.\n• La demande d'indemnisation des préjudices.\n• Le signalement aux autorités compétentes si l'infraction constitue un délit ou une infraction légale."
+      },
+      {
+        "title": "7. Propriété intellectuelle",
+        "body": "• L'ensemble des contenus, y compris les textes, les graphiques et les logos présents dans l'application, sont la propriété de l'application {{app}} ou de ses partenaires. Leur copie ou leur utilisation sans autorisation préalable est interdite."
+      },
+      {
+        "title": "8. Responsabilité",
+        "body": "• Les services sont fournis par les partenaires. L'application {{app}} est dégagée de toute responsabilité relative à la qualité, à la sécurité ou à toute question liée aux services fournis.\n• L'application n'assume aucune responsabilité pour les dommages résultant de votre utilisation des services."
+      },
+      {
+        "title": "9. Modifications",
+        "body": "• L'application {{app}} se réserve le droit de modifier ces conditions générales à tout moment. Vous serez informé de tout changement via l'application, par e-mail ou par SMS. La poursuite de votre utilisation de l'application après ces modifications vaut acceptation des conditions modifiées."
+      },
+      {
+        "title": "10. Résiliation du service",
+        "body": "• L'application {{app}} est en droit de clôturer ou de suspendre le compte de tout utilisateur qui enfreint ces conditions générales, sans préavis."
+      },
+      {
+        "title": "11. Droit applicable",
+        "body": "Ces conditions générales sont régies par les lois en vigueur en Mauritanie."
+      },
+      {
+        "title": "12. Nous contacter",
+        "body": "Pour toute question relative à ces conditions générales, vous pouvez nous contacter :\n• E-mail : contact@absherapp.net\n• Téléphone : +22236515156"
+      }
+    ]
+  }
 }

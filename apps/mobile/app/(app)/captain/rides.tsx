@@ -13,6 +13,7 @@ import { CAPTAIN_RIDE_CANCEL_REASONS } from '@/lib/rideCancelReasons';
 import { usePolling } from '@/lib/usePolling';
 import { keepIfEqual } from '@/lib/sameData';
 import { useRideLiveActivity } from '@/lib/liveActivity';
+import { useRideFloatingBubble } from '@/lib/floatingBubble';
 import {
   AppText, Button, Card, Icon, PlainText as Text, PressableScale, Screen, ScreenHeader,
   type IconName,
@@ -229,6 +230,12 @@ export default function RidesScreen() {
   // fare on the lock screen / Dynamic Island, started/updated/ended off the
   // polled `current` ride. No-op on Android and iOS < 16.2.
   useRideLiveActivity(current);
+
+  // Android complement: a floating "chat head" bubble that appears over other
+  // apps while a ride is active and the captain leaves Tewiz — tap to jump back
+  // in. No-op on iOS (uses the Live Activity above) and without overlay
+  // permission (prompted via lib/overlayPermission.ts when going online).
+  useRideFloatingBubble(current);
 
   return (
     <Screen scroll onRefresh={refreshAll} refreshing={loading}>

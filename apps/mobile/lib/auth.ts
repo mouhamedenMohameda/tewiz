@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { setUser as setSentryUser } from './sentry';
+import { setTokens, setAccessToken as persistAccessToken, getTokens, clearTokens, migrateLegacyTokens } from './secureTokens';
 
 export interface AuthUser {
   id: string;
@@ -40,8 +41,19 @@ interface Persisted {
   activeMode: ActiveMode;
 }
 
+// Only non-sensitive session data lives in AsyncStorage. The two tokens are
+// held in SecureStore (see lib/secureTokens.ts).
+interface StoredProfile {
+  user: AuthUser;
+  activeMode: ActiveMode;
+}
+
 async function persist(s: Persisted) {
-  await AsyncStorage.setItem(KEY, JSON.stringify(s));
+  await AsyncStorage.setItem(
+    KEY,
+    JSON.stringify({ user: s.user, activeMode: s.activeMode } satisfies StoredProfile),
+  );
+  await setTokens({ accessToken: s.accessToken, refreshToken: s.refreshToken });
 }
 
 // A rider can only be in rider mode. Only a captain may switch to captain mode.
@@ -83,12 +95,7 @@ export const useAuth = create<AuthState>((set, get) => ({
   setAccessToken: async (t) => {
     const cur = get();
     if (!cur.user || !cur.refreshToken) return;
-    await persist({
-      user: cur.user,
-      accessToken: t,
-      refreshToken: cur.refreshToken,
-      activeMode: cur.activeMode,
-    });
+    await persistAccessToken(t);
     set({ accessToken: t });
   },
 
@@ -107,20 +114,27 @@ export const useAuth = create<AuthState>((set, get) => ({
 
   clear: async () => {
     await AsyncStorage.removeItem(KEY);
+    await clearTokens();
     set({ user: null, accessToken: null, refreshToken: null, activeMode: 'rider' });
     setSentryUser(null);
   },
 
   hydrate: async () => {
     try {
+      // Tokens live in SecureStore now; a session created before this change
+      // still carries them in the legacy AsyncStorage blob — migrate on first
+      // run so existing users aren't logged out.
+      let tokens = await getTokens();
+      if (!tokens) tokens = await migrateLegacyTokens();
+
       const raw = await AsyncStorage.getItem(KEY);
-      if (raw) {
-        const p = JSON.parse(raw) as Partial<Persisted>;
-        if (p.user && p.accessToken && p.refreshToken) {
+      if (raw && tokens) {
+        const p = JSON.parse(raw) as Partial<StoredProfile>;
+        if (p.user) {
           set({
             user: p.user,
-            accessToken: p.accessToken,
-            refreshToken: p.refreshToken,
+            accessToken: tokens.accessToken,
+            refreshToken: tokens.refreshToken,
             activeMode: defaultMode(p.user.role, p.activeMode),
             hydrated: true,
           });

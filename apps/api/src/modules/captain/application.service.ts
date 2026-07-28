@@ -14,6 +14,7 @@ import {
   findPartnerByCode,
   assertCaptainNeverLinked,
 } from '../partners/partners.service.js';
+import { TERMS_VERSION } from './terms.service.js';
 
 const DOCS_WITH_EXPIRY: DocumentType[] = ['assurance', 'vignette', 'visite_technique'];
 
@@ -255,6 +256,23 @@ export async function submitApplication(userId: string) {
     );
     const app = r.rows[0];
     if (!app) throw new HttpError(404, 'no_draft', 'No draft application found');
+
+    // Consent gate. This is the authoritative check: an app build that predates
+    // the terms screen (or one that skips the checkbox) simply cannot submit —
+    // the documents stay in the draft and never reach review.
+    const consent = await client.query(
+      `SELECT 1 FROM captain_terms_acceptances
+        WHERE user_id = $1 AND terms_version = $2
+        LIMIT 1`,
+      [userId, TERMS_VERSION],
+    );
+    if (!consent.rowCount) {
+      throw new HttpError(
+        403, 'terms_not_accepted',
+        'The terms and conditions must be accepted before submitting',
+        { version: TERMS_VERSION },
+      );
+    }
 
     // WhatsApp is optional: an empty value (older app versions, or a captain
     // who skipped the field) falls back to the application's phone — the same

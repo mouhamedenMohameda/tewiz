@@ -392,7 +392,8 @@
         "in_progress": "Course wonndo"
       },
       "title": "Course-ɗe",
-      "wallet": "Wallet"
+      "wallet": "Wallet",
+      "bubbleHint": "Ɓuɓɓu ngam uddita"
     },
     "state": {
       "errorGoingHome": "Juumre e \"Ko mi ruttoo galle\".",
@@ -845,7 +846,9 @@
       "uploading": "Ina nelɗee ƴamre maa…",
       "waitingBody": "Ƴamre maa ina heɓɓinaa. A anndintinte ko fawii confirmation.",
       "waitingSlow": "Ɗum ina yaawi ko ɓuri normal, jaɓɓaa muñal seeɗa.",
-      "waitingTitle": "Ƴamre nelaama"
+      "waitingTitle": "Ƴamre nelaama",
+      "permissionDenied": "Yamiroore micro ronkii.",
+      "micUnavailable": "Micro ngoo alaa e sahaa jooni. Ɓuɓɓu kadi."
     }
   },
   "roadReports": {
