@@ -12,35 +12,25 @@
  * goes online and `stopOfflineTracking()` when they go offline.
  *
  * The task runs in a separate JS context where the Zustand auth store is NOT
- * hydrated, so it reads the token straight from AsyncStorage and talks to the
- * API with plain `fetch` (no axios interceptors available here).
+ * hydrated, so it reads the tokens straight from SecureStore (which is why they
+ * are stored with AFTER_FIRST_UNLOCK — this context runs while the phone is
+ * locked) and talks to the API with plain `fetch` (no axios interceptors here).
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import { Platform } from 'react-native';
 import { API_URL } from './env';
+import { getTokens, setAccessToken, migrateLegacyTokens, type Tokens } from './secureTokens';
 
 export const OFFLINE_LOCATION_TASK = 'offline-location-tracking';
 
-// Must match the persistence key/shape in lib/auth.ts.
-const AUTH_KEY = '@tewiz/auth';
-interface PersistedAuth {
-  accessToken: string;
-  refreshToken: string;
-}
-
-async function readAuth(): Promise<PersistedAuth | null> {
-  try {
-    const raw = await AsyncStorage.getItem(AUTH_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<PersistedAuth>;
-    if (!parsed.accessToken || !parsed.refreshToken) return null;
-    return { accessToken: parsed.accessToken, refreshToken: parsed.refreshToken };
-  } catch {
-    return null;
-  }
+async function readAuth(): Promise<Tokens | null> {
+  // SecureStore first; fall back to migrating a legacy session in case the
+  // task fires after an update but before the app has hydrated once.
+  const tokens = await getTokens();
+  if (tokens) return tokens;
+  return migrateLegacyTokens();
 }
 
 // Refresh the access token from the background context and persist it, so a
@@ -55,13 +45,7 @@ async function refreshAccessToken(refreshToken: string): Promise<string | null> 
     if (!r.ok) return null;
     const data = (await r.json()) as { accessToken?: string };
     if (!data.accessToken) return null;
-    // Merge back into the persisted blob without clobbering the other fields.
-    const raw = await AsyncStorage.getItem(AUTH_KEY);
-    if (raw) {
-      const blob = JSON.parse(raw);
-      blob.accessToken = data.accessToken;
-      await AsyncStorage.setItem(AUTH_KEY, JSON.stringify(blob));
-    }
+    await setAccessToken(data.accessToken);
     return data.accessToken;
   } catch {
     return null;

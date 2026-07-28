@@ -392,7 +392,8 @@
         "in_progress": "Course saxu"
       },
       "title": "Course",
-      "wallet": "Wallet"
+      "wallet": "Wallet",
+      "bubbleHint": "Niini ka wuti"
     },
     "state": {
       "errorGoingHome": "Doome mode \"N ga ka da\".",
@@ -845,7 +846,9 @@
       "uploading": "Demande faabini…",
       "waitingBody": "Demande maa ka faabu. An kayinaado a confirmer kaado.",
       "waitingSlow": "A ka yaaba ka tanmaa nin fo, muñal a ma.",
-      "waitingTitle": "Demande faabuna"
+      "waitingTitle": "Demande faabuna",
+      "permissionDenied": "Micro yamarinde nta.",
+      "micUnavailable": "Micro nta ñiini ni. Niini koota."
     }
   },
   "roadReports": {

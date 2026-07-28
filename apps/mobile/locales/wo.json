@@ -392,7 +392,8 @@
         "in_progress": "Course bu jëkk"
       },
       "title": "Course-yi",
-      "wallet": "Wallet"
+      "wallet": "Wallet",
+      "bubbleHint": "Bësal ngir ubbi"
     },
     "state": {
       "errorGoingHome": "Njumte ci mode \"Dama dem sama kër\".",
@@ -845,7 +846,9 @@
       "uploading": "Mu ngi yonnee demande bi…",
       "waitingBody": "Demande bi mu ngi jubluwaat. Dinga jot xamle bu mu sotti.",
       "waitingSlow": "Lii dafay yàgg lu ëpp ni mu waroon, muñal tuuti.",
-      "waitingTitle": "Demande yonnees na"
+      "waitingTitle": "Demande yonnees na",
+      "permissionDenied": "Amuloo ndigal micro bi.",
+      "micUnavailable": "Micro bi jàppul leegi. Bësaat ko."
     }
   },
   "roadReports": {

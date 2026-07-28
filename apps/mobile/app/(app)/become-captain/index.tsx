@@ -19,6 +19,8 @@ import {
 import { VEHICLE_BRANDS, VEHICLE_COLORS } from '@/lib/vehicle-options';
 import { APP_NAME } from '@/lib/brand';
 import { wrapRow } from '@/components/ui';
+import { TermsSheet } from '@/components/TermsSheet';
+import { acceptTerms, useTermsStatus } from '@/lib/terms';
 
 interface FormState {
   fullName: string;
@@ -66,6 +68,29 @@ export default function BecomeCaptainHome() {
   const [uploadingType, setUploadingType] = useState<DocumentType | null>(null);
   const [pendingUpload, setPendingUpload] = useState<{ type: DocumentType; uri: string } | null>(null);
   const [expiryInput, setExpiryInput] = useState('');
+
+  // Terms & conditions consent — required before the documents can be sent.
+  const { status: termsStatus, setStatus: setTermsStatus } = useTermsStatus();
+  const [termsOpen, setTermsOpen] = useState(false);
+  const [acceptingTerms, setAcceptingTerms] = useState(false);
+  const termsAccepted = termsStatus?.accepted ?? false;
+
+  async function onAcceptTerms() {
+    setAcceptingTerms(true);
+    try {
+      setTermsStatus(await acceptTerms());
+      setTermsOpen(false);
+    } catch (e: any) {
+      Alert.alert(
+        t('common.error'),
+        e.response?.status === 409
+          ? t('terms.updateRequired')
+          : e.response?.data?.error?.message ?? t('terms.acceptFail'),
+      );
+    } finally {
+      setAcceptingTerms(false);
+    }
+  }
 
   const load = useCallback(async () => {
     try {
@@ -222,6 +247,15 @@ export default function BecomeCaptainHome() {
       Alert.alert(t('becomeCaptain.incompleteTitle'), t('becomeCaptain.completeAllSteps'));
       return;
     }
+    // Nothing leaves the device until the terms are accepted — the server
+    // refuses the submit too, this is just the friendlier half of the gate.
+    if (!termsAccepted) {
+      Alert.alert(t('terms.mustAcceptTitle'), t('terms.mustAcceptBody'), [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('terms.read'), onPress: () => setTermsOpen(true) },
+      ]);
+      return;
+    }
     if (!yearNum || yearNum < 1980 || yearNum > currentYear + 1) {
       Alert.alert(t('becomeCaptain.vehicle.yearInvalidTitle'), t('becomeCaptain.vehicle.yearInvalidBody', { max: currentYear + 1 }));
       return;
@@ -274,7 +308,7 @@ export default function BecomeCaptainHome() {
   const requiredDocs = app
     ? DOCUMENT_ORDER.filter((type) => isDocRequired(app, type))
     : [];
-  const allComplete = !!app && formComplete(form) && docsComplete(app);
+  const allComplete = !!app && formComplete(form) && docsComplete(app) && termsAccepted;
 
   const brandOptions: SelectOption[] = VEHICLE_BRANDS.map((b) => ({ value: b, label: b }));
   const colorOptions: SelectOption[] = VEHICLE_COLORS.map((c) => ({
@@ -401,6 +435,13 @@ export default function BecomeCaptainHome() {
                     ))}
                   </View>
 
+                  {/* Terms & conditions — the documents are not sent without it. */}
+                  <TermsCheckbox
+                    checked={termsAccepted}
+                    acceptedAt={termsStatus?.acceptedAt ?? null}
+                    onPress={() => setTermsOpen(true)}
+                  />
+
                   <Pressable
                     disabled={!allComplete || submitting}
                     onPress={submitApplication}
@@ -423,6 +464,13 @@ export default function BecomeCaptainHome() {
           )}
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <TermsSheet
+        visible={termsOpen}
+        busy={acceptingTerms}
+        onAccept={onAcceptTerms}
+        onClose={() => setTermsOpen(false)}
+      />
 
       {/* Expiry-date modal (assurance / vignette / visite technique) */}
       <Modal visible={!!pendingUpload} transparent animationType="fade" onRequestClose={() => setPendingUpload(null)}>
@@ -553,6 +601,52 @@ function DocCard({
           {editable ? t('becomeCaptain.docs.tapToAdd') : t('common.notSent')}
         </Text>
       )}
+    </Pressable>
+  );
+}
+
+/**
+ * Consent row: a box + "I accept the: <terms and conditions>" where the whole
+ * row opens the terms. There is no way to tick the box without opening the
+ * text — accepting happens inside the sheet, at the end of the scroll.
+ */
+function TermsCheckbox({
+  checked, acceptedAt, onPress,
+}: {
+  checked: boolean;
+  acceptedAt: string | null;
+  onPress: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <Pressable
+      onPress={onPress}
+      hitSlop={8}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked }}
+      style={{ marginTop: 24, flexDirection: 'row', alignItems: 'center', gap: 12 }}
+    >
+      <View style={{
+        width: 24, height: 24, borderRadius: 6, borderWidth: 2,
+        borderColor: checked ? '#10a35e' : '#0f172a',
+        backgroundColor: checked ? '#10a35e' : 'transparent',
+        alignItems: 'center', justifyContent: 'center',
+      }}>
+        {checked ? <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>✓</Text> : null}
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontSize: 15, color: '#0f172a' }}>
+          {t('terms.checkbox')}{' '}
+          <Text style={{ color: '#10a35e', fontWeight: '700', textDecorationLine: 'underline' }}>
+            {t('terms.checkboxLink')}
+          </Text>
+        </Text>
+        {checked && acceptedAt ? (
+          <Text style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+            {t('terms.acceptedAt', { date: acceptedAt.slice(0, 10) })}
+          </Text>
+        ) : null}
+      </View>
     </Pressable>
   );
 }

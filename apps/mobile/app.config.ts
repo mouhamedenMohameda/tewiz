@@ -141,6 +141,9 @@ const config: ExpoConfig = {
       },
     ],
     'expo-notifications',
+    // Encrypted storage for auth tokens (iOS Keychain / Android Keystore).
+    // See lib/secureTokens.ts.
+    'expo-secure-store',
     [
       'expo-av',
       {

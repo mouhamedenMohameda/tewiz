@@ -18,6 +18,10 @@ import { colors, gradients, radius, spacing } from '@/theme';
 type Phase = 'record' | 'uploading' | 'waiting' | 'rejected';
 
 const MIN_RECORD_MS = 1200;
+// Hard cap on a single recording. Past this the recorder auto-stops and the
+// clip is uploaded as-is — a rider's pickup/dropoff description fits easily in
+// a minute, and it keeps uploads small on 3G.
+const MAX_RECORD_MS = 60_000;
 
 // Waiting-phase staged progress: purely cosmetic, driven by elapsed time since
 // the request was created. Each threshold (ms) is when that step becomes
@@ -44,11 +48,61 @@ function stepIndexForElapsed(elapsedMs: number): number {
 export default function VoiceRideScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const recorder = useVoiceRecorder();
 
   const [phase, setPhase] = useState<Phase>('record');
   const [request, setRequest] = useState<VoiceRideRequest | null>(null);
   const requestId = request?.id ?? null;
+
+  // Upload a finished clip. Shared by the manual stop and the recorder's
+  // max-duration auto-stop so both paths validate and report failures the same
+  // way.
+  const submitRecording = useCallback(async (uri: string | null, durationMs: number) => {
+    if (!uri) return;
+    if (durationMs < MIN_RECORD_MS) {
+      Alert.alert(t('rider.voiceRide.tooShortTitle'), t('rider.voiceRide.tooShortBody'));
+      return;
+    }
+    setPhase('uploading');
+    try {
+      const req = await createVoiceRide(uri, Math.round(durationMs / 1000));
+      setRequest(req);
+      setPhase('waiting');
+    } catch (e: any) {
+      // Server errors arrive as { error: { code, message } }; a network or
+      // timeout failure has no response at all. Surface the real reason
+      // instead of a blanket "retry" so the rider knows what went wrong
+      // (e.g. "Ajoutez votre numéro de téléphone avant de commander").
+      const err = e?.response?.data?.error;
+      // An earlier request may still be pending (left open in a previous
+      // session). Resume it so the rider can watch or cancel it instead of
+      // being soft-locked out of new recordings.
+      if (err?.code === 'voice_request_pending') {
+        const current = await getCurrentVoiceRide().catch(() => null);
+        if (current) {
+          setRequest(current);
+          setPhase('waiting');
+          return;
+        }
+      }
+      setPhase('record');
+      let message: string;
+      if (err?.code === 'voice_request_pending') {
+        message = t('rider.voiceRide.alreadyPending');
+      } else if (err?.message) {
+        message = err.message;
+      } else if (!e?.response) {
+        message = t('errors.network');
+      } else {
+        message = t('rider.voiceRide.uploadRetry');
+      }
+      Alert.alert(t('rider.voiceRide.uploadFailedTitle'), message);
+    }
+  }, [t]);
+
+  const recorder = useVoiceRecorder({
+    maxDurationMs: MAX_RECORD_MS,
+    onAutoStop: submitRecording,
+  });
 
   // On entering the screen, resume any request still pending from a previous
   // session so the rider sees it (and can cancel) instead of hitting the
@@ -70,50 +124,11 @@ export default function VoiceRideScreen() {
     if (recorder.isRecording) {
       const durationMs = recorder.durationMs;
       const uri = await recorder.stop();
-      if (!uri) return;
-      if (durationMs < MIN_RECORD_MS) {
-        Alert.alert(t('rider.voiceRide.tooShortTitle'), t('rider.voiceRide.tooShortBody'));
-        return;
-      }
-      setPhase('uploading');
-      try {
-        const req = await createVoiceRide(uri, Math.round(durationMs / 1000));
-        setRequest(req);
-        setPhase('waiting');
-      } catch (e: any) {
-        // Server errors arrive as { error: { code, message } }; a network or
-        // timeout failure has no response at all. Surface the real reason
-        // instead of a blanket "retry" so the rider knows what went wrong
-        // (e.g. "Ajoutez votre numéro de téléphone avant de commander").
-        const err = e?.response?.data?.error;
-        // An earlier request may still be pending (left open in a previous
-        // session). Resume it so the rider can watch or cancel it instead of
-        // being soft-locked out of new recordings.
-        if (err?.code === 'voice_request_pending') {
-          const current = await getCurrentVoiceRide().catch(() => null);
-          if (current) {
-            setRequest(current);
-            setPhase('waiting');
-            return;
-          }
-        }
-        setPhase('record');
-        let message: string;
-        if (err?.code === 'voice_request_pending') {
-          message = t('rider.voiceRide.alreadyPending');
-        } else if (err?.message) {
-          message = err.message;
-        } else if (!e?.response) {
-          message = t('errors.network');
-        } else {
-          message = t('rider.voiceRide.uploadRetry');
-        }
-        Alert.alert(t('rider.voiceRide.uploadFailedTitle'), message);
-      }
+      await submitRecording(uri, durationMs);
     } else {
       await recorder.start();
     }
-  }, [recorder]);
+  }, [recorder, submitRecording]);
 
   // ── Waiting → poll for status ──────────────────────────────────────────────
   const refresh = useCallback(async () => {

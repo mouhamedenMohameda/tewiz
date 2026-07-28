@@ -397,7 +397,8 @@
         "in_progress": "Ride in progress"
       },
       "title": "Rides",
-      "wallet": "Wallet"
+      "wallet": "Wallet",
+      "bubbleHint": "Tap to open"
     },
     "state": {
       "bgLocationBody": "So {{app}} can show your route to support while you're on duty, allow \"Always\" location in settings. Without it, your position isn't shared in the background.",
@@ -1384,7 +1385,9 @@
       "uploading": "Sending your request…",
       "waitingBody": "Your request is being processed. You'll be notified once it's confirmed.",
       "waitingSlow": "This is taking longer than usual — thanks for your patience.",
-      "waitingTitle": "Request sent"
+      "waitingTitle": "Request sent",
+      "permissionDenied": "Microphone permission denied.",
+      "micUnavailable": "Microphone temporarily unavailable. Tap again."
     }
   },
   "roadReports": {

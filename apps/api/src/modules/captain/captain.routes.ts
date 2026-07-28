@@ -13,6 +13,7 @@ import { captainRecurringRouter } from '../recurring/captain.routes.js';
 import { captainHeatmapRouter } from '../heatmap/heatmap.routes.js';
 import { captainPreferencesRouter } from './preferences.routes.js';
 import { captainBonusRouter } from './bonus.routes.js';
+import * as terms from './terms.service.js';
 
 export const captainRouter = Router();
 captainRouter.use(requireAuth);
@@ -29,6 +30,43 @@ captainRouter.use('/bonus', requireRole('captain'), captainBonusRouter);
 
 // /applications/* is accessible to rider OR captain — any signed-in user can apply.
 const requireRiderOrCaptain = requireRole('rider', 'captain');
+
+/**
+ * GET /captain/terms/me
+ * Current T&C version + whether this user has accepted it.
+ */
+captainRouter.get('/terms/me', requireRiderOrCaptain, async (req, res) => {
+  res.json(await terms.getTermsStatus(req.user!.id));
+});
+
+/**
+ * POST /captain/terms/accept
+ * Records the consent. `version` is what the client displayed — we reject
+ * anything but the current version so an outdated build can't consent on
+ * behalf of text the captain never saw.
+ */
+const acceptTermsBody = z.object({
+  version: z.string().min(1),
+  locale: z.enum(['ar', 'fr', 'en', 'hs', 'ff', 'wo', 'snk']),
+  appVersion: z.string().max(40).optional(),
+  platform: z.string().max(20).optional(),
+});
+
+captainRouter.post('/terms/accept', requireRiderOrCaptain, async (req, res) => {
+  const body = acceptTermsBody.parse(req.body);
+  if (body.version !== terms.TERMS_VERSION) {
+    throw new HttpError(
+      409, 'terms_version_mismatch',
+      'A newer version of the terms is available. Please update the app.',
+      { current: terms.TERMS_VERSION },
+    );
+  }
+  res.json(await terms.acceptTerms(req.user!.id, {
+    locale: body.locale,
+    appVersion: body.appVersion ?? null,
+    platform: body.platform ?? null,
+  }));
+});
 
 /**
  * POST /captain/applications

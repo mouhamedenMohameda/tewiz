@@ -1,0 +1,23 @@
+apply plugin: 'com.android.library'
+
+group = 'expo.modules.floatingbubble'
+version = '0.1.0'
+
+def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
+apply from: expoModulesCorePlugin
+applyKotlinExpoModulesCorePlugin()
+useCoreDependencies()
+useExpoPublishing()
+
+// Follow the managed Android SDK versions from the app when available, falling
+// back to Expo SDK 54 defaults. Mirrors the create-expo-module local template.
+android {
+  namespace "expo.modules.floatingbubble"
+
+  compileSdkVersion safeExtGet("compileSdkVersion", 35)
+
+  defaultConfig {
+    minSdkVersion safeExtGet("minSdkVersion", 24)
+    targetSdkVersion safeExtGet("targetSdkVersion", 35)
+  }
+}
