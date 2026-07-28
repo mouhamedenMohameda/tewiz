@@ -27,6 +27,7 @@ import { loadAppConfig } from '@/lib/appConfig';
 import { CrashBoundary } from '@/components/CrashBoundary';
 import { NotificationTapHandler } from '@/components/NotificationTapHandler';
 import { SplashGate } from '@/components/SplashGate';
+import UpdateGate from '@/components/UpdateGate';
 import { AppQueryProvider } from '@/lib/queryClient';
 import { colors, fontAssets } from '@/theme';
 
@@ -145,6 +146,8 @@ export default function RootLayout() {
                 <Stack.Screen name="(auth)" />
                 <Stack.Screen name="(app)" />
               </Stack>
+              {/* Blocks outdated builds; renders above everything else. */}
+              <UpdateGate />
             </SplashGate>
           </SafeAreaProvider>
         </GestureHandlerRootView>

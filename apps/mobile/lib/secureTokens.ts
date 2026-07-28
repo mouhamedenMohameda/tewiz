@@ -17,8 +17,14 @@
  * so it must not import the Zustand store (would pull in a non-hydrated graph).
  */
 
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as SecureStore from 'expo-secure-store';
+
+// SecureStore requires native modules unavailable on web.
+let SecureStore: typeof import('expo-secure-store') | null = null;
+try {
+  SecureStore = require('expo-secure-store');
+} catch {}
 
 export interface Tokens {
   accessToken: string;
@@ -33,37 +39,55 @@ const REFRESH_KEY = 'tewiz.refreshToken';
 // existing session on first run after the update instead of logging users out.
 const LEGACY_AUTH_KEY = '@tewiz/auth';
 
-const OPTS: SecureStore.SecureStoreOptions = {
-  keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK,
-};
+const OPTS = SecureStore
+  ? { keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK } as import('expo-secure-store').SecureStoreOptions
+  : {};
 
 /** Persist both tokens. */
 export async function setTokens(t: Tokens): Promise<void> {
-  await SecureStore.setItemAsync(ACCESS_KEY, t.accessToken, OPTS);
-  await SecureStore.setItemAsync(REFRESH_KEY, t.refreshToken, OPTS);
+  if (SecureStore) {
+    await SecureStore.setItemAsync(ACCESS_KEY, t.accessToken, OPTS);
+    await SecureStore.setItemAsync(REFRESH_KEY, t.refreshToken, OPTS);
+  } else {
+    await AsyncStorage.setItem(ACCESS_KEY, t.accessToken);
+    await AsyncStorage.setItem(REFRESH_KEY, t.refreshToken);
+  }
 }
 
 /** Update just the access token (refresh flow), leaving the refresh token. */
 export async function setAccessToken(accessToken: string): Promise<void> {
-  await SecureStore.setItemAsync(ACCESS_KEY, accessToken, OPTS);
+  if (SecureStore) {
+    await SecureStore.setItemAsync(ACCESS_KEY, accessToken, OPTS);
+  } else {
+    await AsyncStorage.setItem(ACCESS_KEY, accessToken);
+  }
 }
 
 /** Read both tokens, or null if either is missing (treated as signed out). */
 export async function getTokens(): Promise<Tokens | null> {
-  const [accessToken, refreshToken] = await Promise.all([
-    SecureStore.getItemAsync(ACCESS_KEY, OPTS),
-    SecureStore.getItemAsync(REFRESH_KEY, OPTS),
-  ]);
+  const [accessToken, refreshToken] = SecureStore
+    ? await Promise.all([
+        SecureStore.getItemAsync(ACCESS_KEY, OPTS),
+        SecureStore.getItemAsync(REFRESH_KEY, OPTS),
+      ])
+    : await Promise.all([
+        AsyncStorage.getItem(ACCESS_KEY),
+        AsyncStorage.getItem(REFRESH_KEY),
+      ]);
   if (!accessToken || !refreshToken) return null;
   return { accessToken, refreshToken };
 }
 
 /** Remove both tokens (sign out). */
 export async function clearTokens(): Promise<void> {
-  await Promise.all([
-    SecureStore.deleteItemAsync(ACCESS_KEY, OPTS),
-    SecureStore.deleteItemAsync(REFRESH_KEY, OPTS),
-  ]);
+  if (SecureStore) {
+    await Promise.all([
+      SecureStore.deleteItemAsync(ACCESS_KEY, OPTS),
+      SecureStore.deleteItemAsync(REFRESH_KEY, OPTS),
+    ]);
+  } else {
+    await AsyncStorage.multiRemove([ACCESS_KEY, REFRESH_KEY]);
+  }
 }
 
 /**

@@ -36,6 +36,10 @@ export interface AppConfig {
   // Settings screen. null = the corresponding button is hidden.
   latestAndroidUrl: string | null;
   latestIosUrl: string | null;
+  // Minimum supported build per platform (e.g. "1.2.4"). A local version lower
+  // than this triggers the blocking update gate. null = gate off.
+  minAndroidVersion: string | null;
+  minIosVersion: string | null;
   modules: ModuleFlags;
 }
 
@@ -59,8 +63,38 @@ const DEFAULTS: AppConfig = {
   captainAlertSoundUrl: null,
   latestAndroidUrl: null,
   latestIosUrl: null,
+  minAndroidVersion: null,
+  minIosVersion: null,
   modules: DEFAULT_MODULE_FLAGS,
 };
+
+/**
+ * Compare two dotted numeric versions ("1.2.10" vs "1.2.9"). Returns a negative
+ * number when `a < b`, 0 when equal, positive when `a > b`. Missing segments
+ * count as 0, so "1.2" === "1.2.0". Non-numeric input is treated as 0 to fail
+ * safe (a build with an unparseable version is never considered outdated).
+ */
+export function compareVersions(a: string, b: string): number {
+  const pa = a.split('.').map((n) => parseInt(n, 10) || 0);
+  const pb = b.split('.').map((n) => parseInt(n, 10) || 0);
+  const len = Math.max(pa.length, pb.length);
+  for (let i = 0; i < len; i++) {
+    const d = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (d !== 0) return d;
+  }
+  return 0;
+}
+
+/**
+ * True when the running build is older than the server-mandated minimum for
+ * this platform. Fails safe: no minimum configured, or an unreadable local
+ * version, never blocks.
+ */
+export function isUpdateRequired(cfg: AppConfig, platform: 'ios' | 'android', localVersion: string | null): boolean {
+  const min = platform === 'ios' ? cfg.minIosVersion : cfg.minAndroidVersion;
+  if (!min || !localVersion) return false;
+  return compareVersions(localVersion, min) < 0;
+}
 
 let memCache: AppConfig | null = null;
 

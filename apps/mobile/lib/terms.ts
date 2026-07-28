@@ -20,7 +20,7 @@ import * as Application from 'expo-application';
 import { api } from './api';
 import i18n from 'i18next';
 
-export const TERMS_VERSION = '2026-07-14';
+export const TERMS_VERSION = '2026-07-28';
 
 export interface TermsStatus {
   version: string;
