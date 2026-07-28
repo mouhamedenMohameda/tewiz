@@ -93,6 +93,10 @@ const patchBody = z.object({
   // surfaced at the bottom of the in-app Settings screen.
   latestAndroidUrl:                 z.string().trim().url().max(500).nullable().optional(),
   latestIosUrl:                     z.string().trim().url().max(500).nullable().optional(),
+  // Minimum supported build (e.g. "1.2.4"); a lower client is forced to update.
+  // null clears the gate. Digits-and-dots only, matching X-App-Version.
+  minAndroidVersion:                z.string().trim().regex(/^\d+(\.\d+)*$/).max(40).nullable().optional(),
+  minIosVersion:                    z.string().trim().regex(/^\d+(\.\d+)*$/).max(40).nullable().optional(),
   gpsFraudSevereMode:               z.boolean().optional(),
   // Per-service availability + tariff knobs. These MUST be listed here: Zod
   // strips unknown keys, so any field missing from this schema is silently

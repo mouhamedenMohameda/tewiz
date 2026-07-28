@@ -18,7 +18,7 @@ import {
   ActivityIndicator, Modal, Pressable, ScrollView, View,
   type NativeScrollEvent, type NativeSyntheticEvent,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { PlainText as Text } from '@/components/ui';
 import { APP_NAME } from '@/lib/brand';
@@ -48,6 +48,11 @@ export function TermsSheet({
   onAccept, onClose, secondaryLabel, onSecondary, notice,
 }: TermsSheetProps) {
   const { t } = useTranslation();
+  // A RN <Modal> renders in its own host view outside the SafeAreaProvider, so
+  // <SafeAreaView> inside it measures 0 insets and the header slides under the
+  // status bar. Read the insets from context here (this component IS under the
+  // provider) and pad manually.
+  const insets = useSafeAreaInsets();
   const [readToEnd, setReadToEnd] = useState(false);
   // Content shorter than the viewport can never fire an end-of-scroll event,
   // so unlock as soon as we know it all fits on screen.
@@ -79,15 +84,16 @@ export function TermsSheet({
     <Modal
       visible={visible}
       animationType="slide"
+      statusBarTranslucent
       onRequestClose={dismissible ? onClose : () => {}}
     >
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+      <View style={{ flex: 1, backgroundColor: '#fff', paddingTop: insets.top }}>
         <View style={{
           paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12,
           borderBottomWidth: 1, borderBottomColor: '#e2e8f0',
         }}>
           <Text style={{ fontSize: 20, fontWeight: '700', color: '#0f172a' }}>
-            {t('terms.title')}
+            {t('terms.title', { app: APP_NAME })}
           </Text>
           <Text style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
             {t('terms.subtitle')}
@@ -128,7 +134,7 @@ export function TermsSheet({
         </ScrollView>
 
         <View style={{
-          paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12,
+          paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12 + insets.bottom,
           borderTopWidth: 1, borderTopColor: '#e2e8f0', backgroundColor: '#fff',
         }}>
           {!readToEnd ? (
@@ -175,7 +181,7 @@ export function TermsSheet({
             </Pressable>
           ) : null}
         </View>
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 }

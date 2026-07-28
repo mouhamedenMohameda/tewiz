@@ -135,6 +135,10 @@ export interface PricingSettings {
   // at the bottom of the in-app Settings screen. NULL = button hidden.
   latestAndroidUrl: string | null;
   latestIosUrl: string | null;
+  // Migration 0076. Minimum supported build; a lower client version is forced
+  // to update. NULL = the update gate is off.
+  minAndroidVersion: string | null;
+  minIosVersion: string | null;
   updatedAt: string;
   updatedBy: string | null;
 }
@@ -229,6 +233,8 @@ interface Row {
   equipment_rental_commission_bps: number;
   latest_android_url: string | null;
   latest_ios_url: string | null;
+  min_android_version: string | null;
+  min_ios_version: string | null;
   updated_at: Date;
   updated_by: string | null;
 }
@@ -321,6 +327,8 @@ function toSettings(r: Row): PricingSettings {
     equipmentRentalCommissionBps: r.equipment_rental_commission_bps,
     latestAndroidUrl: r.latest_android_url,
     latestIosUrl: r.latest_ios_url,
+    minAndroidVersion: r.min_android_version,
+    minIosVersion: r.min_ios_version,
     updatedAt: r.updated_at.toISOString(),
     updatedBy: r.updated_by,
   };
@@ -383,6 +391,7 @@ export async function getPricingSettings(): Promise<PricingSettings> {
             equipment_rental_enabled, equipment_rental_daily_rate_mru,
             equipment_rental_commission_bps,
             latest_android_url, latest_ios_url,
+            min_android_version, min_ios_version,
             updated_at, updated_by
        FROM app_settings WHERE id = 1`,
   );
@@ -483,6 +492,8 @@ export interface PricingSettingsPatch {
   equipmentRentalCommissionBps?: number;
   latestAndroidUrl?: string | null;
   latestIosUrl?: string | null;
+  minAndroidVersion?: string | null;
+  minIosVersion?: string | null;
 }
 
 export async function updatePricingSettings(
@@ -577,6 +588,8 @@ export async function updatePricingSettings(
           demo_buttons_allowed_versions      = COALESCE($81, demo_buttons_allowed_versions),
           latest_android_url                 = COALESCE($83, latest_android_url),
           latest_ios_url                     = COALESCE($84, latest_ios_url),
+          min_android_version                = COALESCE($88, min_android_version),
+          min_ios_version                    = COALESCE($89, min_ios_version),
             updated_at                        = now(),
           updated_by                        = $36
       WHERE id = 1
@@ -632,6 +645,7 @@ export async function updatePricingSettings(
                 equipment_rental_enabled, equipment_rental_daily_rate_mru,
                 equipment_rental_commission_bps,
                 latest_android_url, latest_ios_url,
+                min_android_version, min_ios_version,
                 updated_at, updated_by`,
     [
       patch.baseFareMru ?? null,
@@ -721,6 +735,8 @@ export async function updatePricingSettings(
       patch.carpoolingNoShowLimit ?? null,
       patch.carRentalNoShowLimit ?? null,
       patch.trackOfflineEnabled ?? null,
+      patch.minAndroidVersion ?? null,   // $88
+      patch.minIosVersion ?? null,       // $89
     ],
   );
   cache = null;

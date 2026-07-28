@@ -71,6 +71,11 @@ publicRouter.get('/config', async (req, res) => {
     // screen. Not version-gated — managed from the admin Settings screen.
     latestAndroidUrl: s.latestAndroidUrl,
     latestIosUrl: s.latestIosUrl,
+    // Minimum supported build. A client whose X-App-Version is lower shows a
+    // blocking "update required" screen. null = gate off. Only enforced by
+    // builds that ship the gate (an older binary has no such screen).
+    minAndroidVersion: s.minAndroidVersion,
+    minIosVersion: s.minIosVersion,
     // Per-service availability toggles managed from the admin settings screen.
     // The mobile home grid hides any module whose flag is false; the server
     // still rejects a booking for a disabled service (403 *_disabled) as a

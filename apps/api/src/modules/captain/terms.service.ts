@@ -10,10 +10,10 @@ import { pool } from '../../db/pool.js';
  * server refuses anything that isn't the current one, so a stale build can
  * never record a consent for text it didn't show.
  */
-export const TERMS_VERSION = '2026-07-14';
+export const TERMS_VERSION = '2026-07-28';
 
 /** Date the current version takes effect (display only). */
-export const TERMS_EFFECTIVE_DATE = '2026-07-14';
+export const TERMS_EFFECTIVE_DATE = '2026-07-28';
 
 export interface TermsStatus {
   version: string;

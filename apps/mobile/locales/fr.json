@@ -1613,8 +1613,8 @@
     "Décembre"
   ],
   "terms": {
-    "title": "Conditions générales d'utilisation",
-    "subtitle": "Entrée en vigueur : 28/09/2024 · Dernière mise à jour : 14/07/2026",
+    "title": "Conditions générales d'utilisation – {{app}}",
+    "subtitle": "Entrée en vigueur : 28/07/2026 · Dernière mise à jour : 28/07/2026",
     "intro": "Bienvenue sur l'application {{app}}. Veuillez lire attentivement ces conditions générales avant d'utiliser l'application. En l'utilisant, vous acceptez d'être lié par ces conditions. Si vous ne les acceptez pas, veuillez ne pas utiliser l'application.",
     "checkbox": "J'accepte les :",
     "checkboxLink": "conditions générales",
@@ -1679,8 +1679,14 @@
       },
       {
         "title": "12. Nous contacter",
-        "body": "Pour toute question relative à ces conditions générales, vous pouvez nous contacter :\n• E-mail : contact@absherapp.net\n• Téléphone : +22236515156"
+        "body": "Pour toute question relative à ces conditions générales, vous pouvez nous contacter :\n• E-mail : mohameda.mouhameden@gmail.com\n• Téléphone : 333227777"
       }
     ]
+  },
+  "update": {
+    "title": "Mise à jour requise",
+    "body": "Une nouvelle version de {{app}} est disponible. Veuillez mettre à jour pour continuer.",
+    "cta": "Mettre à jour",
+    "noLink": "Veuillez mettre à jour l'application depuis le store pour continuer."
   }
 }
