@@ -20,8 +20,18 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import i18n from 'i18next';
 import { PlainText as Text } from '@/components/ui';
 import { APP_NAME } from '@/lib/brand';
+
+// Languages offered inside the sheet. The captain can read the terms in either
+// one regardless of the app's global language — switching here does NOT change
+// the app language (that would reload the whole bundle).
+const TERMS_LANGS = [
+  { code: 'ar', label: 'العربية' },
+  { code: 'fr', label: 'Français' },
+] as const;
+type TermsLang = (typeof TERMS_LANGS)[number]['code'];
 
 interface TermsSection {
   title: string;
@@ -47,7 +57,9 @@ export function TermsSheet({
   visible, busy = false, dismissible = true,
   onAccept, onClose, secondaryLabel, onSecondary, notice,
 }: TermsSheetProps) {
-  const { t } = useTranslation();
+  // Called for its re-render-on-language-change side effect; the visible strings
+  // are read through `tt` (the fixed translator) below, not this `t`.
+  useTranslation();
   // A RN <Modal> renders in its own host view outside the SafeAreaProvider, so
   // <SafeAreaView> inside it measures 0 insets and the header slides under the
   // status bar. Read the insets from context here (this component IS under the
@@ -59,10 +71,31 @@ export function TermsSheet({
   const viewportH = useRef(0);
   const contentH = useRef(0);
 
+  // Language the terms are DISPLAYED in — defaults to the app language, but the
+  // captain can flip it in the header. `tt` is a fixed translator bound to that
+  // language, so we read the strings for `lang` no matter the app language.
+  const [lang, setLang] = useState<TermsLang>(
+    () => ((i18n.language || 'fr').split('-')[0] === 'ar' ? 'ar' : 'fr'),
+  );
+  const tt = useMemo(() => i18n.getFixedT(lang), [lang]);
+  const rtl = lang === 'ar';
+  const dirStyle = {
+    textAlign: rtl ? ('right' as const) : ('left' as const),
+    writingDirection: rtl ? ('rtl' as const) : ('ltr' as const),
+  };
+
+  function switchLang(next: TermsLang) {
+    if (next === lang) return;
+    setLang(next);
+    // The other language is a different wall of text — re-lock the button so
+    // the captain scrolls what they're about to accept.
+    setReadToEnd(false);
+  }
+
   const sections = useMemo(() => {
-    const raw = t('terms.sections', { returnObjects: true }) as unknown;
+    const raw = tt('terms.sections', { returnObjects: true }) as unknown;
     return Array.isArray(raw) ? (raw as TermsSection[]) : [];
-  }, [t]);
+  }, [tt]);
 
   function unlockIfShort() {
     if (viewportH.current && contentH.current && contentH.current <= viewportH.current + 8) {
@@ -92,11 +125,34 @@ export function TermsSheet({
           paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12,
           borderBottomWidth: 1, borderBottomColor: '#e2e8f0',
         }}>
-          <Text style={{ fontSize: 20, fontWeight: '700', color: '#0f172a' }}>
-            {t('terms.title', { app: APP_NAME })}
+          {/* Language switch — reads the terms in AR or FR without changing the
+              app language. */}
+          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+            {TERMS_LANGS.map((l) => {
+              const active = l.code === lang;
+              return (
+                <Pressable
+                  key={l.code}
+                  onPress={() => switchLang(l.code)}
+                  style={{
+                    paddingVertical: 6, paddingHorizontal: 14, borderRadius: 999,
+                    borderWidth: 1,
+                    borderColor: active ? '#10a35e' : '#cbd5e1',
+                    backgroundColor: active ? '#10a35e' : '#fff',
+                  }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: active ? '#fff' : '#475569' }}>
+                    {l.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Text style={[{ fontSize: 20, fontWeight: '700', color: '#0f172a' }, dirStyle]}>
+            {tt('terms.title', { app: APP_NAME })}
           </Text>
-          <Text style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
-            {t('terms.subtitle')}
+          <Text style={[{ fontSize: 12, color: '#64748b', marginTop: 4 }, dirStyle]}>
+            {tt('terms.subtitle')}
           </Text>
         </View>
 
@@ -117,16 +173,16 @@ export function TermsSheet({
             </View>
           ) : null}
 
-          <Text style={{ fontSize: 14, color: '#334155', lineHeight: 22 }}>
-            {t('terms.intro', { app: APP_NAME })}
+          <Text style={[{ fontSize: 14, color: '#334155', lineHeight: 22 }, dirStyle]}>
+            {tt('terms.intro', { app: APP_NAME })}
           </Text>
 
           {sections.map((s, i) => (
             <View key={i} style={{ marginTop: 22 }}>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: '#0f172a' }}>
+              <Text style={[{ fontSize: 15, fontWeight: '700', color: '#0f172a' }, dirStyle]}>
                 {interpolateApp(s.title)}
               </Text>
-              <Text style={{ fontSize: 14, color: '#334155', lineHeight: 23, marginTop: 6 }}>
+              <Text style={[{ fontSize: 14, color: '#334155', lineHeight: 23, marginTop: 6 }, dirStyle]}>
                 {interpolateApp(s.body)}
               </Text>
             </View>
@@ -139,7 +195,7 @@ export function TermsSheet({
         }}>
           {!readToEnd ? (
             <Text style={{ fontSize: 12, color: '#94a3b8', marginBottom: 10, textAlign: 'center' }}>
-              {t('terms.scrollHint')}
+              {tt('terms.scrollHint')}
             </Text>
           ) : null}
 
@@ -155,7 +211,7 @@ export function TermsSheet({
           >
             {busy && <ActivityIndicator color="#fff" />}
             <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>
-              {t('terms.accept')}
+              {tt('terms.accept')}
             </Text>
           </Pressable>
 
@@ -165,7 +221,7 @@ export function TermsSheet({
               style={{ paddingVertical: 14, alignItems: 'center' }}
             >
               <Text style={{ color: '#475569', fontSize: 15, fontWeight: '600' }}>
-                {t('terms.close')}
+                {tt('terms.close')}
               </Text>
             </Pressable>
           ) : null}
