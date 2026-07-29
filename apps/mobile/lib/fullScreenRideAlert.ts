@@ -36,51 +36,78 @@ interface RideAlertData {
 }
 
 /**
- * Lazily load Notifee. Returns null when the native module isn't available
- * (old build, Expo Go, web) so callers can no-op instead of throwing.
+ * Lazily load the Notifee module NAMESPACE. Returns null when the native module
+ * isn't available (old build, Expo Go, web) so callers can no-op instead of
+ * throwing.
+ *
+ * IMPORTANT: the namespace and the callable API instance are NOT the same
+ * object. Notifee's index does:
+ *
+ *   exports.default = Object.assign(apiModule, { SDK_VERSION });
+ *   __exportStar(require('./types/NotificationAndroid'), exports);
+ *
+ * so `AndroidImportance` / `AndroidCategory` / `AndroidVisibility` live on the
+ * NAMESPACE only — reading them off `.default` yields undefined. That is exactly
+ * what silently killed the full-screen ride alert: `AndroidImportance.HIGH`
+ * threw a TypeError inside the try/catch below, so the headless task ran and
+ * "finished" normally while never creating the channel or posting anything.
  */
-function getNotifee(): any | null {
+function getNotifeeModule(): any | null {
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
-    const mod = require('@notifee/react-native');
-    return mod?.default ?? mod;
+    return require('@notifee/react-native');
   } catch {
     return null;
   }
+}
+
+/** The callable API instance (displayNotification, createChannel, ...). */
+function getNotifee(): any | null {
+  const mod = getNotifeeModule();
+  return mod ? (mod.default ?? mod) : null;
 }
 
 /**
  * Post the full-screen "incoming ride" notification. Android-only; no-ops
  * elsewhere or when Notifee is unavailable.
  */
-export async function displayFullScreenRideAlert(data: RideAlertData): Promise<void> {
-  if (Platform.OS !== 'android') return;
-  const notifee = getNotifee();
-  if (!notifee) return;
-  const { AndroidImportance, AndroidCategory, AndroidVisibility } = notifee;
+/**
+ * Build the exact channel + notification payloads handed to Notifee.
+ *
+ * Pure and exported so the enum wiring can be unit-tested: `mod` is the Notifee
+ * module NAMESPACE, and the fallbacks are Notifee's own literal values, so even
+ * a namespace that is missing the enums (the bug) still produces a working
+ * high-importance call-style alert instead of throwing.
+ */
+export function buildFullScreenAlert(mod: any, data: RideAlertData): {
+  channel: Record<string, unknown>;
+  notification: Record<string, unknown>;
+} {
+  const IMPORTANCE_HIGH = mod?.AndroidImportance?.HIGH ?? 4;
+  const CATEGORY_CALL = mod?.AndroidCategory?.CALL ?? 'call';
+  const VISIBILITY_PUBLIC = mod?.AndroidVisibility?.PUBLIC ?? 1;
 
-  try {
-    await notifee.createChannel({
+  return {
+    channel: {
       id: CHANNEL_ID,
       name: 'Courses entrantes',
-      importance: AndroidImportance.HIGH,
+      importance: IMPORTANCE_HIGH,
       sound: 'default',
       vibration: true,
       vibrationPattern: [300, 500, 300, 500],
-      visibility: AndroidVisibility.PUBLIC,
+      visibility: VISIBILITY_PUBLIC,
       bypassDnd: true,
-    });
-
-    await notifee.displayNotification({
+    },
+    notification: {
       id: data.rideId ? `ride-${data.rideId}` : undefined,
       title: data.title ?? '🚖 Nouvelle course',
       body: data.body ?? 'Une nouvelle course est disponible près de vous.',
       data: { type: 'ride_alert', rideId: data.rideId ?? '' },
       android: {
         channelId: CHANNEL_ID,
-        importance: AndroidImportance.HIGH,
-        category: AndroidCategory.CALL,
-        visibility: AndroidVisibility.PUBLIC,
+        importance: IMPORTANCE_HIGH,
+        category: CATEGORY_CALL,
+        visibility: VISIBILITY_PUBLIC,
         // The star of the show: launch the app full-screen over the lock
         // screen. `launchActivity: 'default'` opens MainActivity.
         fullScreenAction: { id: 'default', launchActivity: 'default' },
@@ -90,9 +117,28 @@ export async function displayFullScreenRideAlert(data: RideAlertData): Promise<v
         autoCancel: true,
         lightUpScreen: true,
       },
-    });
-  } catch {
-    // Native call failed (unlinked module / bad payload): fall back silently.
+    },
+  };
+}
+
+export async function displayFullScreenRideAlert(data: RideAlertData): Promise<void> {
+  if (Platform.OS !== 'android') return;
+  const mod = getNotifeeModule();
+  if (!mod) return;
+  const notifee = mod.default ?? mod;
+
+  const { channel, notification } = buildFullScreenAlert(mod, data);
+
+  try {
+    await notifee.createChannel(channel);
+    await notifee.displayNotification(notification);
+  } catch (err) {
+    // Never throw out of a headless task — but DO log. Swallowing this silently
+    // is precisely what hid the enum bug above: the task ran, "finished" fine,
+    // and the captain simply never got a full-screen alert, with nothing in the
+    // logs to explain it. A visible warning turns that into a 30-second fix.
+    // eslint-disable-next-line no-console
+    console.warn('[ride-alert] full-screen notification failed', err);
   }
 }
 
@@ -142,9 +188,20 @@ export function extractRideAlert(taskData: unknown): RideAlertData | null {
 // Headless task that runs when a data-only ride push arrives while the app is
 // backgrounded or killed. Must be defined at module top level.
 TaskManager.defineTask(BACKGROUND_RIDE_TASK, async ({ data, error }) => {
-  if (error) return;
+  if (error) {
+    // eslint-disable-next-line no-console
+    console.warn('[ride-alert] background task error', error);
+    return;
+  }
   const alert = extractRideAlert(data);
-  if (alert) await displayFullScreenRideAlert(alert);
+  if (!alert) {
+    // Not a ride push (or a payload shape extractRideAlert doesn't know yet).
+    // Logged because a missed shape looks exactly like "push never arrived".
+    // eslint-disable-next-line no-console
+    console.warn('[ride-alert] no ride payload in task data');
+    return;
+  }
+  await displayFullScreenRideAlert(alert);
 });
 
 // Notifee background event (fires when the user answers/taps the full-screen
