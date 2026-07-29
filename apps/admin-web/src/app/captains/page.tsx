@@ -276,7 +276,6 @@ export default function CaptainsPage() {
               selectedId={selectedId}
               onSelect={setSelectedId}
               track={trail}
-              replayIndex={replayIndex}
             />
             {selected && !detailHidden && (
               <CaptainDetailCard
