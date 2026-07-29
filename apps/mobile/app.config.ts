@@ -1,6 +1,5 @@
 import type { ExpoConfig } from 'expo/config';
 import { existsSync } from 'fs';
-import path from 'path';
 import brand from './brand.json';
 
 // Single source of truth for the brand lives in ./brand.json (see lib/brand.ts).
@@ -9,22 +8,24 @@ const APP_SLUG = brand.slug;
 const APP_SCHEME = brand.scheme;
 const BUNDLE_ID = brand.bundleId;
 
-// Android push (FCM) needs google-services.json baked into the build. We only
-// wire it when the file is actually present (env override or the default path)
-// so builds keep working before Firebase is set up. Without it, Expo push
-// token registration warns "Default FirebaseApp is not initialized" and Android
-// push stays disabled — the app itself still runs fine.
-// Use an ABSOLUTE path (via __dirname) so both the existsSync gate below and the
-// googleServicesFile value resolve no matter which CWD Expo/EAS evaluates this
-// config from. A CWD-relative './google-services.json' silently fails on EAS
-// monorepo builds — there the CWD is the repo root, not apps/mobile — so the
-// file is "not found", googleServicesFile is dropped, the google-services gradle
-// plugin is never applied, and at runtime the app throws "Default FirebaseApp is
-// not initialized" → Android push registration fails silently. (Diagnosed 2026-07
-// from an installed APK that had no Firebase while iOS push worked fine.)
+// Android push (FCM) needs google-services.json baked into the build. The file
+// is committed to the repo, so wire it UNCONDITIONALLY — NO existsSync gate.
+//
+// History of pain (2026-07): the previous versions gated googleServicesFile
+// behind existsSync(...). Whenever that check returned false on EAS (CWD /
+// __dirname surprises, or the file simply not resolving), googleServicesFile was
+// silently dropped → the com.google.gms:google-services gradle plugin was never
+// applied → the shipped APK had NO Firebase → getExpoPushTokenAsync threw
+// E_REGISTRATION_FAILED → no Android push token registered → Android push died
+// silently while iOS (APNs, no Firebase) kept working. Confirmed on-device via
+// `adb logcat`: "Default FirebaseApp is not initialized ... google-services was
+// not applied".
+//
+// Setting it unconditionally removes every silent-drop path: Expo resolves this
+// against the project root, and a genuinely-missing file now makes the BUILD
+// fail loudly (the safe failure) instead of producing a broken app.
 const GOOGLE_SERVICES_FILE =
-  process.env.GOOGLE_SERVICES_JSON ?? path.join(__dirname, 'google-services.json');
-const HAS_GOOGLE_SERVICES = existsSync(GOOGLE_SERVICES_FILE);
+  process.env.GOOGLE_SERVICES_JSON ?? './google-services.json';
 
 // The iOS Live Activity widget target is wired via @bacons/apple-targets (reads
 // ./targets/rideactivity). Only enable the plugin once the dep is installed so
@@ -93,7 +94,7 @@ const config: ExpoConfig = {
   },
   android: {
     package: BUNDLE_ID,
-    ...(HAS_GOOGLE_SERVICES ? { googleServicesFile: GOOGLE_SERVICES_FILE } : {}),
+    googleServicesFile: GOOGLE_SERVICES_FILE,
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
       backgroundColor: '#F2682C',
