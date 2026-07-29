@@ -5,7 +5,7 @@ import type { MapRef } from 'react-map-gl/mapbox';
 import { Layer, Marker, Popup, Source } from 'react-map-gl/mapbox';
 import { MapShell } from '@/components/Map';
 
-export type TrackPoint = { lat: number; lng: number };
+export type TrackPoint = { lat: number; lng: number; recordedAt?: string };
 
 export type CaptainMarker = {
   id: string;
