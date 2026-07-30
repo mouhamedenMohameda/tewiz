@@ -33,10 +33,30 @@ Aucune de ces données n'est dans git.
 `restore_seconds` affiché et l'écrire ici :
 
 ```
-RTO base de données mesuré : ______ s   (mis à jour le ______)
+RTO base de données mesuré : 7 s   (mesuré le 30/07/2026)
 ```
 
+Contexte de cette mesure, pour pouvoir la comparer plus tard : dump de 977 Ko,
+615 objets, 177 utilisateurs, 38 captains, 1321 courses. Le temps de
+restauration croît avec le volume — quand la base aura dix fois plus de courses,
+attends-toi à dix fois plus de secondes. L'exercice mensuel remesure tout seul,
+donc la dérive se verra dans `/var/log/tewiz-restore-drill.log`.
+
 Un RTO non mesuré n'est pas un RTO. C'est tout l'objet de l'exercice mensuel.
+
+**Obstacles rencontrés à la première exécution**, tous corrigés — ils sont listés
+ici parce qu'ils reviendront à l'identique sur une machine de secours neuve :
+
+1. le rôle `tewiz` n'a pas `CREATEDB` → `ALTER ROLE tewiz CREATEDB;`
+2. le superutilisateur `postgres` n'est pas joignable en root par la socket
+   (authentification peer) → ne pas compter dessus pour `RESTORE_ADMIN_URL`
+3. `CREATE EXTENSION postgis` exige le superutilisateur → le script se rabat sur
+   `sudo -u postgres`
+4. PostGIS appartenant à `postgres`, `pg_restore` saute son commentaire et les
+   lignes `spatial_ref_sys` → deux erreurs bénignes, comptées comme telles
+
+Quatre blocages qui, découverts pendant une panne réelle, auraient transformé une
+restauration de 7 secondes en plusieurs heures de recherche.
 
 ## Installation (une seule fois, sur le VPS)
 
