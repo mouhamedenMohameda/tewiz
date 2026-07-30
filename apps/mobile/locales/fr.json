@@ -413,6 +413,9 @@
       "bubbleHint": "Touchez pour ouvrir"
     },
     "state": {
+      "batteryBody": "Pour ne jamais rater une course, autorisez {{app}} à fonctionner sans restriction de batterie. Sans cela, Android peut mettre l'application en veille et retarder — voire supprimer — l'alerte de nouvelle course.",
+      "batteryEnable": "Autoriser",
+      "batteryTitle": "Ne pas endormir l'application",
       "bgLocationBody": "Pour que {{app}} affiche votre trajet au support pendant votre service, autorisez la localisation « Toujours » dans les réglages. Sans cela, votre position n'est pas partagée en arrière-plan.",
       "bgLocationLater": "Plus tard",
       "bgLocationTitle": "Localisation en arrière-plan",

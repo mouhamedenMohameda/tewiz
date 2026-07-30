@@ -17,6 +17,7 @@ import { getMapbox, NKC_CENTER } from '@/lib/mapbox';
 import { resumeOfflineTracking, startOfflineTracking, stopOfflineTracking } from '@/lib/track-task';
 import { ensureFullScreenIntentPermission } from '@/lib/fullScreenIntentPermission';
 import { ensureOverlayPermission } from '@/lib/overlayPermission';
+import { ensureBatteryExemption } from '@/lib/batteryExemption';
 import { ModeToggle } from '@/components/ModeToggle';
 import { MapShell } from '@/components/MapShell';
 import { BottomSheet } from '@/components/BottomSheet';
@@ -244,6 +245,11 @@ export default function CaptainHome() {
       // ride take over the screen even while the captain is using another app,
       // not just over the lock screen. No-op on iOS / once already handled.
       void ensureOverlayPermission({ appName: APP_NAME });
+      // Android: keep the OS from dozing the app while online. Without this the
+      // incoming-ride alert fires reliably in principle but drops occasionally
+      // in practice (~3 rides in 15 on device) because FCM delivery is deferred.
+      // No-op on iOS / once already handled.
+      void ensureBatteryExemption({ appName: APP_NAME });
 
       await load();
     } catch (e: any) {

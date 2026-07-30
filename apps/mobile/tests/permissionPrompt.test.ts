@@ -81,6 +81,43 @@ describe('ensureOverlayPermission', () => {
   });
 });
 
+describe('ensureBatteryExemption', () => {
+  async function run(opts?: { appName?: string; force?: boolean }) {
+    const { ensureBatteryExemption } = await import('../lib/batteryExemption');
+    await ensureBatteryExemption(opts);
+  }
+
+  it('prompts on Android when not yet handled', async () => {
+    await run({ appName: 'Tewiz' });
+    expect(h.alert).toHaveBeenCalledTimes(1);
+  });
+
+  it('does NOT prompt on iOS', async () => {
+    h.platform.OS = 'ios';
+    await run();
+    expect(h.alert).not.toHaveBeenCalled();
+  });
+
+  it('does NOT prompt again once handled', async () => {
+    h.storage.set('@tewiz/battery-exemption-handled', '1');
+    await run();
+    expect(h.alert).not.toHaveBeenCalled();
+  });
+
+  it('still prompts when handled but force is set', async () => {
+    h.storage.set('@tewiz/battery-exemption-handled', '1');
+    await run({ force: true });
+    expect(h.alert).toHaveBeenCalledTimes(1);
+  });
+
+  it('guards against a double prompt within the same session', async () => {
+    const { ensureBatteryExemption } = await import('../lib/batteryExemption');
+    await ensureBatteryExemption();
+    await ensureBatteryExemption();
+    expect(h.alert).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('ensureFullScreenIntentPermission', () => {
   async function run(opts?: { force?: boolean }) {
     const { ensureFullScreenIntentPermission } = await import('../lib/fullScreenIntentPermission');

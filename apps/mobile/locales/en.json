@@ -401,6 +401,9 @@
       "bubbleHint": "Tap to open"
     },
     "state": {
+      "batteryBody": "So you never miss a ride, allow {{app}} to run without battery restrictions. Otherwise Android may doze the app and delay — or drop — the new-ride alert.",
+      "batteryEnable": "Allow",
+      "batteryTitle": "Don't put the app to sleep",
       "bgLocationBody": "So {{app}} can show your route to support while you're on duty, allow \"Always\" location in settings. Without it, your position isn't shared in the background.",
       "bgLocationLater": "Later",
       "bgLocationTitle": "Background location",
