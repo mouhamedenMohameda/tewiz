@@ -65,6 +65,7 @@ done
 
 # Newest local dump by default.
 if [ -z "$DUMP" ]; then
+  # shellcheck disable=SC2012  # names are ours (tewiz-<timestamp>.dump), no spaces
   DUMP="$(ls -1t "$BACKUP_DIR"/tewiz-*.dump 2>/dev/null | head -1 || true)"
   [ -n "$DUMP" ] || die "no dump found in $BACKUP_DIR — pass one explicitly"
   log "using newest dump: $DUMP"
@@ -177,6 +178,7 @@ if [ "$DRILL" -eq 0 ]; then
   fi
 fi
 
+# shellcheck disable=SC2329  # invoked indirectly by the EXIT trap below
 cleanup() {
   if [ "$DRILL" -eq 1 ] && [ "${KEEP_SCRATCH:-0}" != "1" ]; then
     log "dropping scratch database $TARGET_DB"

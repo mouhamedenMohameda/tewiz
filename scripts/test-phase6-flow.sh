@@ -36,8 +36,8 @@ psql_q "DELETE FROM road_report_votes; DELETE FROM road_reports; DELETE FROM dem
 
 get_token() {
   local PHONE=$1; local ROLE=$2; local DEV=$3
-  local R=$(curl -sX POST "$API/auth/otp/request" -H 'Content-Type: application/json' -d "{\"phone\":\"$PHONE\"}")
-  local CODE=$(echo "$R" | pyjson 'print(d["_devCode"])')
+  local R; R=$(curl -sX POST "$API/auth/otp/request" -H 'Content-Type: application/json' -d "{\"phone\":\"$PHONE\"}")
+  local CODE; CODE=$(echo "$R" | pyjson 'print(d["_devCode"])')
   R=$(curl -sX POST "$API/auth/otp/verify" -H 'Content-Type: application/json' \
        -d "{\"phone\":\"$PHONE\",\"code\":\"$CODE\",\"role\":\"$ROLE\",\"deviceId\":\"$DEV\"}")
   echo "$R" | pyjson 'print(d["tokens"]["accessToken"])'

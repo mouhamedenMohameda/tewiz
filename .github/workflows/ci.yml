@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push: { branches: [main] }
+  pull_request:
+
+# Annule les exécutions rendues obsolètes par un nouveau push.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9.12.0 }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # shared-types est consommé comme project reference : api et admin-web
+      # importent @tewiz/shared-types et ont besoin des .d.ts émis. En local
+      # dist/ existe déjà, mais un checkout CI part à vide — sans cette étape
+      # le typecheck échoue avec 17 x TS2307 « Cannot find module ».
+      - run: pnpm --filter @tewiz/shared-types build
+
+      - run: pnpm -r typecheck
+      - run: pnpm -r --if-present test
+      - run: pnpm --filter @tewiz/api build
+
+  scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Les scripts de sauvegarde décident s'il existe un point de restauration
+      # avant chaque migration. Une faute de frappe qui n'y échoue pas
+      # franchement est une perte de données silencieuse — shellcheck coûte
+      # 10 secondes. Strict par défaut : tout nouveau script est couvert
+      # sans qu'on ait à penser à l'ajouter ici.
+      - name: shellcheck — scripts ops et déploiement (strict)
+        run: |
+          find scripts -maxdepth 1 -name '*.sh' -not -name 'test-*-flow.sh' \
+            -print0 | xargs -0 shellcheck
+
+      # Les test-*-flow.sh sont des smoke tests curl lancés à la main, pas du
+      # code de production : on garde les warnings (qui attrapent les vraies
+      # erreurs, p.ex. un statut de sortie masqué) sans bloquer sur le style.
+      - name: shellcheck — smoke tests manuels (warnings)
+        run: |
+          find scripts -maxdepth 1 -name 'test-*-flow.sh' \
+            -print0 | xargs -0 shellcheck --severity=warning
