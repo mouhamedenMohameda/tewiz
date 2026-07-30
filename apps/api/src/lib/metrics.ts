@@ -147,7 +147,23 @@ const captainsOnlineNow = new Gauge({
 
 const captainsOnlineStaleLocation = new Gauge({
   name: 'tewiz_captains_online_stale_location',
-  help: 'Online captains whose last location fix is older than 2 minutes',
+  help:
+    'Online captains whose last location fix is older than DISPATCH_MAX_LOCATION_AGE_S, ' +
+    'i.e. old enough that dispatch skips them when freshness is enforced',
+  registers: [registry],
+});
+
+const dispatchMaxLocationAgeSeconds = new Gauge({
+  name: 'tewiz_dispatch_max_location_age_seconds',
+  help: 'The DISPATCH_MAX_LOCATION_AGE_S threshold the stale-location gauge is measured against',
+  registers: [registry],
+});
+
+const dispatchFreshnessEnforced = new Gauge({
+  name: 'tewiz_dispatch_location_freshness_enforced',
+  help:
+    '1 when dispatch actually applies the stale-location guard (app_settings.track_offline_enabled), ' +
+    '0 when it is disabled and no captain is skipped for a stale fix',
   registers: [registry],
 });
 
@@ -237,11 +253,22 @@ export async function refreshSqlGauges(): Promise<void> {
   const started = process.hrtime.bigint();
 
   // --- Live counts ---------------------------------------------------------
+  // The staleness threshold MUST be the one dispatch itself uses
+  // (DISPATCH_MAX_LOCATION_AGE_S, default 900s), not a number of our own. The
+  // whole point of this gauge is the gap between advertised and USABLE supply,
+  // and "usable" is defined by the guard in dispatch.service.eligibleCaptainsForRide.
+  // Measuring at a tighter threshold reports ghosts that dispatch is perfectly
+  // happy to use — which is exactly how a monitoring system trains people to
+  // ignore it.
+  const maxLocationAgeS = Number(process.env.DISPATCH_MAX_LOCATION_AGE_S ?? 900);
+  dispatchMaxLocationAgeSeconds.set(maxLocationAgeS);
+
   const live = await pool.query<{
     searching: string;
     online: string;
     on_ride: string;
     stale_location: string;
+    freshness_enforced: boolean;
   }>(
     `SELECT
        (SELECT count(*) FROM rides WHERE status = 'searching')            AS searching,
@@ -250,7 +277,13 @@ export async function refreshSqlGauges(): Promise<void> {
        (SELECT count(*) FROM captain_state
           WHERE presence IN ('online','on_ride')
             AND (location_updated_at IS NULL
-                 OR location_updated_at < now() - interval '2 minutes'))  AS stale_location`,
+                 OR location_updated_at < now() - make_interval(secs => $1))) AS stale_location,
+       -- Read straight from the table rather than importing the settings service,
+       -- to keep this module free of domain imports (rides and dispatch already
+       -- import IT, so any import back would risk a cycle).
+       COALESCE((SELECT track_offline_enabled FROM app_settings LIMIT 1), false)
+                                                                          AS freshness_enforced`,
+    [maxLocationAgeS],
   );
   // A scalar-aggregate SELECT always returns exactly one row, but the pg types
   // cannot know that — assert rather than silently skipping the update, since a
@@ -259,10 +292,13 @@ export async function refreshSqlGauges(): Promise<void> {
   ridesSearchingNow.set(Number(l.searching));
   captainsOnlineNow.set({ presence: 'online' }, Number(l.online));
   captainsOnlineNow.set({ presence: 'on_ride' }, Number(l.on_ride));
-  // A captain who is "online" but whose last fix is minutes old is invisible to
-  // dispatch in practice (see the location-freshness gate in dispatch). This
-  // gauge is the gap between advertised and usable supply.
+  // A captain who is "online" but whose stored fix is older than the dispatch
+  // threshold is invisible to push dispatch in practice. This gauge is the gap
+  // between advertised and usable supply — but read it together with
+  // tewiz_dispatch_location_freshness_enforced: when that is 0, dispatch applies
+  // no freshness guard at all and nobody is actually skipped.
   captainsOnlineStaleLocation.set(Number(l.stale_location));
+  dispatchFreshnessEnforced.set(l.freshness_enforced ? 1 : 0);
 
   // --- Fill rate + quantiles over the last hour ----------------------------
   // `accepted_at IS NOT NULL` is the definition of matched: it is stamped once,

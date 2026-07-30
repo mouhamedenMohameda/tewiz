@@ -181,10 +181,19 @@ log "  WAL archive:    $WAL_ARCHIVE_DIR"
 log "  base backups:   $BASEBACKUP_DIR"
 log "  RPO:            ~5 min (the ship-wal cron interval)"
 log ""
-log "Two things are NOT done yet and PITR is incomplete without them:"
-log "  1. Set BACKUP_S3_BUCKET or BACKUP_SSH_TARGET in .env — until then"
-log "     ship-wal.sh exits 1 every 5 minutes and nothing leaves this box."
-log "  2. Run a drill:  bash scripts/restore-db.sh"
+# Check rather than assume: the previous wording told everyone to go set an
+# off-site target, including people who had already set one, which trains you to
+# skim past the closing message of a script whose closing message matters.
+if bash "$SCRIPT_DIR/ship-wal.sh" >/dev/null 2>&1; then
+  log "Off-site WAL shipping is configured and working."
+  log "One thing left: run a drill —  bash scripts/restore-db.sh"
+else
+  log "PITR IS INCOMPLETE — off-site shipping is not working."
+  log "  Set BACKUP_S3_BUCKET, BACKUP_SSH_TARGET or BACKUP_RCLONE_REMOTE in .env."
+  log "  Until then ship-wal.sh exits 1 every 5 minutes and nothing leaves this box."
+  log "  Diagnose with:  bash scripts/ship-wal.sh"
+  log "Then run a drill:  bash scripts/restore-db.sh"
+fi
 log ""
 log "Old base backups are NOT auto-pruned — deleting one that WAL still needs"
 log "would break recovery silently. Review $BASEBACKUP_DIR monthly and keep at"
