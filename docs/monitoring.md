@@ -32,11 +32,25 @@ Tant que `METRICS_TOKEN` est vide, `GET /metrics` répond 404 et l'API log un
 avertissement au démarrage. L'exposition contient la demande par zone et l'offre
 de captains — donc jamais ouverte par défaut.
 
-**2. Vérifier :**
+**2. Vérifier.** ⚠️ **Le port n'est pas 3000 sur le serveur de production.** Le
+défaut de `env.ts` est 3000, mais ce port est occupé par `studara-api` (l'autre
+application de la machine, en cluster sur 6 processus), donc Tewiz écoute sur
+**3001** via `PORT` dans `/opt/tewiz/.env`. Ne pas le supposer — le lire :
 
 ```bash
-curl -s -H "Authorization: Bearer $METRICS_TOKEN" http://127.0.0.1:3000/metrics | head -40
+PORT=$(grep -E '^PORT=' /opt/tewiz/.env | cut -d= -f2 | tr -d ' ')
+curl -s -H "Authorization: Bearer $METRICS_TOKEN" http://127.0.0.1:${PORT:-3000}/metrics | head -40
 ```
+
+Pour lever tout doute sur qui écoute où :
+
+```bash
+ss -tlnp | grep node
+```
+
+Un `/health` qui répond `{"ai_summary":…}` au lieu de
+`{"ok":true,"checks":{"postgres":"ok",…}}` signifie que tu interroges
+`studara-api` et non Tewiz.
 
 **3. Brancher Grafana Cloud** (offre gratuite : 10k séries, largement suffisant —
 on en produit quelques centaines). Créer un compte, récupérer l'endpoint Prometheus
@@ -44,7 +58,8 @@ on en produit quelques centaines). Créer un compte, récupérer l'endpoint Prom
 
 ```yaml
 prometheus.scrape "tewiz_api" {
-  targets    = [{ __address__ = "127.0.0.1:3000" }]
+  // 3001, pas 3000 : studara-api occupe le 3000 sur cette machine.
+  targets    = [{ __address__ = "127.0.0.1:3001" }]
   metrics_path = "/metrics"
   # Le token vit dans le fichier de config d'Alloy (chmod 600), pas dans l'URL :
   # une URL se retrouve dans les logs d'accès.
