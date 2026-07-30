@@ -69,6 +69,7 @@ SIZE="$(du -h "$OUT" | cut -f1)"
 log "ok size=$SIZE keep_last=$KEEP"
 
 # Rotate: keep the N most recent, delete older.
+# shellcheck disable=SC2012  # names are ours (uploads-<timestamp>.tar.gz), no spaces
 ls -1t "$BACKUP_DIR"/uploads-*.tar.gz 2>/dev/null \
   | tail -n +$((KEEP + 1)) \
   | while read -r old; do

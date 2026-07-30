@@ -274,7 +274,7 @@ export const motion = {
 } as const;
 
 /* Font assets to feed `useFonts` in the root layout. */
-export { default as fontAssets, latinFontAssets, arabicFontAssets } from './fontAssets';
+export { default as fontAssets, latinFontAssets } from './fontAssets';
 
 export const theme = { colors, gradients, spacing, radius, shadow, type, fonts, motion } as const;
 export type Theme = typeof theme;

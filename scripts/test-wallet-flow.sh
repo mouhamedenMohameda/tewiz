@@ -5,7 +5,6 @@
 set -euo pipefail
 
 API=${API:-http://localhost:3000}
-IMG_DIR=/tmp/tewiz-test-images
 PHONE_CAPT="+22245888888"
 PHONE_ADMIN="+22245999999"
 

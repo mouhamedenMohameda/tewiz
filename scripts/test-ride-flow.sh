@@ -9,7 +9,6 @@ set -euo pipefail
 API=${API:-http://localhost:3000}
 PHONE_CAPT="+22245888888"
 PHONE_RIDER="+22245777777"
-PHONE_ADMIN="+22245999999"
 
 # Nouakchott landmarks (Tevragh Zeina → Sebkha-ish).
 PICKUP_LAT=18.0860
