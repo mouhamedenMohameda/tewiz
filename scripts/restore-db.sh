@@ -1,0 +1,245 @@
+#!/usr/bin/env bash
+# Restore a Tewiz dump and PROVE it worked, by diffing the restored row counts
+# against the manifest that scripts/backup-db.sh wrote next to the dump.
+#
+# Why this script exists:
+#   A backup you have never restored is not a backup, it is a hope. The failure
+#   mode is always the same: the dumps were fine, but nobody knew the restore
+#   needed PostGIS created first / a different postgres role / 40 minutes, and
+#   they found out during the outage. Running this monthly against the latest
+#   dump turns disaster recovery from an unknown into a measured number.
+#
+# Default mode is a DRILL and is safe to run on the prod box:
+#   it restores into a throwaway database, verifies, prints the timing, drops it.
+#   The live `tewiz` database is never touched.
+#
+# Usage:
+#   # Monthly drill against the newest local dump (safe):
+#   scripts/restore-db.sh
+#
+#   # Drill a specific dump:
+#   scripts/restore-db.sh /var/backups/tewiz-db/tewiz-20260730T020000Z.dump
+#
+#   # Keep the scratch DB afterwards to poke at it:
+#   KEEP_SCRATCH=1 scripts/restore-db.sh
+#
+#   # REAL disaster recovery on a fresh box, into the real database name:
+#   scripts/restore-db.sh <dump> --into tewiz
+#     (refuses if that database already has tables, unless --force)
+#
+# Exit codes:
+#   0  restored and every manifest check matched
+#   1  restore failed, or the restored data does not match the manifest
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+log()  { echo "[restore-db] $*"; }
+die()  { echo "[restore-db] ERROR $*" >&2; exit 1; }
+
+env_get() {
+  [ -f "$REPO_ROOT/.env" ] || return 0
+  # `|| true` — see the note in backup-db.sh: without it, pipefail turns a missing
+  # .env key into a silent exit 1.
+  grep -E "^$1=" "$REPO_ROOT/.env" | tail -1 | cut -d= -f2- | tr -d '"' | tr -d "'" || true
+}
+
+DATABASE_URL="${DATABASE_URL:-$(env_get DATABASE_URL)}"
+[ -n "$DATABASE_URL" ] || die "DATABASE_URL not set (env or .env)"
+BACKUP_DIR="${BACKUP_DIR:-/var/backups/tewiz-db}"
+
+# --- Args --------------------------------------------------------------------
+DUMP=""
+TARGET_DB=""
+FORCE=0
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --into)  TARGET_DB="${2:-}"; shift 2 ;;
+    --force) FORCE=1; shift ;;
+    -*)      die "unknown flag: $1" ;;
+    *)       DUMP="$1"; shift ;;
+  esac
+done
+
+# Newest local dump by default.
+if [ -z "$DUMP" ]; then
+  DUMP="$(ls -1t "$BACKUP_DIR"/tewiz-*.dump 2>/dev/null | head -1 || true)"
+  [ -n "$DUMP" ] || die "no dump found in $BACKUP_DIR — pass one explicitly"
+  log "using newest dump: $DUMP"
+fi
+[ -f "$DUMP" ] || die "dump not found: $DUMP"
+
+MANIFEST="${DUMP%.dump}.manifest"
+if [ ! -f "$MANIFEST" ]; then
+  log "WARN no manifest beside this dump — restoring, but nothing to verify against"
+fi
+
+command -v pg_restore >/dev/null || die "pg_restore not found — install postgresql-client-16"
+command -v psql       >/dev/null || die "psql not found — install postgresql-client-16"
+
+DRILL=1
+if [ -n "$TARGET_DB" ]; then
+  DRILL=0
+else
+  TARGET_DB="tewiz_restore_drill_$(date -u +%Y%m%d%H%M%S)"
+fi
+
+# Swap the database name in the URL, preserving user/host/port/params. Postgres
+# has no "create database" over a connection to that same database, so DDL goes
+# through the maintenance `postgres` database.
+url_with_db() {
+  echo "$DATABASE_URL" | sed -E "s#(://[^/]+)/[^?]*#\1/$1#"
+}
+ADMIN_URL="$(url_with_db postgres)"
+TARGET_URL="$(url_with_db "$TARGET_DB")"
+
+psql "$ADMIN_URL" -tAX -c 'SELECT 1' >/dev/null 2>&1 \
+  || die "cannot connect to the postgres maintenance DB with these credentials"
+
+# --- Guard the real database -------------------------------------------------
+if [ "$DRILL" -eq 0 ]; then
+  EXISTING_TABLES="$(psql "$TARGET_URL" -tAX -c \
+    "SELECT count(*) FROM information_schema.tables WHERE table_schema='public'" 2>/dev/null || echo "nodb")"
+  if [ "$EXISTING_TABLES" != "nodb" ] && [ "$EXISTING_TABLES" != "0" ]; then
+    if [ "$FORCE" -ne 1 ]; then
+      die "database '$TARGET_DB' already has $EXISTING_TABLES tables.
+       Restoring into it would overwrite live data. If that is genuinely what
+       you want, re-run with --force. On a fresh recovery box the target should
+       be empty, which needs no flag."
+    fi
+    log "WARN --force: restoring over $EXISTING_TABLES existing tables in '$TARGET_DB'"
+    printf "[restore-db] type the database name to confirm: "
+    read -r CONFIRM
+    [ "$CONFIRM" = "$TARGET_DB" ] || die "confirmation did not match — aborted"
+  fi
+fi
+
+cleanup() {
+  if [ "$DRILL" -eq 1 ] && [ "${KEEP_SCRATCH:-0}" != "1" ]; then
+    log "dropping scratch database $TARGET_DB"
+    psql "$ADMIN_URL" -qX -c "DROP DATABASE IF EXISTS \"$TARGET_DB\"" >/dev/null 2>&1 || true
+  elif [ "$DRILL" -eq 1 ]; then
+    log "KEEP_SCRATCH=1 — leaving $TARGET_DB in place. Drop it yourself:"
+    log "  psql \"\$ADMIN_URL\" -c 'DROP DATABASE \"$TARGET_DB\"'"
+  fi
+}
+trap cleanup EXIT
+
+# --- Create the target -------------------------------------------------------
+if [ "$DRILL" -eq 1 ]; then
+  log "creating scratch database $TARGET_DB"
+  psql "$ADMIN_URL" -qX -c "CREATE DATABASE \"$TARGET_DB\"" >/dev/null
+else
+  psql "$ADMIN_URL" -qX -c "CREATE DATABASE \"$TARGET_DB\"" >/dev/null 2>&1 || true
+fi
+
+# PostGIS must exist before the geography columns are restored. The dump does
+# contain CREATE EXTENSION, but creating it up front means a role without
+# superuser still gets a clean restore when the extension is pre-whitelisted,
+# and makes the failure legible when it is not.
+#
+# Gated on the archive actually referencing postgis, so this script also works on
+# a dump that predates it. Every real Tewiz dump does reference it — locations are
+# GEOGRAPHY(POINT, 4326) throughout — so on the production box this always runs.
+if pg_restore --list "$DUMP" 2>/dev/null | grep -qi 'postgis'; then
+  log "dump requires postgis — creating the extension first"
+  if ! psql "$TARGET_URL" -qX -c "CREATE EXTENSION IF NOT EXISTS postgis" >/dev/null 2>&1; then
+    die "cannot create the postgis extension in $TARGET_DB.
+       On a recovery box: apt install postgresql-16-postgis-3, and run this as a
+       superuser role. This is exactly the surprise a drill is meant to find."
+  fi
+fi
+
+# --- Restore -----------------------------------------------------------------
+log "restoring $(basename "$DUMP") -> $TARGET_DB"
+START=$(date +%s)
+RESTORE_LOG="$(mktemp)"
+# --exit-on-error is deliberately NOT used: `CREATE EXTENSION postgis` will
+# collide with the one we just made, and that single benign error must not abort
+# an otherwise perfect restore. We count and show the errors instead.
+# -j is left off: on a 1-box setup, parallel restore starves the live API of IO.
+if ! pg_restore --dbname="$TARGET_URL" \
+      --no-owner --no-privileges \
+      "$DUMP" > "$RESTORE_LOG" 2>&1; then
+  ERRORS="$(grep -c 'error:' "$RESTORE_LOG" || true)"
+  BENIGN="$(grep -c 'extension "postgis" already exists' "$RESTORE_LOG" || true)"
+  if [ "$ERRORS" -gt "$BENIGN" ]; then
+    log "pg_restore reported $ERRORS error(s) ($BENIGN benign). First 20:"
+    grep 'error:' "$RESTORE_LOG" | head -20 >&2
+    rm -f "$RESTORE_LOG"
+    die "restore failed"
+  fi
+  log "pg_restore: $ERRORS benign error(s) (postgis already present) — ok"
+fi
+rm -f "$RESTORE_LOG"
+ELAPSED=$(( $(date +%s) - START ))
+log "restore finished in ${ELAPSED}s"
+
+# --- Verify against the manifest ---------------------------------------------
+FAILED=0
+if [ -f "$MANIFEST" ]; then
+  log "verifying row counts against manifest"
+  check() {
+    local key="$1" sql="$2" expected actual
+    expected="$(grep -E "^$key=" "$MANIFEST" | tail -1 | cut -d= -f2- || true)"
+    [ -n "$expected" ] || return 0
+    actual="$(psql "$TARGET_URL" -tAX -c "$sql")"
+    if [ "$actual" = "$expected" ]; then
+      printf '  ok   %-22s %s\n' "$key" "$actual"
+    else
+      printf '  FAIL %-22s expected=%s restored=%s\n' "$key" "$expected" "$actual"
+      FAILED=1
+    fi
+  }
+  check users               "SELECT count(*) FROM users"
+  check captains            "SELECT count(*) FROM captains"
+  check rides               "SELECT count(*) FROM rides"
+  check wallets             "SELECT count(*) FROM wallets"
+  check wallet_transactions "SELECT count(*) FROM wallet_transactions"
+  check topup_requests      "SELECT count(*) FROM topup_requests"
+  check wallet_balance_sum  "SELECT COALESCE(sum(balance_mru),0) FROM wallets"
+  check wallet_txn_sum      "SELECT COALESCE(sum(amount_mru),0) FROM wallet_transactions"
+fi
+
+# --- Verify the money invariant ----------------------------------------------
+# db/migrations enforces `wallets.balance_mru == SUM(wallet_transactions.amount_mru)`
+# via trg_wallet_balance_consistency, but a trigger only fires on writes — a
+# restore inserts rows without re-asserting it. Since the wallet IS the commission
+# model, check it explicitly: a restore that silently breaks wallet integrity is
+# worse than no restore, because it looks like it worked.
+#
+# Both tables key on captain_id (wallets.captain_id is the PRIMARY KEY; there is
+# no wallets.id and no wallet_transactions.wallet_id). Column names are post-0017.
+log "checking wallet integrity invariant"
+DRIFT="$(psql "$TARGET_URL" -tAX -c "
+  SELECT count(*)
+    FROM wallets w
+    LEFT JOIN (
+      SELECT captain_id, COALESCE(sum(amount_mru),0) AS s
+        FROM wallet_transactions GROUP BY captain_id
+    ) t ON t.captain_id = w.captain_id
+   WHERE w.balance_mru <> COALESCE(t.s, 0)
+" 2>/dev/null || echo "skip")"
+if [ "$DRIFT" = "skip" ]; then
+  # Never let this degrade to a passing run: the invariant is the one check that
+  # speaks directly to money owed to captains. A schema drift here must fail.
+  log "  FAIL could not run the invariant check — schema drift? Update the query"
+  log "       in scripts/restore-db.sh to match the current wallet schema."
+  FAILED=1
+elif [ "$DRIFT" = "0" ]; then
+  log "  ok   every wallet balance equals the sum of its transactions"
+else
+  log "  FAIL $DRIFT wallet(s) disagree with their transaction ledger"
+  FAILED=1
+fi
+
+echo
+if [ "$FAILED" -eq 0 ]; then
+  log "RESTORE VERIFIED — dump=$(basename "$DUMP") restore_seconds=$ELAPSED"
+  [ "$DRILL" -eq 1 ] && log "That ${ELAPSED}s is your real RTO for the database. Write it down."
+  exit 0
+else
+  die "RESTORE VERIFICATION FAILED for $(basename "$DUMP") — treat this dump as unusable"
+fi
