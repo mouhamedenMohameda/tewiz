@@ -315,9 +315,18 @@ async function selectEligibleCaptains(
   // them. `null` means Redis could not answer (an empty array is a real answer:
   // nobody is nearby, which must NOT trigger a fallback).
   let viaRedis: string[] | null = null;
+  // Why the reason is tracked and not just the fact: the first shadow ride in
+  // production fell back, and the unlabelled counter could not say whether Redis
+  // had broken or the ride simply had no pickup point — two problems with
+  // nothing in common. The no-pickup branch also used to return silently, with
+  // no log line at all, which is the worst way for a fallback to happen.
+  let fallbackReason: 'redis_error' | 'no_pickup' | null = null;
   try {
     const pickup = await ridePickup(rideId);
-    if (pickup) {
+    if (!pickup) {
+      fallbackReason = 'no_pickup';
+      logger.warn({ rideId }, 'dispatch: ride has no pickup point, geo index cannot be used');
+    } else {
       // Mirror the PostGIS freshness rule exactly: the stale-position guard only
       // applies while off-ride tracking keeps positions current. Diverging here
       // would make the two sources disagree by construction.
@@ -326,8 +335,13 @@ async function selectEligibleCaptains(
       viaRedis = await eligibleViaCandidateIds(rideId, longDistanceThresholdM, nearby);
     }
   } catch (err) {
+    fallbackReason = 'redis_error';
     logger.warn({ err, rideId }, 'dispatch: redis geo lookup failed, falling back to PostGIS');
   }
+  // `viaRedis === null` and `fallbackReason === null` cannot both happen, but
+  // default rather than assert: a metric label is not worth a crash on the
+  // dispatch path.
+  const reason = fallbackReason ?? 'redis_error';
 
   if (source === 'shadow') {
     // Serve Postgres, compare, count. Both sets have been through the same
@@ -335,7 +349,7 @@ async function selectEligibleCaptains(
     // and not an artifact of comparing different things.
     const viaPostgres = await eligibleViaPostgres(rideId, longDistanceThresholdM);
     if (viaRedis === null) {
-      dispatchGeoFallback.inc();
+      dispatchGeoFallback.inc({ reason });
     } else {
       const redisSet = new Set(viaRedis);
       const postgresSet = new Set(viaPostgres);
@@ -352,7 +366,7 @@ async function selectEligibleCaptains(
 
   // source === 'redis'
   if (viaRedis === null) {
-    dispatchGeoFallback.inc();
+    dispatchGeoFallback.inc({ reason });
     return eligibleViaPostgres(rideId, longDistanceThresholdM);
   }
   return viaRedis;

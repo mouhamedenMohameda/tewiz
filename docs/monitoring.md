@@ -101,8 +101,24 @@ prometheus.scrape "tewiz_api" {
 | `tewiz_dispatch_eligible_duration_seconds{source}` | La sélection des captains à la création d'une course — **la requête réellement déplacée**. C'est celle-ci qu'on compare entre `postgres` et `redis`. Le mode `shadow` exécute les deux, il est donc normalement le plus lent des trois : ce n'est pas une régression. |
 | `tewiz_ride_accept_rejected_total{reason}` | `not_searching` qui grimpe = trop de captains se disputent la même course (le broadcast est trop large). `balance_too_low` qui grimpe = problème de wallet, pas de dispatch. |
 | `tewiz_redis_geosearch_duration_seconds` | La moitié « qui est à proximité ? » de la sélection, sortie de PostGIS. Si sa p95 rejoint celle de `dispatch_inbox`, le déplacement en mémoire ne paie plus. |
-| `tewiz_dispatch_geo_fallback_total` | Repli sur PostGIS parce que Redis n'a pas répondu. Le dispatch continue — c'est justement le but — mais un taux non nul veut dire qu'on tourne sur le chemin lent sans s'en apercevoir. |
+| `tewiz_dispatch_geo_fallback_total{reason}` | Repli sur PostGIS. `redis_error` = l'index géo est dégradé, à régler avant toute bascule. `no_pickup` = la course n'a pas de point de ramassage, ce qui n'est pas un problème Redis. Le dispatch continue — c'est le but — mais un taux non nul veut dire qu'on tourne sur le chemin lent sans s'en apercevoir. |
 | `tewiz_dispatch_geo_mismatch_total{direction}` | Écarts entre Redis et PostGIS en mode `shadow`. `missing` = un captain que PostGIS a trouvé et pas Redis : en mode `redis` il n'aurait **jamais** été notifié. C'est ce compteur qui doit rester à zéro plusieurs jours avant de passer `DISPATCH_GEO_SOURCE=redis`. |
+
+> ⚠️ **Ne jamais lire `geo_mismatch` sans lire `geo_fallback` à côté.** Une course
+> qui part en repli ne produit **aucune** série de mismatch — ce qui se lit
+> exactement comme « les deux sources sont d'accord », alors que ça veut dire
+> « Redis n'a jamais répondu ». La première course en mode ombre en production
+> est tombée précisément dans ce piège. La lecture correcte est :
+>
+> ```promql
+> # Part des selections qui ont reellement ete comparees.
+> 1 - (
+>   sum(tewiz_dispatch_geo_fallback_total)
+>   / sum(tewiz_dispatch_eligible_duration_seconds_count{source="shadow"})
+> )
+> ```
+>
+> Tant que ce ratio n'est pas proche de 1, le compteur d'écarts ne prouve rien.
 
 ### Argent et sauvegardes
 

@@ -67,6 +67,12 @@ async function counterTotal(c: { get: () => Promise<{ values: { value: number }[
   return values.reduce((sum, v) => sum + v.value, 0);
 }
 
+/** Value of the fallback counter for one reason label. */
+async function fallbackFor(reason: 'redis_error' | 'no_pickup') {
+  const { values } = await dispatchGeoFallback.get();
+  return values.find((v) => (v.labels as { reason?: string }).reason === reason)?.value ?? 0;
+}
+
 /** Value of the mismatch counter for one direction label. */
 async function mismatchFor(direction: 'missing' | 'extra') {
   const { values } = await dispatchGeoMismatch.get();
@@ -156,15 +162,21 @@ describe("DISPATCH_GEO_SOURCE='redis'", () => {
     stubSql({ postgres: ['c1', 'c2'] });
 
     expect(await eligibleCaptainsForRide('ride-1')).toEqual(['c1', 'c2']);
-    expect(await counterTotal(dispatchGeoFallback)).toBe(1);
+    expect(await fallbackFor('redis_error')).toBe(1);
+    expect(await fallbackFor('no_pickup')).toBe(0);
   });
 
-  it('falls back when the ride has no pickup point', async () => {
+  it('falls back when the ride has no pickup point, under its own reason', async () => {
+    // These two were indistinguishable at first, and the very first shadow ride
+    // in production fell back without anyone being able to say which had
+    // happened — a Redis outage and a ride with no pickup point have nothing in
+    // common and call for opposite responses.
     stubSql({ pickup: null, postgres: ['c1'] });
 
     expect(await eligibleCaptainsForRide('ride-1')).toEqual(['c1']);
     expect(captainsNearMock).not.toHaveBeenCalled();
-    expect(await counterTotal(dispatchGeoFallback)).toBe(1);
+    expect(await fallbackFor('no_pickup')).toBe(1);
+    expect(await fallbackFor('redis_error')).toBe(0);
   });
 });
 
@@ -223,8 +235,24 @@ describe("DISPATCH_GEO_SOURCE='shadow'", () => {
     stubSql({ postgres: ['c1'] });
 
     expect(await eligibleCaptainsForRide('ride-1')).toEqual(['c1']);
-    expect(await counterTotal(dispatchGeoFallback)).toBe(1);
+    expect(await fallbackFor('redis_error')).toBe(1);
     expect(await counterTotal(dispatchGeoMismatch)).toBe(0);
+  });
+
+  it('a fallback means NOTHING was compared — zero mismatches is not agreement', async () => {
+    // The trap this whole label exists for. In shadow mode a fallen-back ride
+    // produces no mismatch series at all, which reads exactly like "the two
+    // sources agreed". It does not: it means Redis never answered. Any reading
+    // of the mismatch counter has to be paired with the fallback counter.
+    captainsNearMock.mockRejectedValue(new Error('ECONNREFUSED'));
+    stubSql({ postgres: ['c1', 'c2'] });
+
+    await eligibleCaptainsForRide('ride-1');
+
+    expect(await counterTotal(dispatchGeoMismatch)).toBe(0);
+    expect(await counterTotal(dispatchGeoFallback)).toBe(1);
+    // The comparison ran zero times despite the histogram counting the call.
+    expect(await eligibleCountFor('shadow')).toBe(1);
   });
 });
 

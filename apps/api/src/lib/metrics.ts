@@ -156,10 +156,20 @@ export const redisGeosearchDuration = new Histogram({
 
 export const dispatchGeoFallback = new Counter({
   name: 'tewiz_dispatch_geo_fallback_total',
-  help: 'Times captain selection fell back to PostGIS because Redis failed',
+  help: 'Times captain selection fell back to PostGIS instead of using the geo index, by reason',
   // Dispatch must never stop because Redis is down, but a silent fallback is how
   // you end up running on the slow path for a month without noticing. This is
   // the metric that makes the degradation loud.
+  //
+  // The reason label exists because the unlabelled version conflated two very
+  // different events on the first shadow ride in production: it read as "Redis
+  // failed" when the cause could equally have been a ride with no pickup point,
+  // which is not a Redis problem at all. A fallback counter you cannot act on is
+  // only marginally better than no counter.
+  //   redis_error → GEOSEARCH/ZMSCORE threw; the geo index is degraded
+  //   no_pickup   → the ride has no pickup_location, so there is nothing to
+  //                 search around; PostGIS would find nobody either
+  labelNames: ['reason'] as const,
   registers: [registry],
 });
 
