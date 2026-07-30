@@ -123,4 +123,35 @@ log "shipped ok segments_local=$COUNT"
 PRUNED="$(find "$WAL_ARCHIVE_DIR" -type f -name '0*' -mtime "+$WAL_KEEP_DAYS" -print -delete | wc -l | tr -d ' ')"
 [ "$PRUNED" != "0" ] && log "pruned $PRUNED local segment(s) older than ${WAL_KEEP_DAYS}d"
 
+# --- Remote retention ---------------------------------------------------------
+# Nothing else prunes the off-site WAL: BACKUP_REMOTE_KEEP_DAYS in backup-db.sh
+# only covers db/. With archive_timeout at 5 min, an idle database still produces
+# ~288 segments a day, so wal/ grows for as long as the system runs and will
+# eventually fill a Drive quota.
+#
+# ⚠️ WAL is only useful with a base backup to replay from, and deleting a segment
+# an existing base backup still needs breaks recovery SILENTLY — it looks fine
+# until the day it is needed. Two guards:
+#   - opt-in: unset means never prune the remote (the safe default);
+#   - a floor of 14 days, twice the weekly base-backup cadence, so a typo like
+#     "2" cannot quietly destroy the ability to recover.
+BACKUP_REMOTE_KEEP_DAYS="${BACKUP_REMOTE_KEEP_DAYS:-$(env_get BACKUP_REMOTE_KEEP_DAYS)}"
+WAL_REMOTE_KEEP_MIN_DAYS=14
+
+if [ -n "$BACKUP_REMOTE_KEEP_DAYS" ] && [ -n "$BACKUP_RCLONE_REMOTE" ]; then
+  if [ "$BACKUP_REMOTE_KEEP_DAYS" -lt "$WAL_REMOTE_KEEP_MIN_DAYS" ]; then
+    log "WARN BACKUP_REMOTE_KEEP_DAYS=$BACKUP_REMOTE_KEEP_DAYS is below the"
+    log "WARN ${WAL_REMOTE_KEEP_MIN_DAYS}-day floor — NOT pruning remote WAL."
+    log "WARN Base backups are weekly; pruning WAL that recent could leave a"
+    log "WARN base backup with no segments to replay."
+  else
+    rclone delete "$BACKUP_RCLONE_REMOTE/wal/" \
+      --config "${RCLONE_CONFIG:-$HOME/.config/rclone/rclone.conf}" \
+      --min-age "${BACKUP_REMOTE_KEEP_DAYS}d" \
+      --drive-use-trash=false \
+      >/dev/null 2>&1 \
+      || log "WARN remote WAL prune failed — segments kept, quota may fill up"
+  fi
+fi
+
 exit 0
