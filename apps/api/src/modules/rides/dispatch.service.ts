@@ -1,8 +1,15 @@
 import { pool } from '../../db/pool.js';
 import { env } from '../../config/env.js';
-import { dispatchInboxDuration } from '../../lib/metrics.js';
+import { logger } from '../../lib/logger.js';
+import {
+  dispatchInboxDuration,
+  dispatchEligibleDuration,
+  dispatchGeoFallback,
+  dispatchGeoMismatch,
+} from '../../lib/metrics.js';
 import { getPricingSettings } from '../admin/app-settings.service.js';
 import { isTrackingEnabled } from '../captain/track.service.js';
+import { captainsNear } from '../captain/live-location.js';
 
 /**
  * Returns nearby searching rides for a captain, scored by:
@@ -164,15 +171,36 @@ export async function captainInbox(input: {
 }
 
 /**
- * Returns the user_ids of every captain currently eligible to receive a
- * push notification for the given ride. Mirrors the same filters as the
- * inbox query (online, within radius, filtered by vehicle type and colis
- * preference, not
- * the booker themselves).
+ * The business half of captain selection, shared verbatim by both geo sources.
+ *
+ * These rules stay in Postgres and in ONE string on purpose. Redis answers only
+ * "who is nearby and fresh"; if these predicates were duplicated per path, the
+ * PostGIS and Redis routes could silently start disagreeing about who is
+ * eligible — which is exactly what shadow mode is supposed to be able to rule
+ * out. $1 = ride id, $2 = long-distance threshold in both queries.
  */
-export async function eligibleCaptainsForRide(rideId: string): Promise<string[]> {
-  const radius = env.DISPATCH_RADIUS_M;
-  const { longDistanceThresholdM } = await getPricingSettings();
+const ELIGIBILITY_RULES = `
+       AND (
+         (r.ride_type = 'colis' AND (c.vehicle_type = 'moto' OR c.accepts_colis = true))
+         OR (r.ride_type <> 'colis' AND c.vehicle_type = 'car')
+       )
+       AND (COALESCE(r.distance_m, 0) < $2 OR c.accepts_long_distance = true)
+       AND s.captain_id <> r.booker_id
+       AND NOT EXISTS (
+         SELECT 1 FROM ride_declines d
+          WHERE d.ride_id = r.id AND d.captain_id = s.captain_id
+       )`;
+
+/**
+ * Candidate selection via PostGIS — the original path.
+ *
+ * Kept as the fallback for `redis` mode, so this is deliberately NOT dead code:
+ * dispatch must never stop because Redis is unavailable.
+ */
+async function eligibleViaPostgres(
+  rideId: string,
+  longDistanceThresholdM: number,
+): Promise<string[]> {
   // Freshness guard: only trust a captain's stored position while off-ride
   // tracking is on (that's what keeps it current). When tracking is off we
   // can't keep positions fresh, so skip the guard to avoid dropping everyone.
@@ -189,28 +217,145 @@ export async function eligibleCaptainsForRide(rideId: string): Promise<string[]>
       CROSS JOIN r
      WHERE s.presence = 'online'
        AND s.location IS NOT NULL
-       AND ST_DWithin(s.location, r.pickup_location, $2)
-       AND (
-         (r.ride_type = 'colis' AND (c.vehicle_type = 'moto' OR c.accepts_colis = true))
-         OR (r.ride_type <> 'colis' AND c.vehicle_type = 'car')
-       )
-       AND (COALESCE(r.distance_m, 0) < $3 OR c.accepts_long_distance = true)
-       AND s.captain_id <> r.booker_id
+       AND ST_DWithin(s.location, r.pickup_location, $3)
        -- Stale-position guard: skip captains whose location hasn't refreshed
        -- recently (they may have moved without the tracker catching up).
        AND (
          NOT $4::boolean
          OR s.location_updated_at IS NULL
          OR s.location_updated_at > now() - make_interval(secs => $5)
-       )
-       AND NOT EXISTS (
-         SELECT 1 FROM ride_declines d
-          WHERE d.ride_id = r.id AND d.captain_id = s.captain_id
-       )
+       )${ELIGIBILITY_RULES}
     `,
-    [rideId, radius, longDistanceThresholdM, enforceFreshness, env.DISPATCH_MAX_LOCATION_AGE_S],
+    [rideId, longDistanceThresholdM, env.DISPATCH_RADIUS_M, enforceFreshness, env.DISPATCH_MAX_LOCATION_AGE_S],
   );
   return rows.map((row) => row.captain_id);
+}
+
+/**
+ * Candidate selection given an id list Redis already narrowed by distance and
+ * freshness. Same business rules, no ST_DWithin, no freshness predicate — those
+ * two are precisely the work that moved into memory.
+ */
+async function eligibleViaCandidateIds(
+  rideId: string,
+  longDistanceThresholdM: number,
+  candidateIds: string[],
+): Promise<string[]> {
+  if (candidateIds.length === 0) return [];
+  const { rows } = await pool.query<{ captain_id: string }>(
+    `
+    WITH r AS (
+      SELECT id, booker_id, ride_type, pickup_location, distance_m
+        FROM rides WHERE id = $1
+    )
+    SELECT s.captain_id
+      FROM captain_state s
+      JOIN captains   c ON c.user_id = s.captain_id
+      CROSS JOIN r
+     WHERE s.captain_id = ANY($3::uuid[])
+       AND s.presence = 'online'${ELIGIBILITY_RULES}
+    `,
+    [rideId, longDistanceThresholdM, candidateIds],
+  );
+  return rows.map((row) => row.captain_id);
+}
+
+/** Pickup coordinates for a ride — a PK lookup, needed to query the geo index. */
+async function ridePickup(rideId: string): Promise<{ lat: number; lng: number } | null> {
+  const { rows } = await pool.query<{ lat: string | null; lng: string | null }>(
+    `SELECT ST_Y(pickup_location::geometry) AS lat,
+            ST_X(pickup_location::geometry) AS lng
+       FROM rides WHERE id = $1`,
+    [rideId],
+  );
+  const row = rows[0];
+  if (!row || row.lat === null || row.lng === null) return null;
+  const lat = Number(row.lat);
+  const lng = Number(row.lng);
+  return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+}
+
+/**
+ * Returns the user_ids of every captain currently eligible to receive a
+ * push notification for the given ride. Mirrors the same filters as the
+ * inbox query (online, within radius, filtered by vehicle type and colis
+ * preference, not the booker themselves).
+ *
+ * The "who is nearby" half comes from either PostGIS or the Redis geo index,
+ * per DISPATCH_GEO_SOURCE. See that flag's note in config/env.ts for the
+ * rollout order — the short version is that `shadow` proves the two agree
+ * before `redis` is allowed to serve.
+ */
+export async function eligibleCaptainsForRide(rideId: string): Promise<string[]> {
+  const source = env.DISPATCH_GEO_SOURCE;
+  const started = process.hrtime.bigint();
+  try {
+    return await selectEligibleCaptains(rideId, source);
+  } finally {
+    // In a `finally` so a fallback or a thrown error is still timed. A migration
+    // measured only on its happy path tells you nothing about the day it breaks.
+    dispatchEligibleDuration.observe(
+      { source },
+      Number(process.hrtime.bigint() - started) / 1e9,
+    );
+  }
+}
+
+async function selectEligibleCaptains(
+  rideId: string,
+  source: 'postgres' | 'shadow' | 'redis',
+): Promise<string[]> {
+  const { longDistanceThresholdM } = await getPricingSettings();
+
+  if (source === 'postgres') {
+    return eligibleViaPostgres(rideId, longDistanceThresholdM);
+  }
+
+  // Ask Redis for the nearby+fresh candidates, then apply the business rules to
+  // them. `null` means Redis could not answer (an empty array is a real answer:
+  // nobody is nearby, which must NOT trigger a fallback).
+  let viaRedis: string[] | null = null;
+  try {
+    const pickup = await ridePickup(rideId);
+    if (pickup) {
+      // Mirror the PostGIS freshness rule exactly: the stale-position guard only
+      // applies while off-ride tracking keeps positions current. Diverging here
+      // would make the two sources disagree by construction.
+      const maxAgeS = (await isTrackingEnabled()) ? env.DISPATCH_MAX_LOCATION_AGE_S : null;
+      const nearby = await captainsNear(pickup.lat, pickup.lng, env.DISPATCH_RADIUS_M, maxAgeS);
+      viaRedis = await eligibleViaCandidateIds(rideId, longDistanceThresholdM, nearby);
+    }
+  } catch (err) {
+    logger.warn({ err, rideId }, 'dispatch: redis geo lookup failed, falling back to PostGIS');
+  }
+
+  if (source === 'shadow') {
+    // Serve Postgres, compare, count. Both sets have been through the same
+    // business rules, so any difference is a genuine geo/freshness divergence
+    // and not an artifact of comparing different things.
+    const viaPostgres = await eligibleViaPostgres(rideId, longDistanceThresholdM);
+    if (viaRedis === null) {
+      dispatchGeoFallback.inc();
+    } else {
+      const redisSet = new Set(viaRedis);
+      const postgresSet = new Set(viaPostgres);
+      const missing = viaPostgres.filter((id) => !redisSet.has(id)).length;
+      const extra = viaRedis.filter((id) => !postgresSet.has(id)).length;
+      if (missing > 0) dispatchGeoMismatch.inc({ direction: 'missing' }, missing);
+      if (extra > 0) dispatchGeoMismatch.inc({ direction: 'extra' }, extra);
+      if (missing > 0 || extra > 0) {
+        logger.warn({ rideId, missing, extra }, 'dispatch: shadow mismatch between redis and postgis');
+      }
+    }
+    return viaPostgres;
+  }
+
+  // source === 'redis'
+  if (viaRedis === null) {
+    dispatchGeoFallback.inc();
+    return eligibleViaPostgres(rideId, longDistanceThresholdM);
+  }
+  return viaRedis;
 }
 
 /**

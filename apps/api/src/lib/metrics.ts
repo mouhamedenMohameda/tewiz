@@ -128,6 +128,51 @@ export const dispatchInboxDuration = new Histogram({
   registers: [registry],
 });
 
+export const dispatchEligibleDuration = new Histogram({
+  name: 'tewiz_dispatch_eligible_duration_seconds',
+  help: 'Duration of captain selection for a new ride, by geo source',
+  // THE metric for the Redis migration. tewiz_dispatch_inbox_duration_seconds
+  // measures captainInbox, which scans `rides` and never touched captain_state —
+  // it cannot show this change at all. This one covers eligibleCaptainsForRide,
+  // the query that actually moved.
+  //
+  // Labelled by source so `postgres` and `redis` are directly comparable on one
+  // graph, and so the shadow window (which runs both, and is therefore expected
+  // to be the slowest) is not mistaken for a regression.
+  labelNames: ['source'] as const,
+  buckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2],
+  registers: [registry],
+});
+
+export const redisGeosearchDuration = new Histogram({
+  name: 'tewiz_redis_geosearch_duration_seconds',
+  help: 'Duration of the Redis GEOSEARCH used to find nearby captains',
+  // This is the half of captain selection we moved out of PostGIS. Buckets sit
+  // an order of magnitude below the inbox histogram on purpose: if these two
+  // ever overlap, the move stopped paying for itself and we should know.
+  buckets: [0.0005, 0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1],
+  registers: [registry],
+});
+
+export const dispatchGeoFallback = new Counter({
+  name: 'tewiz_dispatch_geo_fallback_total',
+  help: 'Times captain selection fell back to PostGIS because Redis failed',
+  // Dispatch must never stop because Redis is down, but a silent fallback is how
+  // you end up running on the slow path for a month without noticing. This is
+  // the metric that makes the degradation loud.
+  registers: [registry],
+});
+
+export const dispatchGeoMismatch = new Counter({
+  name: 'tewiz_dispatch_geo_mismatch_total',
+  help: 'Rides where the Redis and PostGIS candidate sets disagreed (shadow mode)',
+  // 'missing'  → PostGIS found a captain Redis did not (the dangerous direction:
+  //              in redis mode that captain would never have been notified)
+  // 'extra'    → Redis found one PostGIS did not (harmless but worth watching)
+  labelNames: ['direction'] as const,
+  registers: [registry],
+});
+
 // ---------------------------------------------------------------------------
 // SQL-derived gauges
 // ---------------------------------------------------------------------------

@@ -161,7 +161,22 @@ honnête de changer un chemin de dispatch en production.
    et un histogramme `tewiz_redis_geosearch_duration_seconds`.
 7. Déployer en `shadow`. Observer plusieurs jours.
 8. Passer en `redis`. Comparer la p95 de
-   `tewiz_dispatch_inbox_duration_seconds` avant/après — c'est le gain, chiffré.
+   `tewiz_dispatch_eligible_duration_seconds{source}` entre `postgres` et
+   `redis` — c'est le gain, chiffré.
+
+   ⚠️ **Correction d'une version antérieure de ce document**, qui indiquait
+   `tewiz_dispatch_inbox_duration_seconds`. C'est le mauvais indicateur :
+   `captainInbox` scanne la table `rides` à partir de la position que le captain
+   envoie lui-même, et n'a jamais lu `captain_state`. Il ne bougera donc pas avec
+   cette migration. Mesurer la mauvaise requête, c'est le moyen le plus sûr de
+   déclarer une réécriture réussie sur une preuve qui n'a jamais bougé.
+
+   Et garde en tête l'ordre de grandeur : `eligibleCaptainsForRide` ne tourne
+   qu'à la **création** d'une course (quelques dizaines de fois par jour), alors
+   que l'inbox est interrogé en boucle par tous les captains en ligne. Tant que
+   la double écriture est en place, cette étape **ajoute** un peu de travail au
+   lieu d'en retirer. Le bénéfice arrive à l'étape 9 ; le gros morceau restant
+   est la requête d'inbox.
 9. Seulement ensuite : espacer les écritures Postgres de `captain_state` (le
    back-office n'a pas besoin d'une précision à la seconde).
 
