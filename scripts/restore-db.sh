@@ -204,6 +204,7 @@ fi
 # Gated on the archive actually referencing postgis, so this script also works on
 # a dump that predates it. Every real Tewiz dump does reference it — locations are
 # GEOGRAPHY(POINT, 4326) throughout — so on the production box this always runs.
+POSTGIS_OWNED_BY_SUPERUSER=0
 if pg_restore --list "$DUMP" 2>/dev/null | grep -qi 'postgis'; then
   log "dump requires postgis — creating the extension first"
   # PostGIS is not a "trusted" extension, so CREATE EXTENSION needs superuser.
@@ -220,8 +221,15 @@ if pg_restore --list "$DUMP" 2>/dev/null | grep -qi 'postgis'; then
        && sudo -u postgres psql -qX -d "$TARGET_DB" \
             -c "CREATE EXTENSION IF NOT EXISTS postgis" >/dev/null 2>&1; then
     # The extension ends up owned by postgres while the tables are restored by the
-    # app role. That is fine: extensions install into `public`, which grants USAGE
-    # to everyone, so the geography columns restore and query normally.
+    # app role. The geography columns restore and query fine — extensions install
+    # into `public`, which grants USAGE to everyone — but the app role is NOT the
+    # extension's owner, so two entries in the dump's TOC will fail:
+    #   COMMENT ON EXTENSION postgis  -> must be owner of extension postgis
+    #   COPY public.spatial_ref_sys   -> permission denied for table spatial_ref_sys
+    # Both are benign, and are whitelisted below. Neither carries Tewiz data:
+    # the comment is cosmetic, and CREATE EXTENSION already populated
+    # spatial_ref_sys with the same ~8500 EPSG rows the dump is trying to insert.
+    POSTGIS_OWNED_BY_SUPERUSER=1
     log "  created via the postgres superuser (the app role is not one)"
   else
     die "cannot create the postgis extension in $TARGET_DB.
@@ -240,22 +248,35 @@ fi
 log "restoring $(basename "$DUMP") -> $TARGET_DB"
 START=$(date +%s)
 RESTORE_LOG="$(mktemp)"
-# --exit-on-error is deliberately NOT used: `CREATE EXTENSION postgis` will
-# collide with the one we just made, and that single benign error must not abort
-# an otherwise perfect restore. We count and show the errors instead.
+# --exit-on-error is deliberately NOT used: the postgis objects we created above
+# collide with the dump's own, and those benign errors must not abort an
+# otherwise perfect restore. We count and show the errors instead.
 # -j is left off: on a 1-box setup, parallel restore starves the live API of IO.
+#
+# What counts as benign, and why — all three are the postgis extension, never
+# Tewiz data. Note how narrow the patterns are: "permission denied for table"
+# on any table other than spatial_ref_sys is a REAL failure and still fails the
+# drill, which is the whole point of running one.
+BENIGN_RE='extension "postgis" already exists'
+BENIGN_RE="$BENIGN_RE"'|must be owner of extension postgis'
+BENIGN_RE="$BENIGN_RE"'|(permission denied for|must be owner of) (table|relation) spatial_ref_sys'
 if ! pg_restore --dbname="$TARGET_URL" \
       --no-owner --no-privileges \
       "$DUMP" > "$RESTORE_LOG" 2>&1; then
   ERRORS="$(grep -c 'error:' "$RESTORE_LOG" || true)"
-  BENIGN="$(grep -c 'extension "postgis" already exists' "$RESTORE_LOG" || true)"
+  BENIGN="$(grep -cE "$BENIGN_RE" "$RESTORE_LOG" || true)"
   if [ "$ERRORS" -gt "$BENIGN" ]; then
     log "pg_restore reported $ERRORS error(s) ($BENIGN benign). First 20:"
     grep 'error:' "$RESTORE_LOG" | head -20 >&2
     rm -f "$RESTORE_LOG"
     die "restore failed"
   fi
-  log "pg_restore: $ERRORS benign error(s) (postgis already present) — ok"
+  if [ "$POSTGIS_OWNED_BY_SUPERUSER" -eq 1 ]; then
+    log "pg_restore: $ERRORS benign error(s) — postgis is owned by the postgres"
+    log "  superuser here, so its comment and spatial_ref_sys rows were skipped."
+  else
+    log "pg_restore: $ERRORS benign error(s) (postgis already present) — ok"
+  fi
 fi
 rm -f "$RESTORE_LOG"
 ELAPSED=$(( $(date +%s) - START ))
