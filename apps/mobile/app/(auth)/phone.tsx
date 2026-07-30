@@ -150,7 +150,7 @@ export default function LoginScreen() {
   }
 
   function contactAdmin() {
-    const url = 'https://wa.me/2223332277?text=' +
+    const url = 'https://wa.me/22233322777?text=' +
       encodeURIComponent(t('auth.login.contactMessage', { app: APP_NAME }));
     Linking.openURL(url).catch(() => undefined);
   }

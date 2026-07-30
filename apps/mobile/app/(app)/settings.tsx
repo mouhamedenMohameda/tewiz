@@ -30,7 +30,7 @@ import {
 import { colors, radius, shadow, spacing } from '@/theme';
 import { APP_NAME } from '@/lib/brand';
 
-const SUPPORT_WHATSAPP = '2223332277';
+const SUPPORT_WHATSAPP = '22233322777';
 
 interface CaptainPreferences {
   acceptsColis: boolean;
