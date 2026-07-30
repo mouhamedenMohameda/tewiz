@@ -38,6 +38,13 @@ const withRideFullScreenIntent = (config) => {
     // The captain still grants it once in system settings (see
     // lib/overlayPermission.ts); declaring it here is what makes that toggle exist.
     ensurePerm('android.permission.SYSTEM_ALERT_WINDOW');
+    // Lets the app ask to be exempted from battery optimisation. Without it the
+    // OS is free to doze the process and defer FCM delivery, which showed up as
+    // the incoming-ride screen failing intermittently (~3 times out of 15 on a
+    // TCL device) even though the mechanism itself works. Standard for driver /
+    // dispatch apps; the captain still grants it explicitly (see
+    // lib/batteryExemption.ts).
+    ensurePerm('android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS');
 
     // 3. MainActivity flags.
     const mainActivity = AndroidConfig.Manifest.getMainActivityOrThrow(manifest);
