@@ -7,6 +7,7 @@ import { HttpError } from '../../middleware/error.js';
 import { getBalance } from '../wallet/wallet.service.js';
 import * as goingHome from '../home/going-home.service.js';
 import { ingestTrackBatch, isTrackingEnabled } from './track.service.js';
+import { setLiveLocation, clearLiveLocation } from './live-location.js';
 
 // Parent enforces auth + role=captain.
 export const captainStateRouter = Router();
@@ -69,12 +70,47 @@ captainStateRouter.post('/online', async (req, res) => {
           location = ${hasLoc ? 'EXCLUDED.location' : 'captain_state.location'},
           location_updated_at = ${hasLoc ? 'now()' : 'captain_state.location_updated_at'},
           updated_at = now()
-    RETURNING captain_id, presence, updated_at
+    RETURNING captain_id, presence, updated_at,
+              ST_Y(location::geometry) AS eff_lat,
+              ST_X(location::geometry) AS eff_lng,
+              EXTRACT(epoch FROM location_updated_at) * 1000 AS eff_seen_ms
   `;
   const params = hasLoc ? [userId, body.lng, body.lat] : [userId];
 
   const r = await pool.query(sql, params);
-  res.json({ ...r.rows[0], balanceMru: balance });
+
+  // Dual write: Postgres stays the source of truth, Redis gets a mirror. Doing
+  // both means rolling DISPATCH_GEO_SOURCE back to `postgres` needs no data
+  // migration — captain_state was never allowed to go stale.
+  //
+  // Mirror the EFFECTIVE position the row now holds, not the request body. When
+  // a captain goes online without sending coordinates, the UPSERT above keeps
+  // their previous position and PostGIS still considers them eligible — but
+  // going offline earlier removed them from the geo index. Mirroring only when
+  // `hasLoc` left those captains invisible to `redis` mode until their first
+  // track push, and produced a permanent stream of shadow-mode 'missing'
+  // mismatches, which would have kept the counter from ever reaching zero and
+  // blocked the promotion the whole rollout is built around.
+  //
+  // `eff_seen_ms` carries the row's real freshness stamp, so a re-seeded old
+  // position stays as stale in Redis as it is in Postgres. A legacy row with a
+  // location but no stamp is seeded as just-seen, matching both the PostGIS
+  // guard (which treats NULL as fresh) and warmLiveLocations.
+  const { eff_lat, eff_lng, eff_seen_ms, ...state } = r.rows[0] ?? {};
+  if (eff_lat !== null && eff_lat !== undefined && eff_lng !== null && eff_lng !== undefined) {
+    const lat = Number(eff_lat);
+    const lng = Number(eff_lng);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      await setLiveLocation(
+        userId, lat, lng,
+        eff_seen_ms === null || eff_seen_ms === undefined ? Date.now() : Number(eff_seen_ms),
+      );
+    }
+  }
+
+  // Respond with the original shape: eff_* exist only to feed the mirror above
+  // and must not leak into the client contract.
+  res.json({ ...state, balanceMru: balance });
 });
 
 /**
@@ -100,6 +136,12 @@ captainStateRouter.post('/offline', async (req, res) => {
     [userId],
   );
   if (!r.rows[0]) throw new HttpError(404, 'no_state', 'No state row');
+
+  // Drop them from the live geo index. A GEO key has no per-member TTL, so
+  // without this a captain who goes offline keeps sitting at their last
+  // position and would still be picked by GEOSEARCH.
+  await clearLiveLocation(userId);
+
   res.json(r.rows[0]);
 });
 
@@ -155,7 +197,7 @@ captainStateRouter.post('/track', async (req, res) => {
   // Keep the live marker fresh from the most recent accepted-looking point
   // (the latest one in the batch), without downgrading an on_ride presence.
   const latest = body.points.reduce((a, b) => (b.recordedAt > a.recordedAt ? b : a));
-  await pool.query(
+  const marker = await pool.query(
     `UPDATE captain_state
         SET location            = ST_SetSRID(ST_MakePoint($2, $3), 4326)::geography,
             location_updated_at = now(),
@@ -164,6 +206,13 @@ captainStateRouter.post('/track', async (req, res) => {
         AND presence <> 'offline'`,
     [userId, latest.lng, latest.lat],
   );
+
+  // Mirror to Redis only when the Postgres marker actually moved. The UPDATE
+  // above is a no-op for an offline captain, and writing to the geo index
+  // regardless would resurrect them as a dispatch candidate.
+  if ((marker.rowCount ?? 0) > 0) {
+    await setLiveLocation(userId, latest.lat, latest.lng);
+  }
 
   res.json({ stored: result.accepted, dropped: result.dropped });
 });

@@ -67,6 +67,14 @@ const EnvSchema = z.object({
   // moved without the tracker refreshing). Only enforced when off-ride tracking
   // is enabled, since that's what keeps the position fresh. Default 15 min.
   DISPATCH_MAX_LOCATION_AGE_S: z.coerce.number().int().default(900),
+  // Where captain selection gets its "who is nearby" answer.
+  //   postgres — ST_DWithin over captain_state (current behaviour, the default)
+  //   shadow   — compute both, SERVE POSTGRES, count the disagreements
+  //   redis    — serve Redis, fall back to PostGIS on error
+  // Only move to `redis` once tewiz_dispatch_geo_mismatch_total has stayed at
+  // zero for several days: shadow mode is the only honest way to prove the two
+  // agree before a dispatch path changes under live traffic.
+  DISPATCH_GEO_SOURCE: z.enum(['postgres', 'shadow', 'redis']).default('postgres'),
 
   // Geocoding (Google Places). Falls back to Nominatim when unset.
   GOOGLE_PLACES_API_KEY: z.string().optional(),

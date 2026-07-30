@@ -30,6 +30,7 @@ import { startListingsCron } from './modules/listings/listings.service.js';
 import { roadsideRouter } from './modules/roadside/roadside.routes.js';
 import { startRoadsideCron } from './modules/roadside/roadside.service.js';
 import { startCaptainTrackReapCron } from './modules/captain/track.service.js';
+import { warmLiveLocations } from './modules/captain/live-location.js';
 import { carRentalRouter } from './modules/car-rental/car-rental.routes.js';
 import { convoyageRouter } from './modules/convoyage/convoyage.routes.js';
 import { freightRouter } from './modules/freight/freight.routes.js';
@@ -201,6 +202,12 @@ app.listen(env.PORT, '127.0.0.1', () => {
   // make a restart-proof fill rate possible, and /metrics stays closed unless
   // METRICS_TOKEN is set, so nothing is exposed by collecting them.
   startMetricsRefresh(env.METRICS_REFRESH_MS);
+  // Rebuild the live captain geo index from captain_state. Redis starts empty
+  // after any restart or flush, and in `redis` mode an empty index means no
+  // captain is reachable until each one reports a position again. Runs on every
+  // boot regardless of DISPATCH_GEO_SOURCE so the index is already warm and
+  // comparable the moment shadow mode is switched on.
+  void warmLiveLocations();
   if (!env.METRICS_TOKEN) {
     logger.warn(
       'METRICS_TOKEN is empty — GET /metrics returns 404 and Prometheus cannot ' +

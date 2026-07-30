@@ -97,8 +97,12 @@ prometheus.scrape "tewiz_api" {
 
 | Métrique | Ce que ça dit |
 |---|---|
-| `tewiz_dispatch_inbox_duration_seconds` | La requête la plus chaude du système : chaque captain en ligne la lance en boucle. Sa p95 est le premier signe que la machine sature. |
+| `tewiz_dispatch_inbox_duration_seconds` | La requête la plus chaude du système : chaque captain en ligne la lance en boucle. Sa p95 est le premier signe que la machine sature. **Attention : elle scanne `rides` et n'a jamais lu `captain_state`** — elle ne bougera donc pas d'un pouce avec la migration Redis. Ne pas s'en servir pour juger l'étape 3. |
+| `tewiz_dispatch_eligible_duration_seconds{source}` | La sélection des captains à la création d'une course — **la requête réellement déplacée**. C'est celle-ci qu'on compare entre `postgres` et `redis`. Le mode `shadow` exécute les deux, il est donc normalement le plus lent des trois : ce n'est pas une régression. |
 | `tewiz_ride_accept_rejected_total{reason}` | `not_searching` qui grimpe = trop de captains se disputent la même course (le broadcast est trop large). `balance_too_low` qui grimpe = problème de wallet, pas de dispatch. |
+| `tewiz_redis_geosearch_duration_seconds` | La moitié « qui est à proximité ? » de la sélection, sortie de PostGIS. Si sa p95 rejoint celle de `dispatch_inbox`, le déplacement en mémoire ne paie plus. |
+| `tewiz_dispatch_geo_fallback_total` | Repli sur PostGIS parce que Redis n'a pas répondu. Le dispatch continue — c'est justement le but — mais un taux non nul veut dire qu'on tourne sur le chemin lent sans s'en apercevoir. |
+| `tewiz_dispatch_geo_mismatch_total{direction}` | Écarts entre Redis et PostGIS en mode `shadow`. `missing` = un captain que PostGIS a trouvé et pas Redis : en mode `redis` il n'aurait **jamais** été notifié. C'est ce compteur qui doit rester à zéro plusieurs jours avant de passer `DISPATCH_GEO_SOURCE=redis`. |
 
 ### Argent et sauvegardes
 
