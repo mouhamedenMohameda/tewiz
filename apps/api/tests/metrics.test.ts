@@ -25,7 +25,7 @@ const {
 
 /** Rows returned by the four queries refreshSqlGauges runs, keyed by SQL fragment. */
 interface Fixture {
-  live?: Record<string, string>;
+  live?: Record<string, string | boolean>;
   window?: Record<string, string | null>;
   pickups?: { lat: number; lng: number; unfilled: boolean }[];
   money?: Record<string, string>;
@@ -36,7 +36,10 @@ function stubQueries(f: Fixture) {
     if (sql.includes('stale_location')) {
       return Promise.resolve({
         rows: [
-          f.live ?? { searching: '0', online: '0', on_ride: '0', stale_location: '0' },
+          f.live ?? {
+            searching: '0', online: '0', on_ride: '0',
+            stale_location: '0', freshness_enforced: false,
+          },
         ],
       });
     }
@@ -125,7 +128,10 @@ describe('refreshSqlGauges — supply', () => {
     // in practice. The gap between these two numbers is the one that explains
     // "we had captains online but nobody got matched".
     stubQueries({
-      live: { searching: '7', online: '12', on_ride: '3', stale_location: '5' },
+      live: {
+        searching: '7', online: '12', on_ride: '3',
+        stale_location: '5', freshness_enforced: true,
+      },
     });
 
     await refreshSqlGauges();
@@ -134,6 +140,59 @@ describe('refreshSqlGauges — supply', () => {
     expect(await sample('tewiz_captains_online_now', { presence: 'online' })).toBe(12);
     expect(await sample('tewiz_captains_online_now', { presence: 'on_ride' })).toBe(3);
     expect(await sample('tewiz_captains_online_stale_location')).toBe(5);
+    expect(await sample('tewiz_dispatch_location_freshness_enforced')).toBe(1);
+  });
+
+  it('measures staleness at the threshold dispatch actually uses', async () => {
+    // Regression guard. This gauge first shipped with a hardcoded 2 minutes while
+    // dispatch skips captains only past DISPATCH_MAX_LOCATION_AGE_S (default 900s).
+    // It therefore reported every online captain as a "ghost" on a fleet dispatch
+    // considered perfectly usable — the fastest way to teach someone to ignore
+    // their monitoring.
+    process.env.DISPATCH_MAX_LOCATION_AGE_S = '900';
+    let capturedInterval: unknown;
+    queryMock.mockImplementation((sql: string, params?: unknown[]) => {
+      if (sql.includes('stale_location')) {
+        capturedInterval = params?.[0];
+        return Promise.resolve({
+          rows: [{
+            searching: '0', online: '28', on_ride: '0',
+            stale_location: '0', freshness_enforced: true,
+          }],
+        });
+      }
+      if (sql.includes('percentile_disc')) {
+        return Promise.resolve({
+          rows: [{ requested: '0', matched: '0', no_captain: '0', p50: null, p95: null }],
+        });
+      }
+      if (sql.includes('pickup_location IS NOT NULL')) return Promise.resolve({ rows: [] });
+      if (sql.includes('balance_mru')) return Promise.resolve({ rows: [{ blocked: '0', drift: '0' }] });
+      throw new Error(`unexpected query: ${sql.slice(0, 60)}`);
+    });
+
+    await refreshSqlGauges();
+
+    expect(capturedInterval).toBe(900);
+    expect(await sample('tewiz_dispatch_max_location_age_seconds')).toBe(900);
+    delete process.env.DISPATCH_MAX_LOCATION_AGE_S;
+  });
+
+  it('reports freshness enforcement off when tracking is disabled', async () => {
+    // With track_offline_enabled false, dispatch applies no freshness guard, so a
+    // high stale count costs nothing. Without this flag the stale gauge cannot be
+    // interpreted at all.
+    stubQueries({
+      live: {
+        searching: '0', online: '9', on_ride: '0',
+        stale_location: '9', freshness_enforced: false,
+      },
+    });
+
+    await refreshSqlGauges();
+
+    expect(await sample('tewiz_captains_online_stale_location')).toBe(9);
+    expect(await sample('tewiz_dispatch_location_freshness_enforced')).toBe(0);
   });
 });
 
@@ -313,7 +372,12 @@ describe('label cardinality', () => {
 
 describe('exposition format', () => {
   it('renders a Prometheus text exposition with the service label', async () => {
-    stubQueries({ live: { searching: '2', online: '5', on_ride: '1', stale_location: '0' } });
+    stubQueries({
+      live: {
+        searching: '2', online: '5', on_ride: '1',
+        stale_location: '0', freshness_enforced: true,
+      },
+    });
     await refreshSqlGauges();
 
     const text = await registry.metrics();
