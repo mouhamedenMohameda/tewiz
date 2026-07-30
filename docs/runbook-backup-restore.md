@@ -125,6 +125,47 @@ inactivité). Les scripts échouent alors franchement en affichant la commande d
 reconnexion — ils ne font jamais semblant d'avoir réussi. Une combinaison
 raisonnable : Drive pour le dump nocturne, R2 pour le flux WAL.
 
+#### ⚠️ Créer son propre client_id Google (à faire avant fin 2026)
+
+Sans `client_id`, rclone utilise un identifiant OAuth partagé entre tous ses
+utilisateurs. Il l'annonce à chaque appel :
+
+> This remote uses rclone's shared Google Drive client_id, which is being retired
+> and will stop working during 2026.
+
+Un identifiant propre est donc obligatoire à terme, et accessoirement bien plus
+rapide (les quotas ne sont plus partagés avec le monde entier).
+
+1. [console.cloud.google.com](https://console.cloud.google.com) → nouveau projet,
+   par ex. `tewiz-backups`
+2. **APIs & Services → Library** → chercher « Google Drive API » → **Enable**
+3. **APIs & Services → OAuth consent screen** → User type **External** → nom de
+   l'app, email de support → Save
+4. **Publier l'app en Production.** ⚠️ C'est l'étape piège : laissée en
+   « Testing », Google **fait expirer le refresh token au bout de 7 jours**, donc
+   les sauvegardes casseraient chaque semaine. La publication ne demande **aucune
+   vérification Google** ici, parce que le scope retenu est `drive.file`
+   (non sensible) et non `drive` (accès complet, lui soumis à examen). C'est la
+   raison pour laquelle on choisit le scope 3 à la configuration.
+5. **Credentials → Create Credentials → OAuth client ID** → type **Desktop app**
+   → récupérer le `client_id` et le `client_secret`
+6. Les injecter dans le remote existant, puis réautoriser :
+
+```bash
+rclone config
+# e) edit existing remote -> gdrive -> renseigner client_id et client_secret
+# puis, dans le meme menu : y) Yes -> refaire l'autorisation navigateur
+```
+
+7. Recopier la config sur le serveur :
+
+```bash
+scp ~/.config/rclone/rclone.conf root@5.189.153.144:/root/.config/rclone/rclone.conf
+```
+
+Les mots de passe du remote `crypt` ne changent pas : les sauvegardes déjà
+présentes restent lisibles.
+
 ### Option C — un second serveur en SSH
 
 ```
