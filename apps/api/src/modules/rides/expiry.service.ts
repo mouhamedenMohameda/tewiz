@@ -20,6 +20,7 @@
 
 import { pool } from '../../db/pool.js';
 import { getPricingSettings } from '../admin/app-settings.service.js';
+import { ridesExpiredNoCaptain } from '../../lib/metrics.js';
 
 const TICK_INTERVAL_MS = 30_000;
 
@@ -36,7 +37,12 @@ export async function expireSearchingRides(): Promise<number> {
         AND requested_at < now() - make_interval(secs => $1)`,
     [searchingTimeoutS],
   );
-  return rowCount ?? 0;
+  const expired = rowCount ?? 0;
+  // The clearest failure signal the marketplace has: a rider asked, nobody came.
+  // Counted here rather than derived from the cancel_reason so it is visible as a
+  // rate the moment it happens, without waiting for the 30s gauge refresh.
+  if (expired > 0) ridesExpiredNoCaptain.inc(expired);
+  return expired;
 }
 
 export function startRideExpiryCron() {
