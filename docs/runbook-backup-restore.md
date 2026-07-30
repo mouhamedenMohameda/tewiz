@@ -195,18 +195,30 @@ apparaît réellement** dans l'archive. S'il ne sort pas `PITR is ON`, ne pas
 passer à la suite.
 
 **4. Donner à l'exercice le droit de créer une base.** La restauration construit
-une base jetable, ce que le rôle applicatif `tewiz` n'a pas le droit de faire —
-et c'est très bien ainsi. Ajoute dans `/opt/tewiz/.env` :
+une base jetable, ce que le rôle applicatif `tewiz` n'a pas le droit de faire.
+
+```bash
+sudo -u postgres psql -c 'ALTER ROLE tewiz CREATEDB;'
+```
+
+C'est un élargissement réel mais modeste : `CREATEDB` permet de créer des bases,
+rien d'autre. Qui détient ce rôle lit déjà toutes les courses et tous les
+portefeuilles — ça ne change pas grand-chose en cas de compromission.
+
+⚠️ **Ce qui ne marche PAS** : pointer `RESTORE_ADMIN_URL` sur le superutilisateur
+`postgres` via la socket unix. Le `pg_hba.conf` Debian par défaut authentifie les
+connexions locales en **peer**, donc le rôle `postgres` n'est joignable que depuis
+l'utilisateur système `postgres` — or ce script tourne en `root`, à la main comme
+depuis le cron mensuel. Si tu tiens à ne pas toucher au rôle applicatif, il faut
+un rôle dédié authentifié par mot de passe en TCP :
+
+```bash
+sudo -u postgres psql -c "CREATE ROLE tewiz_restore LOGIN PASSWORD 'un-mot-de-passe' CREATEDB"
+```
 
 ```
-RESTORE_ADMIN_URL=postgres://postgres@/postgres?host=/var/run/postgresql
+RESTORE_ADMIN_URL=postgres://tewiz_restore:un-mot-de-passe@127.0.0.1:5432/postgres
 ```
-
-Le superutilisateur `postgres` atteint sa socket locale sans mot de passe, donc
-ça fonctionne tel quel quand le script tourne en root (c'est le cas du cron
-mensuel). L'alternative — `ALTER ROLE tewiz CREATEDB;` — marche aussi, mais elle
-élargit les droits du rôle qu'utilise l'API : à ne faire que si la première
-option pose problème.
 
 **5. Faire l'exercice tout de suite**, sans attendre le 1er du mois :
 
