@@ -194,7 +194,21 @@ Le script pose les crons, force une bascule de WAL et **vérifie qu'un segment
 apparaît réellement** dans l'archive. S'il ne sort pas `PITR is ON`, ne pas
 passer à la suite.
 
-**4. Faire l'exercice tout de suite**, sans attendre le 1er du mois :
+**4. Donner à l'exercice le droit de créer une base.** La restauration construit
+une base jetable, ce que le rôle applicatif `tewiz` n'a pas le droit de faire —
+et c'est très bien ainsi. Ajoute dans `/opt/tewiz/.env` :
+
+```
+RESTORE_ADMIN_URL=postgres://postgres@/postgres?host=/var/run/postgresql
+```
+
+Le superutilisateur `postgres` atteint sa socket locale sans mot de passe, donc
+ça fonctionne tel quel quand le script tourne en root (c'est le cas du cron
+mensuel). L'alternative — `ALTER ROLE tewiz CREATEDB;` — marche aussi, mais elle
+élargit les droits du rôle qu'utilise l'API : à ne faire que si la première
+option pose problème.
+
+**5. Faire l'exercice tout de suite**, sans attendre le 1er du mois :
 
 ```bash
 cd /opt/tewiz && bash scripts/restore-db.sh

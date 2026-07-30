@@ -86,17 +86,54 @@ else
   TARGET_DB="tewiz_restore_drill_$(date -u +%Y%m%d%H%M%S)"
 fi
 
-# Swap the database name in the URL, preserving user/host/port/params. Postgres
-# has no "create database" over a connection to that same database, so DDL goes
+# Swap the database name in a URL, preserving user/host/port/params. Postgres has
+# no "create database" over a connection to that same database, so DDL goes
 # through the maintenance `postgres` database.
 url_with_db() {
-  echo "$DATABASE_URL" | sed -E "s#(://[^/]+)/[^?]*#\1/$1#"
+  echo "$2" | sed -E "s#(://[^/]+)/[^?]*#\1/$1#"
 }
-ADMIN_URL="$(url_with_db postgres)"
-TARGET_URL="$(url_with_db "$TARGET_DB")"
+
+# Restoring needs CREATEDB, which the application role deliberately may not have.
+# Two ways to give this script that right, in order of preference:
+#
+#   1. RESTORE_ADMIN_URL in .env — a connection with CREATEDB, used ONLY by this
+#      script. On the VPS the postgres superuser reaches its socket without a
+#      password, so this is usually:
+#        RESTORE_ADMIN_URL=postgres://postgres@/postgres?host=/var/run/postgresql
+#      (works when the script runs as root or as postgres, via peer auth).
+#
+#   2. Grant the app role the right:  ALTER ROLE tewiz CREATEDB;
+#      Simpler, and modest as expansions go — an attacker holding that role
+#      already reads every ride and wallet row. But it is a real widening, so it
+#      is the fallback, not the default.
+#
+# When RESTORE_ADMIN_URL is set, the TARGET url is derived from it too: a database
+# created by one role is not necessarily restorable by another.
+RESTORE_ADMIN_URL="${RESTORE_ADMIN_URL:-$(env_get RESTORE_ADMIN_URL)}"
+BASE_URL="${RESTORE_ADMIN_URL:-$DATABASE_URL}"
+ADMIN_URL="$(url_with_db postgres "$BASE_URL")"
+TARGET_URL="$(url_with_db "$TARGET_DB" "$BASE_URL")"
 
 psql "$ADMIN_URL" -tAX -c 'SELECT 1' >/dev/null 2>&1 \
   || die "cannot connect to the postgres maintenance DB with these credentials"
+
+# Check the privilege up front rather than letting CREATE DATABASE fail with a
+# bare psql error. The monthly drill runs unattended: a failure there must say
+# what to do, not just what went wrong.
+CAN_CREATEDB="$(psql "$ADMIN_URL" -tAX -c \
+  "SELECT rolcreatedb OR rolsuper FROM pg_roles WHERE rolname = current_user" 2>/dev/null || echo f)"
+if [ "$CAN_CREATEDB" != "t" ]; then
+  die "the role this script connects as cannot create databases, so the restore
+       drill cannot run. Pick one:
+
+         1. Give the drill its own admin connection (preferred) — in .env:
+              RESTORE_ADMIN_URL=postgres://postgres@/postgres?host=/var/run/postgresql
+
+         2. Or grant the app role the right:
+              sudo -u postgres psql -c 'ALTER ROLE tewiz CREATEDB;'
+
+       Then re-run:  bash scripts/restore-db.sh"
+fi
 
 # --- Guard the real database -------------------------------------------------
 if [ "$DRILL" -eq 0 ]; then
