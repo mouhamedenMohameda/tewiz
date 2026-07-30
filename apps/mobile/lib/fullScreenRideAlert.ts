@@ -154,6 +154,9 @@ export function extractRideAlert(taskData: unknown): RideAlertData | null {
   // in foreground / different SDK versions.
   const candidates: any[] = [
     d?.notification?.request?.content?.data,
+    // Shape handed to addNotificationReceivedListener: the argument IS the
+    // notification, so there's no outer `notification` wrapper.
+    d?.request?.content?.data,
     d?.notification?.data,
     d?.data,
     d,
@@ -162,7 +165,15 @@ export function extractRideAlert(taskData: unknown): RideAlertData | null {
   // Android data-only FCM path (the real one for a killed/backgrounded app):
   // the payload arrives as a JSON *string* under data.dataString (and data.body).
   // Parse those and add them as candidates.
-  const stringFields = [d?.data?.dataString, d?.data?.body, d?.dataString, d?.body];
+  const stringFields = [
+    d?.data?.dataString,
+    d?.data?.body,
+    d?.dataString,
+    d?.body,
+    // Android FCM trigger carried on a Notification object (received listener).
+    d?.request?.trigger?.remoteMessage?.data?.body,
+    d?.notification?.request?.trigger?.remoteMessage?.data?.body,
+  ];
   for (const s of stringFields) {
     if (typeof s === 'string') {
       try {
@@ -216,6 +227,39 @@ TaskManager.defineTask(BACKGROUND_RIDE_TASK, async ({ data, error }) => {
     notifee.onBackgroundEvent(async () => {});
   } catch {}
 })();
+
+/**
+ * SECOND, independent trigger for the full-screen alert: fires whenever a ride
+ * push reaches the app while its process is ALIVE — foreground, or backgrounded
+ * with the online-captain foreground service keeping it running (the normal
+ * state for a captain who is online).
+ *
+ * Why two paths: on device, the headless TaskManager path only ran when the JS
+ * runtime was already up. On a cold start (app killed) the FCM message can be
+ * dispatched before the task is restored and the alert is simply lost — that is
+ * exactly what we observed. This listener closes that gap for every case where
+ * the process is alive, and the headless task still covers the killed case when
+ * it wins the race.
+ *
+ * Firing twice is harmless: both paths post the SAME Notifee id
+ * (`ride-<rideId>`), so Android replaces the notification instead of stacking.
+ *
+ * Returns an unsubscribe function. No-ops off Android.
+ */
+export function attachRideAlertListener(): () => void {
+  if (Platform.OS !== 'android') return () => {};
+  try {
+    const sub = Notifications.addNotificationReceivedListener((notification) => {
+      const alert = extractRideAlert(notification);
+      if (alert) void displayFullScreenRideAlert(alert);
+    });
+    return () => sub.remove();
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn('[ride-alert] could not attach received listener', err);
+    return () => {};
+  }
+}
 
 /**
  * Register the background notification task with expo-notifications. Safe to

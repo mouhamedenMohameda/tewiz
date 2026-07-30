@@ -17,7 +17,7 @@ import { type AuthUser, useAuth } from '@/lib/auth';
 import { registerForPushNotifications } from '@/lib/notifications';
 // Importing this module also runs its top-level side effects (defines the
 // background ride-alert task + Notifee background handler).
-import { registerBackgroundRideAlertTask } from '@/lib/fullScreenRideAlert';
+import { attachRideAlertListener, registerBackgroundRideAlertTask } from '@/lib/fullScreenRideAlert';
 // Import for side effect: defines the background off-ride location task so the
 // OS can invoke it once the captain starts tracking (Level B).
 import '@/lib/track-task';
@@ -117,6 +117,13 @@ export default function RootLayout() {
     // backgrounded or killed. No-op on iOS / old builds.
     void registerBackgroundRideAlertTask();
   }, [userId]);
+
+  // Second trigger for the same full-screen alert, covering every case where
+  // the app process is alive (the normal state for an online captain, kept up
+  // by the location foreground service). The headless task above only fires
+  // once the JS runtime is ready, so on a cold start the push could be lost.
+  // Both paths post the same Notifee id, so they can never stack.
+  useEffect(() => attachRideAlertListener(), []);
 
   // Don't render the app shell until fonts resolve (or fail) — avoids a
   // flash-of-system-font. On font error we still proceed (system fallback).

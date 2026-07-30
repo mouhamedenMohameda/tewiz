@@ -136,7 +136,13 @@ export async function startOfflineTracking(): Promise<boolean> {
     foregroundService: Platform.OS === 'android' ? {
       notificationTitle: 'Vous êtes en ligne',
       notificationBody: 'Votre position est partagée avec le support pendant votre service.',
-      killServiceOnDestroy: true,
+      // Keep the service (and therefore the app process) alive when the captain
+      // swipes the app out of recents. With `true`, swiping killed the process,
+      // so an incoming-ride push had nothing left to wake: the full-screen alert
+      // never fired "app closed" — the exact symptom reported on device. An
+      // online captain must stay reachable, like every driver app; going offline
+      // still stops it via stopOfflineTracking().
+      killServiceOnDestroy: false,
     } : undefined,
     });
     return true;

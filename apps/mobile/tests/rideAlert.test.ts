@@ -31,6 +31,19 @@ describe('extractRideAlert — accepted shapes', () => {
       .toEqual({ rideId: 'ride-123', title: 'T', body: 'B' });
   });
 
+  // addNotificationReceivedListener hands the Notification itself, with no
+  // outer `notification` wrapper. Missing this shape meant the second (app
+  // alive) trigger silently never fired.
+  it('reads request.content.data (addNotificationReceivedListener shape)', () => {
+    expect(extractRideAlert({ request: { content: { data: RIDE } } })?.rideId).toBe('ride-123');
+  });
+
+  it('parses the FCM trigger payload carried on a Notification object', () => {
+    expect(extractRideAlert({
+      request: { trigger: { remoteMessage: { data: { body: JSON.stringify(RIDE) } } } },
+    })?.rideId).toBe('ride-123');
+  });
+
   it('reads notification.data', () => {
     expect(extractRideAlert({ notification: { data: RIDE } })?.rideId).toBe('ride-123');
   });
