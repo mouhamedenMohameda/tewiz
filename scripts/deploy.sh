@@ -40,6 +40,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$REPO_ROOT"
 
+# Fingerprint this script BEFORE the pull can replace it. See step 3.5 for why.
+SELF_HASH_BEFORE="$(sha256sum "$SCRIPT_DIR/deploy.sh" 2>/dev/null | cut -d' ' -f1 || true)"
+
 echo "==> 1/9 Backup uploads"
 bash "$SCRIPT_DIR/backup-uploads.sh"
 
@@ -52,6 +55,32 @@ bash "$SCRIPT_DIR/backup-db.sh"
 
 echo "==> 3/9 git pull"
 git pull --ff-only
+
+# --- Did the pull change THIS script? -----------------------------------------
+# bash reads a script incrementally, and `git pull` replaces the file rather than
+# rewriting it in place, so the already-running shell keeps executing the OLD
+# deploy.sh. Any change to the deploy procedure therefore takes effect on the
+# NEXT run, not this one — silently.
+#
+# That bit us once already: the deploy that introduced the step-2 database backup
+# ran the previous 8-step version, so no recovery point was taken. It was
+# harmless only because that run had no pending migrations.
+#
+# We warn instead of re-exec'ing: re-running from the top would redo the uploads
+# snapshot and the dump, and a self-re-executing deploy script is a much better
+# way to create a loop than to fix a footgun. A loud line is enough — the steps
+# that protect data (uploads + database backup) already run BEFORE the pull, so
+# an out-of-date deploy.sh can never skip them.
+SELF_HASH_AFTER="$(sha256sum "$SCRIPT_DIR/deploy.sh" 2>/dev/null | cut -d' ' -f1 || true)"
+if [ -n "$SELF_HASH_BEFORE" ] && [ "$SELF_HASH_BEFORE" != "$SELF_HASH_AFTER" ]; then
+  echo
+  echo "  ############################################################"
+  echo "  #  deploy.sh CHANGED in this pull.                         #"
+  echo "  #  The version running right now is the PREVIOUS one.      #"
+  echo "  #  Re-run 'bash scripts/deploy.sh' to apply the new steps. #"
+  echo "  ############################################################"
+  echo
+fi
 
 echo "==> 4/9 pnpm install (incl. devDeps)"
 # --prod=false belt-and-suspenders in case some wrapper re-exports NODE_ENV.
