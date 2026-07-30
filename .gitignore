@@ -17,3 +17,7 @@ packages/shared-types/src/*.js
 
 # Local Claude Code settings
 .claude/
+
+# Signing keystores — never commit (losing one is unrecoverable, leaking one is worse)
+*.jks
+*.keystore
