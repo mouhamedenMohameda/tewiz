@@ -206,10 +206,33 @@ fi
 # GEOGRAPHY(POINT, 4326) throughout — so on the production box this always runs.
 if pg_restore --list "$DUMP" 2>/dev/null | grep -qi 'postgis'; then
   log "dump requires postgis — creating the extension first"
-  if ! psql "$TARGET_URL" -qX -c "CREATE EXTENSION IF NOT EXISTS postgis" >/dev/null 2>&1; then
+  # PostGIS is not a "trusted" extension, so CREATE EXTENSION needs superuser.
+  # The application role is not one, and should not become one just to run a
+  # drill. When this script runs as root — which it does from the monthly cron
+  # and by hand on the VPS — it can borrow the postgres superuser over the local
+  # socket, where Debian's peer authentication accepts it.
+  #
+  # Order matters: try as the connecting role first, so a setup where the role IS
+  # superuser (or postgis is preinstalled) never needs sudo at all.
+  if psql "$TARGET_URL" -qX -c "CREATE EXTENSION IF NOT EXISTS postgis" >/dev/null 2>&1; then
+    :
+  elif [ "$(id -u)" = "0" ] && command -v sudo >/dev/null 2>&1 \
+       && sudo -u postgres psql -qX -d "$TARGET_DB" \
+            -c "CREATE EXTENSION IF NOT EXISTS postgis" >/dev/null 2>&1; then
+    # The extension ends up owned by postgres while the tables are restored by the
+    # app role. That is fine: extensions install into `public`, which grants USAGE
+    # to everyone, so the geography columns restore and query normally.
+    log "  created via the postgres superuser (the app role is not one)"
+  else
     die "cannot create the postgis extension in $TARGET_DB.
-       On a recovery box: apt install postgresql-16-postgis-3, and run this as a
-       superuser role. This is exactly the surprise a drill is meant to find."
+       Tried the connecting role, then the postgres superuser over the local
+       socket. Check in order:
+         - is PostGIS installed?   apt install postgresql-16-postgis-3
+         - is the database local?  the superuser fallback only reaches the local
+           socket, so a remote DATABASE_URL cannot use it
+         - running as root?        the fallback needs it (the cron does)
+       This is exactly the surprise a drill is meant to find — on a real recovery
+       box you would have hit it with the platform down."
   fi
 fi
 
