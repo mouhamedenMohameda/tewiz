@@ -110,6 +110,20 @@ TaskManager.defineTask(OFFLINE_LOCATION_TASK, async ({ data, error }) => {
 export async function startOfflineTracking(): Promise<boolean> {
   const fg = await Location.requestForegroundPermissionsAsync();
   if (fg.status !== 'granted') return false;
+
+  // Google Play requires our own disclosure BEFORE the OS background-location
+  // dialog (see backgroundLocationDisclosure.ts). Skipped once the permission
+  // is already granted, since no request follows. Declining is a refusal: the
+  // caller takes the captain back offline, exactly as for a denied OS prompt.
+  //
+  // Imported lazily so the headless TaskManager context — which loads this
+  // module for its defineTask side effect — never pulls in i18n or Alert.
+  const current = await Location.getBackgroundPermissionsAsync().catch(() => null);
+  if (current?.status !== 'granted') {
+    const { showBackgroundLocationDisclosure } = await import('./backgroundLocationDisclosure');
+    if (!(await showBackgroundLocationDisclosure())) return false;
+  }
+
   const bg = await Location.requestBackgroundPermissionsAsync();
   if (bg.status !== 'granted') return false;
 
