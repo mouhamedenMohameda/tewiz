@@ -191,11 +191,11 @@ const config: ExpoConfig = {
   experiments: {
     typedRoutes: true,
   },
-  owner: 'usernamem',
+  owner: 'medn12345',
   extra: {
     router: {},
     eas: {
-      projectId: '5888957f-74bd-4a38-9dce-77f46a124cc7',
+      projectId: 'dd6ae7d9-1b7a-4cb8-8a92-b12962a544ca',
     },
   },
 };
