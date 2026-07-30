@@ -88,6 +88,16 @@ const EnvSchema = z.object({
   SLOW_QUERY_MS: z.coerce.number().int().min(0).default(200),
   // HTTP requests slower than this (ms) are elevated to WARN in the access log.
   SLOW_REQUEST_MS: z.coerce.number().int().min(0).default(1500),
+
+  // Prometheus exposition. GET /metrics requires `Authorization: Bearer <token>`.
+  // When empty the endpoint returns 404 and nothing is scrapeable: the metrics
+  // include per-zone demand and captain supply, which is commercially sensitive,
+  // so it must never be open by default the way an internal /health can be.
+  METRICS_TOKEN: z.string().default(''),
+  // How often the SQL-derived gauges are recomputed. These run on the shared pool
+  // against the same Postgres that serves dispatch, so this is a load knob, not a
+  // freshness knob — 30s is already far finer than the decisions it informs.
+  METRICS_REFRESH_MS: z.coerce.number().int().min(5_000).default(30_000),
 });
 
 export const env = EnvSchema.parse(process.env);

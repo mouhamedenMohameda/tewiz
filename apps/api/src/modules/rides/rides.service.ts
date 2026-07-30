@@ -16,6 +16,7 @@ import { notifyCaptainBonusEarned } from '../notifications/notifications.service
 import type { RideStatus, RideType, PaymentMethod, RideSource } from '@tewiz/shared-types';
 import { findPartnerByUserId } from '../partners/partners.service.js';
 import { applyPartnerAttributionOnCompletion } from '../partners/attribution.service.js';
+import { ridesRequested, rideAcceptRejected, recordMatch } from '../../lib/metrics.js';
 
 // Normalize MR phones (same logic as auth/phone.ts but inline for the service).
 function normalizeMrPhone(raw: string): string {
@@ -641,6 +642,11 @@ export async function createRide(input: CreateRideInput) {
     }
 
     const shaped = shape(ride, { revealCode: true });
+    // Counted here, inside the transaction callback but after every validation
+    // gate, so a rejected request never lands in the denominator of the fill
+    // rate. `source` is a small server-controlled enum (app/restaurant/partner/…),
+    // safe as a label.
+    ridesRequested.inc({ ride_type: ride.ride_type, source: ride.source ?? 'app' });
     // Fire-and-forget push to nearby captains. We only do it when the ride
     // is immediately 'searching' — for SMS-confirmed rides we push from
     // confirmPassengerRide once the passenger has agreed.
@@ -1315,9 +1321,29 @@ export async function rebroadcastRide(rideId: string): Promise<{ captainsNotifie
   return { captainsNotified: captainIds.length };
 }
 
+/**
+ * Reasons acceptRide can refuse a tap, as a closed set. Anything outside it is
+ * folded into 'other' before becoming a Prometheus label: an unbounded label
+ * value is how a metrics endpoint turns into a memory leak, and error codes are
+ * exactly the kind of thing that grows over time without anyone revisiting this
+ * file.
+ *
+ * Reading them: 'not_searching' climbing means captains are racing for the same
+ * rides (a dispatch problem — broadcast is too wide). 'balance_too_low' climbing
+ * means captains cannot afford to work (a wallet/top-up problem).
+ */
+const ACCEPT_REJECT_REASONS = new Set([
+  'not_searching',
+  'balance_too_low',
+  'captain_busy',
+  'not_captain',
+  'colis_not_allowed',
+  'passenger_not_allowed',
+]);
+
 export async function acceptRide(rideId: string, captainId: string) {
   try {
-    return await withTx(async (client) => {
+    const accepted = await withTx(async (client) => {
       const ride = await lockRide(client, rideId);
 
       if (ride.status !== 'searching') {
@@ -1410,7 +1436,16 @@ export async function acceptRide(rideId: string, captainId: string) {
 
       return shape(upd.rows[0]!, { revealCode: true });
     });
+    // Recorded only after withTx has COMMITTED. Counting inside the transaction
+    // would inflate both the match count and the time-to-match histogram every
+    // time a commit failed, and a histogram cannot be decremented.
+    recordMatch(accepted.rideType, accepted.requestedAt);
+    return accepted;
   } catch (err) {
+    if (err instanceof HttpError) {
+      const reason = ACCEPT_REJECT_REASONS.has(err.code) ? err.code : 'other';
+      rideAcceptRejected.inc({ reason });
+    }
     // The captain lost the race: another captain accepted a heartbeat earlier,
     // so the ride is no longer 'searching' and the transaction above rolled
     // back. We still record this captain's interest (outside the rolled-back tx)

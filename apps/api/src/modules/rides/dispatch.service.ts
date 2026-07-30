@@ -1,5 +1,6 @@
 import { pool } from '../../db/pool.js';
 import { env } from '../../config/env.js';
+import { dispatchInboxDuration } from '../../lib/metrics.js';
 import { getPricingSettings } from '../admin/app-settings.service.js';
 import { isTrackingEnabled } from '../captain/track.service.js';
 
@@ -134,7 +135,14 @@ export async function captainInbox(input: {
     LIMIT $4
   `;
 
+  // Timed because this is the hottest query in the system: every online captain
+  // runs it on a poll loop, and it does PostGIS distance work against every
+  // searching ride. When its p95 degrades, dispatch degrades for every captain
+  // simultaneously — and on a single box that shares CPU with Postgres, this is
+  // the query that will show it first.
+  const queryStarted = process.hrtime.bigint();
   const r = await pool.query(sql, [input.lng, input.lat, radius, limit, input.captainId, longDistanceThresholdM]);
+  dispatchInboxDuration.observe(Number(process.hrtime.bigint() - queryStarted) / 1e9);
   return r.rows.map((row) => ({
     id: row.id,
     rideType: row.ride_type,

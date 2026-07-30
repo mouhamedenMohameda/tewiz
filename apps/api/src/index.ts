@@ -9,7 +9,9 @@ import { pinoHttp } from 'pino-http';
 import { env } from './config/env.js';
 import { logger } from './lib/logger.js';
 import { healthRouter } from './modules/health/health.routes.js';
+import { metricsRouter } from './modules/health/metrics.routes.js';
 import { devRouter } from './modules/health/dev.routes.js';
+import { metricsMiddleware, startMetricsRefresh } from './lib/metrics.js';
 import { authRouter } from './modules/auth/auth.routes.js';
 import { captainRouter } from './modules/captain/captain.routes.js';
 import { riderRouter } from './modules/rider/rider.routes.js';
@@ -142,7 +144,16 @@ app.use(
   }),
 );
 
+// --- Request metrics ---
+// Registered immediately before the routers so `res.on('finish')` can read the
+// resolved `req.route` and label by route PATTERN (/rides/:id) rather than by
+// concrete path — labelling by path would mint a Prometheus time series per ride
+// id and eventually exhaust memory. Sits after the static /legal handler so
+// document fetches are bucketed as 'unmatched' instead of inflating API stats.
+app.use(metricsMiddleware());
+
 app.use(healthRouter);
+app.use(metricsRouter);
 app.use('/dev', devRouter);
 app.use('/auth', authLimiter, authRouter);
 app.use('/public', publicRouter);
@@ -185,4 +196,15 @@ app.listen(env.PORT, '127.0.0.1', () => {
   startRoadsideCron();
   // Off-ride track retention: drop partitions older than 14 days, daily 03:30.
   startCaptainTrackReapCron();
+  // Recompute the SQL-derived marketplace gauges (fill rate, time-to-match
+  // quantiles, per-zone demand). Started unconditionally: the gauges are what
+  // make a restart-proof fill rate possible, and /metrics stays closed unless
+  // METRICS_TOKEN is set, so nothing is exposed by collecting them.
+  startMetricsRefresh(env.METRICS_REFRESH_MS);
+  if (!env.METRICS_TOKEN) {
+    logger.warn(
+      'METRICS_TOKEN is empty — GET /metrics returns 404 and Prometheus cannot ' +
+        'scrape. Set it to enable marketplace monitoring.',
+    );
+  }
 });
