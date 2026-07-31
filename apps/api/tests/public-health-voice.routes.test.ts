@@ -25,7 +25,19 @@ vi.mock('../src/modules/auth/sms.js', () => ({ getMockMessages: mockSmsMock }));
 // Force dev mode so the /dev router is reachable regardless of the local .env.
 vi.mock('../src/config/env.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../src/config/env.js')>();
-  return { env: { ...actual.env, NODE_ENV: 'development' } };
+  return {
+    env: {
+      ...actual.env,
+      NODE_ENV: 'development',
+      // Pinned here rather than inherited from the ambient environment. The
+      // proxy throws when VOICE_API_KEY is unset, which surfaces as a 500 and
+      // fails the two assertions below — so these tests used to pass only on a
+      // machine whose root .env happened to define it, and failed on any clean
+      // checkout. A test that depends on the developer's local secrets is not
+      // testing what it claims to.
+      VOICE_API_KEY: 'test-voice-api-key',
+    },
+  };
 });
 
 import { publicRouter } from '../src/modules/public/public.routes.js';
