@@ -267,6 +267,47 @@ describe('refreshSqlGauges — money', () => {
 });
 
 describe('backup gauges', () => {
+  it('reports the age of the last successful WAL shipment', async () => {
+    // The count of local segments cannot serve as a health signal: ship-wal.sh
+    // retains WAL_KEEP_DAYS of ALREADY-SHIPPED segments, so it climbs into the
+    // thousands on a healthy system. An alert on that count fired 30 hours after
+    // PITR was enabled, on a system where shipping worked perfectly. The age of
+    // the last success is the signal that cannot be confused with healthy growth.
+    const fs = await import('node:fs/promises');
+    const os = await import('node:os');
+    const path = await import('node:path');
+    const walDir = await fs.mkdtemp(path.join(os.tmpdir(), 'tewiz-wal-'));
+    for (let i = 1; i <= 300; i++) {
+      await fs.writeFile(path.join(walDir, `00000001000000000000${String(i).padStart(4, '0')}.gz`), 'x');
+    }
+    await fs.writeFile(path.join(walDir, '.last-ship'), '');
+    process.env.WAL_ARCHIVE_DIR = walDir;
+    process.env.BACKUP_DIR = '/nonexistent/tewiz-db';
+    stubQueries({});
+
+    await refreshSqlGauges();
+
+    // 300 segments and a perfectly healthy shipper: the count alone says nothing.
+    expect(await sample('tewiz_wal_archive_segments')).toBe(300);
+    const age = await sample('tewiz_wal_last_ship_age_seconds');
+    expect(age).toBeGreaterThanOrEqual(0);
+    expect(age).toBeLessThan(60);
+
+    delete process.env.WAL_ARCHIVE_DIR;
+    delete process.env.BACKUP_DIR;
+    await fs.rm(walDir, { recursive: true, force: true });
+  });
+
+  it('reports -1 for the WAL shipment age when it has never succeeded', async () => {
+    process.env.WAL_ARCHIVE_DIR = '/nonexistent/tewiz-wal';
+    stubQueries({});
+
+    await refreshSqlGauges();
+
+    expect(await sample('tewiz_wal_last_ship_age_seconds')).toBe(-1);
+    delete process.env.WAL_ARCHIVE_DIR;
+  });
+
   it('reports -1, not 0, when no dump directory exists', async () => {
     // 0 would read as "backed up this very second" — the most reassuring value for
     // the most alarming state. Alert on `< 0 or > 26h`.
