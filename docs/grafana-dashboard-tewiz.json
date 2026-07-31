@@ -1,11 +1,16 @@
 {
   "title": "Tewiz — santé de la marketplace",
   "description": "Import: Dashboards > New > Import > coller ce JSON > choisir la source Prometheus. Panneaux ordonnés du plus décisionnel au plus technique.",
-  "tags": ["tewiz"],
+  "tags": [
+    "tewiz"
+  ],
   "timezone": "browser",
   "schemaVersion": 39,
   "refresh": "1m",
-  "time": { "from": "now-24h", "to": "now" },
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
   "templating": {
     "list": [
       {
@@ -22,15 +27,34 @@
     {
       "type": "row",
       "title": "La marketplace",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      }
     },
     {
       "type": "stat",
       "title": "Courses servies (1 h)",
       "description": "Part des courses de la dernière heure qui ont trouvé un captain. Vaut 1 quand aucune course n'a été demandée — c'est la convention 'pas de trafic', pas un 100 % de réussite : lire avec le panneau 'Courses demandées'.",
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
-      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 1 },
-      "targets": [{ "expr": "tewiz_fill_rate_1h", "refId": "A", "legendFormat": "servies" }],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 0,
+        "y": 1
+      },
+      "targets": [
+        {
+          "expr": "tewiz_fill_rate_1h",
+          "refId": "A",
+          "legendFormat": "servies"
+        }
+      ],
       "fieldConfig": {
         "defaults": {
           "unit": "percentunit",
@@ -39,9 +63,18 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "red", "value": null },
-              { "color": "orange", "value": 0.7 },
-              { "color": "green", "value": 0.9 }
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.7
+              },
+              {
+                "color": "green",
+                "value": 0.9
+              }
             ]
           }
         },
@@ -50,15 +83,29 @@
       "options": {
         "colorMode": "background",
         "graphMode": "area",
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
       }
     },
     {
       "type": "timeseries",
       "title": "Courses demandées / heure",
       "description": "Le volume. Sans lui, aucun taux n'est interprétable.",
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
-      "gridPos": { "h": 6, "w": 9, "x": 6, "y": 1 },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 9,
+        "x": 6,
+        "y": 1
+      },
       "targets": [
         {
           "expr": "sum(rate(tewiz_rides_requested_total[1h])) * 3600",
@@ -72,7 +119,13 @@
         }
       ],
       "fieldConfig": {
-        "defaults": { "unit": "short", "min": 0, "custom": { "fillOpacity": 8 } },
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "custom": {
+            "fillOpacity": 8
+          }
+        },
         "overrides": []
       }
     },
@@ -80,8 +133,16 @@
       "type": "timeseries",
       "title": "Temps de matching (p50 / p95)",
       "description": "Secondes entre la demande et l'acceptation par un captain, calculées en SQL sur la dernière heure (survivent aux redémarrages). Au-delà de 120 s en p95, un client a déjà abandonné.",
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
-      "gridPos": { "h": 6, "w": 9, "x": 15, "y": 1 },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 9,
+        "x": 15,
+        "y": 1
+      },
       "targets": [
         {
           "expr": "tewiz_time_to_match_seconds_1h",
@@ -96,12 +157,26 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "orange", "value": 60 },
-              { "color": "red", "value": 120 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 60
+              },
+              {
+                "color": "red",
+                "value": 120
+              }
             ]
           },
-          "custom": { "fillOpacity": 5, "thresholdsStyle": { "mode": "dashed" } }
+          "custom": {
+            "fillOpacity": 5,
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          }
         },
         "overrides": []
       }
@@ -109,14 +184,27 @@
     {
       "type": "row",
       "title": "L'offre",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 7 }
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 7
+      }
     },
     {
       "type": "timeseries",
       "title": "Captains : annoncés vs utilisables",
       "description": "L'écart entre 'en ligne' et 'position périmée' est la réponse à « il y avait des captains mais personne n'a été servi ». À lire avec tewiz_dispatch_location_freshness_enforced : si la garde est désactivée, une position périmée ne coûte rien.",
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
-      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 8 },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
       "targets": [
         {
           "expr": "tewiz_captains_online_now",
@@ -135,7 +223,13 @@
         }
       ],
       "fieldConfig": {
-        "defaults": { "unit": "short", "min": 0, "custom": { "fillOpacity": 8 } },
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "custom": {
+            "fillOpacity": 8
+          }
+        },
         "overrides": []
       }
     },
@@ -143,8 +237,16 @@
       "type": "bargauge",
       "title": "Où l'on échoue (zones H3, 1 h)",
       "description": "Courses restées sans captain, par cellule de ~5 km². C'est la carte de recrutement : les zones du haut sont celles où il manque des captains, pas celles où il y a le plus de demande.",
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
-      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 8 },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
       "targets": [
         {
           "expr": "topk(5, tewiz_zone_rides_unfilled_1h)",
@@ -154,22 +256,44 @@
         }
       ],
       "fieldConfig": {
-        "defaults": { "unit": "short", "min": 0, "color": { "mode": "continuous-YlRd" } },
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "color": {
+            "mode": "continuous-YlRd"
+          }
+        },
         "overrides": []
       },
-      "options": { "displayMode": "gradient", "orientation": "horizontal" }
+      "options": {
+        "displayMode": "gradient",
+        "orientation": "horizontal"
+      }
     },
     {
       "type": "row",
       "title": "Dispatch",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 15 }
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 15
+      }
     },
     {
       "type": "timeseries",
       "title": "Captains qui perdent la course",
       "description": "Le chiffre qui décide du chantier 'une course, un captain à la fois'. 'not_searching' = un autre captain a été plus rapide : ils se disputent les mêmes courses. Proche de 0 → pas de problème de concurrence, le chantier ne vaut pas son risque.",
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
-      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 16 },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
       "targets": [
         {
           "expr": "sum by (reason) (rate(tewiz_ride_accept_rejected_total[1h])) * 3600",
@@ -178,7 +302,13 @@
         }
       ],
       "fieldConfig": {
-        "defaults": { "unit": "short", "min": 0, "custom": { "fillOpacity": 8 } },
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "custom": {
+            "fillOpacity": 8
+          }
+        },
         "overrides": []
       }
     },
@@ -186,8 +316,16 @@
       "type": "timeseries",
       "title": "Migration Redis — écarts et replis",
       "description": "En mode ombre. ATTENTION : un repli ne produit AUCUN écart, ce qui se lit exactement comme un accord parfait. Toujours lire les deux courbes ensemble. 'missing' doit rester à zéro plusieurs jours avant de passer DISPATCH_GEO_SOURCE=redis.",
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
-      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 16 },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
       "targets": [
         {
           "expr": "sum by (direction) (increase(tewiz_dispatch_geo_mismatch_total[1h]))",
@@ -206,30 +344,60 @@
         }
       ],
       "fieldConfig": {
-        "defaults": { "unit": "short", "min": 0, "custom": { "fillOpacity": 8 } },
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "custom": {
+            "fillOpacity": 8
+          }
+        },
         "overrides": []
       }
     },
     {
       "type": "row",
       "title": "Argent, sauvegardes, machine",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 }
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 23
+      }
     },
     {
       "type": "stat",
       "title": "Portefeuilles incohérents",
       "description": "Doit valoir 0 en permanence. Un seul échantillon non nul = les soldes et le grand livre divergent, donc l'argent dû aux captains est faux. C'est l'alerte de priorité 1.",
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
-      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 24 },
-      "targets": [{ "expr": "tewiz_wallet_ledger_drift_rows", "refId": "A" }],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 24
+      },
+      "targets": [
+        {
+          "expr": "tewiz_wallet_ledger_drift_rows",
+          "refId": "A"
+        }
+      ],
       "fieldConfig": {
         "defaults": {
           "unit": "short",
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "red", "value": 1 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
             ]
           }
         },
@@ -238,25 +406,53 @@
       "options": {
         "colorMode": "background",
         "graphMode": "none",
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
       }
     },
     {
       "type": "stat",
       "title": "Âge de la dernière sauvegarde",
       "description": "-1 signifie qu'aucun dump n'a été trouvé, pas qu'il vient d'être pris. Rouge au-delà de 26 h.",
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
-      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 24 },
-      "targets": [{ "expr": "tewiz_db_backup_age_seconds", "refId": "A" }],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 24
+      },
+      "targets": [
+        {
+          "expr": "tewiz_db_backup_age_seconds",
+          "refId": "A"
+        }
+      ],
       "fieldConfig": {
         "defaults": {
           "unit": "s",
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "orange", "value": 86400 },
-              { "color": "red", "value": 93600 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 86400
+              },
+              {
+                "color": "red",
+                "value": 93600
+              }
             ]
           }
         },
@@ -265,18 +461,57 @@
       "options": {
         "colorMode": "background",
         "graphMode": "none",
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
       }
     },
     {
       "type": "timeseries",
-      "title": "Segments WAL en attente d'expédition",
-      "description": "Croît sans fin = ship-wal.sh est cassé et le RPO se dégrade en silence : on repasserait de 5 minutes de perte maximale à 24 heures.",
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
-      "gridPos": { "h": 5, "w": 12, "x": 12, "y": 24 },
-      "targets": [{ "expr": "tewiz_wal_archive_segments", "refId": "A", "legendFormat": "segments" }],
+      "title": "Expédition des WAL",
+      "description": "Age de la derniere expedition reussie. C'est le signal de sante : le NOMBRE de segments locaux ne dit rien, ship-wal.sh en conserve WAL_KEEP_DAYS deja expedies, donc il monte a plusieurs milliers normalement.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      },
+      "targets": [
+        {
+          "expr": "tewiz_wal_last_ship_age_seconds",
+          "refId": "A",
+          "legendFormat": "depuis la derniere expedition"
+        }
+      ],
       "fieldConfig": {
-        "defaults": { "unit": "short", "min": 0, "custom": { "fillOpacity": 8 } },
+        "defaults": {
+          "unit": "s",
+          "min": 0,
+          "custom": {
+            "fillOpacity": 8
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 900
+              }
+            ]
+          }
+        },
         "overrides": []
       }
     },
@@ -284,8 +519,16 @@
       "type": "timeseries",
       "title": "Requête d'inbox — p95",
       "description": "La requête la plus chaude : chaque captain en ligne la lance en boucle. Quand sa p95 monte, le dispatch se dégrade pour tout le monde en même temps. NB : elle scanne `rides` et n'est pas affectée par la migration Redis.",
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
-      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 29 },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 29
+      },
       "targets": [
         {
           "expr": "histogram_quantile(0.95, sum(rate(tewiz_dispatch_inbox_duration_seconds_bucket[5m])) by (le))",
@@ -299,7 +542,13 @@
         }
       ],
       "fieldConfig": {
-        "defaults": { "unit": "s", "min": 0, "custom": { "fillOpacity": 5 } },
+        "defaults": {
+          "unit": "s",
+          "min": 0,
+          "custom": {
+            "fillOpacity": 5
+          }
+        },
         "overrides": []
       }
     },
@@ -307,8 +556,16 @@
       "type": "timeseries",
       "title": "La machine est-elle saturée ?",
       "description": "Tewiz partage ce serveur avec studara-api (6 processus), ai-whisper, tewiz-voice-api et PostgreSQL. Le retard de boucle d'événements est le premier signe que l'API se fait étouffer par ses voisins — l'argument chiffré pour sortir la base sur sa propre machine.",
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
-      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 29 },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 12,
+        "y": 29
+      },
       "targets": [
         {
           "expr": "tewiz_nodejs_eventloop_lag_p99_seconds",
@@ -322,11 +579,25 @@
         }
       ],
       "fieldConfig": {
-        "defaults": { "unit": "s", "min": 0, "custom": { "fillOpacity": 5 } },
+        "defaults": {
+          "unit": "s",
+          "min": 0,
+          "custom": {
+            "fillOpacity": 5
+          }
+        },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "CPU machine" },
-            "properties": [{ "id": "unit", "value": "percentunit" }]
+            "matcher": {
+              "id": "byName",
+              "options": "CPU machine"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              }
+            ]
           }
         ]
       }

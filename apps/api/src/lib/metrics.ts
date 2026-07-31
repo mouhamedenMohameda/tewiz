@@ -275,7 +275,22 @@ const dbBackupAgeSeconds = new Gauge({
 
 const walArchiveSegments = new Gauge({
   name: 'tewiz_wal_archive_segments',
-  help: 'WAL segments sitting in the local archive dir, awaiting off-site shipping',
+  help:
+    'WAL segments present in the local archive dir. NOT a backlog: ship-wal.sh keeps ' +
+    'already-shipped segments for WAL_KEEP_DAYS, so this climbs into the thousands ' +
+    'in normal operation. Use tewiz_wal_last_ship_age_seconds to detect a stuck shipper.',
+  registers: [registry],
+});
+
+const walLastShipAgeSeconds = new Gauge({
+  name: 'tewiz_wal_last_ship_age_seconds',
+  help: 'Seconds since ship-wal.sh last succeeded (-1 when it never has)',
+  // The real health signal for off-site WAL shipping, and the one to alert on.
+  // The first version alerted on tewiz_wal_archive_segments > 200 instead, and
+  // fired 30 hours in on a perfectly healthy system: that directory retains
+  // WAL_KEEP_DAYS of shipped segments, so its size measures retention, not
+  // backlog. This mirrors tewiz_db_backup_age_seconds, which works because an
+  // age cannot be confused with a healthy accumulation.
   registers: [registry],
 });
 
@@ -488,11 +503,20 @@ async function refreshBackupGauges(): Promise<void> {
   const walDir = process.env.WAL_ARCHIVE_DIR ?? '/var/backups/tewiz-wal';
   try {
     const segments = (await fs.readdir(walDir)).filter((f) => f.endsWith('.gz'));
-    // Grows without bound when ship-wal.sh is failing — the early warning that
-    // off-site shipping has stopped and the real RPO is silently degrading.
+    // Informational only. This number reflects WAL_KEEP_DAYS of retention far
+    // more than it reflects any backlog — see the gauge's help text.
     walArchiveSegments.set(segments.length);
   } catch {
     walArchiveSegments.set(0);
+  }
+
+  try {
+    const st = await fs.stat(path.join(walDir, '.last-ship'));
+    walLastShipAgeSeconds.set(Math.round((Date.now() - st.mtimeMs) / 1000));
+  } catch {
+    // -1, not 0: a 0 would read as "shipped this very second", the most
+    // reassuring value for the state where shipping has never worked at all.
+    walLastShipAgeSeconds.set(-1);
   }
 }
 

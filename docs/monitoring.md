@@ -126,7 +126,8 @@ prometheus.scrape "tewiz_api" {
 |---|---|
 | `tewiz_wallet_ledger_drift_rows` | Doit valoir **0** en permanence. Un seul échantillon non nul = les soldes et le grand livre divergent, donc l'argent dû aux captains est faux. |
 | `tewiz_db_backup_age_seconds` | Âge du dernier dump. `-1` = aucun dump trouvé. |
-| `tewiz_wal_archive_segments` | Segments WAL en attente d'expédition. Croît sans fin = `ship-wal.sh` est cassé et le RPO se dégrade en silence. |
+| `tewiz_wal_last_ship_age_seconds` | Secondes depuis la dernière expédition WAL réussie (`-1` = jamais). **C'est le signal de santé** de l'expédition hors-site. |
+| `tewiz_wal_archive_segments` | Segments présents dans l'archive locale. **Ce n'est PAS un retard** : `ship-wal.sh` conserve `WAL_KEEP_DAYS` de segments **déjà expédiés**, donc ce nombre monte à plusieurs milliers en fonctionnement normal. Informatif seulement. |
 
 Ces trois dernières remplacent les vérifications manuelles hebdomadaires listées
 dans [le runbook de sauvegarde](runbook-backup-restore.md).
@@ -141,7 +142,11 @@ tewiz_wallet_ledger_drift_rows > 0
 tewiz_db_backup_age_seconds > 93600 or tewiz_db_backup_age_seconds < 0
 
 # 3. L'expedition WAL est cassee : l'archive locale s'accumule.
-tewiz_wal_archive_segments > 200
+# NE PAS alerter sur tewiz_wal_archive_segments : ce compteur monte
+# legitimement a plusieurs milliers (retention de WAL_KEEP_DAYS). La
+# premiere version de cette alerte le faisait et a sonne 30 h apres
+# l'activation de PITR, sur un systeme parfaitement sain.
+tewiz_wal_last_ship_age_seconds > 900 or tewiz_wal_last_ship_age_seconds < 0
 
 # 4. Le taux de remplissage s'effondre, mais seulement s'il y a du trafic.
 #    La condition sur le volume evite de se faire reveiller a 4h du matin.

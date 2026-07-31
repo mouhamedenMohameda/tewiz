@@ -117,6 +117,18 @@ fi
 COUNT="$(find "$WAL_ARCHIVE_DIR" -type f -name '0*' | wc -l | tr -d ' ')"
 log "shipped ok segments_local=$COUNT"
 
+# Success marker. Its mtime is what tewiz_wal_last_ship_age_seconds reports, and
+# that age is the only honest signal that shipping still works.
+#
+# The obvious alternative — alerting on the number of local segments — does not
+# work, and we found out the hard way: this directory legitimately holds up to
+# WAL_KEEP_DAYS of already-shipped segments, so with archive_timeout at 5 min it
+# climbs past two thousand in normal operation. A threshold on the count fires on
+# a healthy system, which is how an alert teaches you to ignore it.
+#
+# Dotfile on purpose: the prune above matches '0*', so this is never swept away.
+touch "$WAL_ARCHIVE_DIR/.last-ship"
+
 # Prune only what has been shipped (everything, at this point) and is older than
 # the retention window. -mtime is on the archive copy, which Postgres never
 # rewrites, so it is a faithful "archived at" timestamp.
