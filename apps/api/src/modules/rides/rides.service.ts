@@ -235,6 +235,49 @@ async function enrichWithLiveMeter<T extends {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
+// Broadcast
+
+/**
+ * Fire-and-forget push to every captain eligible for a ride.
+ *
+ * MUST be called AFTER the transaction that created or revived the ride has
+ * committed, never from inside the `withTx` callback.
+ *
+ * Why that matters, concretely: this runs on a pool connection of its own, so a
+ * ride still inside an uncommitted transaction is invisible to it. Every query
+ * in eligibleCaptainsForRide starts with `WITH r AS (SELECT … FROM rides WHERE
+ * id = $1)` and then CROSS JOINs it — an empty `r` yields zero rows, so the
+ * function returns an empty list and NOBODY is notified. Nothing throws, nothing
+ * is logged: the ride simply never reaches a captain's phone, and only the ones
+ * polling their inbox ever see it.
+ *
+ * It was a race, so it only bit some of the time. The tell that surfaced it was
+ * tewiz_dispatch_geo_fallback_total{reason="no_pickup"} on a ride that certainly
+ * had a pickup point — the row was not visible yet.
+ *
+ * Failures are swallowed on purpose: a missed push must never turn into a failed
+ * ride creation. The captain still finds the ride by polling.
+ */
+async function broadcastNewRide(
+  ride: { id: string; ride_type: RideType; fare_estimate_mru: string | number | null },
+  context: string,
+): Promise<void> {
+  try {
+    const captainIds = await eligibleCaptainsForRide(ride.id);
+    if (captainIds.length === 0) return;
+    await notifyCaptainsNewRide(captainIds, {
+      id: ride.id,
+      rideType: ride.ride_type,
+      // numeric column comes back as string from pg; widen to number for the DTO.
+      fareEstimateMru: ride.fare_estimate_mru == null ? null : Number(ride.fare_estimate_mru),
+    });
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn(`[rides] ${context} failed`, err);
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 // Create
 
 export async function createRide(input: CreateRideInput) {
@@ -460,7 +503,7 @@ export async function createRide(input: CreateRideInput) {
     isForOther && !input.skipPassengerConfirm && smsConfirmAvailable;
   const initialStatus: RideStatus = needsPassengerConfirm ? 'pending_passenger_confirm' : 'searching';
 
-  return withTx(async (client) => {
+  const result = await withTx(async (client) => {
     // For "for other" rides, passenger_user_id stays NULL (passenger has no account).
     const passengerUserId = isForOther ? null : input.bookerId;
     // Open rides leave dropoff_location NULL until completion. For closed
@@ -647,27 +690,20 @@ export async function createRide(input: CreateRideInput) {
     // rate. `source` is a small server-controlled enum (app/restaurant/partner/…),
     // safe as a label.
     ridesRequested.inc({ ride_type: ride.ride_type, source: ride.source ?? 'app' });
-    // Fire-and-forget push to nearby captains. We only do it when the ride
-    // is immediately 'searching' — for SMS-confirmed rides we push from
-    // confirmPassengerRide once the passenger has agreed.
-    if (ride.status === 'searching') {
-      void (async () => {
-        try {
-          const captainIds = await eligibleCaptainsForRide(ride.id);
-          await notifyCaptainsNewRide(captainIds, {
-            id: ride.id,
-            rideType: ride.ride_type,
-            // numeric column comes back as string from pg; widen to number for the DTO.
-            fareEstimateMru: ride.fare_estimate_mru == null ? null : Number(ride.fare_estimate_mru),
-          });
-        } catch (err) {
-          // eslint-disable-next-line no-console
-          console.warn('[rides] notifyCaptainsNewRide failed', err);
-        }
-      })();
-    }
-    return shaped;
+    return { shaped, ride };
   });
+
+  // Push to nearby captains — AFTER the commit, never from inside the callback.
+  // The previous version fired from within `withTx`, on a separate pool
+  // connection, so the ride was frequently still invisible and the broadcast
+  // silently reached nobody. See broadcastNewRide for the full mechanism.
+  //
+  // Only when the ride is immediately 'searching' — for SMS-confirmed rides the
+  // push comes from confirmPassengerRide once the passenger has agreed.
+  if (result.ride.status === 'searching') {
+    void broadcastNewRide(result.ride, 'notifyCaptainsNewRide');
+  }
+  return result.shaped;
 }
 
 /**
@@ -678,7 +714,7 @@ export async function confirmPassengerRide(input: {
   rideId: string;
   code: string;
 }) {
-  return withTx(async (client) => {
+  const result = await withTx(async (client) => {
     const r = await client.query<RideRow>(
       `SELECT ${RIDE_COLUMNS} FROM rides WHERE id = $1 FOR UPDATE`,
       [input.rideId],
@@ -721,21 +757,14 @@ export async function confirmPassengerRide(input: {
       [ride.id],
     );
     const updated = upd.rows[0]!;
-    void (async () => {
-      try {
-        const captainIds = await eligibleCaptainsForRide(updated.id);
-        await notifyCaptainsNewRide(captainIds, {
-          id: updated.id,
-          rideType: updated.ride_type,
-          fareEstimateMru: updated.fare_estimate_mru == null ? null : Number(updated.fare_estimate_mru),
-        });
-      } catch (err) {
-        // eslint-disable-next-line no-console
-        console.warn('[rides] notifyCaptainsNewRide failed', err);
-      }
-    })();
-    return shape(updated, { revealCode: true });
+    return { shaped: shape(updated, { revealCode: true }), updated };
   });
+
+  // After the commit — the passenger's confirmation is what flips the ride to
+  // 'searching', and broadcasting from inside the transaction meant the ride was
+  // often still invisible to the lookup running on its own connection.
+  void broadcastNewRide(result.updated, 'notifyCaptainsNewRide');
+  return result.shaped;
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -1963,7 +1992,12 @@ interface CancelInput {
 }
 
 export async function cancelRide(input: CancelInput) {
-  return withTx(async (client) => {
+  // A box rather than a plain `let`: TypeScript does not track assignments made
+  // inside a callback, so a `let … = null` would be narrowed to `null` here and
+  // the broadcast below would look like dead code.
+  const pending: { value: RideRow | null } = { value: null };
+
+  const result = await withTx(async (client) => {
     const ride = await lockRide(client, input.rideId);
 
     // Authorization
@@ -2040,24 +2074,14 @@ export async function cancelRide(input: CancelInput) {
         [input.userId, ride.id, ride.dropoff_lng, ride.dropoff_lat],
       );
 
-      // Re-broadcast to every other eligible captain, after the tx commits
-      // so we don't notify on a state another query might still rollback.
+      // Re-broadcast to every other eligible captain, after the tx commits so we
+      // don't notify on a state another query might still rollback. That was
+      // always the intent of this block; firing it from inside the callback did
+      // the opposite — the revived ride was routinely invisible to the lookup,
+      // so a captain cancelling silently left the ride broadcast to nobody.
+      // Handed to the caller below, which runs once withTx has returned.
       const reborn = upd.rows[0]!;
-      void (async () => {
-        try {
-          const captainIds = await eligibleCaptainsForRide(reborn.id);
-          if (captainIds.length > 0) {
-            await notifyCaptainsNewRide(captainIds, {
-              id: reborn.id,
-              rideType: reborn.ride_type,
-              fareEstimateMru: reborn.fare_estimate_mru == null ? null : Number(reborn.fare_estimate_mru),
-            });
-          }
-        } catch (err) {
-          // eslint-disable-next-line no-console
-          console.warn('[rides] re-broadcast after captain cancel failed', err);
-        }
-      })();
+      pending.value = reborn;
 
       return shape(reborn, { revealCode: true });
     }
@@ -2086,6 +2110,13 @@ export async function cancelRide(input: CancelInput) {
     }
     return shape(upd.rows[0]!, { revealCode: true });
   });
+
+  // Only set on the branch where a captain cancelled and the ride went back to
+  // 'searching'. Fired here so the revived row is committed and visible.
+  if (pending.value) {
+    void broadcastNewRide(pending.value, 're-broadcast after captain cancel');
+  }
+  return result;
 }
 
 interface AdminCancelInput {
