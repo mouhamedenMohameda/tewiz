@@ -12,6 +12,22 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
+
+    # src/config/env.ts valide l'environnement avec zod AU CHARGEMENT du module,
+    # et quatre variables n'ont pas de valeur par défaut. En local elles viennent
+    # du .env à la racine — qui est (à juste titre) hors de git. Sur un checkout
+    # neuf il n'existe pas, donc l'import d'env.ts lève une ZodError et TOUS les
+    # tests qui touchent une route échouent avant d'avoir commencé.
+    #
+    # Ce sont des valeurs bidon : les tests bouchonnent `pool`, aucune connexion
+    # n'est ouverte. Elles n'ont qu'à satisfaire le schéma (url valide, secrets
+    # d'au moins 32 caractères).
+    env:
+      DATABASE_URL: postgres://ci:ci@127.0.0.1:5432/ci
+      REDIS_URL: redis://127.0.0.1:6379
+      JWT_ACCESS_SECRET: ci-access-secret-not-a-real-key-000000
+      JWT_REFRESH_SECRET: ci-refresh-secret-not-a-real-key-00000
+
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
