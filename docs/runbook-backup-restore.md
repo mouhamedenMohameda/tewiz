@@ -183,8 +183,45 @@ rclone config
 scp ~/.config/rclone/rclone.conf root@5.189.153.144:/root/.config/rclone/rclone.conf
 ```
 
-Les mots de passe du remote `crypt` ne changent pas : les sauvegardes déjà
-présentes restent lisibles.
+Les mots de passe du remote `crypt` ne changent pas.
+
+#### ⚠️ Changer de client_id rend les anciennes sauvegardes invisibles
+
+Le scope `drive.file` donne accès **aux seuls fichiers créés par l'application**,
+et « l'application » est identifiée par le `client_id`. En changer revient donc,
+pour Google, à devenir une autre application : tout ce qu'avait déposé l'ancien
+identifiant devient **invisible**, y compris le dossier `tewiz-backups`.
+
+Symptôme observé le 31/07/2026, juste après la bascule :
+
+```
+$ rclone lsd gdrive:            # ne renvoie rien
+$ rclone lsd gcrypt:
+ERROR : error listing: directory not found
+```
+
+Les fichiers ne sont pas supprimés — ils sont toujours dans le Drive, visibles
+dans l'interface web. Ils ne sont simplement plus accessibles par rclone.
+
+**C'est le prix du scope 3.** L'alternative, le scope `drive` complet, est
+classée « restreinte » par Google : la publication en production exige une
+validation de sécurité, hors de portée pour un usage interne. On garde donc
+`drive.file` et on accepte la rupture.
+
+**Marche à suivre** — repartir d'un dossier neuf :
+
+```bash
+rclone mkdir gdrive:tewiz-backups
+cd /opt/tewiz && bash scripts/backup-db.sh
+```
+
+Le nouveau dossier porte le même nom que l'ancien : il y en aura donc deux dans
+le Drive, dont un orphelin à supprimer à la main depuis l'interface web.
+
+**Ce que tu perds** : uniquement les copies hors-site antérieures à la bascule.
+Les dumps locaux de `/var/backups/tewiz-db/` sont intacts, et le dump suivant
+repart normalement. Prends-en un tout de suite après la bascule plutôt que
+d'attendre le cron, pour ne pas rester sans copie hors-site jusqu'au lendemain.
 
 ### Option C — un second serveur en SSH
 
