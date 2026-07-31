@@ -59,6 +59,13 @@ jobs:
       # franchement est une perte de données silencieuse — shellcheck coûte
       # 10 secondes. Strict par défaut : tout nouveau script est couvert
       # sans qu'on ait à penser à l'ajouter ici.
+      # La version du runner n'est pas celle de ta machine, et elles ne signalent
+      # pas les mêmes choses : un faux positif sur une fonction appelée par
+      # `trap` est SC2329 en 0.10+, SC2317 en 0.9. Afficher la version évite de
+      # chercher pendant une heure pourquoi « ça passe en local ».
+      - name: shellcheck — version utilisée par le runner
+        run: shellcheck --version
+
       - name: shellcheck — scripts ops et déploiement (strict)
         run: |
           find scripts -maxdepth 1 -name '*.sh' -not -name 'test-*-flow.sh' \

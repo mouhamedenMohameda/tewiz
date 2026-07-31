@@ -178,7 +178,13 @@ if [ "$DRILL" -eq 0 ]; then
   fi
 fi
 
-# shellcheck disable=SC2329  # invoked indirectly by the EXIT trap below
+# Two codes for one false positive: this function is only ever reached through
+# the EXIT trap installed below, which shellcheck cannot see.
+#   SC2329 — "function never invoked"     (shellcheck >= 0.10)
+#   SC2317 — "command appears unreachable" (shellcheck <= 0.9, still on the
+#            GitHub runner). Silencing only SC2329, as before, passed locally
+#            and failed CI — the two versions report the same thing differently.
+# shellcheck disable=SC2329,SC2317
 cleanup() {
   if [ "$DRILL" -eq 1 ] && [ "${KEEP_SCRATCH:-0}" != "1" ]; then
     log "dropping scratch database $TARGET_DB"
