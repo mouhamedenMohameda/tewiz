@@ -124,15 +124,25 @@ alertes se déclenchent sans prévenir personne.
 
 ## Le tableau à regarder chaque matin
 
-Un dashboard avec ces cinq panneaux suffit :
+Rien à construire à la main : le dashboard est dans le dépôt, en JSON.
 
-| Panneau | Requête |
+**Dashboards → New → Import** → colle le contenu de
+[grafana-dashboard-tewiz.json](grafana-dashboard-tewiz.json) → **Load** →
+choisis ta source Prometheus → **Import**.
+
+Douze panneaux en quatre sections, du plus décisionnel au plus technique :
+
+| Section | Ce qu'on y voit |
 |---|---|
-Courses demandées / heure | `sum(rate(tewiz_rides_requested_total[1h])) * 3600` |
-Taux de courses servies | `tewiz_fill_rate_1h` |
-Temps de matching (p50 / p95) | `tewiz_time_to_match_seconds_1h` |
-Captains en ligne | `tewiz_captains_online_now` |
-Où l'on échoue | `topk(5, tewiz_zone_rides_unfilled_1h)` |
+La marketplace | Taux de courses servies, volume, temps de matching p50/p95 |
+L'offre | Captains annoncés vs utilisables, zones où l'on échoue |
+Dispatch | Captains qui perdent la course, écarts de la migration Redis |
+Argent, sauvegardes, machine | Cohérence des portefeuilles, âge des sauvegardes, saturation du serveur |
+
+Chaque panneau porte sa propre note explicative (survole le titre) : comment le
+lire, et surtout comment ne pas le lire de travers — par exemple qu'un taux de
+courses servies à 1 signifie « aucune course demandée », ou qu'un repli Redis ne
+produit aucun écart et se lit donc à tort comme un accord parfait.
 
 Le détail complet des métriques est dans [monitoring.md](monitoring.md).
 
