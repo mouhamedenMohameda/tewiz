@@ -71,16 +71,31 @@ API runs at http://localhost:3000. Health check: `GET /health`.
 - **Carte grise** — vehicle registration certificate
 - **Vignette** — annual road tax sticker
 - **Visite technique** — vehicle technical inspection certificate
-- **MRU** — Mauritanian Ouguiya (currency). 1 MRU = 5 **khoums**.
-  In code, all amounts are stored in khoums as integers.
+- **MRU** — Mauritanian Ouguiya (currency). In code, all amounts are stored
+  directly in MRU as integers. (1 MRU = 5 khoums, but khoums never appear in the
+  database — see "Money" below.)
 - **Captain** — driver
 - **Rider** — passenger booking the ride
 - **Booker** — the user who books a ride; may differ from passenger (see "course pour quelqu'un d'autre")
 
 ## Money
 
-All monetary values are stored as **integer khoums**. Never use floats.
-Format on display: `formatMru(khoums)` → `"205 MRU"`.
+All monetary values are stored as **integer MRU**. Never use floats — the
+columns are `BIGINT`.
+
+Every money column is suffixed `_mru`: `wallets.balance_mru`,
+`wallet_transactions.amount_mru`, `rides.fare_estimate_mru`,
+`rides.commission_mru`, `topup_requests.claimed_amount_mru`.
+
+> **Historical note.** Amounts used to be stored in khoums (1 MRU = 5 khoums).
+> Migration `0017_money_in_mru.sql` renamed every `*_khoums` column to `*_mru`
+> and divided the values by 5, because the khoums-storage / MRU-input split was a
+> constant source of bugs. This section described the old scheme long after the
+> migration, and that stale text is not harmless: backup scripts were first
+> written against `wallets.balance_khoums` and
+> `wallet_transactions.wallet_id`, neither of which exists — the wallet tables
+> key on `captain_id`. The integrity check meant to protect captains' money would
+> have silently verified nothing.
 
 ## Features
 

@@ -62,9 +62,16 @@
 
 ## Conventions
 
-- All money is integer **khoums** (1 MRU = 5 khoums). Never floats.
+- All money is integer **MRU**, in `BIGINT` columns suffixed `_mru`. Never floats.
+  (Amounts were stored in khoums until migration `0017_money_in_mru.sql`, which
+  renamed every column and divided the values by 5.)
 - All locations are PostGIS `GEOGRAPHY(POINT, 4326)`.
 - All timestamps are `TIMESTAMPTZ`.
 - Commission stored at ride creation as `commission_rate_bps` (basis points: 700 = 7.00%). Future rate changes don't affect existing rides.
 - All admin actions logged to `admin_audit_log`.
-- Wallet integrity: a trigger asserts `wallets.balance_khoums == SUM(wallet_transactions.amount_khoums)` after every wallet update.
+- Wallet integrity: `trg_wallet_balance_consistency` asserts
+  `wallets.balance_mru == SUM(wallet_transactions.amount_mru)` after every wallet
+  update. Both tables key on `captain_id` — there is no `wallets.id` and no
+  `wallet_transactions.wallet_id`. The trigger only fires on writes, so a restore
+  re-checks the invariant explicitly (see `scripts/restore-db.sh`), and
+  `tewiz_wallet_ledger_drift_rows` exposes it continuously.

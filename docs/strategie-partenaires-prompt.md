@@ -73,7 +73,8 @@ notre commission sur chaque course qu'ils créent et qu'un Captain termine.
   récurrentes, courses anormalement courtes, rafales de création. Les gains
   suspects sont gelés (`on_hold`), pas supprimés — un admin tranche.
 - Tous les pourcentages sont en **basis points** (100 bps = 1 %), tous les
-  montants en **khoums** (conventions existantes du code).
+  montants en **MRU** entiers (`BIGINT`, colonnes suffixées `_mru`) — la
+  convention du code depuis la migration `0017_money_in_mru.sql`.
 
 ---
 
@@ -82,10 +83,11 @@ notre commission sur chaque course qu'ils créent et qu'un Captain termine.
 - `db/migrations/` — SQL brut numéroté. Dernière : `0040_night_pricing_settings.sql`.
   Acquis réutilisables :
   - `0006_rides.sql` : `rides.commission_rate_bps` (snapshot à la création),
-    `rides.commission_khoums` (calculé à la complétion).
+    `rides.commission_mru` (calculé à la complétion).
   - `0005_wallet.sql` + `0017_money_in_mru.sql` : wallet Captain,
     `wallet_transactions` typées (`commission`, `commission_refund`),
-    montants en khoums.
+    montants en MRU (la migration 0017 a renommé les colonnes `*_khoums`
+    en `*_mru` et divisé les valeurs par 5).
   - `0022_long_distance_and_operator_commission.sql` : `app_settings` porte
     déjà des taux de commission par origine (`operator_*_commission_bps`).
   - `0023_ride_source.sql` : `rides.source` ∈ `('app','operator')` avec
@@ -120,10 +122,10 @@ notre commission sur chaque course qu'ils créent et qu'un Captain termine.
      commission plateforme), et selon le type :
      - agency : `window_months integer DEFAULT 12`,
        `window_max_courses integer DEFAULT 300`,
-       `closure_bonus_khoums bigint DEFAULT 0`.
+       `closure_bonus_mru bigint DEFAULT 0`.
      - individual : `quota_courses integer DEFAULT 100`,
        `quota_months integer DEFAULT 6`,
-       `conversion_bonus_khoums bigint DEFAULT 0`.
+       `conversion_bonus_mru bigint DEFAULT 0`.
    - CHECK : `share_bps BETWEEN 0 AND 5000`.
 
 2. **Table `captain_partner_links`** (fenêtre de gain par livreur)
@@ -145,8 +147,8 @@ notre commission sur chaque course qu'ils créent et qu'un Captain termine.
 4. **Table `partner_earnings`** (le registre — source de vérité des gains)
    - `id uuid PK`, `partner_id`, `ride_id`,
      `role text CHECK IN ('ride_creator','captain_provider','closure_bonus','conversion_bonus')`,
-     `base_commission_khoums bigint`, `share_bps integer`,
-     `amount_khoums bigint`,
+     `base_commission_mru bigint`, `share_bps integer`,
+     `amount_mru bigint`,
      `status text CHECK IN ('pending','on_hold','settled','cancelled') DEFAULT 'pending'`,
      `settlement_id uuid NULL`, `created_at`.
    - `UNIQUE (ride_id, partner_id, role)` — idempotence : re-jouer la
@@ -154,7 +156,7 @@ notre commission sur chaque course qu'ils créent et qu'un Captain termine.
 
 5. **Table `partner_settlements`** (paiements mensuels)
    - `id uuid PK`, `partner_id`, `period_start date`, `period_end date`,
-     `total_khoums bigint`, `status CHECK IN ('draft','paid') DEFAULT 'draft'`,
+     `total_mru bigint`, `status CHECK IN ('draft','paid') DEFAULT 'draft'`,
      `paid_at`, `paid_by uuid`, `note text`.
 
 6. **Table `partner_beneficiaries`** (pour la prime de conversion, stratégie 2)
@@ -173,7 +175,7 @@ Nouveau module suivant le pattern des modules existants (routes + service +
 queries typées).
 
 1. **Attribution à la complétion de course** — s'accrocher à l'endroit
-   existant où `rides.commission_khoums` est calculé (module `rides/`,
+   existant où `rides.commission_mru` est calculé (module `rides/`,
    flux de complétion). Après le calcul de la commission plateforme :
    - *Côté création* : si `origin_partner_id` est non nul et le partenaire
      `active` — pour un `individual`, vérifier le quota (compteur de
@@ -292,4 +294,4 @@ Le système est correct quand :
    personne.
 7. Un échec dans l'attribution ne bloque jamais la complétion de la course
    (le Captain est payé quoi qu'il arrive).
-8. Les montants sont en khoums, les taux en bps, partout.
+8. Les montants sont en MRU entiers, les taux en bps, partout.
