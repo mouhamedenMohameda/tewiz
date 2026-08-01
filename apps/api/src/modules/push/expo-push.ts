@@ -1,5 +1,26 @@
 import { pool } from '../../db/pool.js';
 import { getPricingSettings } from '../admin/app-settings.service.js';
+import { pushTickets } from '../../lib/metrics.js';
+
+/**
+ * Expo's documented per-ticket error codes. Anything outside this set is
+ * counted as 'other': `ticket.message` is free text, and free text as a
+ * Prometheus label is how a metrics endpoint grows without bound.
+ *
+ * The one that matters most here is InvalidCredentials — it means Expo cannot
+ * reach the push service for that platform (a missing FCM key for Android, for
+ * instance), so EVERY notification fails while ride creation looks perfectly
+ * healthy.
+ */
+const PUSH_TICKET_STATUSES = new Set([
+  'DeviceNotRegistered',
+  'InvalidCredentials',
+  'MessageTooBig',
+  'MessageRateExceeded',
+  'MismatchSenderId',
+  'ExpoError',
+  'ProviderError',
+]);
 
 /**
  * Minimal Expo Push HTTP API client.
@@ -134,10 +155,15 @@ export async function sendPush(message: PushMessage, isRetry = false): Promise<v
     const tokens = Array.isArray(message.to) ? message.to : [message.to];
     const deadTokens: string[] = [];
     tickets.forEach((ticket, i) => {
-      if (ticket.status !== 'error') return;
+      if (ticket.status !== 'error') {
+        pushTickets.inc({ status: 'ok' });
+        return;
+      }
+      const code = ticket.details?.error;
+      pushTickets.inc({ status: code && PUSH_TICKET_STATUSES.has(code) ? code : 'other' });
       // eslint-disable-next-line no-console
-      console.warn('[push] ticket error', ticket.details?.error ?? ticket.message, tokens[i]);
-      if (ticket.details?.error === 'DeviceNotRegistered') deadTokens.push(tokens[i]!);
+      console.warn('[push] ticket error', code ?? ticket.message, tokens[i]);
+      if (code === 'DeviceNotRegistered') deadTokens.push(tokens[i]!);
     });
     await pruneDeadTokens(deadTokens);
   } catch (err) {

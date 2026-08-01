@@ -128,6 +128,21 @@ export const dispatchInboxDuration = new Histogram({
   registers: [registry],
 });
 
+export const pushTickets = new Counter({
+  name: 'tewiz_push_tickets_total',
+  help: 'Expo push tickets by outcome — one per device, not per ride',
+  // The blind spot this closes: a 200 from Expo only means the REQUEST was
+  // accepted. Each device gets its own ticket, and a ticket can fail on its own.
+  // Production logs were full of `InvalidCredentials` — Android push had been
+  // dead in every build because google-services.json never reached the EAS
+  // builder — and nothing counted it, so nobody knew.
+  //
+  // 'status' is mapped to a closed set (see PUSH_TICKET_STATUSES): Expo's error
+  // codes are few, but `ticket.message` is free text and would be unbounded.
+  labelNames: ['status'] as const,
+  registers: [registry],
+});
+
 export const dispatchEligibleDuration = new Histogram({
   name: 'tewiz_dispatch_eligible_duration_seconds',
   help: 'Duration of captain selection for a new ride, by geo source',

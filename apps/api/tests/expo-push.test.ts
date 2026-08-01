@@ -210,3 +210,57 @@ describe('notifyCaptainsNewRide — platform split', () => {
     expect(sentBody(0).sound).toMatchObject({ name: 'default', critical: true, volume: 1 });
   });
 });
+
+describe('ticket outcome metrics', () => {
+  // The gap this closes: a 200 from Expo only means the REQUEST was accepted.
+  // Each device gets its own ticket, and production logs were full of
+  // `InvalidCredentials` — Android push was dead in every build because
+  // google-services.json never reached the EAS builder — while nothing counted
+  // it. Ride creation looked perfectly healthy the whole time.
+
+  /** Value of tewiz_push_tickets_total for one status label. */
+  async function ticketsFor(status: string) {
+    const { pushTickets } = await import('../src/lib/metrics.js');
+    const { values } = await pushTickets.get();
+    return values.find((v) => (v.labels as { status?: string }).status === status)?.value ?? 0;
+  }
+
+  function ticketsBody(tickets: unknown[]): FetchResponse {
+    return { ok: true, status: 200, text: async () => JSON.stringify({ data: tickets }) };
+  }
+
+  it('counts a delivered ticket as ok', async () => {
+    const before = await ticketsFor('ok');
+    fetchMock.mockResolvedValue(ticketsBody([{ status: 'ok', id: 'x' }]));
+
+    await sendPush({ to: 'ExponentPushToken[aaa]', title: 't' });
+
+    expect(await ticketsFor('ok')).toBe(before + 1);
+  });
+
+  it('counts InvalidCredentials under its own label', async () => {
+    // The one that matters: Expo cannot reach the platform's push service, so
+    // EVERY notification fails silently until someone looks at the logs.
+    const before = await ticketsFor('InvalidCredentials');
+    fetchMock.mockResolvedValue(ticketsBody([
+      { status: 'error', message: 'nope', details: { error: 'InvalidCredentials' } },
+    ]));
+
+    await sendPush({ to: 'ExponentPushToken[bbb]', title: 't' });
+
+    expect(await ticketsFor('InvalidCredentials')).toBe(before + 1);
+  });
+
+  it('folds an unknown error code into "other" rather than minting a label', async () => {
+    // ticket.message is free text; free text as a Prometheus label is unbounded.
+    const before = await ticketsFor('other');
+    fetchMock.mockResolvedValue(ticketsBody([
+      { status: 'error', message: 'some brand new failure mode', details: { error: 'WhoKnows' } },
+    ]));
+
+    await sendPush({ to: 'ExponentPushToken[ccc]', title: 't' });
+
+    expect(await ticketsFor('other')).toBe(before + 1);
+    expect(await ticketsFor('WhoKnows')).toBe(0);
+  });
+});
