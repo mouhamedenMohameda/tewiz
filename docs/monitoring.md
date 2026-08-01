@@ -100,6 +100,7 @@ prometheus.scrape "tewiz_api" {
 | `tewiz_dispatch_inbox_duration_seconds` | La requête la plus chaude du système : chaque captain en ligne la lance en boucle. Sa p95 est le premier signe que la machine sature. **Attention : elle scanne `rides` et n'a jamais lu `captain_state`** — elle ne bougera donc pas d'un pouce avec la migration Redis. Ne pas s'en servir pour juger l'étape 3. |
 | `tewiz_dispatch_eligible_duration_seconds{source}` | La sélection des captains à la création d'une course — **la requête réellement déplacée**. C'est celle-ci qu'on compare entre `postgres` et `redis`. Le mode `shadow` exécute les deux, il est donc normalement le plus lent des trois : ce n'est pas une régression. |
 | `tewiz_ride_accept_rejected_total{reason}` | `not_searching` qui grimpe = trop de captains se disputent la même course (le broadcast est trop large). `balance_too_low` qui grimpe = problème de wallet, pas de dispatch. |
+| `tewiz_push_tickets_total{status}` | Livraison des notifications, **un ticket par appareil**. Un `200` d'Expo ne prouve rien : chaque appareil a son propre ticket. `InvalidCredentials` = Expo ne peut pas joindre le service de push de la plateforme (clé FCM absente pour Android) et **toutes** les notifications échouent. `DeviceNotRegistered` = jeton périmé, l'API le supprime tout seul. |
 | `tewiz_redis_geosearch_duration_seconds` | La moitié « qui est à proximité ? » de la sélection, sortie de PostGIS. Si sa p95 rejoint celle de `dispatch_inbox`, le déplacement en mémoire ne paie plus. |
 | `tewiz_dispatch_geo_fallback_total{reason}` | Repli sur PostGIS. `redis_error` = l'index géo est dégradé, à régler avant toute bascule. `no_pickup` = la course n'a pas de point de ramassage, ce qui n'est pas un problème Redis. Le dispatch continue — c'est le but — mais un taux non nul veut dire qu'on tourne sur le chemin lent sans s'en apercevoir. |
 | `tewiz_dispatch_geo_mismatch_total{direction}` | Écarts entre Redis et PostGIS en mode `shadow`. `missing` = un captain que PostGIS a trouvé et pas Redis : en mode `redis` il n'aurait **jamais** été notifié. C'est ce compteur qui doit rester à zéro plusieurs jours avant de passer `DISPATCH_GEO_SOURCE=redis`. |
@@ -166,6 +167,13 @@ histogram_quantile(0.95,
 
 # 8. L'API n'est plus scrapee du tout (process mort, ou box perdue).
 up{job="tewiz_api"} == 0
+
+# 9. Les notifications n'arrivent plus sur les telephones.
+#    InvalidCredentials = Expo ne peut pas joindre le service de push de la
+#    plateforme (cle FCM absente cote projet EAS) : TOUTES les alertes de
+#    course echouent pendant que la creation de course parait saine.
+#    C'est reste invisible pendant des mois faute de compteur.
+sum(rate(tewiz_push_tickets_total{status="InvalidCredentials"}[15m])) > 0
 ```
 
 Les alertes 1 à 3 sont des **incidents** : elles se traitent le jour même.
