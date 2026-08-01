@@ -44,7 +44,7 @@ const HAS_APPLE_TARGETS =
 const config: ExpoConfig = {
   name: APP_NAME,
   slug: APP_SLUG,
-  version: '1.2.3',
+  version: '1.2.4',
   orientation: 'portrait',
   userInterfaceStyle: 'light',
   icon: './assets/icon.png',
