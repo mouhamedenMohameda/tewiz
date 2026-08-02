@@ -1,4 +1,22 @@
 {
+  // ⚠️ CE FICHIER N'EST PAS CELUI QU'EAS UTILISE.
+  //
+  // Le projet Expo vit dans apps/mobile, et c'est apps/mobile/eas.json que la
+  // CLI lit quand on lance `eas build` ou `eas submit` depuis ce dossier — le
+  // seul endroit d'où on les lance. Ce fichier-ci est un vestige de la racine
+  // du monorepo.
+  //
+  // Comment on l'a appris : une configuration de soumission ajoutée ICI (piste
+  // "alpha", statut "draft") a été parfaitement ignorée. La soumission est
+  // partie sur la piste `internal` en statut `COMPLETED`, et le réglage avait
+  // l'air appliqué tout en ne faisant rien.
+  //
+  // Avant d'éditer quoi que ce soit ici, vérifie que c'est bien ce fichier que
+  // tu veux :  cd apps/mobile && cat eas.json
+  //
+  // À noter : apps/mobile/eas.json est marqué `skip-worktree` dans git (il
+  // contient un MAPBOX_DOWNLOAD_TOKEN secret), donc ses modifications locales
+  // ne se committent pas d'elles-mêmes.
   "cli": {
     "version": ">= 20.3.0",
     "appVersionSource": "remote"
@@ -16,18 +34,6 @@
     }
   },
   "submit": {
-    "production": {
-      "android": {
-        // "alpha" = la piste "Test fermé" du Play Console. Les autres valeurs
-        // sont "internal" (test interne, disponible en minutes mais qui ne
-        // compte PAS pour l'obligation Google des 12 testeurs / 14 jours),
-        // "beta" (test ouvert) et "production".
-        "track": "alpha",
-        // "draft" plutôt que "completed" : la version est déposée mais pas
-        // diffusée. On relit tout dans le Play Console avant de la pousser aux
-        // testeurs — une release envoyée par erreur ne se rappelle pas.
-        "releaseStatus": "draft"
-      }
-    }
+    "production": {}
   }
 }
