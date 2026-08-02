@@ -16,6 +16,18 @@
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "android": {
+        // "alpha" = la piste "Test fermé" du Play Console. Les autres valeurs
+        // sont "internal" (test interne, disponible en minutes mais qui ne
+        // compte PAS pour l'obligation Google des 12 testeurs / 14 jours),
+        // "beta" (test ouvert) et "production".
+        "track": "alpha",
+        // "draft" plutôt que "completed" : la version est déposée mais pas
+        // diffusée. On relit tout dans le Play Console avant de la pousser aux
+        // testeurs — une release envoyée par erreur ne se rappelle pas.
+        "releaseStatus": "draft"
+      }
+    }
   }
 }
