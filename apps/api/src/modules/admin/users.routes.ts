@@ -514,7 +514,7 @@ function buildWhatsAppLink(phone: string, fullName: string, password: string): s
   const msg = [
     greeting,
     '',
-    'Voici votre mot de passe pour vous connecter à Tewiz :',
+    'Voici votre mot de passe pour vous connecter à Aloo :',
     '',
     password,
     '',
