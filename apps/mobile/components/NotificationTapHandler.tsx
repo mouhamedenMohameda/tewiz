@@ -21,9 +21,26 @@ import { getInitialFullScreenRide } from '@/lib/fullScreenRideAlert';
 
 const RIDE_ALERT_TYPES = new Set(['ride_alert', 'voice_ride_confirmed']);
 
+/**
+ * Rider-facing ride updates. Tapping any of them means "show me my ride", so
+ * they all route to the rider's current-ride screen — which is exactly where
+ * the rider was trying to get when they picked up the phone.
+ *
+ * `ride_expired` is included deliberately: the ride is over, but the screen is
+ * where the retry lives, and the moment someone has just been let down is the
+ * cheapest moment to win them back.
+ */
+const RIDER_RIDE_UPDATE_TYPES = new Set([
+  'ride_accepted',
+  'captain_arrived',
+  'ride_captain_cancelled',
+  'ride_expired',
+]);
+
 function isInboxNotification(rawType: unknown): boolean {
   if (typeof rawType !== 'string') return false;
   if (RIDE_ALERT_TYPES.has(rawType)) return false;
+  if (RIDER_RIDE_UPDATE_TYPES.has(rawType)) return false;
   // Server tags general notifications as `notification:<type>`.
   return rawType.startsWith('notification:');
 }
@@ -42,6 +59,10 @@ export function NotificationTapHandler() {
         // modal + alarm once its inbox poll catches the ride.
         requestAnimationFrame(() => {
           router.push('/(app)/captain/rides');
+        });
+      } else if (typeof type === 'string' && RIDER_RIDE_UPDATE_TYPES.has(type)) {
+        requestAnimationFrame(() => {
+          router.push('/(app)/rider/current');
         });
       } else if (isInboxNotification(type)) {
         requestAnimationFrame(() => {

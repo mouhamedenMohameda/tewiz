@@ -144,7 +144,6 @@ describe('POST /admin/rides', () => {
     expect(ridesMock.createRide).toHaveBeenCalledWith(
       expect.objectContaining({
         bookerId: 'admin-1',
-        skipBookerActiveCheck: true,
         skipPassengerConfirm: true,
         source: 'operator',
       }),

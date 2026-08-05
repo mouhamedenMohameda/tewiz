@@ -10,10 +10,17 @@ import { distanceMeters, eligibleCaptainsForRide } from './dispatch.service.js';
 import { computeDistanceM, lastTrailPoint, readLiveMeter } from './meter.service.js';
 import { debitWallet, getBalance } from '../wallet/wallet.service.js';
 import { sms } from '../auth/sms.js';
-import { notifyCaptainsNewRide } from '../push/expo-push.js';
+import {
+  notifyCaptainsNewRide,
+  notifyRiderCaptainArrived,
+  notifyRiderCaptainCancelled,
+  notifyRiderRideAccepted,
+} from '../push/expo-push.js';
 import { applyBonusOnCompletion } from './commission-bonus.service.js';
 import { notifyCaptainBonusEarned } from '../notifications/notifications.service.js';
 import type { RideStatus, RideType, PaymentMethod, RideSource } from '@tewiz/shared-types';
+import { clearLiveLocation } from '../captain/live-location.js';
+import { haversineM } from '../../lib/geo.js';
 import { findPartnerByUserId } from '../partners/partners.service.js';
 import { applyPartnerAttributionOnCompletion } from '../partners/attribution.service.js';
 import { ridesRequested, rideAcceptRejected, recordMatch } from '../../lib/metrics.js';
@@ -64,9 +71,6 @@ export interface CreateRideInput {
   recipientName?: string;
   recipientPhone?: string;
   packageDescription?: string;
-  // Kept for backwards compatibility with callers. The booker active-ride
-  // limit was removed (a passenger may book multiple rides at once).
-  skipBookerActiveCheck?: boolean;
   // Admin-only: skip the SMS "course pour quelqu'un d'autre" confirmation step.
   // When a passenger calls the operator, they have already consented — the ride
   // can go straight to "searching" without a return SMS.
@@ -121,6 +125,8 @@ interface RideRow {
   completed_at: Date | null;
   cancelled_at: Date | null;
   cancel_reason: string | null;
+  last_captain_cancel_reason: string | null;
+  last_captain_cancel_at: Date | null;
   is_open: boolean;
   open_base_fare_mru: number | null;
   open_per_km_mru: number | null;
@@ -147,6 +153,7 @@ const RIDE_COLUMNS = `
   payment_method, distance_m, duration_s, verification_code,
   requested_at, accepted_at, arrived_at, started_at, completed_at,
   cancelled_at, cancel_reason,
+  last_captain_cancel_reason, last_captain_cancel_at,
   is_open, open_base_fare_mru, open_per_km_mru,
   open_per_minute_mru, open_min_fare_mru
 `;
@@ -187,6 +194,11 @@ function shape(r: RideRow, opts: { revealCode: boolean } = { revealCode: false }
     completedAt: r.completed_at,
     cancelledAt: r.cancelled_at,
     cancelReason: r.cancel_reason,
+    // Why the LAST assigned captain dropped this ride, if one did. Survives the
+    // reset back to 'searching' so the rider can be told and support can
+    // reconstruct what happened from the ride alone.
+    lastCancelReason: r.last_captain_cancel_reason ?? null,
+    lastCancelAt: r.last_captain_cancel_at ?? null,
     isOpen: r.is_open,
     openTariff: r.is_open && r.open_base_fare_mru != null
       ? {
@@ -300,6 +312,44 @@ export async function createRide(input: CreateRideInput) {
       originPartnerId = partner.id;
       originPartnerType = partner.type;
       source = partner.type === 'restaurant' ? 'restaurant' : 'partner';
+    }
+  }
+
+  // How many rides may this account hold open at once?
+  //
+  // Checked here, before any pricing work and before the transaction, so a
+  // refusal costs one cheap COUNT. Three tiers, keyed on `source` — which the
+  // SERVER sets (from the route and the partner lookup above) and no client can
+  // supply, so the exemption cannot be spoofed:
+  //
+  //   operator  — the call centre. Every phone ride is booked under the same
+  //               admin account, so any cap at all would stop the operator on
+  //               their third call. Exempt.
+  //   partner   — a restaurant or agency dispatching several cars at once. This
+  //               is the case that got the original limit removed; giving them
+  //               their own allowance is what lets the limit come back.
+  //   otherwise — an ordinary rider.
+  const activeRideCap = source === 'operator'
+    ? 0
+    : originPartnerId
+      ? settings.maxActiveRidesPerPartner
+      : settings.maxActiveRidesPerBooker;
+  if (activeRideCap > 0) {
+    const { rows: activeRows } = await pool.query<{ n: string }>(
+      `SELECT COUNT(*)::text AS n
+         FROM rides
+        WHERE booker_id = $1
+          AND status IN ('searching','accepted','arrived','in_progress','pending_passenger_confirm')`,
+      [input.bookerId],
+    );
+    const activeRides = Number(activeRows[0]?.n ?? 0);
+    if (activeRides >= activeRideCap) {
+      throw new HttpError(
+        429,
+        'too_many_active_rides',
+        `Vous avez déjà ${activeRides} course(s) en cours. Terminez-en une avant d'en commander une autre.`,
+        { activeRides, maxActiveRides: activeRideCap },
+      );
     }
   }
 
@@ -847,8 +897,93 @@ export async function getCurrentRideForRider(userId: string) {
   if (!r.rows[0]) return null;
   const ride = shape(r.rows[0], { revealCode: true });
   const withCaptain = await enrichWithCaptain(ride);
-  const enriched = await enrichRideWithAllDetails(withCaptain);
+  const withPosition = await enrichWithCaptainPosition(withCaptain);
+  const enriched = await enrichRideWithAllDetails(withPosition);
   return enrichWithLiveMeter(enriched);
+}
+
+/** Statuses during which the rider is entitled to see where their captain is. */
+const LIVE_POSITION_STATUSES = new Set<RideStatus>(['accepted', 'arrived', 'in_progress']);
+
+/**
+ * Attach the captain's live position to a rider-facing ride.
+ *
+ * The data has always been there — `captain_state.location` is what dispatch
+ * matches against, kept current by the background tracker the app already pays
+ * for in permissions and battery. It simply never reached the person who wanted
+ * it most.
+ *
+ * Two rules make the difference between a useful map and a misleading one:
+ *
+ *   * FRESHNESS. A position older than the rider window is reported as `null`,
+ *     not drawn. Being honestly blank beats being confidently wrong.
+ *   * SCOPE. Only while the ride is live. The tracking screen stays mounted
+ *     after completion so the rider can rate; continuing to stream a captain's
+ *     whereabouts to a finished trip is a privacy leak, not a feature.
+ */
+async function enrichWithCaptainPosition<
+  T extends {
+    status: RideStatus;
+    captainId: string | null;
+    pickup: { lat: number; lng: number };
+    captain: CaptainInfo | null;
+  },
+>(ride: T): Promise<T & { captainDistanceM: number | null }> {
+  if (!ride.captainId || !ride.captain || !LIVE_POSITION_STATUSES.has(ride.status)) {
+    return { ...ride, captainDistanceM: null };
+  }
+
+  try {
+    const { rows } = await pool.query<{
+      lat: string | number | null;
+      lng: string | number | null;
+      location_updated_at: Date | null;
+    }>(
+      `SELECT ST_Y(location::geometry) AS lat,
+              ST_X(location::geometry) AS lng,
+              location_updated_at
+         FROM captain_state
+        WHERE captain_id = $1
+          AND location IS NOT NULL`,
+      [ride.captainId],
+    );
+    const row = rows[0];
+    if (!row || row.lat == null || row.lng == null) {
+      return { ...ride, captainDistanceM: null };
+    }
+
+    const ageS = row.location_updated_at
+      ? (Date.now() - new Date(row.location_updated_at).getTime()) / 1000
+      : Number.POSITIVE_INFINITY;
+    if (ageS > env.RIDER_CAPTAIN_POSITION_MAX_AGE_S) {
+      return { ...ride, captainDistanceM: null };
+    }
+
+    const lat = Number(row.lat);
+    const lng = Number(row.lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      return { ...ride, captainDistanceM: null };
+    }
+
+    return {
+      ...ride,
+      captain: {
+        ...ride.captain,
+        location: { lat, lng, updatedAt: row.location_updated_at ?? new Date() },
+      },
+      // Crow-flies, deliberately: it needs no routing provider, costs nothing,
+      // and is the honest version of an ETA. The app can render "à 1,2 km".
+      captainDistanceM: Math.round(
+        haversineM(lat, lng, ride.pickup.lat, ride.pickup.lng),
+      ),
+    };
+  } catch (err) {
+    // Optional telemetry must never take down the tracking screen — the same
+    // rule the live meter follows a few lines below.
+    // eslint-disable-next-line no-console
+    console.warn('[rides] captain position unavailable', { rideId: (ride as any).id, err });
+    return { ...ride, captainDistanceM: null };
+  }
 }
 
 /**
@@ -868,6 +1003,11 @@ interface CaptainInfo {
     model: string;
     color: string;
   } | null;
+  /**
+   * Live position, or null when there is none fresh enough to draw. Present
+   * only while the ride is live — see enrichWithCaptainPosition.
+   */
+  location?: { lat: number; lng: number; updatedAt: Date } | null;
 }
 
 async function enrichWithCaptain<T extends { captainId: string | null }>(
@@ -1259,6 +1399,74 @@ export async function rateCaptain(input: {
 }
 
 /**
+ * The captain rates the rider, after a completed ride.
+ *
+ * Mirror image of rateCaptain: same table, same guards, roles reversed. The
+ * asymmetry it removes is not cosmetic — ride_insights already shows a captain
+ * the rider's completion rate and no-show count while they decide whether to
+ * accept, and until now the `avgRating` next to those numbers could only ever
+ * be null.
+ *
+ * Kept deliberately separate from rateCaptain rather than generalised into one
+ * "rate the other party" function: the two directions will diverge (a captain
+ * rating should probably never be shown to the rider it describes, whereas the
+ * captain's average is public), and a shared function would make that change
+ * risky in both directions at once.
+ */
+export async function rateRider(input: {
+  rideId: string; captainId: string; stars: number; comment?: string;
+}) {
+  return withTx(async (client) => {
+    const rideRes = await client.query<RideRow>(
+      `SELECT ${RIDE_COLUMNS} FROM rides WHERE id = $1 FOR UPDATE`,
+      [input.rideId],
+    );
+    const ride = rideRes.rows[0];
+    if (!ride) throw new HttpError(404, 'not_found', 'Ride not found');
+    if (ride.captain_id !== input.captainId) {
+      throw new HttpError(403, 'forbidden', 'Not your ride');
+    }
+    if (ride.status !== 'completed') {
+      throw new HttpError(409, 'wrong_status', 'Only completed rides can be rated');
+    }
+
+    // The passenger may not be the booker ("course pour quelqu'un d'autre").
+    // Rate the account that will book again — the booker — since that is the
+    // one a future captain will be deciding about.
+    const rateeId = ride.booker_id;
+
+    await client.query(
+      `INSERT INTO ratings (ride_id, rater_id, ratee_id, stars, comment)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (ride_id, rater_id)
+       DO UPDATE SET stars = EXCLUDED.stars, comment = EXCLUDED.comment`,
+      [input.rideId, input.captainId, rateeId, input.stars, input.comment ?? null],
+    );
+
+    // Recomputed rather than incremented, for the same reason as the captain
+    // average: the upsert above allows an edit, and a running counter drifts the
+    // moment one happens.
+    const agg = await client.query<{ avg: string; cnt: number }>(
+      `SELECT COALESCE(AVG(stars), 0)::numeric(3,2) AS avg,
+              COUNT(*)::int AS cnt
+         FROM ratings WHERE ratee_id = $1`,
+      [rateeId],
+    );
+    const row = agg.rows[0] ?? { avg: '0', cnt: 0 };
+    await client.query(
+      `UPDATE users SET rating_avg = $1, rating_count = $2 WHERE id = $3`,
+      [row.avg, row.cnt, rateeId],
+    );
+
+    return {
+      stars: input.stars,
+      riderRatingAvg: Number(row.avg),
+      riderRatingCount: row.cnt,
+    };
+  });
+}
+
+/**
  * Returns true if the given rider has already rated the given ride.
  */
 export async function hasRated(rideId: string, riderId: string): Promise<boolean> {
@@ -1348,6 +1556,69 @@ export async function rebroadcastRide(rideId: string): Promise<{ captainsNotifie
     });
   }
   return { captainsNotified: captainIds.length };
+}
+
+/**
+ * Name + vehicle of a captain, for the rider-facing notification copy.
+ *
+ * Best-effort by design: a notification that says "Votre Captain arrive" is far
+ * better than no notification because a vehicle row was missing. Any failure
+ * degrades to nulls rather than propagating — the caller is already outside the
+ * transaction and must not be able to undo a committed ride.
+ */
+async function captainDisplayInfo(
+  captainId: string,
+): Promise<{ captainName: string | null; vehicle: string | null }> {
+  try {
+    const { rows } = await pool.query<{
+      full_name: string | null;
+      plate: string | null;
+      brand: string | null;
+      model: string | null;
+      color: string | null;
+    }>(
+      `SELECT u.full_name, v.plate, v.brand, v.model, v.color
+         FROM users u
+         JOIN captains c ON c.user_id = u.id
+    LEFT JOIN vehicles v ON v.captain_id = c.user_id AND v.is_active = true
+        WHERE u.id = $1`,
+      [captainId],
+    );
+    const row = rows[0];
+    if (!row) return { captainName: null, vehicle: null };
+    const vehicle = [row.brand, row.model, row.color].filter(Boolean).join(' ').trim();
+    const plate = row.plate ? ` (${row.plate})` : '';
+    return {
+      captainName: row.full_name,
+      vehicle: vehicle ? `${vehicle}${plate}` : (row.plate ?? null),
+    };
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn('[rides] could not read captain display info', { captainId, err });
+    return { captainName: null, vehicle: null };
+  }
+}
+
+/**
+ * Tell the rider a captain is on the way. Runs AFTER the transaction commits,
+ * for the same reason the captain broadcast does: a notification fired from
+ * inside `withTx` describes a state that another query may still roll back.
+ *
+ * Errors are swallowed here rather than at the call site so every future
+ * rider-notification point gets the same guarantee for free.
+ */
+async function notifyRiderAccepted(ride: {
+  id: string;
+  bookerId: string;
+  captainId: string;
+}): Promise<void> {
+  try {
+    const info = await captainDisplayInfo(ride.captainId);
+    await notifyRiderRideAccepted(ride.bookerId, { id: ride.id, ...info });
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn('[rides] rider accept notification failed', { rideId: ride.id, err });
+  }
 }
 
 /**
@@ -1469,6 +1740,13 @@ export async function acceptRide(rideId: string, captainId: string) {
     // would inflate both the match count and the time-to-match histogram every
     // time a commit failed, and a histogram cannot be decremented.
     recordMatch(accepted.rideType, accepted.requestedAt);
+    // Fire-and-forget: the captain's tap must not wait on Expo, and a dead push
+    // service must never cost a match.
+    void notifyRiderAccepted({
+      id: accepted.id,
+      bookerId: accepted.bookerId,
+      captainId,
+    });
     return accepted;
   } catch (err) {
     if (err instanceof HttpError) {
@@ -1513,7 +1791,7 @@ async function recordLateAcceptance(rideId: string, captainId: string): Promise<
 }
 
 export async function arriveRide(rideId: string, captainId: string) {
-  return withTx(async (client) => {
+  const arrived = await withTx(async (client) => {
     const ride = await lockRide(client, rideId);
     if (ride.captain_id !== captainId) {
       throw new HttpError(403, 'forbidden', 'Not your ride');
@@ -1537,6 +1815,29 @@ export async function arriveRide(rideId: string, captainId: string) {
     );
     return shape(upd.rows[0]!, { revealCode: true });
   });
+
+  // Tell the rider their captain is waiting — but only on the real "I'm at the
+  // pickup, come out" transition. Open and private-driver rides use `arrive` as
+  // a shortcut straight into `in_progress`: there the rider is already in the
+  // car, and a "votre Captain est arrivé" push after the meter starts is noise.
+  // Noise is how a notification channel gets muted, which would cost us the
+  // alerts that do matter.
+  if (arrived.status === 'arrived') {
+    void (async () => {
+      try {
+        const info = await captainDisplayInfo(captainId);
+        await notifyRiderCaptainArrived(arrived.bookerId, {
+          id: arrived.id,
+          captainName: info.captainName,
+        });
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn('[rides] rider arrival notification failed', { rideId, err });
+      }
+    })();
+  }
+
+  return arrived;
 }
 
 export async function startRide(rideId: string, captainId: string) {
@@ -2035,25 +2336,47 @@ export async function cancelRide(input: CancelInput) {
       && ride.captain_id === input.userId
       && (ride.status === 'accepted' || ride.status === 'arrived')
     ) {
+      // How often has this captain done this lately? Read BEFORE writing the
+      // new event so the current cancellation is not counted against itself.
+      const recent = await client.query<{ n: string }>(
+        `SELECT COUNT(*)::text AS n
+           FROM captain_cancel_events
+          WHERE captain_id = $1
+            AND cancelled_at >= now() - make_interval(hours => $2)`,
+        [input.userId, env.CAPTAIN_CANCEL_WINDOW_H],
+      );
+      const priorCancellations = Number(recent.rows[0]?.n ?? 0);
+      const overLimit = priorCancellations >= env.CAPTAIN_CANCEL_LIMIT;
+
       const upd = await client.query<RideRow>(
         `UPDATE rides
             SET captain_id   = NULL,
                 status       = 'searching',
                 accepted_at  = NULL,
-                arrived_at   = NULL
+                arrived_at   = NULL,
+                last_captain_cancel_reason = $2,
+                last_captain_cancel_at     = now()
           WHERE id = $1
         RETURNING ${RIDE_COLUMNS}`,
-        [ride.id],
+        [ride.id, input.reason],
       );
 
-      // Cancelling captain returns to 'online' and is recorded as having
-      // declined this specific ride (so the dispatcher and the alert modal
-      // both skip them on the re-broadcast).
+      // The cancelling captain leaves the ride. Normally they go straight back
+      // to 'online'; past the limit they are sent 'offline' for a cooldown so
+      // they stop occupying the dispatch queue for a while. Recorded as having
+      // declined this specific ride either way, so the dispatcher and the alert
+      // modal both skip them on the re-broadcast.
       await client.query(
-        `UPDATE captain_state SET presence = 'online', updated_at = now()
+        `UPDATE captain_state
+            SET presence = $2::captain_presence, updated_at = now()
           WHERE captain_id = $1 AND presence = 'on_ride'`,
-        [input.userId],
+        [input.userId, overLimit ? 'offline' : 'online'],
       );
+      if (overLimit) {
+        // Drop them from the live geo index too, or `redis` dispatch mode would
+        // keep offering rides to a captain Postgres considers offline.
+        void clearLiveLocation(input.userId).catch(() => {});
+      }
       await client.query(
         `INSERT INTO ride_declines (ride_id, captain_id)
          VALUES ($1, $2)
@@ -2115,6 +2438,17 @@ export async function cancelRide(input: CancelInput) {
   // 'searching'. Fired here so the revived row is committed and visible.
   if (pending.value) {
     void broadcastNewRide(pending.value, 're-broadcast after captain cancel');
+    // …and tell the rider, whose screen would otherwise silently rewind from
+    // "un captain arrive" to "recherche en cours" with no explanation.
+    const revived = pending.value;
+    void (async () => {
+      try {
+        await notifyRiderCaptainCancelled(revived.booker_id, { id: revived.id });
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn('[rides] rider cancel notification failed', { rideId: input.rideId, err });
+      }
+    })();
   }
   return result;
 }

@@ -398,7 +398,9 @@
       },
       "title": "Rides",
       "wallet": "Wallet",
-      "bubbleHint": "Tap to open"
+      "bubbleHint": "Tap to open",
+      "navigateToPickup": "Navigate to pickup",
+      "navigateToDropoff": "Navigate to destination"
     },
     "state": {
       "batteryBody": "So you never miss a ride, allow {{app}} to run without battery restrictions. Otherwise Android may doze the app and delay — or drop — the new-ride alert.",
@@ -1208,7 +1210,12 @@
       "tariff": "Estimated fare",
       "vehicleLabel": "Vehicle",
       "wallet": "Wallet",
-      "yourDriver": "YOUR DRIVER"
+      "yourDriver": "YOUR DRIVER",
+      "map": {
+        "positionUnavailable": "Position unavailable",
+        "distanceAway": "Your Captain is {{distance}} away",
+        "captainOnTheWay": "Your Captain is on the way"
+      }
     },
     "favorites": {
       "emptyBody": "After a 5-star ride you'll be able to add the driver here.",

@@ -1,6 +1,7 @@
 import { pool } from '../../db/pool.js';
 import { HttpError } from '../../middleware/error.js';
 import { notifyProvidersRoadside } from '../push/expo-push.js';
+import { withClusterLock } from '../../lib/cluster-lock.js';
 
 /**
  * Roadside assistance ("Assistance Routière") — an on-demand SOS flow.
@@ -466,10 +467,18 @@ export async function expandAndExpire(): Promise<{ expanded: number; unresolved:
 
 const CRON_INTERVAL_MS = 15_000;
 
+/**
+ * Cluster-lock TTL for this job: shorter than its tick interval so a process
+ * killed mid-tick cannot block it, long enough to cover a slow run.
+ */
+const LOCK_TTL_MS = 25_000;
+
 export function startRoadsideCron() {
   const tick = async () => {
     try {
-      const { expanded, unresolved } = await expandAndExpire();
+      const outcome = await withClusterLock('roadside-expand', LOCK_TTL_MS, expandAndExpire);
+      if (!outcome.ran) return;
+      const { expanded, unresolved } = outcome.result;
       if (expanded > 0 || unresolved > 0) {
         console.log(`[roadside] expanded=${expanded}, unresolved=${unresolved}`);
       }

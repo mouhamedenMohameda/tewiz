@@ -150,6 +150,35 @@ captainRidesRouter.post('/:id/complete', async (req, res) => {
 });
 
 /**
+ * POST /captain/rides/:id/rating
+ * Body: { stars (1-5), comment? }
+ *
+ * The captain rates the rider after a completed ride — the counterpart of
+ * POST /rider/rides/:id/rating. Idempotent: re-posting updates the existing
+ * rating rather than adding a second one.
+ *
+ * What it feeds: GET /captain/rides/:id/insights already surfaces
+ * `rider.avgRating` to the captain at the moment they decide whether to
+ * accept. Until this endpoint existed, nothing wrote a rider rating anywhere,
+ * so that field was permanently null — the UI promised a signal the backend
+ * could not produce.
+ */
+const riderRatingBody = z.object({
+  stars: z.number().int().min(1).max(5),
+  comment: z.string().max(500).optional(),
+});
+captainRidesRouter.post('/:id/rating', async (req, res) => {
+  const userId = req.user!.id;
+  const body = riderRatingBody.parse(req.body);
+  res.json(await rides.rateRider({
+    rideId: req.params.id!,
+    captainId: userId,
+    stars: body.stars,
+    comment: body.comment,
+  }));
+});
+
+/**
  * POST /captain/rides/:id/location
  * GPS sample from the captain device while the ride is in_progress. Body:
  *   { lat, lng, accuracyM?, speedMps?, recordedAt? (ms epoch) }

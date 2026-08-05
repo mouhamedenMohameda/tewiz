@@ -109,33 +109,67 @@ describe('sendPush — PUSH_TOO_MANY_EXPERIENCE_IDS split & retry', () => {
   });
 });
 
-describe('sendPush — other failures are logged, never retried or thrown', () => {
-  it('warns without retrying on an unrelated Expo error', async () => {
+describe('sendPush — transient failures are retried, permanent ones are not', () => {
+  // A thirty-second Expo blip used to lose EVERY ride broadcast in that window:
+  // one attempt, no backoff, no queue. The only recovery was the 5 s inbox poll,
+  // which reaches exactly the captains who needed the push least — the ones
+  // already looking at the app.
+
+  it('retries a 500 up to the attempt cap', async () => {
     fetchMock.mockResolvedValue(
       fail(500, JSON.stringify({ errors: [{ code: 'INTERNAL_SERVER_ERROR' }] })),
     );
 
     await sendPush({ to: ['tok-a'] });
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
-  it('warns without retrying when the error body is not JSON', async () => {
+  it('retries a 502 whose body is not even JSON', async () => {
     fetchMock.mockResolvedValue(fail(502, '<html>Bad Gateway</html>'));
 
     await sendPush({ to: ['tok-a'] });
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
-  it('swallows a network throw and logs it (fire-and-forget)', async () => {
+  it('retries a network throw', async () => {
     fetchMock.mockRejectedValue(new Error('network down'));
 
     await expect(sendPush({ to: ['tok-a'] })).resolves.toBeUndefined();
 
-    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('stops as soon as an attempt succeeds', async () => {
+    fetchMock
+      .mockRejectedValueOnce(new Error('ETIMEDOUT'))
+      .mockResolvedValue(ok());
+
+    await sendPush({ to: ['tok-a'] });
+
+    // Two attempts, not three: the retry budget is a ceiling, not a quota.
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('does NOT retry a 4xx — the payload is wrong, not the network', async () => {
+    fetchMock.mockResolvedValue(
+      fail(400, JSON.stringify({ errors: [{ code: 'PUSH_TOO_MANY_NOTIFICATIONS' }] })),
+    );
+
+    await sendPush({ to: ['tok-a'] });
+
+    // Retrying a malformed request only sends the same broken request again.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('never throws, whatever happens', async () => {
+    fetchMock.mockRejectedValue(new Error('network down'));
+
+    // The caller is always a void-ed promise on a ride path, so a rejection
+    // here would surface as an unhandled rejection, not as a useful error.
+    await expect(sendPush({ to: ['tok-a'] })).resolves.toBeUndefined();
+    expect(warnSpy).toHaveBeenCalled();
   });
 });
 

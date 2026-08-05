@@ -56,6 +56,12 @@ const patchBody = z.object({
                                       (n) => n === 0 || (n >= 60 && n <= 3_600),
                                       'Must be 0 or between 60 and 3600',
                                     ).optional(),
+  // How many rides one account may hold open at once (migration 0078).
+  // 0 disables the limit. Partners get their own, higher allowance so a
+  // restaurant dispatching several deliveries is never blocked by the cap that
+  // exists to stop one account flooding every captain's inbox.
+  maxActiveRidesPerBooker:          z.number().int().min(0).max(100).optional(),
+  maxActiveRidesPerPartner:         z.number().int().min(0).max(500).optional(),
   // Commission bonus knobs (migration 0028).
   commissionBonusEnabled:           z.boolean().optional(),
   commissionBonusThresholdMru:      z.number().int().min(1).max(1_000_000).optional(),

@@ -359,7 +359,6 @@ export async function confirmVoiceRideRequest(input: {
       pickup: { lat: input.pickup.lat, lng: input.pickup.lng, label: input.pickup.label },
       dropoff: { lat: input.dropoff.lat, lng: input.dropoff.lng, label: input.dropoff.label },
       paymentMethod: input.paymentMethod ?? 'cash',
-      skipBookerActiveCheck: true,
       skipPassengerConfirm: true,
       source: 'operator',
     });

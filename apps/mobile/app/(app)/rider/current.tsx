@@ -16,6 +16,8 @@ import { RIDER_RIDE_CANCEL_REASONS } from '@/lib/rideCancelReasons';
 import { usePolling } from '@/lib/usePolling';
 import { keepIfEqual } from '@/lib/sameData';
 import { APP_NAME } from '@/lib/brand';
+import { MapShell } from '@/components/MapShell';
+import { getMapbox } from '@/lib/mapbox';
 
 type RideStatus =
   | 'pending_passenger_confirm' | 'searching'
@@ -30,6 +32,12 @@ interface Captain {
   ratingAvg: number;
   totalRides: number;
   vehicle: { plate: string; brand: string; model: string; color: string } | null;
+  /**
+   * Live position, or null when the server has nothing fresh enough to draw.
+   * Deliberately null rather than stale: a car drawn where it was ten minutes
+   * ago sends the rider to the wrong corner.
+   */
+  location: { lat: number; lng: number; updatedAt: string } | null;
 }
 
 interface Ride {
@@ -42,6 +50,8 @@ interface Ride {
   fareFinalMru: number | null;
   paymentMethod: 'cash' | 'wallet';
   captain: Captain | null;
+  /** Crow-flies metres between the captain and the pickup, when known. */
+  captainDistanceM: number | null;
   privateDriverDetails: {
     bookedDurationH: number;
     hourlyRateMru: number;
@@ -188,6 +198,8 @@ export default function CurrentRideScreen() {
         </Pressable>
 
         <StatusBanner status={ride.status} />
+
+        <RideMap ride={ride} />
 
         {ride.captain ? (
           <CaptainCard captain={ride.captain} />
@@ -438,6 +450,86 @@ function StatusBanner({ status }: { status: string }) {
     <View style={{ marginTop: 16, backgroundColor: palette.bg, borderRadius: 14, padding: 16 }}>
       <Text style={{ fontSize: 17, fontWeight: '700', color: palette.fg }}>{title}</Text>
       {sub ? <Text style={{ fontSize: 13, color: palette.fg, marginTop: 4 }}>{sub}</Text> : null}
+    </View>
+  );
+}
+
+/** Statuses during which there is a live captain to draw. */
+const LIVE_STATUSES: RideStatus[] = ['accepted', 'arrived', 'in_progress'];
+
+/**
+ * The map the rider actually opens the app for: where is my driver.
+ *
+ * The platform has always collected captain positions — it is what dispatch
+ * matches against, kept current by the background tracker the app already pays
+ * for in permissions and battery. None of it ever reached the person who wanted
+ * it most; this is that half of the loop.
+ *
+ * Two honesty rules, both inherited from the server:
+ *   - `captain.location` is null rather than stale. When the server has nothing
+ *     fresh we say "position indisponible" instead of drawing a car in the
+ *     wrong street.
+ *   - nothing is drawn once the ride is over, so a completed trip stops
+ *     exposing a captain's whereabouts.
+ */
+function RideMap({ ride }: { ride: Ride }) {
+  const { t } = useTranslation();
+  const M = getMapbox();
+  if (!M || !LIVE_STATUSES.includes(ride.status)) return null;
+
+  const captainAt = ride.captain?.location ?? null;
+  // Centre on the captain when we have one, otherwise on the pickup — the map
+  // stays useful ("your ride is here") even before anyone is assigned.
+  const centre: [number, number] = captainAt
+    ? [captainAt.lng, captainAt.lat]
+    : [ride.pickup.lng, ride.pickup.lat];
+
+  return (
+    <View style={{ height: 220, borderRadius: 16, overflow: 'hidden', marginTop: 16 }}>
+      <MapShell centerCoordinate={centre} zoomLevel={13.5}>
+        <M.PointAnnotation id="pickup" coordinate={[ride.pickup.lng, ride.pickup.lat]}>
+          <View style={{
+            width: 14, height: 14, borderRadius: 7,
+            backgroundColor: '#10a35e', borderWidth: 2, borderColor: '#fff',
+          }} />
+        </M.PointAnnotation>
+
+        {ride.dropoff ? (
+          <M.PointAnnotation id="dropoff" coordinate={[ride.dropoff.lng, ride.dropoff.lat]}>
+            <View style={{
+              width: 14, height: 14, borderRadius: 3,
+              backgroundColor: '#0f172a', borderWidth: 2, borderColor: '#fff',
+            }} />
+          </M.PointAnnotation>
+        ) : null}
+
+        {captainAt ? (
+          <M.PointAnnotation id="captain" coordinate={[captainAt.lng, captainAt.lat]}>
+            <View style={{
+              width: 22, height: 22, borderRadius: 11,
+              backgroundColor: '#f97316', borderWidth: 3, borderColor: '#fff',
+            }} />
+          </M.PointAnnotation>
+        ) : null}
+      </MapShell>
+
+      <View style={{
+        position: 'absolute', left: 10, bottom: 10,
+        backgroundColor: 'rgba(15,23,42,0.85)', paddingHorizontal: 10, paddingVertical: 6,
+        borderRadius: 999,
+      }}>
+        <Text style={{ color: '#fff', fontSize: 12 }}>
+          {!captainAt
+            ? t('rider.current.map.positionUnavailable')
+            : ride.captainDistanceM != null
+              ? t('rider.current.map.distanceAway', {
+                  distance: ride.captainDistanceM >= 1000
+                    ? `${(ride.captainDistanceM / 1000).toFixed(1)} km`
+                    : `${ride.captainDistanceM} m`,
+                })
+              : t('rider.current.map.captainOnTheWay')}
+        </Text>
+      </View>
     </View>
   );
 }

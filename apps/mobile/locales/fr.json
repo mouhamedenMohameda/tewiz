@@ -410,7 +410,9 @@
       },
       "title": "Courses",
       "wallet": "Wallet",
-      "bubbleHint": "Touchez pour ouvrir"
+      "bubbleHint": "Touchez pour ouvrir",
+      "navigateToPickup": "Naviguer vers le client",
+      "navigateToDropoff": "Naviguer vers la destination"
     },
     "state": {
       "batteryBody": "Pour ne jamais rater une course, autorisez {{app}} à fonctionner sans restriction de batterie. Sans cela, Android peut mettre l'application en veille et retarder — voire supprimer — l'alerte de nouvelle course.",
@@ -1234,7 +1236,12 @@
       "tariff": "Tarif estimé",
       "vehicleLabel": "Véhicule",
       "wallet": "Wallet",
-      "yourDriver": "VOTRE Captain"
+      "yourDriver": "VOTRE Captain",
+      "map": {
+        "positionUnavailable": "Position indisponible",
+        "distanceAway": "Votre Captain est à {{distance}}",
+        "captainOnTheWay": "Votre Captain arrive"
+      }
     },
     "favorites": {
       "emptyBody": "Après une course 5 étoiles, vous pourrez ajouter le Captain ici.",

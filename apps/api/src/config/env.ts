@@ -36,6 +36,30 @@ const EnvSchema = z.object({
   MIN_BALANCE_TO_GO_ONLINE_MRU: z.coerce.number().default(-10),
   NEGATIVE_BALANCE_FLOOR_MRU: z.coerce.number().default(-50),
 
+  // How old a captain position may be before the RIDER is shown nothing.
+  //
+  // Much tighter than DISPATCH_MAX_LOCATION_AGE_S (900 s) on purpose. Dispatch
+  // can afford a stale-ish fix — a captain who reported 10 minutes ago is
+  // probably still in the same neighbourhood, which is all "is anyone near this
+  // pickup" needs. A rider watching a map is asking a far more precise question,
+  // and a car drawn where it was ten minutes ago sends them to the wrong corner.
+  // Better to show "position indisponible" than to be confidently wrong.
+  RIDER_CAPTAIN_POSITION_MAX_AGE_S: z.coerce.number().int().default(120),
+
+  // Captain cancellation policy.
+  //
+  // A captain who accepts and then drops the ride costs the rider several
+  // minutes and, until now, cost the captain nothing — which made "accept to
+  // reserve it, read the destination, cancel if it doesn't suit me" a strictly
+  // dominant strategy. The response is a COOLDOWN rather than a fee: a
+  // breakdown is a real thing that happens to honest drivers, and taking money
+  // from them would drive good captains off the platform faster than it deters
+  // the bad ones. Being sent offline for a few minutes costs a captain only
+  // what they were doing wrong — being in the queue.
+  CAPTAIN_CANCEL_WINDOW_H: z.coerce.number().default(6),
+  CAPTAIN_CANCEL_LIMIT: z.coerce.number().default(5),
+  CAPTAIN_CANCEL_COOLDOWN_MIN: z.coerce.number().default(15),
+
   HOME_LOCK_DAYS: z.coerce.number().default(30),
   HOME_GPS_TOLERANCE_M: z.coerce.number().default(200),
   GOING_HOME_SESSION_MAX_HOURS: z.coerce.number().default(2),

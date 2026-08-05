@@ -9,5 +9,9 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
+    // tests/pending holds executable specs for behaviour that does not exist
+    // yet — expected to fail, so kept out of `pnpm test` and out of CI.
+    // Run them with `pnpm test:pending`.
+    exclude: ['**/node_modules/**', '**/dist/**', 'tests/pending/**'],
   },
 });

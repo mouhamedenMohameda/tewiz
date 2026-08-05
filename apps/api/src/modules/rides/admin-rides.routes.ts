@@ -165,7 +165,6 @@ adminRidesRouter.post('/', async (req, res) => {
     // The admin operator is booking on behalf of a passenger who called by
     // phone — they have already consented, so we go straight to "searching"
     // (visible by captains) without the return SMS confirmation step.
-    skipBookerActiveCheck: true,
     skipPassengerConfirm: true,
     // Mark the ride as originating from the call-center so the dedicated
     // operator commission rate is used at payout time.

@@ -2,6 +2,7 @@ import { pool, withTx } from '../../db/pool.js';
 import { HttpError } from '../../middleware/error.js';
 import { debitWallet } from '../wallet/wallet.service.js';
 import { sendNotification } from '../notifications/notifications.service.js';
+import { withClusterLock } from '../../lib/cluster-lock.js';
 
 /**
  * Service listings ("annonces") — a classified-ads marketplace modeled on
@@ -418,10 +419,18 @@ export async function expireListings(): Promise<number> {
 
 const CRON_INTERVAL_MS = 60 * 60 * 1000;
 
+/**
+ * Cluster-lock TTL for this job: shorter than its tick interval so a process
+ * killed mid-tick cannot block it, long enough to cover a slow run.
+ */
+const LOCK_TTL_MS = 25_000;
+
 export function startListingsCron() {
   const tick = async () => {
     try {
-      const expired = await expireListings();
+      const outcome = await withClusterLock('listings-expiry', LOCK_TTL_MS, expireListings);
+      if (!outcome.ran) return;
+      const expired = outcome.result;
       if (expired > 0) {
         // eslint-disable-next-line no-console
         console.log(`[listings] expired=${expired}`);

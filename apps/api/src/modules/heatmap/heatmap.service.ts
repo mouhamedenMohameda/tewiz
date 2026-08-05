@@ -1,5 +1,6 @@
 import { latLngToCell, cellToLatLng } from 'h3-js';
 import { pool, instrumentClient } from '../../db/pool.js';
+import { withClusterLock } from '../../lib/cluster-lock.js';
 
 const H3_RESOLUTION = 9;  // ~170 m hexagons — Nouakchott-sized cells
 // 2-hour window: gives a fuller picture of recent demand, smooths out
@@ -73,12 +74,19 @@ interface ListInput {
  * "listening" log. Failures are caught and logged; we never crash the API
  * because the heatmap is an optional enhancement.
  */
+/**
+ * Cluster-lock TTL for this job: shorter than its tick interval so a process
+ * killed mid-tick cannot block it, long enough to cover a slow run.
+ */
+const LOCK_TTL_MS = 240_000;
+
 export function startHeatmapCron() {
   const tick = async () => {
     try {
-      const r = await compute();
+      const outcome = await withClusterLock('heatmap', LOCK_TTL_MS, compute);
+      if (!outcome.ran) return;
       // eslint-disable-next-line no-console
-      console.log(`[heatmap] computed ${r.cells} cells from ${r.recentRides} recent rides`);
+      console.log(`[heatmap] computed ${outcome.result.cells} cells from ${outcome.result.recentRides} recent rides`);
     } catch (err) {
       // eslint-disable-next-line no-console
       console.warn('[heatmap] compute failed', err);

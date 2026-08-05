@@ -55,6 +55,23 @@ async function ensureAndroidChannel() {
     lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
     sound: 'default',
   });
+  // Rider-facing ride updates: "un captain arrive", "il est arrivé", "personne
+  // n'est disponible". HIGH like ride-alerts — an arrival notification the OS
+  // decides to batch is worthless, since the whole point is that the rider is
+  // NOT looking at their phone.
+  //
+  // Its own channel rather than reusing ride-alerts so a rider can silence ride
+  // updates without silencing anything else, and so captains keep independent
+  // control of their own alert volume.
+  await Notifications.setNotificationChannelAsync('ride-updates', {
+    name: 'Suivi de votre course',
+    importance: Notifications.AndroidImportance.HIGH,
+    vibrationPattern: [0, 300, 200, 300],
+    lightColor: '#10a35e',
+    enableVibrate: true,
+    lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+    sound: 'default',
+  });
   // Used by admin/bonus/info broadcasts (notifications.service.ts) — a
   // lower-key channel than ride-alerts since these aren't time-critical.
   await Notifications.setNotificationChannelAsync('general', {

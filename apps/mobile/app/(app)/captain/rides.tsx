@@ -9,6 +9,7 @@ import { api } from '@/lib/api';
 import { RideCancelReasonSheet } from '@/components/RideCancelReasonSheet';
 import { balanceTooLowMessage } from '@/lib/apiError';
 import { formatMru } from '@/lib/format';
+import { navigationTargetForRide, openNavigation } from '@/lib/navigation';
 import { CAPTAIN_RIDE_CANCEL_REASONS } from '@/lib/rideCancelReasons';
 import { usePolling } from '@/lib/usePolling';
 import { keepIfEqual } from '@/lib/sameData';
@@ -751,6 +752,36 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
           onDark
           style={{ marginTop: spacing.lg }}
         />
+
+        {/*
+          Hand the current leg to a real navigation app. Before this the captain
+          had a text label and a phone number, which in a city with sparse street
+          addressing meant calling the rider on every ride.
+
+          The target follows the ride: the pickup while heading there, the
+          destination once the passenger is aboard. See navigationTargetForRide.
+        */}
+        {(() => {
+          const target = navigationTargetForRide(ride);
+          if (!target) return null;
+          return (
+            <PressableScale
+              onPress={() => { void openNavigation(target); }}
+              style={{
+                marginTop: spacing.md, backgroundColor: colors.onEspresso,
+                paddingVertical: 12, borderRadius: radius.pill,
+                flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+              }}
+            >
+              <Icon name="pin" size={18} color={colors.espresso} />
+              <AppText variant="label" color={colors.espresso}>
+                {ride.status === 'in_progress'
+                  ? t('captain.rides.navigateToDropoff')
+                  : t('captain.rides.navigateToPickup')}
+              </AppText>
+            </PressableScale>
+          );
+        })()}
 
         <View style={{ marginTop: spacing.lg, flexDirection: 'row', justifyContent: 'space-between' }}>
           <View>

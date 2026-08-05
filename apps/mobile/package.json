@@ -9,6 +9,8 @@
     "android": "expo run:android",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:pending": "vitest run --config vitest.pending.config.ts",
+    "test:pending:watch": "vitest --config vitest.pending.config.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

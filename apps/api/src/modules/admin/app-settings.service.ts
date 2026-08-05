@@ -47,6 +47,12 @@ export interface PricingSettings {
   // Migration 0025. A ride in 'searching' longer than this is auto-cancelled
   // by the background expiry job. 0 disables the job.
   searchingTimeoutS: number;
+  // Migration 0078. How many rides one account may hold open at once.
+  // 0 = no limit. Partners get their own, higher allowance so a restaurant
+  // dispatching several deliveries is never blocked by the cap that exists to
+  // stop one account flooding every captain's inbox.
+  maxActiveRidesPerBooker: number;
+  maxActiveRidesPerPartner: number;
   // Migration 0028. Captain commission bonus: when a captain pays X MRU of
   // commission within Y days, their commission is halved for Z days.
   commissionBonusEnabled: boolean;
@@ -169,6 +175,8 @@ interface Row {
   operator_passenger_commission_bps: number;
   operator_colis_commission_bps: number;
   searching_timeout_s: number;
+  max_active_rides_per_booker: number;
+  max_active_rides_per_partner: number;
   commission_bonus_enabled: boolean;
   commission_bonus_threshold_mru: number;
   commission_bonus_window_days: number;
@@ -263,6 +271,8 @@ function toSettings(r: Row): PricingSettings {
     operatorPassengerCommissionBps: r.operator_passenger_commission_bps,
     operatorColisCommissionBps: r.operator_colis_commission_bps,
     searchingTimeoutS: r.searching_timeout_s,
+    maxActiveRidesPerBooker: r.max_active_rides_per_booker,
+    maxActiveRidesPerPartner: r.max_active_rides_per_partner,
     commissionBonusEnabled: r.commission_bonus_enabled,
     commissionBonusThresholdMru: r.commission_bonus_threshold_mru,
     commissionBonusWindowDays: r.commission_bonus_window_days,
@@ -355,6 +365,7 @@ export async function getPricingSettings(): Promise<PricingSettings> {
             long_distance_threshold_m,
             operator_passenger_commission_bps, operator_colis_commission_bps,
             searching_timeout_s,
+            max_active_rides_per_booker, max_active_rides_per_partner,
             commission_bonus_enabled, commission_bonus_threshold_mru,
             commission_bonus_window_days, commission_bonus_reward_days,
             allow_open_rides, open_base_fare_mru, open_per_km_mru,
@@ -428,6 +439,8 @@ export interface PricingSettingsPatch {
   operatorPassengerCommissionBps?: number;
   operatorColisCommissionBps?: number;
   searchingTimeoutS?: number;
+  maxActiveRidesPerBooker?: number;
+  maxActiveRidesPerPartner?: number;
   commissionBonusEnabled?: boolean;
   commissionBonusThresholdMru?: number;
   commissionBonusWindowDays?: number;
@@ -524,6 +537,8 @@ export async function updatePricingSettings(
           operator_passenger_commission_bps = COALESCE($20, operator_passenger_commission_bps),
           operator_colis_commission_bps     = COALESCE($21, operator_colis_commission_bps),
           searching_timeout_s               = COALESCE($22, searching_timeout_s),
+          max_active_rides_per_booker       = COALESCE($90, max_active_rides_per_booker),
+          max_active_rides_per_partner      = COALESCE($91, max_active_rides_per_partner),
           commission_bonus_enabled          = COALESCE($23, commission_bonus_enabled),
           commission_bonus_threshold_mru    = COALESCE($24, commission_bonus_threshold_mru),
           commission_bonus_window_days      = COALESCE($25, commission_bonus_window_days),
@@ -609,6 +624,7 @@ export async function updatePricingSettings(
                 long_distance_threshold_m,
                 operator_passenger_commission_bps, operator_colis_commission_bps,
                 searching_timeout_s,
+                max_active_rides_per_booker, max_active_rides_per_partner,
                 commission_bonus_enabled, commission_bonus_threshold_mru,
                 commission_bonus_window_days, commission_bonus_reward_days,
                 allow_open_rides, open_base_fare_mru, open_per_km_mru,
@@ -737,6 +753,8 @@ export async function updatePricingSettings(
       patch.trackOfflineEnabled ?? null,
       patch.minAndroidVersion ?? null,   // $88
       patch.minIosVersion ?? null,       // $89
+      patch.maxActiveRidesPerBooker ?? null,   // $90
+      patch.maxActiveRidesPerPartner ?? null,  // $91
     ],
   );
   cache = null;
