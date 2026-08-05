@@ -13,8 +13,18 @@ const { queryMock, getPricingSettingsMock } = vi.hoisted(() => ({
 vi.mock('../src/db/pool.js', () => ({
   pool: { query: queryMock },
 }));
+// The job now takes a cluster lock before doing any work. Mocked so this file
+// stays about the SQL, and so importing it never opens a real Redis socket.
+vi.mock('../src/db/redis.js', () => ({
+  redis: { set: vi.fn(async () => 'OK'), eval: vi.fn(async () => 1) },
+}));
 vi.mock('../src/modules/admin/app-settings.service.js', () => ({
   getPricingSettings: getPricingSettingsMock,
+}));
+// The job now notifies each affected rider. Stubbed so this file stays about
+// the SQL — and so it never reaches the real Expo endpoint over the network.
+vi.mock('../src/modules/push/expo-push.js', () => ({
+  notifyRiderRideExpired: vi.fn(async () => {}),
 }));
 
 import { expireSearchingRides } from '../src/modules/rides/expiry.service.js';
@@ -27,29 +37,40 @@ describe('expireSearchingRides', () => {
   it('is a no-op (no DB write) when the timeout is 0', async () => {
     getPricingSettingsMock.mockResolvedValue({ searchingTimeoutS: 0 });
 
-    const n = await expireSearchingRides();
+    const expired = await expireSearchingRides();
 
-    expect(n).toBe(0);
+    expect(expired).toEqual([]);
     expect(queryMock).not.toHaveBeenCalled();
   });
 
   it('is a no-op when the timeout is negative', async () => {
     getPricingSettingsMock.mockResolvedValue({ searchingTimeoutS: -5 });
 
-    const n = await expireSearchingRides();
+    const expired = await expireSearchingRides();
 
-    expect(n).toBe(0);
+    expect(expired).toEqual([]);
     expect(queryMock).not.toHaveBeenCalled();
   });
 
-  it('cancels only stale searching rides and returns the affected count', async () => {
+  it('cancels only stale searching rides and returns them', async () => {
     getPricingSettingsMock.mockResolvedValue({ searchingTimeoutS: 120 });
-    queryMock.mockResolvedValue({ rows: [], rowCount: 3 });
+    queryMock.mockResolvedValue({
+      rows: [
+        { id: 'r1', booker_id: 'b1' },
+        { id: 'r2', booker_id: 'b2' },
+        { id: 'r3', booker_id: 'b3' },
+      ],
+      rowCount: 3,
+    });
 
-    const n = await expireSearchingRides();
+    const expired = await expireSearchingRides();
 
-    expect(n).toBe(3);
-    expect(queryMock).toHaveBeenCalledTimes(1);
+    // RETURNING is what makes notifying the affected riders possible at all.
+    expect(expired).toEqual([
+      { id: 'r1', bookerId: 'b1' },
+      { id: 'r2', bookerId: 'b2' },
+      { id: 'r3', bookerId: 'b3' },
+    ]);
     const [sql, params] = queryMock.mock.calls[0];
     // Only affects rides still in 'searching', flips them to system-cancelled
     // with the no-captain reason, and scopes by the age window.
@@ -62,12 +83,12 @@ describe('expireSearchingRides', () => {
     expect(params).toEqual([120]);
   });
 
-  it('returns 0 when rowCount comes back null/undefined', async () => {
+  it('returns an empty list when nothing was stale', async () => {
     getPricingSettingsMock.mockResolvedValue({ searchingTimeoutS: 120 });
     queryMock.mockResolvedValue({ rows: [] });
 
-    const n = await expireSearchingRides();
+    const expired = await expireSearchingRides();
 
-    expect(n).toBe(0);
+    expect(expired).toEqual([]);
   });
 });

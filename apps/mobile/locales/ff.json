@@ -226,7 +226,7 @@
       "saveError": "Ronkii reende.",
       "seats": "Limoore sieges naatooɓe",
       "seatsCount": "{{count}} jooɗorgal",
-      "seatsInvalidBody": "Hakkunde 1 e 8.",
+      "seatsInvalidBody": "Hakkunde 1 e {{max}}.",
       "seatsInvalidTitle": "Sieges juumɗi",
       "title": "Otoo",
       "typeCar": "Lototo",
@@ -393,7 +393,9 @@
       },
       "title": "Course-ɗe",
       "wallet": "Wallet",
-      "bubbleHint": "Ɓuɓɓu ngam uddita"
+      "bubbleHint": "Ɓuɓɓu ngam uddita",
+      "navigateToPickup": "Yah to kiliyaa",
+      "navigateToDropoff": "Yah to jipporde"
     },
     "state": {
       "errorGoingHome": "Juumre e \"Ko mi ruttoo galle\".",
@@ -667,7 +669,12 @@
       "tariff": "Coggu estimé",
       "vehicleLabel": "Otoo",
       "wallet": "Wallet",
-      "yourDriver": "DOGGOOWO MAA"
+      "yourDriver": "DOGGOOWO MAA",
+      "map": {
+        "positionUnavailable": "Nokku suwaa yiytude",
+        "distanceAway": "Captain maa ina woɗɗi {{distance}}",
+        "captainOnTheWay": "Captain maa ina ara"
+      }
     },
     "favorites": {
       "emptyBody": "Caggal course 5 hoodere, a waawat beydude doggoowo o ɗoo.",

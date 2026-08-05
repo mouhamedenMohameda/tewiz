@@ -226,7 +226,7 @@
       "saveError": "A nta maxa.",
       "seats": "Places yaagu nimero",
       "seatsCount": "{{count}} sigira",
-      "seatsInvalidBody": "1 da 8.",
+      "seatsInvalidBody": "1 da {{max}}.",
       "seatsInvalidTitle": "Places a koxu",
       "title": "Oto",
       "typeCar": "Woto",
@@ -393,7 +393,9 @@
       },
       "title": "Course",
       "wallet": "Wallet",
-      "bubbleHint": "Niini ka wuti"
+      "bubbleHint": "Niini ka wuti",
+      "navigateToPickup": "Da kiliyen do",
+      "navigateToDropoff": "Da nafa do"
     },
     "state": {
       "errorGoingHome": "Doome mode \"N ga ka da\".",
@@ -667,7 +669,12 @@
       "tariff": "Sere a yoɲinu",
       "vehicleLabel": "Oto",
       "wallet": "Wallet",
-      "yourDriver": "AN DOOGU"
+      "yourDriver": "AN DOOGU",
+      "map": {
+        "positionUnavailable": "Noqqu nta koota",
+        "distanceAway": "I Captain na {{distance}}",
+        "captainOnTheWay": "I Captain na ri"
+      }
     },
     "favorites": {
       "emptyBody": "Course 5 étoile gaaba, doogu ti bira nene.",

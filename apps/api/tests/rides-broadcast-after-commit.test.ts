@@ -41,6 +41,12 @@ vi.mock('../src/modules/push/expo-push.js', () => ({
   notifyCaptainsNewRide: vi.fn(async () => {
     events.push('push');
   }),
+  // Rider-facing notifications also fire on this path; stubbed so the ordering
+  // assertions below stay about the captain re-broadcast.
+  notifyRiderRideAccepted: vi.fn(),
+  notifyRiderCaptainArrived: vi.fn(),
+  notifyRiderCaptainCancelled: vi.fn(),
+  notifyRiderRideExpired: vi.fn(),
 }));
 
 import { cancelRide } from '../src/modules/rides/rides.service.js';

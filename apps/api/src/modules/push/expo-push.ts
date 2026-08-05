@@ -119,10 +119,76 @@ async function pruneDeadTokens(tokens: string[]): Promise<void> {
 }
 
 /**
+ * How long a captain ride alert stays worth delivering. See the note at its
+ * use site: bounded above by searching_timeout_s, below by 2G latency.
+ */
+const CAPTAIN_ALERT_TTL_S = 180;
+
+/**
+ * How many times a single push is attempted before we give up.
+ *
+ * Bounded, and deliberately small. Unbounded retries against a dead Expo would
+ * pile up across every ride broadcast in the outage and eventually starve the
+ * event loop — trading a lost notification for a lost API.
+ */
+const PUSH_MAX_ATTEMPTS = 3;
+const PUSH_RETRY_BASE_MS = 200;
+
+/**
+ * Is this failure worth trying again?
+ *
+ * `null` means the request never got an answer (DNS, timeout, reset) — the most
+ * common transient case on this platform's network. 429 and 5xx are Expo
+ * telling us to come back later.
+ *
+ * Everything else is a 4xx: the payload is wrong, and retrying it only sends
+ * the same broken request again.
+ */
+function isRetryableFailure(status: number | null): boolean {
+  if (status === null) return true;
+  if (status === 429) return true;
+  return status >= 500;
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
  * Sends one push message (which may target many tokens via `to`).
- * Fire-and-forget. Errors are logged, never thrown.
+ *
+ * Fire-and-forget: errors are logged, never thrown. The caller is always a
+ * `void`-ed promise on a ride path, so a rejection here would surface as an
+ * unhandled rejection rather than as a useful error.
+ *
+ * Transient failures are retried with exponential backoff. Without this, a
+ * thirty-second Expo blip silently lost EVERY ride broadcast in that window —
+ * and the only recovery was the 5 s inbox poll, which reaches exactly the
+ * captains who needed the push least (the ones already looking at the app).
  */
 export async function sendPush(message: PushMessage, isRetry = false): Promise<void> {
+  for (let attempt = 1; attempt <= PUSH_MAX_ATTEMPTS; attempt++) {
+    const outcome = await attemptPush(message, isRetry);
+    if (outcome.done) return;
+
+    if (attempt < PUSH_MAX_ATTEMPTS && isRetryableFailure(outcome.status)) {
+      // 200 ms, then 400 ms. Long enough to outlast a blip, short enough that a
+      // ride alert is still worth delivering when it finally lands.
+      await sleep(PUSH_RETRY_BASE_MS * 2 ** (attempt - 1));
+      continue;
+    }
+    // eslint-disable-next-line no-console
+    console.warn('[push] giving up after', attempt, 'attempt(s)', outcome.status ?? 'network error');
+    return;
+  }
+}
+
+/**
+ * One attempt. Returns `done: true` when there is nothing left to do — either
+ * the send succeeded, or it failed in a way retrying cannot fix.
+ */
+async function attemptPush(
+  message: PushMessage,
+  isRetry: boolean,
+): Promise<{ done: boolean; status: number | null }> {
   try {
     const res = await fetch(EXPO_PUSH_URL, {
       method: 'POST',
@@ -140,11 +206,12 @@ export async function sendPush(message: PushMessage, isRetry = false): Promise<v
         for (const tokens of groups) {
           await sendPush({ ...message, to: tokens }, true);
         }
-        return;
+        return { done: true, status: res.status };
       }
       // eslint-disable-next-line no-console
       console.warn('[push] expo push API responded', res.status, text);
-      return;
+      // Let the caller decide: a 502 is worth another go, a 400 is not.
+      return { done: !isRetryableFailure(res.status), status: res.status };
     }
 
     // A 200 only means Expo accepted the request — each token gets its own
@@ -166,9 +233,14 @@ export async function sendPush(message: PushMessage, isRetry = false): Promise<v
       if (code === 'DeviceNotRegistered') deadTokens.push(tokens[i]!);
     });
     await pruneDeadTokens(deadTokens);
+    return { done: true, status: res.status };
   } catch (err) {
+    // No answer at all — DNS, timeout, connection reset. The most common
+    // transient failure on this platform's network, and the one most worth
+    // retrying. `status: null` marks it as such.
     // eslint-disable-next-line no-console
     console.warn('[push] failed to send', err);
+    return { done: false, status: null };
   }
 }
 
@@ -220,7 +292,12 @@ export async function notifyCaptainsNewRide(
       // Apple forbids third-party full-screen takeovers, so Time-Sensitive is
       // the strongest conformant signal. No-op on Android.
       interruptionLevel: 'time-sensitive',
-      ttl: 60,
+      // Was 60 s, which is shorter than an ordinary delivery on a Mauritanian
+      // 2G link: the push service simply DISCARDED the alert before it arrived
+      // and the captain never learned the ride existed. 180 s outlives a slow
+      // delivery while still expiring well inside searching_timeout_s (300 s
+      // by default), so an alert can never outlive the ride it describes.
+      ttl: CAPTAIN_ALERT_TTL_S,
     });
   }
 
@@ -236,9 +313,139 @@ export async function notifyCaptainsNewRide(
       to: batch,
       data: { type: 'ride_alert', rideId: ride.id, title, body },
       priority: 'high',
-      ttl: 60,
+      ttl: CAPTAIN_ALERT_TTL_S,
     });
   }
+}
+
+/**
+ * How long a ride-status update stays worth delivering.
+ *
+ * Longer than the captain alert (which races other captains and is worthless
+ * once someone else takes the ride): "votre captain arrive" is still useful two
+ * minutes late, and on a 2G link two minutes is an ordinary delivery time.
+ * Bounded below searching_timeout_s so a notification can never outlive the
+ * ride it describes.
+ */
+const RIDE_UPDATE_TTL_S = 300;
+
+/**
+ * Push a ride-status change to the RIDER (the booker).
+ *
+ * Every rider-facing notification funnels through here so the channel, the TTL
+ * and the interruption level stay consistent — and so there is exactly one
+ * place to look when a rider says they were not told something.
+ *
+ * Fire-and-forget, like every other push in this module: a ride transition must
+ * never fail because Expo is unreachable.
+ */
+async function notifyRider(
+  bookerId: string,
+  message: {
+    title: string;
+    body: string;
+    data: Record<string, unknown>;
+    /** Break through Focus/DND. Reserved for "act now" moments. */
+    urgent?: boolean;
+  },
+): Promise<void> {
+  const tokens = await getPushTokensForUsers([bookerId]);
+  if (tokens.length === 0) return;
+
+  for (let i = 0; i < tokens.length; i += 100) {
+    await sendPush({
+      to: tokens.slice(i, i + 100),
+      sound: 'default',
+      title: message.title,
+      body: message.body,
+      data: message.data,
+      // Its own channel, so a rider can silence ride updates without silencing
+      // anything else — and so captains' "ride-alerts" keeps its own volume.
+      channelId: 'ride-updates',
+      priority: 'high',
+      ...(message.urgent ? { interruptionLevel: 'time-sensitive' as const } : {}),
+      ttl: RIDE_UPDATE_TTL_S,
+    });
+  }
+}
+
+/**
+ * A captain accepted: tell the rider who is coming, and in what.
+ *
+ * Naming the captain matters more than it looks. "Votre course a été acceptée"
+ * makes the rider open the app to find out anything useful, which defeats the
+ * purpose of the notification; "Sidi arrive — Toyota Corolla blanche
+ * (AA-1234-BB)" is already the whole answer, readable from the lock screen.
+ */
+export async function notifyRiderRideAccepted(
+  bookerId: string,
+  ride: { id: string; captainName: string | null; vehicle: string | null },
+): Promise<void> {
+  const who = ride.captainName?.trim() || 'Votre Captain';
+  await notifyRider(bookerId, {
+    title: '🚖 Captain trouvé',
+    body: ride.vehicle
+      ? `${who} arrive — ${ride.vehicle}.`
+      : `${who} est en route vers vous.`,
+    data: { type: 'ride_accepted', rideId: ride.id },
+  });
+}
+
+/**
+ * The captain is at the pickup point.
+ *
+ * Marked urgent: this is the one moment in the flow where the rider is provably
+ * NOT looking at their phone — they have been waiting several minutes with it in
+ * a pocket. Without breaking through Focus/DND the notification is useless
+ * exactly when it is needed.
+ */
+export async function notifyRiderCaptainArrived(
+  bookerId: string,
+  ride: { id: string; captainName: string | null },
+): Promise<void> {
+  const who = ride.captainName?.trim() || 'Votre Captain';
+  await notifyRider(bookerId, {
+    title: '📍 Votre Captain est arrivé',
+    body: `${who} vous attend au point de ramassage.`,
+    data: { type: 'captain_arrived', rideId: ride.id },
+    urgent: true,
+  });
+}
+
+/**
+ * The assigned captain dropped the ride and it went back to 'searching'.
+ *
+ * The wording is deliberate: the trip is NOT cancelled, it is being re-offered.
+ * Telling the rider "course annulée" would make them rebook and double the load
+ * on a dispatch that is already looking for someone.
+ */
+export async function notifyRiderCaptainCancelled(
+  bookerId: string,
+  ride: { id: string },
+): Promise<void> {
+  await notifyRider(bookerId, {
+    title: '🔄 Recherche d\'un autre Captain',
+    body: 'Votre Captain n\'a pas pu venir. Nous cherchons un autre Captain pour vous.',
+    data: { type: 'ride_captain_cancelled', rideId: ride.id },
+  });
+}
+
+/**
+ * Nobody accepted before the search timeout.
+ *
+ * The most demoralising message the platform sends, so it carries the ride id:
+ * the app can offer a one-tap retry, which is the cheapest possible moment to
+ * win back a user who has just been let down.
+ */
+export async function notifyRiderRideExpired(
+  bookerId: string,
+  ride: { id: string },
+): Promise<void> {
+  await notifyRider(bookerId, {
+    title: '😕 Aucun Captain disponible',
+    body: 'Aucun Captain n\'a pu prendre votre course. Réessayez, il y a souvent plus de Captains quelques minutes plus tard.',
+    data: { type: 'ride_expired', rideId: ride.id },
+  });
 }
 
 const ROADSIDE_PROBLEM_LABEL: Record<string, string> = {

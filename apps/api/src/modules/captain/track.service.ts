@@ -12,6 +12,7 @@ import type pg from 'pg';
 import { pool } from '../../db/pool.js';
 import { haversineM } from '../../lib/geo.js';
 import { getPricingSettings } from '../admin/app-settings.service.js';
+import { withClusterLock } from '../../lib/cluster-lock.js';
 
 // Same gates as the ride meter, tuned for the coarser off-ride cadence
 // (~50 m / 30 s). See meter.service for the rationale.
@@ -205,12 +206,19 @@ export async function reapTrackPartitions(
  * partitions past the retention window. Idempotent, so a missed/duplicate run
  * is harmless.
  */
+/**
+ * Cluster-lock TTL for this job: shorter than its tick interval so a process
+ * killed mid-tick cannot block it, long enough to cover a slow run.
+ */
+const LOCK_TTL_MS = 120_000;
+
 export function startCaptainTrackReapCron(): void {
   const tick = async () => {
     try {
-      const r = await reapTrackPartitions();
+      const outcome = await withClusterLock('captain-track-reap', LOCK_TTL_MS, reapTrackPartitions);
+      if (!outcome.ran) return;
       // eslint-disable-next-line no-console
-      console.log(`[captain-track] reap ok, dropped ${r.dropped.length} partition(s)`);
+      console.log(`[captain-track] reap ok, dropped ${outcome.result.dropped.length} partition(s)`);
     } catch (err) {
       // eslint-disable-next-line no-console
       console.warn('[captain-track] reap failed', err);

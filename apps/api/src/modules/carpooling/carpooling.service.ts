@@ -4,6 +4,7 @@ import { HttpError } from '../../middleware/error.js';
 import { getPricingSettings } from '../admin/app-settings.service.js';
 import { debitWallet } from '../wallet/wallet.service.js';
 import { sendNotification } from '../notifications/notifications.service.js';
+import { withClusterLock } from '../../lib/cluster-lock.js';
 
 export interface PublishTripInput {
   originCity: string;
@@ -1002,11 +1003,24 @@ export async function sendDepartureReminders(): Promise<number> {
 
 const CRON_INTERVAL_MS = 60 * 60 * 1000;
 
+/**
+ * Cluster-lock TTL for this job: shorter than its tick interval so a process
+ * killed mid-tick cannot block it, long enough to cover a slow run.
+ */
+const LOCK_TTL_MS = 55_000;
+
 export function startCarpoolingCron() {
   const tick = async () => {
     try {
-      const expired = await expireTrips();
-      const reminded = await sendDepartureReminders();
+      // Only one API instance does this per tick. Without the lock a second
+      // process behind nginx sends every departure reminder a second time —
+      // the most user-visible way an unlocked cron misbehaves.
+      const outcome = await withClusterLock('carpooling-maintenance', LOCK_TTL_MS, async () => ({
+        expired: await expireTrips(),
+        reminded: await sendDepartureReminders(),
+      }));
+      if (!outcome.ran) return;
+      const { expired, reminded } = outcome.result;
       if (expired > 0 || reminded > 0) {
         // eslint-disable-next-line no-console
         console.log(`[carpooling] expired=${expired}, reminded=${reminded}`);

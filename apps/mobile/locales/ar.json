@@ -410,7 +410,9 @@
       },
       "title": "الرحلات",
       "wallet": "المحفظة",
-      "bubbleHint": "اضغط للفتح"
+      "bubbleHint": "اضغط للفتح",
+      "navigateToPickup": "التوجه إلى الزبون",
+      "navigateToDropoff": "التوجه إلى الوجهة"
     },
     "state": {
       "batteryBody": "حتى لا تفوتك أي رحلة، اسمح لتطبيق {{app}} بالعمل دون قيود البطارية. بدون ذلك قد يوقف أندرويد التطبيق ويؤخّر تنبيه الرحلة الجديدة أو يلغيه.",
@@ -1234,7 +1236,12 @@
       "tariff": "السعر التقديري",
       "vehicleLabel": "المركبة",
       "wallet": "المحفظة",
-      "yourDriver": "كابتنك"
+      "yourDriver": "كابتنك",
+      "map": {
+        "positionUnavailable": "الموقع غير متاح",
+        "distanceAway": "سائقك على بعد {{distance}}",
+        "captainOnTheWay": "سائقك في الطريق"
+      }
     },
     "favorites": {
       "emptyBody": "بعد رحلة بـ 5 نجوم يمكنك إضافة الكابتن هنا.",

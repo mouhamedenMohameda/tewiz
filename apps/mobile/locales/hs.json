@@ -395,7 +395,9 @@
       },
       "title": "الرحلات",
       "wallet": "المحفظة",
-      "bubbleHint": "اضغط باش تحل"
+      "bubbleHint": "اضغط باش تحل",
+      "navigateToPickup": "سوق للزبون",
+      "navigateToDropoff": "سوق للوجهة"
     },
     "state": {
       "errorGoingHome": "خطأ في وضع \"أعود إلى منزلي\".",
@@ -669,7 +671,12 @@
       "tariff": "السعر التقريبي",
       "vehicleLabel": "الوته",
       "wallet": "الكلبة(الكلمة)",
-      "yourDriver": "كابتنك"
+      "yourDriver": "كابتنك",
+      "map": {
+        "positionUnavailable": "الموقع ماهوش متوفر",
+        "distanceAway": "سائقك ف{{distance}}",
+        "captainOnTheWay": "سائقك جاي"
+      }
     },
     "favorites": {
       "emptyBody": "بعد رحلة بـ 5 نجوم يمكنك إضافة الكابتن هنا.",

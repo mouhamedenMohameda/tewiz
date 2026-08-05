@@ -226,7 +226,7 @@
       "saveError": "Mënul denc.",
       "seats": "Limu places Clients",
       "seatsCount": "{{count}} toogukaay",
-      "seatsInvalidBody": "Hakkunde 1 ak 8.",
+      "seatsInvalidBody": "Hakkunde 1 ak {{max}}.",
       "seatsInvalidTitle": "Places baaxul",
       "title": "Oto",
       "typeCar": "Woto",
@@ -393,7 +393,9 @@
       },
       "title": "Course-yi",
       "wallet": "Wallet",
-      "bubbleHint": "Bësal ngir ubbi"
+      "bubbleHint": "Bësal ngir ubbi",
+      "navigateToPickup": "Dem ci kiliyaan bi",
+      "navigateToDropoff": "Dem ci dexug bi"
     },
     "state": {
       "errorGoingHome": "Njumte ci mode \"Dama dem sama kër\".",
@@ -667,7 +669,12 @@
       "tariff": "Njëg bu ñu estimer",
       "vehicleLabel": "Oto",
       "wallet": "Wallet",
-      "yourDriver": "SA Captain"
+      "yourDriver": "SA Captain",
+      "map": {
+        "positionUnavailable": "Bërëb bi jotul",
+        "distanceAway": "Sa Captain mungi {{distance}}",
+        "captainOnTheWay": "Sa Captain mungi ñëw"
+      }
     },
     "favorites": {
       "emptyBody": "Bu nga jox 5 étoile, dinga yokk Captain bi fii.",
