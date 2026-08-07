@@ -1,9 +1,5 @@
-import { type ReactNode } from 'react';
-import { View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, {
-  useAnimatedStyle, useSharedValue, withSpring,
-} from 'react-native-reanimated';
+import { type ReactNode, useEffect, useMemo, useRef } from 'react';
+import { Animated, PanResponder, View } from 'react-native';
 import { colors, radius, shadow, spacing } from '@/theme';
 
 export interface BottomSheetProps {
@@ -14,7 +10,11 @@ export interface BottomSheetProps {
   children: ReactNode;
 }
 
-const SPRING = { damping: 22, stiffness: 220, mass: 0.9 } as const;
+const SPRING = {
+  bounciness: 0,
+  speed: 18,
+  useNativeDriver: true,
+} as const;
 
 /**
  * Two-snap draggable bottom sheet (collapsed ↔ expanded).
@@ -27,31 +27,46 @@ const SPRING = { damping: 22, stiffness: 220, mass: 0.9 } as const;
  */
 export function BottomSheet({ expandedHeight, collapsedHeight, children }: BottomSheetProps) {
   const maxY = Math.max(0, expandedHeight - collapsedHeight);
-  const translateY = useSharedValue(maxY); // start collapsed
-  const startY = useSharedValue(0);
+  const translateY = useRef(new Animated.Value(maxY)).current;
+  const currentY = useRef(maxY);
+  const startY = useRef(maxY);
 
-  const pan = Gesture.Pan()
-    .onStart(() => {
-      startY.value = translateY.value;
-    })
-    .onUpdate((e) => {
-      translateY.value = Math.min(Math.max(startY.value + e.translationY, 0), maxY);
-    })
-    .onEnd((e) => {
-      // Fling: project a little past the finger so a quick flick commits.
-      const projected = translateY.value + e.velocityY * 0.12;
-      translateY.value = withSpring(projected > maxY / 2 ? maxY : 0, SPRING);
-    });
+  useEffect(() => {
+    currentY.current = maxY;
+    startY.current = maxY;
+    translateY.setValue(maxY);
+  }, [maxY, translateY]);
 
-  const tap = Gesture.Tap().onEnd(() => {
-    translateY.value = withSpring(translateY.value > maxY / 2 ? 0 : maxY, SPRING);
-  });
+  function animateTo(nextY: number) {
+    currentY.current = nextY;
+    Animated.spring(translateY, {
+      ...SPRING,
+      toValue: nextY,
+    }).start();
+  }
 
-  const gesture = Gesture.Exclusive(pan, tap);
-
-  const sheetStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
-  }));
+  const panResponder = useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: (_, gestureState) => (
+      Math.abs(gestureState.dy) > 3 || Math.abs(gestureState.dx) > 3
+    ),
+    onPanResponderGrant: () => {
+      startY.current = currentY.current;
+    },
+    onPanResponderMove: (_, gestureState) => {
+      const nextY = Math.min(Math.max(startY.current + gestureState.dy, 0), maxY);
+      currentY.current = nextY;
+      translateY.setValue(nextY);
+    },
+    onPanResponderRelease: (_, gestureState) => {
+      const projected = currentY.current + gestureState.vy * 120;
+      animateTo(projected > maxY / 2 ? maxY : 0);
+    },
+    onPanResponderTerminate: (_, gestureState) => {
+      const projected = currentY.current + gestureState.vy * 120;
+      animateTo(projected > maxY / 2 ? maxY : 0);
+    },
+  }), [maxY, translateY]);
 
   return (
     <Animated.View
@@ -63,17 +78,17 @@ export function BottomSheet({ expandedHeight, collapsedHeight, children }: Botto
           borderTopLeftRadius: radius.xxl, borderTopRightRadius: radius.xxl,
           ...shadow.raised,
         },
-        sheetStyle,
+        {
+          transform: [{ translateY }],
+        },
       ]}
     >
-      <GestureDetector gesture={gesture}>
-        <View
-          hitSlop={12}
-          style={{ paddingTop: spacing.md, paddingBottom: spacing.sm, alignItems: 'center' }}
-        >
-          <View style={{ width: 40, height: 5, borderRadius: 3, backgroundColor: colors.lineStrong }} />
-        </View>
-      </GestureDetector>
+      <View
+        {...panResponder.panHandlers}
+        style={{ paddingTop: spacing.md, paddingBottom: spacing.sm, alignItems: 'center' }}
+      >
+        <View style={{ width: 40, height: 5, borderRadius: 3, backgroundColor: colors.lineStrong }} />
+      </View>
       {children}
     </Animated.View>
   );
