@@ -44,7 +44,7 @@ const HAS_APPLE_TARGETS =
 const config: ExpoConfig = {
   name: APP_NAME,
   slug: APP_SLUG,
-  version: '1.2.4',
+  version: '1.2.5',
   orientation: 'portrait',
   userInterfaceStyle: 'light',
   icon: './assets/icon.png',
@@ -191,11 +191,11 @@ const config: ExpoConfig = {
   experiments: {
     typedRoutes: true,
   },
-  owner: 'medn12345',
+  owner: 'usernamem',
   extra: {
     router: {},
     eas: {
-      projectId: 'dd6ae7d9-1b7a-4cb8-8a92-b12962a544ca',
+      projectId: '3c12897e-d627-4f48-86d9-1aa2260a83b2',
     },
   },
 };
