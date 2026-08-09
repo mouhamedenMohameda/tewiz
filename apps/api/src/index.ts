@@ -66,19 +66,37 @@ app.use(
 const allowedOrigins = env.CORS_ORIGINS.split(',')
   .map((o) => o.trim())
   .filter(Boolean);
+const corsIsProd = env.NODE_ENV === 'production';
 if (allowedOrigins.length === 0) {
-  logger.warn(
-    'CORS_ORIGINS is empty — the API currently accepts requests from ANY ' +
-      'origin. Set CORS_ORIGINS (comma-separated) in production to lock it down.',
-  );
+  if (corsIsProd) {
+    logger.error(
+      'CORS_ORIGINS is empty in production — every browser origin will be ' +
+        'REJECTED (the admin-web included). Set CORS_ORIGINS to the admin ' +
+        'origin(s), comma-separated, and restart.',
+    );
+  } else {
+    logger.warn(
+      'CORS_ORIGINS is empty — accepting any origin. This permissive fallback ' +
+        'exists for local development only; production rejects instead.',
+    );
+  }
 }
 app.use(
   cors({
     origin(origin, cb) {
       if (!origin) return cb(null, true); // non-browser client (mobile/curl)
-      if (allowedOrigins.length === 0) return cb(null, true); // permissive fallback (see warning)
       if (allowedOrigins.includes(origin)) return cb(null, true);
-      return cb(new Error('Not allowed by CORS'));
+      // Unlisted origin. Outside production we stay permissive so a teammate can
+      // point a local admin-web at a shared API without editing env. In
+      // production an unlisted origin is refused, and an EMPTY list refuses
+      // everything rather than reflecting back whatever origin happened to ask —
+      // failing closed is the only safe default for a value that is easy to
+      // forget when provisioning a new server.
+      if (!corsIsProd && allowedOrigins.length === 0) return cb(null, true);
+      // `false` omits the CORS headers so the browser blocks the read. Passing
+      // an Error here instead would surface as a 500 from the error handler,
+      // which misreports a policy decision as a server fault.
+      return cb(null, false);
     },
     credentials: true,
   }),
