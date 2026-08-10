@@ -42,7 +42,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, motion, radius, SHADOW, spacing, type as typo } from '@/theme';
+import { colors, currentScheme, motion, radius, schemed, shadowTint, spacing, type as typo } from '@/theme';
 import {
   rubberband,
   project,
@@ -53,8 +53,14 @@ import { useReducedMotion } from '@/lib/useReducedMotion';
 import { haptics } from '@/lib/haptics';
 import { AppText } from './Text';
 
-/** Warm scrim — the cold slate one belonged to the pre-"Sahara Solaire" look. */
-const SCRIM = 'rgba(42,26,14,0.45)';
+/**
+ * Warm scrim — the cold slate one belonged to the pre-"Sahara Solaire" look.
+ * Dark mode needs a deeper one: a 45%-espresso wash over an already-espresso
+ * app barely registers, so the sheet would stop reading as "in front".
+ */
+const scrim = schemed(() => ({
+  value: currentScheme() === 'dark' ? 'rgba(0,0,0,0.62)' : 'rgba(42,26,14,0.45)',
+})) as { value: string };
 /** Past this fraction of the sheet's height, a release dismisses. */
 const DISMISS_FRACTION = 0.4;
 const TAP_SLOP = 4;
@@ -245,7 +251,7 @@ export function Sheet({
         <Animated.View
           style={{
             position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: SCRIM,
+            backgroundColor: scrim.value,
             opacity: fade,
           }}
         >
@@ -276,7 +282,7 @@ export function Sheet({
               paddingBottom: insets.bottom + spacing.lg,
               // Aimed upward: a sheet welded to the bottom edge throws a
               // downward shadow clean off the screen and reads as flat.
-              shadowColor: SHADOW,
+              shadowColor: shadowTint.value,
               shadowOpacity: 0.2,
               shadowRadius: 28,
               shadowOffset: { width: 0, height: -10 },

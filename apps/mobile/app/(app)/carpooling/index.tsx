@@ -20,7 +20,7 @@ import {
   SelectField,
   Sheet,
 } from '@/components/ui';
-import { colors, fonts, radius, shadow, spacing, statusTone } from '@/theme';
+import { colors, fonts, radius, schemed, shadow, spacing, statusTone } from '@/theme';
 import { currentLanguage, isRTL } from '@/lib/i18n';
 import { useAuth } from '@/lib/auth';
 import { MAURITANIA_CITIES } from '@/lib/cities';
@@ -69,7 +69,10 @@ function openWhatsapp(phone: string) {
   void Linking.openURL(`https://wa.me/${normalizePhoneForWa(phone)}`);
 }
 
-const STATUS_TINT: Record<CarpoolingBookingStatus, { bg: string; fg: string }> = {
+// schemed(): a bare object literal here would freeze whichever
+// palette was active when this module was first imported, and then
+// never follow the user into dark mode.
+const STATUS_TINT = schemed(() => ({
   requested: { bg: colors.saffronSoft, fg: colors.warning },
   accepted: { bg: statusTone.done.bg, fg: colors.success },
   completed: { bg: statusTone.done.bg, fg: colors.success },
@@ -77,7 +80,7 @@ const STATUS_TINT: Record<CarpoolingBookingStatus, { bg: string; fg: string }> =
   cancelled: { bg: colors.sunken, fg: colors.muted },
   no_show: { bg: colors.dangerSoft, fg: colors.danger },
   expired: { bg: colors.sunken, fg: colors.muted },
-};
+}));
 
 function StatusBadge({ status }: { status: CarpoolingBookingStatus }) {
   const { t } = useTranslation();

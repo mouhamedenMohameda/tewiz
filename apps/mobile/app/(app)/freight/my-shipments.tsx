@@ -8,12 +8,15 @@ import {
 } from '@/lib/freight';
 import { formatMru } from '@/lib/format';
 import { AppText, Button, Card, ScreenHeader } from '@/components/ui';
-import { colors, radius, spacing } from '@/theme';
+import { colors, radius, schemed, spacing } from '@/theme';
 
-const STATUS_COLOR: Record<FreightBookingStatus, string> = {
+// schemed(): a bare object literal here would freeze whichever
+// palette was active when this module was first imported, and then
+// never follow the user into dark mode.
+const STATUS_COLOR = schemed(() => ({
   pending: colors.warning, confirmed: colors.success, declined: colors.danger,
   cancelled: colors.muted, completed: colors.ink2,
-};
+}));
 
 export default function MyShipmentsScreen() {
   const router = useRouter();

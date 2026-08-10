@@ -18,7 +18,7 @@ import { api } from '@/lib/api';
 import { useApiQuery } from '@/lib/useApiQuery';
 import { INBOX_KEY, UNREAD_KEY } from '@/lib/notificationKeys';
 import { AppText, Card, Icon, PressableScale, Screen, ScreenHeader } from '@/components/ui';
-import { colors, radius, spacing } from '@/theme';
+import { colors, radius, schemed, spacing } from '@/theme';
 
 interface InboxItem {
   id: string;
@@ -35,12 +35,15 @@ interface InboxResponse {
   unreadCount: number;
 }
 
-const TYPE_ACCENT: Record<string, { tint: string; fg: string }> = {
+// schemed(): a bare object literal here would freeze whichever
+// palette was active when this module was first imported, and then
+// never follow the user into dark mode.
+const TYPE_ACCENT = schemed((): Record<string, { tint: string; fg: string }> => ({
   bonus_earned:  { tint: colors.successSoft, fg: colors.success },
   bonus_config:  { tint: colors.saffronSoft, fg: colors.warning },
   system:        { tint: colors.surfaceAlt,  fg: colors.ink },
   info:          { tint: colors.surfaceAlt,  fg: colors.ink },
-};
+}));
 
 export default function NotificationsScreen() {
   const router = useRouter();

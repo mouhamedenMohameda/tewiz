@@ -46,7 +46,10 @@ const config: ExpoConfig = {
   slug: APP_SLUG,
   version: '1.2.5',
   orientation: 'portrait',
-  userInterfaceStyle: 'light',
+  // 'automatic' hands the choice to the OS setting; the palette follows via
+  // <ThemeProvider>. Locked to 'light' before, which meant useColorScheme()
+  // could never report anything else no matter what the user had chosen.
+  userInterfaceStyle: 'automatic',
   icon: './assets/icon.png',
   scheme: APP_SCHEME,
   newArchEnabled: true,
@@ -131,6 +134,11 @@ const config: ExpoConfig = {
         imageWidth: 200,
         resizeMode: 'contain',
         backgroundColor: '#FBF3E7',
+        // The NATIVE splash is drawn by the OS before any JS runs, so it can't
+        // read the palette — it needs its own dark value here or a dark-mode
+        // cold start flashes a sand-coloured screen before the app appears.
+        // Must match palettes.dark.canvas.
+        dark: { backgroundColor: '#150D06' },
       },
     ],
     [

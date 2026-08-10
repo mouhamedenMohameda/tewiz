@@ -5,15 +5,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { JOB_STATUS_KEYS, listMyJobs, type ConvoyageJob, type JobStatus } from '@/lib/convoyage';
 import { AppText, Button, Card, Icon, ScreenHeader } from '@/components/ui';
-import { colors, radius, spacing } from '@/theme';
+import { colors, radius, schemed, spacing } from '@/theme';
 
-const STATUS_COLOR: Record<JobStatus, string> = {
+// schemed(): a bare object literal here would freeze whichever
+// palette was active when this module was first imported, and then
+// never follow the user into dark mode.
+const STATUS_COLOR = schemed(() => ({
   open: colors.warning,
   assigned: colors.success,
   completed: colors.ink2,
   cancelled: colors.muted,
   expired: colors.muted,
-};
+}));
 
 export default function ConvoyageScreen() {
   const router = useRouter();

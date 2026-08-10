@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { PlainText as Text, ScreenHeader } from '@/components/ui';
 import { useApiQuery } from '@/lib/useApiQuery';
 import { formatMru } from '@/lib/format';
-import { colors, radius, statusTone } from '@/theme';
+import { colors, radius, schemed, statusTone } from '@/theme';
 
 type RideStatus =
   | 'pending_passenger_confirm' | 'searching'
@@ -28,7 +28,10 @@ interface RideRow {
   completedAt?: string | null;
 }
 
-const STATUS_PILL: Record<RideStatus, { bg: string; fg: string }> = {
+// schemed(): a bare object literal here would freeze whichever
+// palette was active when this module was first imported, and then
+// never follow the user into dark mode.
+const STATUS_PILL = schemed(() => ({
   pending_passenger_confirm: statusTone.pending,
   searching:                 statusTone.pending,
   accepted:                  statusTone.active,
@@ -39,7 +42,7 @@ const STATUS_PILL: Record<RideStatus, { bg: string; fg: string }> = {
   cancelled_by_captain:      statusTone.failed,
   cancelled_by_system:       statusTone.failed,
   no_show:                   statusTone.neutral,
-};
+}));
 
 export default function HistoryScreen() {
   const router = useRouter();

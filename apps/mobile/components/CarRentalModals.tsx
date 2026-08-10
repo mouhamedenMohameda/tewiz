@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
 import { AppText, Button, Icon, PressableScale, Sheet } from '@/components/ui';
 import { uploadCarPhoto } from '@/lib/carRental';
-import { colors, fonts, radius, spacing, statusTone } from '@/theme';
+import { colors, fonts, radius, schemed, spacing, statusTone } from '@/theme';
 import { currentLanguage, isRTL } from '@/lib/i18n';
 
 export function RatingModal({ visible, name, busy, onSubmit, onClose }: {
@@ -170,12 +170,15 @@ export function BookingActionModal({
   );
 }
 
-const OTP_BOX = {
+// schemed(): a bare object literal here would freeze whichever
+// palette was active when this module was first imported, and then
+// never follow the user into dark mode.
+const OTP_BOX = schemed(() => ({
   backgroundColor: statusTone.done.bg,
   borderRadius: radius.md,
   padding: spacing.base,
   gap: 4,
-} as const;
+}));
 
 /** Big highlighted code the holder reads out to the other party. */
 export function OtpDisplay({ label, code, hint }: { label: string; code: string; hint: string }) {

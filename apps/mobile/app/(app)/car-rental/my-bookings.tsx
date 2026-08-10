@@ -10,9 +10,12 @@ import {
 import { formatMru } from '@/lib/format';
 import { AppText, Button, Card, Icon, ScreenHeader } from '@/components/ui';
 import { BookingActionModal, OtpDisplay, RatingModal } from '@/components/CarRentalModals';
-import { colors, radius, spacing } from '@/theme';
+import { colors, radius, schemed, spacing } from '@/theme';
 
-const STATUS_COLOR: Record<BookingStatus, string> = {
+// schemed(): a bare object literal here would freeze whichever
+// palette was active when this module was first imported, and then
+// never follow the user into dark mode.
+const STATUS_COLOR = schemed(() => ({
   pending: colors.warning,
   confirmed: colors.success,
   declined: colors.danger,
@@ -22,7 +25,7 @@ const STATUS_COLOR: Record<BookingStatus, string> = {
   no_show: colors.danger,
   no_return: colors.danger,
   disputed: colors.warning,
-};
+}));
 
 export default function MyBookingsScreen() {
   const router = useRouter();

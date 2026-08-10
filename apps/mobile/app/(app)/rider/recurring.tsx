@@ -9,7 +9,7 @@ import { PlainText as Text, ScreenHeader } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useApiQuery } from '@/lib/useApiQuery';
 import { formatMru } from '@/lib/format';
-import { colors, radius, statusTone } from '@/theme';
+import { colors, radius, schemed, statusTone } from '@/theme';
 
 type RecurringStatus = 'proposed' | 'active' | 'cancelled' | 'ended';
 
@@ -26,12 +26,15 @@ interface Recurring {
   captainId: string | null;
 }
 
-const STATUS_PILL: Record<RecurringStatus, { bg: string; fg: string }> = {
+// schemed(): a bare object literal here would freeze whichever
+// palette was active when this module was first imported, and then
+// never follow the user into dark mode.
+const STATUS_PILL = schemed(() => ({
   proposed:  { bg: statusTone.pending.bg, fg: statusTone.pending.fg },
   active:    { bg: statusTone.done.bg, fg: statusTone.done.fg },
   cancelled: { bg: colors.dangerSoft, fg: statusTone.failed.fg },
   ended:     { bg: colors.line, fg: colors.ink2 },
-};
+}));
 
 export default function RecurringScreen() {
   const router = useRouter();
