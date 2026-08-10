@@ -18,7 +18,7 @@ import {
   type TextProps as RNTextProps,
   type TextStyle,
 } from 'react-native';
-import { colors, type } from '@/theme';
+import { colors, maxFontScale, type } from '@/theme';
 import { currentLanguage, isRTL } from '@/lib/i18n';
 import { arabicFaceForStyle, arabicLineHeight } from './arabicFont';
 
@@ -50,6 +50,10 @@ export function AppText({
 
   return (
     <RNText
+      // Dynamic Type: the OS setting is honoured, but each ramp step has its
+      // own ceiling so the hierarchy survives at maximum size — see
+      // theme/maxFontScale. A caller can still override per instance.
+      maxFontSizeMultiplier={maxFontScale[variant]}
       {...rest}
       style={[
         preset,
