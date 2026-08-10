@@ -65,9 +65,9 @@ const PROVIDER_LOGOS: Record<Provider, any> = {
 // Numéros officiels où le Captain doit envoyer la recharge. Affichés
 // dans la modale dès qu'il sélectionne le fournisseur correspondant.
 const PROVIDER_PHONES: Partial<Record<Provider, string>> = {
-  bankily: '42986738',
+  bankily: '32353437',
   sedad: '32164356',
-  masrvi: '36863516',
+  masrvi: '32353437',
 };
 
 export default function WalletScreen() {
