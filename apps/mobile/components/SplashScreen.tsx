@@ -34,7 +34,7 @@ import {
   Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, gradients, radius, SHADOW } from '@/theme';
+import { colors, gradients, radius, schemed, shadowTint } from '@/theme';
 
 interface SplashScreenProps {
   onAnimationEnd?: () => void;
@@ -285,7 +285,10 @@ const CAR_WIDTH = W * 0.95;
 // own ratio (449×275) instead of relying on that CSS property.
 const CAR_HEIGHT = CAR_WIDTH * (275 / 449);
 
-const styles = StyleSheet.create({
+// schemed(): StyleSheet.create runs once at import, so any colour inside it
+// would be frozen to whichever palette was active then. Building the sheet per
+// scheme costs one extra object at startup and makes the whole file themeable.
+const styles = schemed(() => StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 9999,
@@ -335,7 +338,7 @@ const styles = StyleSheet.create({
     height: 96,
     borderRadius: radius.xxl,
     overflow: 'hidden',
-    shadowColor: SHADOW,
+    shadowColor: shadowTint.value,
     shadowOpacity: 0.25,
     shadowRadius: 24,
     shadowOffset: { width: 0, height: 12 },
@@ -414,6 +417,6 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: radius.lg,
   },
-});
+}));
 
 export default SplashScreen;

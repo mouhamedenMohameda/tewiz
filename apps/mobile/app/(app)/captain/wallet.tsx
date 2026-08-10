@@ -14,7 +14,7 @@ import { formatMru } from '@/lib/format';
 import {
   AppText, Button, Card, Icon, Screen, ScreenHeader, TextField,
 } from '@/components/ui';
-import { colors, gradients, radius, shadow, spacing, statusTone } from '@/theme';
+import { colors, gradients, radius, schemed, shadow, spacing, statusTone } from '@/theme';
 import { APP_NAME } from '@/lib/brand';
 import { wrapRow } from '@/components/ui';
 
@@ -148,13 +148,16 @@ function EmptyHint({ text }: { text: string }) {
   return <AppText variant="body" color={colors.muted} style={{ marginTop: spacing.xs }}>{text}</AppText>;
 }
 
-const PILL: Record<TopupStatus, { bg: string; fg: string }> = {
+// schemed(): a bare object literal here would freeze whichever
+// palette was active when this module was first imported, and then
+// never follow the user into dark mode.
+const PILL = schemed(() => ({
   pending:   { bg: colors.saffronSoft, fg: statusTone.pending.fg },
   approved:  { bg: colors.successSoft, fg: colors.success },
   partial:   { bg: statusTone.pending.bg, fg: statusTone.pending.fg },
   rejected:  { bg: colors.dangerSoft, fg: colors.danger },
   duplicate: { bg: colors.surfaceAlt, fg: colors.muted },
-};
+}));
 
 function TopupRow({ t: tx, locale }: { t: Topup; locale: string }) {
   const { t } = useTranslation();

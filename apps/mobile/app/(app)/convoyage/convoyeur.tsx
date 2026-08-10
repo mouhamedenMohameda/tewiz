@@ -9,14 +9,17 @@ import {
 } from '@/lib/convoyage';
 import { formatMru } from '@/lib/format';
 import { AppText, Button, Card, ScreenHeader, TextField } from '@/components/ui';
-import { colors, radius, spacing } from '@/theme';
+import { colors, radius, schemed, spacing } from '@/theme';
 
-const PROP_COLOR: Record<ProposalStatus, string> = {
+// schemed(): a bare object literal here would freeze whichever
+// palette was active when this module was first imported, and then
+// never follow the user into dark mode.
+const PROP_COLOR = schemed(() => ({
   pending: colors.warning,
   accepted: colors.success,
   rejected: colors.danger,
   withdrawn: colors.muted,
-};
+}));
 
 export default function ConvoyeurScreen() {
   const router = useRouter();

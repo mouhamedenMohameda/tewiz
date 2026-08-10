@@ -1,6 +1,6 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Animated, PanResponder, View } from 'react-native';
-import { colors, motion, radius, SHADOW, spacing } from '@/theme';
+import { colors, motion, radius, shadowTint, spacing } from '@/theme';
 import {
   clampWithResistance,
   settleTarget,
@@ -154,7 +154,7 @@ export function BottomSheet({ expandedHeight, collapsedHeight, children }: Botto
           // anchored to the bottom edge is thrown entirely off-screen — the
           // sheet read as a flat block with no separation from the map. Same
           // warm tint, aimed up.
-          shadowColor: SHADOW,
+          shadowColor: shadowTint.value,
           shadowOpacity: 0.18,
           shadowRadius: 24,
           shadowOffset: { width: 0, height: -8 },

@@ -29,7 +29,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { PlainText as Text, Sheet } from '@/components/ui';
 import type { Candidate, SideBlock, Side } from '@/lib/voiceLocation';
-import { colors, spacing, statusTone } from '@/theme';
+import { colors, schemed, spacing, statusTone } from '@/theme';
 
 interface Props {
   visible: boolean;
@@ -158,7 +158,10 @@ function formatMeters(m: number): string {
 
 // The scrim, surface, handle and header now come from <Sheet>, so every sheet
 // in the app shares one set of values instead of six near-misses.
-const styles = StyleSheet.create({
+// schemed(): StyleSheet.create runs once at import, so any colour inside it
+// would be frozen to whichever palette was active then. Building the sheet per
+// scheme costs one extra object at startup and makes the whole file themeable.
+const styles = schemed(() => StyleSheet.create({
   empty: {
     paddingVertical: 32, paddingHorizontal: 16,
   },
@@ -195,4 +198,4 @@ const styles = StyleSheet.create({
   cancelText: {
     color: colors.ink2, fontSize: 13, fontWeight: '600',
   },
-});
+}));

@@ -29,7 +29,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Button, Icon, PressableScale, Screen, Sheet, type IconName } from '@/components/ui';
-import { colors, radius, shadow, spacing, fonts } from '@/theme';
+import { colors, fonts, radius, schemed, shadow, spacing } from '@/theme';
 import { currentLanguage, isRTL } from '@/lib/i18n';
 import { api } from '@/lib/api';
 import { RideCancelReasonSheet } from '@/components/RideCancelReasonSheet';
@@ -106,7 +106,10 @@ interface Ride {
  * slate/blue/indigo palette that predated the "Sahara Solaire" theme and made
  * this screen look like it belonged to a different app.
  */
-const STATUS_TONE: Record<RideStatus, { tint: string; fg: string; icon: IconName }> = {
+// schemed(): a bare object literal here would freeze whichever
+// palette was active when this module was first imported, and then
+// never follow the user into dark mode.
+const STATUS_TONE = schemed((): Record<RideStatus, { tint: string; fg: string; icon: IconName }> => ({
   pending_passenger_confirm: { tint: colors.saffronSoft, fg: colors.warning, icon: 'clock' },
   searching:                 { tint: colors.emberSoft,   fg: colors.ember,   icon: 'search' },
   accepted:                  { tint: colors.emberSoft,   fg: colors.ember,   icon: 'ride' },
@@ -117,7 +120,7 @@ const STATUS_TONE: Record<RideStatus, { tint: string; fg: string; icon: IconName
   cancelled_by_captain:      { tint: colors.dangerSoft,  fg: colors.danger,  icon: 'close' },
   cancelled_by_system:       { tint: colors.dangerSoft,  fg: colors.danger,  icon: 'close' },
   no_show:                   { tint: colors.dangerSoft,  fg: colors.danger,  icon: 'alert' },
-};
+}));
 
 /** Statuses during which there is a live captain to draw. */
 const LIVE_STATUSES: RideStatus[] = ['accepted', 'arrived', 'in_progress'];

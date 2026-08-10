@@ -30,6 +30,7 @@ import { SplashGate } from '@/components/SplashGate';
 import UpdateGate from '@/components/UpdateGate';
 import { AppQueryProvider } from '@/lib/queryClient';
 import { colors } from '@/theme';
+import { ThemeProvider, useScheme } from '@/theme/ThemeProvider';
 import fontAssets from '@/theme/fontAssets';
 
 // Hold the native splash until our custom fonts are ready, so the UI never
@@ -138,28 +139,41 @@ export default function RootLayout() {
 
   return (
     <CrashBoundary>
-      <AppQueryProvider>
-        <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.canvas }}>
-          <SafeAreaProvider>
-            <SplashGate>
-              <StatusBar style="dark" />
-              <NotificationTapHandler />
-              <Stack
-                screenOptions={{
-                  headerShown: false,
-                  contentStyle: { backgroundColor: colors.canvas },
-                }}
-              >
-                <Stack.Screen name="index" />
-                <Stack.Screen name="(auth)" />
-                <Stack.Screen name="(app)" />
-              </Stack>
-              {/* Blocks outdated builds; renders above everything else. */}
-              <UpdateGate />
-            </SplashGate>
-          </SafeAreaProvider>
-        </GestureHandlerRootView>
-      </AppQueryProvider>
+      {/* Outermost themed boundary: everything below reads the design tokens,
+          and this is what re-renders them when the OS scheme flips. */}
+      <ThemeProvider>
+        <AppQueryProvider>
+          <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.canvas }}>
+            <SafeAreaProvider>
+              <SplashGate>
+                <ThemedStatusBar />
+                <NotificationTapHandler />
+                <Stack
+                  screenOptions={{
+                    headerShown: false,
+                    contentStyle: { backgroundColor: colors.canvas },
+                  }}
+                >
+                  <Stack.Screen name="index" />
+                  <Stack.Screen name="(auth)" />
+                  <Stack.Screen name="(app)" />
+                </Stack>
+                {/* Blocks outdated builds; renders above everything else. */}
+                <UpdateGate />
+              </SplashGate>
+            </SafeAreaProvider>
+          </GestureHandlerRootView>
+        </AppQueryProvider>
+      </ThemeProvider>
     </CrashBoundary>
   );
+}
+
+/**
+ * The status bar carries the OPPOSITE polarity to the canvas: dark glyphs on
+ * the light sand, light glyphs on the dark. Hardcoding "dark" left the clock
+ * and battery invisible the moment the app went dark.
+ */
+function ThemedStatusBar() {
+  return <StatusBar style={useScheme() === 'dark' ? 'light' : 'dark'} />;
 }

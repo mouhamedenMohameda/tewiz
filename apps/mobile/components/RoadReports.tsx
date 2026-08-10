@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Button, PlainText as Text, PressableScale, Sheet } from '@/components/ui';
-import { colors, fonts, radius, spacing, statusTone } from '@/theme';
+import { colors, fonts, radius, schemed, spacing, statusTone } from '@/theme';
 import { currentLanguage, isRTL } from '@/lib/i18n';
 import { getMapbox } from '@/lib/mapbox';
 import { api } from '@/lib/api';
@@ -27,7 +27,10 @@ interface RoadReport {
   status: string;
 }
 
-const REASON_META: Record<RoadReason, { emoji: string; color: string }> = {
+// schemed(): a bare object literal here would freeze whichever
+// palette was active when this module was first imported, and then
+// never follow the user into dark mode.
+const REASON_META = schemed(() => ({
   sand:              { emoji: '🏜️', color: colors.warning },
   flood:             { emoji: '🌊', color: colors.water },
   construction:      { emoji: '🚧', color: statusTone.pending.fg },
@@ -35,7 +38,7 @@ const REASON_META: Record<RoadReason, { emoji: string; color: string }> = {
   accident:          { emoji: '💥', color: colors.danger },
   protest:           { emoji: '✊', color: statusTone.accent.fg },
   other:             { emoji: '⚠️', color: colors.ink2 },
-};
+}));
 
 /**
  * Shared hook: fetches active road reports every 60 s. Used by both the

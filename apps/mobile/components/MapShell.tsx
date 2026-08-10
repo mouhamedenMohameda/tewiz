@@ -4,7 +4,7 @@ import { PlainText as Text } from '@/components/ui';
 import {
   getMapbox, initMapbox, MAPBOX_STYLE_URL, MAPBOX_TOKEN, NKC_CENTER, DEFAULT_ZOOM,
 } from '@/lib/mapbox';
-import { colors } from '@/theme';
+import { colors, schemed } from '@/theme';
 
 interface Props {
   children?: ReactNode;
@@ -129,7 +129,10 @@ export const MapShell = forwardRef<any, Props>(function MapShell(
   );
 });
 
-const styles = StyleSheet.create({
+// schemed(): StyleSheet.create runs once at import, so any colour inside it
+// would be frozen to whichever palette was active then. Building the sheet per
+// scheme costs one extra object at startup and makes the whole file themeable.
+const styles = schemed(() => StyleSheet.create({
   fallback: {
     flex: 1,
     backgroundColor: colors.line,
@@ -140,4 +143,4 @@ const styles = StyleSheet.create({
   fallbackEmoji: { fontSize: 32, marginBottom: 8 },
   fallbackTitle: { fontSize: 15, fontWeight: '600', color: colors.ink },
   fallbackBody: { fontSize: 13, color: colors.ink2, marginTop: 4, textAlign: 'center' },
-});
+}));

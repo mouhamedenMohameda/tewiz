@@ -21,7 +21,7 @@ import { PlainText as Text, PressableScale } from '@/components/ui';
 import { useVoiceRecorder } from '@/lib/useVoiceRecorder';
 import { useReducedMotion } from '@/lib/useReducedMotion';
 import { haptics } from '@/lib/haptics';
-import { colors, radius, statusTone } from '@/theme';
+import { colors, radius, schemed, statusTone } from '@/theme';
 
 interface Props {
   onCaptured: (audioUri: string) => void;
@@ -132,7 +132,10 @@ export function VoiceMicButton({
   );
 }
 
-const styles = StyleSheet.create({
+// schemed(): StyleSheet.create runs once at import, so any colour inside it
+// would be frozen to whichever palette was active then. Building the sheet per
+// scheme costs one extra object at startup and makes the whole file themeable.
+const styles = schemed(() => StyleSheet.create({
   wrap: {
     position: 'absolute',
     alignItems: 'flex-end',
@@ -183,4 +186,4 @@ const styles = StyleSheet.create({
     color: statusTone.failed.fg,
     fontSize: 12,
   },
-});
+}));
