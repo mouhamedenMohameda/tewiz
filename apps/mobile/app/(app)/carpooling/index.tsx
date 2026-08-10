@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
-  Modal,
   Platform,
   Pressable,
   TextInput,
@@ -19,6 +18,7 @@ import {
   Screen,
   ScreenHeader,
   SelectField,
+  Sheet,
 } from '@/components/ui';
 import { colors, fonts, radius, shadow, spacing, statusTone } from '@/theme';
 import { currentLanguage, isRTL } from '@/lib/i18n';
@@ -123,41 +123,42 @@ function RatingModal({ visible, name, busy, onSubmit, onClose }: {
   }, [visible]);
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={{ flex: 1, backgroundColor: 'rgba(15,23,42,0.55)', justifyContent: 'center', padding: spacing.lg }}>
-        <View style={{ backgroundColor: colors.canvas, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.base }}>
-          <AppText variant="h2">{t('carpooling.rate.title')}</AppText>
-          <AppText variant="body" color={colors.ink2}>{t('carpooling.rate.prompt', { name })}</AppText>
-          <View style={{ flexDirection: 'row', gap: spacing.sm, justifyContent: 'center', paddingVertical: spacing.sm }}>
-            {[1, 2, 3, 4, 5].map((n) => (
-              <Pressable key={n} onPress={() => setStars(n)} hitSlop={6}>
-                <Icon name="star" size={38} color={n <= stars ? colors.warning : colors.sunken} />
-              </Pressable>
-            ))}
-          </View>
-          <TextInput
-            value={comment}
-            onChangeText={setComment}
-            placeholder={t('carpooling.rate.commentPlaceholder')}
-            placeholderTextColor={colors.muted}
-            multiline
-            style={{
-              borderWidth: 1,
-              borderColor: colors.sunken,
-              borderRadius: radius.md,
-              paddingHorizontal: spacing.base,
-              paddingVertical: spacing.md,
-              minHeight: 64,
-              textAlignVertical: 'top',
-              color: colors.ink,
-              fontFamily: isRTL(currentLanguage()) ? fonts.arabic.regular : undefined,
-            }}
-          />
-          <Button title={t('carpooling.rate.submitBtn')} icon="check" busy={busy} onPress={() => onSubmit(stars, comment)} />
-          <Button title={t('carpooling.rate.cancelBtn')} variant="ghost" onPress={onClose} />
-        </View>
+    <Sheet
+      visible={visible}
+      onClose={onClose}
+      title={t('carpooling.rate.title')}
+      subtitle={t('carpooling.rate.prompt', { name })}
+      dismissible={!busy}
+      contentStyle={{ gap: spacing.base }}
+    >
+      <View style={{ flexDirection: 'row', gap: spacing.sm, justifyContent: 'center', paddingVertical: spacing.sm }}>
+        {[1, 2, 3, 4, 5].map((n) => (
+          <PressableScale key={n} onPress={() => setStars(n)} hitSlop={6} scaleTo={0.85} haptic>
+            <Icon name="star" size={38} color={n <= stars ? colors.warning : colors.sunken} />
+          </PressableScale>
+        ))}
       </View>
-    </Modal>
+      <TextInput
+        value={comment}
+        onChangeText={setComment}
+        placeholder={t('carpooling.rate.commentPlaceholder')}
+        placeholderTextColor={colors.muted}
+        multiline
+        style={{
+          borderWidth: 1,
+          borderColor: colors.sunken,
+          borderRadius: radius.md,
+          paddingHorizontal: spacing.base,
+          paddingVertical: spacing.md,
+          minHeight: 64,
+          textAlignVertical: 'top',
+          color: colors.ink,
+          fontFamily: isRTL(currentLanguage()) ? fonts.arabic.regular : undefined,
+        }}
+      />
+      <Button title={t('carpooling.rate.submitBtn')} icon="check" busy={busy} onPress={() => onSubmit(stars, comment)} />
+      <Button title={t('carpooling.rate.cancelBtn')} variant="ghost" onPress={onClose} />
+    </Sheet>
   );
 }
 
@@ -807,54 +808,50 @@ function DriverView() {
         )}
       </View>
 
-      {/* Complete (OTP) modal */}
-      <Modal
+      {/* Complete (OTP) */}
+      <Sheet
         visible={completeFor !== null}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setCompleteFor(null)}
+        onClose={() => { setCompleteFor(null); setOtp(''); }}
+        title={t('carpooling.complete.title')}
+        subtitle={t('carpooling.complete.hint')}
+        dismissible={!completing}
+        contentStyle={{ gap: spacing.base }}
       >
-        <View style={{ flex: 1, backgroundColor: 'rgba(15,23,42,0.55)', justifyContent: 'center', padding: spacing.lg }}>
-          <View style={{ backgroundColor: colors.canvas, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.base }}>
-            <AppText variant="h2">{t('carpooling.complete.title')}</AppText>
-            <AppText variant="body" color={colors.ink2}>{t('carpooling.complete.hint')}</AppText>
-            <TextInput
-              value={otp}
-              onChangeText={setOtp}
-              keyboardType="number-pad"
-              maxLength={6}
-              placeholder={t('carpooling.complete.placeholder')}
-              placeholderTextColor={colors.muted}
-              style={{
-                borderWidth: 1,
-                borderColor: colors.sunken,
-                borderRadius: radius.md,
-                paddingHorizontal: spacing.base,
-                paddingVertical: spacing.md,
-                fontSize: 26,
-                // Arabic placeholder is cursive: letterSpacing breaks its
-                // shaping, so only space out the typed digits.
-                letterSpacing: isRTL(currentLanguage()) && !otp ? 0 : 4,
-                textAlign: 'center',
-                color: colors.ink,
-                fontFamily: isRTL(currentLanguage()) ? fonts.arabic.regular : undefined,
-              }}
-            />
-            <Button
-              title={t('carpooling.complete.confirmBtn')}
-              icon="check"
-              onPress={submitComplete}
-              busy={completing}
-              disabled={otp.trim().length < 3}
-            />
-            <Button
-              title={t('carpooling.complete.cancelBtn')}
-              variant="ghost"
-              onPress={() => { setCompleteFor(null); setOtp(''); }}
-            />
-          </View>
-        </View>
-      </Modal>
+        <TextInput
+          value={otp}
+          onChangeText={setOtp}
+          keyboardType="number-pad"
+          maxLength={6}
+          placeholder={t('carpooling.complete.placeholder')}
+          placeholderTextColor={colors.muted}
+          style={{
+            borderWidth: 1,
+            borderColor: colors.sunken,
+            borderRadius: radius.md,
+            paddingHorizontal: spacing.base,
+            paddingVertical: spacing.md,
+            fontSize: 26,
+            // Arabic placeholder is cursive: letterSpacing breaks its
+            // shaping, so only space out the typed digits.
+            letterSpacing: isRTL(currentLanguage()) && !otp ? 0 : 4,
+            textAlign: 'center',
+            color: colors.ink,
+            fontFamily: isRTL(currentLanguage()) ? fonts.arabic.regular : undefined,
+          }}
+        />
+        <Button
+          title={t('carpooling.complete.confirmBtn')}
+          icon="check"
+          onPress={submitComplete}
+          busy={completing}
+          disabled={otp.trim().length < 3}
+        />
+        <Button
+          title={t('carpooling.complete.cancelBtn')}
+          variant="ghost"
+          onPress={() => { setCompleteFor(null); setOtp(''); }}
+        />
+      </Sheet>
 
       <RatingModal
         visible={rateFor !== null}

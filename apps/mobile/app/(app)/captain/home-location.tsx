@@ -207,7 +207,9 @@ export default function HomeLocationScreen() {
           {/* Instruction overlay */}
           <View style={{
             position: 'absolute', top: spacing.base, left: spacing.base, right: spacing.base,
-            backgroundColor: 'rgba(15, 23, 42, 0.82)', borderRadius: radius.md,
+            // Warm espresso, not the old cold slate — this floats over a map,
+            // where a blue-grey plate is the one thing that reads as foreign.
+            backgroundColor: 'rgba(42, 26, 14, 0.82)', borderRadius: radius.md,
             paddingHorizontal: spacing.base, paddingVertical: spacing.sm,
           }}>
             <AppText variant="caption" color={colors.white} align="center">

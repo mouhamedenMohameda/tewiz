@@ -12,7 +12,7 @@
  */
 
 import { useState } from 'react';
-import { Alert, Dimensions, Image, Modal, Pressable, View } from 'react-native';
+import { Alert, Dimensions, Image, Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,7 +21,7 @@ import { loginAsDemo, loginAsGuest, type DemoRole } from '@/lib/guest';
 import { useAppConfig } from '@/lib/appConfig';
 import { AppLanguage, SUPPORTED_LANGUAGES, currentLanguage, setLanguage } from '@/lib/i18n';
 import { colors, gradients, radius, shadow, spacing } from '@/theme';
-import { AppText, Button, FadeInView, Icon, PressableScale } from '@/components/ui';
+import { AppText, Button, FadeInView, Icon, PressableScale, Sheet } from '@/components/ui';
 import { APP_NAME } from '@/lib/brand';
 
 const { height: SCREEN_H } = Dimensions.get('window');
@@ -213,71 +213,52 @@ export default function AuthWelcome() {
         </View>
       </SafeAreaView>
 
-      {/* Language picker modal */}
-      <Modal
+      {/* Language picker */}
+      <Sheet
         visible={showLangPicker}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowLangPicker(false)}
+        onClose={() => setShowLangPicker(false)}
+        title={t('settings.preferences.language')}
+        // Nothing to type here, so the sheet's height stays put.
+        avoidKeyboard={false}
+        contentStyle={{ gap: spacing.sm }}
       >
-        <Pressable
-          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' }}
-          onPress={() => setShowLangPicker(false)}
-        >
-          <Pressable onPress={() => {}}>
+        {SUPPORTED_LANGUAGES.map((code) => (
+          <PressableScale
+            key={code}
+            onPress={() => pickLanguage(code)}
+            scaleTo={0.98}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: spacing.md,
+              paddingVertical: spacing.md,
+              paddingHorizontal: spacing.md,
+              borderRadius: radius.md,
+              backgroundColor: code === lang ? colors.emberSoft : colors.surface,
+              borderWidth: 1,
+              borderColor: code === lang ? colors.ember : colors.line,
+            }}
+          >
             <View
               style={{
-                backgroundColor: colors.canvas,
-                borderTopLeftRadius: 24,
-                borderTopRightRadius: 24,
-                padding: spacing.xl,
-                gap: spacing.sm,
+                width: 28, height: 28, borderRadius: 14,
+                backgroundColor: code === lang ? colors.ember : colors.sunken,
+                alignItems: 'center', justifyContent: 'center',
               }}
             >
-              <AppText variant="title" style={{ marginBottom: spacing.sm }}>
-                {t('settings.preferences.language')}
-              </AppText>
-              {SUPPORTED_LANGUAGES.map((code) => (
-                <PressableScale
-                  key={code}
-                  onPress={() => pickLanguage(code)}
-                  scaleTo={0.98}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: spacing.md,
-                    paddingVertical: spacing.md,
-                    paddingHorizontal: spacing.md,
-                    borderRadius: radius.md,
-                    backgroundColor: code === lang ? colors.emberSoft : colors.surface,
-                    borderWidth: 1,
-                    borderColor: code === lang ? colors.ember : colors.line,
-                  }}
-                >
-                  <View
-                    style={{
-                      width: 28, height: 28, borderRadius: 14,
-                      backgroundColor: code === lang ? colors.ember : colors.sunken,
-                      alignItems: 'center', justifyContent: 'center',
-                    }}
-                  >
-                    {code === lang ? <Icon name="checkSmall" size={18} color={colors.onEmber} /> : null}
-                  </View>
-                  <AppText
-                    variant="bodyStrong"
-                    color={code === lang ? colors.ember : colors.ink}
-                    style={{ flex: 1 }}
-                  >
-                    {t(`languages.${code}` as const)}
-                  </AppText>
-                  <AppText variant="caption" color={colors.muted}>{code.toUpperCase()}</AppText>
-                </PressableScale>
-              ))}
-              <View style={{ height: spacing.sm }} />
+              {code === lang ? <Icon name="checkSmall" size={18} color={colors.onEmber} /> : null}
             </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
+            <AppText
+              variant="bodyStrong"
+              color={code === lang ? colors.ember : colors.ink}
+              style={{ flex: 1 }}
+            >
+              {t(`languages.${code}` as const)}
+            </AppText>
+            <AppText variant="caption" color={colors.muted}>{code.toUpperCase()}</AppText>
+          </PressableScale>
+        ))}
+      </Sheet>
     </View>
   );
 }
