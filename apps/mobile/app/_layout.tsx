@@ -6,11 +6,10 @@ import '@/lib/install-crash-handlers';
 
 import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { api } from '@/lib/api';
 import { type AuthUser, useAuth } from '@/lib/auth';
@@ -143,7 +142,14 @@ export default function RootLayout() {
           and this is what re-renders them when the OS scheme flips. */}
       <ThemeProvider>
         <AppQueryProvider>
-          <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.canvas }}>
+          {/* Was <GestureHandlerRootView>. Nothing in this app uses
+              react-native-gesture-handler — no Swipeable, no RectButton, no
+              gesture-handler list — since the BottomSheet was rewritten onto
+              PanResponder. All the root view did was pull the whole
+              gesture-handler + Reanimated + Worklets native runtime into
+              startup for zero used functionality, on the low-end Android
+              hardware this app targets. A plain flex container now. */}
+          <View style={{ flex: 1, backgroundColor: colors.canvas }}>
             <SafeAreaProvider>
               <SplashGate>
                 <ThemedStatusBar />
@@ -162,7 +168,7 @@ export default function RootLayout() {
                 <UpdateGate />
               </SplashGate>
             </SafeAreaProvider>
-          </GestureHandlerRootView>
+          </View>
         </AppQueryProvider>
       </ThemeProvider>
     </CrashBoundary>
