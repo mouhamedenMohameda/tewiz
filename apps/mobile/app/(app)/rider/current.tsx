@@ -1,16 +1,39 @@
+/**
+ * "Where is my driver" — the screen the rider actually opens the app for.
+ *
+ * Shape: FULL-SCREEN MAP with a draggable bottom sheet over it, the layout
+ * every rider already knows from every other ride-hailing app. It replaces a
+ * plain scrolling page that showed the map as a 220 pt card wedged between
+ * two others — which buried the one thing the screen exists to answer under
+ * everything else it happened to know.
+ *
+ * The map is only mounted for statuses where there is something live to show
+ * (see MAP_STATUSES). Once a ride reaches a terminal state the map is gone
+ * entirely — that is a privacy rule, not a layout choice, see RideMap.
+ *
+ * Two honesty rules inherited from the server, unchanged from the previous
+ * version and easy to break by accident:
+ *   - `captain.location` is null rather than stale. When the server has
+ *     nothing fresh we say "position indisponible" instead of drawing a car in
+ *     the wrong street.
+ *   - nothing is drawn once the ride is over, so a completed trip stops
+ *     exposing a captain's whereabouts.
+ */
+
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator, Alert, Animated, KeyboardAvoidingView, Linking, Modal, Platform,
-  Pressable, RefreshControl, ScrollView, TextInput, View,
+  Pressable, ScrollView, TextInput, useWindowDimensions, View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { PlainText as Text } from '@/components/ui';
-import { fonts } from '@/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AppText, Button, Icon, PressableScale, Screen, type IconName } from '@/components/ui';
+import { colors, radius, shadow, spacing, fonts } from '@/theme';
 import { currentLanguage, isRTL } from '@/lib/i18n';
 import { api } from '@/lib/api';
 import { RideCancelReasonSheet } from '@/components/RideCancelReasonSheet';
+import { BottomSheet } from '@/components/BottomSheet';
 import { formatMru } from '@/lib/format';
 import { RIDER_RIDE_CANCEL_REASONS } from '@/lib/rideCancelReasons';
 import { usePolling } from '@/lib/usePolling';
@@ -78,18 +101,34 @@ interface Ride {
   } | null;
 }
 
-const STATUS_PALETTE: Record<RideStatus, { bg: string; fg: string }> = {
-  pending_passenger_confirm: { bg: '#fef9c3', fg: '#854d0e' },
-  searching:                 { bg: '#dbeafe', fg: '#1e40af' },
-  accepted:                  { bg: '#dcfce7', fg: '#166534' },
-  arrived:                   { bg: '#dcfce7', fg: '#166534' },
-  in_progress:               { bg: '#e0e7ff', fg: '#3730a3' },
-  completed:                 { bg: '#dcfce7', fg: '#166534' },
-  cancelled_by_rider:        { bg: '#fee2e2', fg: '#991b1b' },
-  cancelled_by_captain:      { bg: '#fee2e2', fg: '#991b1b' },
-  cancelled_by_system:       { bg: '#fee2e2', fg: '#991b1b' },
-  no_show:                   { bg: '#fee2e2', fg: '#991b1b' },
+/**
+ * Status → the design-system tone its headline wears. Replaces a hardcoded
+ * slate/blue/indigo palette that predated the "Sahara Solaire" theme and made
+ * this screen look like it belonged to a different app.
+ */
+const STATUS_TONE: Record<RideStatus, { tint: string; fg: string; icon: IconName }> = {
+  pending_passenger_confirm: { tint: colors.saffronSoft, fg: colors.warning, icon: 'clock' },
+  searching:                 { tint: colors.emberSoft,   fg: colors.ember,   icon: 'search' },
+  accepted:                  { tint: colors.emberSoft,   fg: colors.ember,   icon: 'ride' },
+  arrived:                   { tint: colors.successSoft, fg: colors.success, icon: 'pin' },
+  in_progress:               { tint: colors.successSoft, fg: colors.success, icon: 'ride' },
+  completed:                 { tint: colors.successSoft, fg: colors.success, icon: 'check' },
+  cancelled_by_rider:        { tint: colors.dangerSoft,  fg: colors.danger,  icon: 'close' },
+  cancelled_by_captain:      { tint: colors.dangerSoft,  fg: colors.danger,  icon: 'close' },
+  cancelled_by_system:       { tint: colors.dangerSoft,  fg: colors.danger,  icon: 'close' },
+  no_show:                   { tint: colors.dangerSoft,  fg: colors.danger,  icon: 'alert' },
 };
+
+/** Statuses during which there is a live captain to draw. */
+const LIVE_STATUSES: RideStatus[] = ['accepted', 'arrived', 'in_progress'];
+
+/**
+ * Statuses that get the full-screen map treatment. `searching` is included
+ * even though no captain exists yet: the pickup pin alone still answers "did
+ * it understand where I am", which is the anxious question while you wait.
+ * Terminal statuses are deliberately absent — see RideMap.
+ */
+const MAP_STATUSES: RideStatus[] = [...LIVE_STATUSES, 'searching', 'pending_passenger_confirm'];
 
 export default function CurrentRideScreen() {
   const router = useRouter();
@@ -142,38 +181,38 @@ export default function CurrentRideScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator />
-      </SafeAreaView>
+      <Screen>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator color={colors.ember} />
+        </View>
+      </Screen>
     );
   }
 
   if (!ride) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
-        <View style={{ padding: 20 }}>
-          <Pressable onPress={goToRiderHome}>
-            <Text style={{ color: '#64748b', fontSize: 14 }}>‹ {t('common.back')}</Text>
-          </Pressable>
-        </View>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 }}>
-          <Text style={{ fontSize: 18, fontWeight: '600', color: '#0f172a', textAlign: 'center' }}>
-            {t('rider.current.noneTitle')}
-          </Text>
-          <Text style={{ fontSize: 13, color: '#64748b', marginTop: 8, textAlign: 'center' }}>
+      <Screen>
+        <BackButton onPress={goToRiderHome} inline />
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.sm }}>
+          <View style={{
+            width: 64, height: 64, borderRadius: radius.lg, marginBottom: spacing.sm,
+            backgroundColor: colors.emberSoft, alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Icon name="ride" size={32} color={colors.ember} />
+          </View>
+          <AppText variant="h2" align="center">{t('rider.current.noneTitle')}</AppText>
+          <AppText variant="body" color={colors.ink2} align="center">
             {t('rider.current.noneSub')}
-          </Text>
-          <Pressable
+          </AppText>
+          <Button
+            title={t('rider.current.order')}
+            icon="ride"
+            fullWidth={false}
+            style={{ marginTop: spacing.lg }}
             onPress={() => router.replace('/(app)/rider/new-ride')}
-            style={({ pressed }) => ({
-              marginTop: 24, backgroundColor: pressed ? '#0a7a45' : '#10a35e',
-              paddingHorizontal: 20, paddingVertical: 14, borderRadius: 12,
-            })}
-          >
-            <Text style={{ color: '#fff', fontWeight: '700' }}>{t('rider.current.order')}</Text>
-          </Pressable>
+          />
         </View>
-      </SafeAreaView>
+      </Screen>
     );
   }
 
@@ -187,57 +226,8 @@ export default function CurrentRideScreen() {
 
   const needsRating = ride.status === 'completed' && !!ride.captain;
 
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
-      <ScrollView
-        contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
-        refreshControl={<RefreshControl refreshing={false} onRefresh={load} />}
-      >
-        <Pressable onPress={goToRiderHome}>
-          <Text style={{ color: '#64748b', fontSize: 14 }}>‹ {t('common.back')}</Text>
-        </Pressable>
-
-        <StatusBanner status={ride.status} />
-
-        <RideMap ride={ride} />
-
-        {ride.captain ? (
-          <CaptainCard captain={ride.captain} />
-        ) : null}
-
-        {ride.isOpen && ride.status === 'in_progress' ? (
-          <LiveMeterCard ride={ride} />
-        ) : null}
-
-        {ride.rideType === 'private_driver' && ride.status === 'in_progress' && ride.privateDriverDetails && ride.startedAt ? (
-          <PrivateDriverTimerCard
-            startedAt={ride.startedAt}
-            bookedDurationH={ride.privateDriverDetails.bookedDurationH}
-            bookedFareMru={ride.privateDriverDetails.bookedFareMru}
-          />
-        ) : null}
-
-        <TripCard ride={ride} />
-
-        {canRiderCancel ? (
-          <Pressable
-            disabled={cancelling}
-            onPress={() => setCancelSheetVisible(true)}
-            style={({ pressed }) => ({
-              marginTop: 24, padding: 14, borderRadius: 12,
-              backgroundColor: pressed ? '#fee2e2' : '#fff',
-              borderWidth: 1, borderColor: '#fecaca',
-              alignItems: 'center',
-              opacity: cancelling ? 0.5 : 1,
-            })}
-          >
-            <Text style={{ color: '#b91c1c', fontSize: 14, fontWeight: '600' }}>
-              {cancelling ? t('rider.current.cancelling') : t('rider.current.cancelAction')}
-            </Text>
-          </Pressable>
-        ) : null}
-      </ScrollView>
-
+  const sheets = (
+    <>
       <RideCancelReasonSheet
         visible={cancelSheetVisible}
         title={t('rider.current.cancelTitle')}
@@ -247,15 +237,654 @@ export default function CurrentRideScreen() {
         onClose={() => { if (!cancelling) setCancelSheetVisible(false); }}
         onSelect={cancel}
       />
-
       <RatingSheet
         visible={needsRating}
         ride={ride}
         onDone={async () => { await load(); router.replace('/(app)/rider'); }}
       />
-    </SafeAreaView>
+    </>
+  );
+
+  const details = (
+    <RideDetails
+      ride={ride}
+      cancelling={cancelling}
+      canRiderCancel={canRiderCancel}
+      onCancelPress={() => setCancelSheetVisible(true)}
+    />
+  );
+
+  // Terminal states (completed, cancelled, no-show) have no map and nothing
+  // live to watch, so a sheet over an empty canvas would be theatre. They get
+  // an ordinary scrolling page instead.
+  if (!MAP_STATUSES.includes(ride.status)) {
+    return (
+      <Screen scroll onRefresh={load}>
+        <BackButton onPress={goToRiderHome} inline />
+        <StatusHeadline status={ride.status} distanceM={null} />
+        {details}
+        {sheets}
+      </Screen>
+    );
+  }
+
+  return (
+    <MapScene
+      ride={ride}
+      onBack={goToRiderHome}
+      details={details}
+      sheets={sheets}
+    />
   );
 }
+
+/* ------------------------------------------------------------------ *
+ *  The map + sheet composition
+ * ------------------------------------------------------------------ */
+
+function MapScene({
+  ride, onBack, details, sheets,
+}: {
+  ride: Ride;
+  onBack: () => void;
+  details: React.ReactNode;
+  sheets: React.ReactNode;
+}) {
+  const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
+
+  // Collapsed shows the status line and the captain row — the two things worth
+  // glancing at without touching anything. Expanded stops well short of the
+  // top so the map never fully disappears: the sheet is a companion to the
+  // map, not a replacement for it.
+  const collapsedHeight = Math.round(Math.min(height * 0.34, 280));
+  const expandedHeight = Math.round(Math.min(height * 0.72, 620));
+
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
+      <RideMap ride={ride} insets={insets} />
+
+      <View style={{ position: 'absolute', top: insets.top + spacing.sm, left: spacing.base }}>
+        <BackButton onPress={onBack} />
+      </View>
+
+      <BottomSheet expandedHeight={expandedHeight} collapsedHeight={collapsedHeight}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingHorizontal: spacing.lg,
+            paddingBottom: insets.bottom + spacing.xl,
+          }}
+        >
+          <StatusHeadline status={ride.status} distanceM={ride.captainDistanceM} />
+          {details}
+        </ScrollView>
+      </BottomSheet>
+
+      {sheets}
+    </View>
+  );
+}
+
+/**
+ * Everything under the status headline, shared by the map layout (inside the
+ * sheet) and the terminal-state layout (inline on the page).
+ */
+function RideDetails({
+  ride, cancelling, canRiderCancel, onCancelPress,
+}: {
+  ride: Ride;
+  cancelling: boolean;
+  canRiderCancel: boolean;
+  onCancelPress: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <>
+      {ride.captain ? <CaptainCard captain={ride.captain} /> : null}
+
+      {ride.isOpen && ride.status === 'in_progress' ? (
+        <LiveMeterCard ride={ride} />
+      ) : null}
+
+      {ride.rideType === 'private_driver' && ride.status === 'in_progress' && ride.privateDriverDetails && ride.startedAt ? (
+        <PrivateDriverTimerCard
+          startedAt={ride.startedAt}
+          bookedDurationH={ride.privateDriverDetails.bookedDurationH}
+          bookedFareMru={ride.privateDriverDetails.bookedFareMru}
+        />
+      ) : null}
+
+      <TripCard ride={ride} />
+
+      {canRiderCancel ? (
+        <Button
+          title={cancelling ? t('rider.current.cancelling') : t('rider.current.cancelAction')}
+          variant="danger"
+          size="md"
+          icon="close"
+          disabled={cancelling}
+          style={{ marginTop: spacing.lg }}
+          onPress={onCancelPress}
+        />
+      ) : null}
+    </>
+  );
+}
+
+/* ------------------------------------------------------------------ *
+ *  Map
+ * ------------------------------------------------------------------ */
+
+/**
+ * The live map, full-bleed behind the sheet.
+ *
+ * The camera actively follows what matters at each stage — both car and pickup
+ * while the captain approaches, both car and destination once you're moving.
+ * The old version set the camera once via `defaultSettings` and never touched
+ * it again, so the captain marker simply drifted off the edge as they drove.
+ *
+ * Mapbox's logo and attribution are pinned to the TOP of the map. Their
+ * default home is the bottom corner, which the sheet covers — and their terms
+ * require both to stay visible. Top placement is the only spot that survives
+ * the sheet being dragged to any height.
+ */
+function RideMap({ ride, insets }: { ride: Ride; insets: { top: number } }) {
+  const { t } = useTranslation();
+  const M = getMapbox();
+  const cameraRef = useRef<any>(null);
+  // Gates the camera effect until <Camera> exists — see MapShell's onReady.
+  const [cameraReady, setCameraReady] = useState(false);
+
+  const captainAt = LIVE_STATUSES.includes(ride.status) ? ride.captain?.location ?? null : null;
+  // While in progress the interesting pair is car → destination; before
+  // pickup it is car → pickup.
+  const focusTarget = ride.status === 'in_progress' && ride.dropoff
+    ? { lat: ride.dropoff.lat, lng: ride.dropoff.lng }
+    : { lat: ride.pickup.lat, lng: ride.pickup.lng };
+
+  // Round the coordinates the effect depends on, so a GPS jitter of a few
+  // centimetres doesn't re-run a 700 ms camera animation every poll.
+  const camKey = [
+    captainAt ? captainAt.lat.toFixed(4) : '',
+    captainAt ? captainAt.lng.toFixed(4) : '',
+    focusTarget.lat.toFixed(4),
+    focusTarget.lng.toFixed(4),
+  ].join(',');
+
+  useEffect(() => {
+    const cam = cameraRef.current;
+    if (!cameraReady || !cam) return;
+
+    if (!captainAt) {
+      cam.setCamera({
+        centerCoordinate: [focusTarget.lng, focusTarget.lat],
+        zoomLevel: 14,
+        animationDuration: 600,
+      });
+      return;
+    }
+
+    const lats = [captainAt.lat, focusTarget.lat];
+    const lngs = [captainAt.lng, focusTarget.lng];
+    // Degenerate bounds (captain effectively on top of the target) make
+    // fitBounds zoom to a meaningless level — centre instead.
+    const spread = Math.max(
+      Math.abs(lats[0]! - lats[1]!),
+      Math.abs(lngs[0]! - lngs[1]!),
+    );
+    if (spread < 0.0008) {
+      cam.setCamera({
+        centerCoordinate: [captainAt.lng, captainAt.lat],
+        zoomLevel: 15.5,
+        animationDuration: 600,
+      });
+      return;
+    }
+
+    cam.fitBounds(
+      [Math.max(...lngs), Math.max(...lats)],
+      [Math.min(...lngs), Math.min(...lats)],
+      // Bottom padding clears the collapsed sheet so neither point hides
+      // behind it; top clears the back button and the Mapbox ornaments.
+      [140, 60, 60, 60],
+      700,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [camKey, cameraReady]);
+
+  if (!M) return <View style={{ flex: 1, backgroundColor: colors.canvasDeep }} />;
+
+  const ornamentTop = insets.top + 60;
+
+  return (
+    <View style={{ flex: 1 }}>
+      <MapShell
+        cameraRef={cameraRef}
+        onReady={() => setCameraReady(true)}
+        centerCoordinate={[focusTarget.lng, focusTarget.lat]}
+        zoomLevel={14}
+        logoPosition={{ top: ornamentTop, left: spacing.md }}
+        attributionPosition={{ top: ornamentTop, left: 110 }}
+      >
+        <M.PointAnnotation id="pickup" coordinate={[ride.pickup.lng, ride.pickup.lat]}>
+          <View style={{
+            width: 18, height: 18, borderRadius: 9,
+            backgroundColor: colors.success, borderWidth: 3, borderColor: colors.white,
+            ...shadow.card,
+          }} />
+        </M.PointAnnotation>
+
+        {ride.dropoff ? (
+          <M.PointAnnotation id="dropoff" coordinate={[ride.dropoff.lng, ride.dropoff.lat]}>
+            <View style={{
+              width: 16, height: 16, borderRadius: 4,
+              backgroundColor: colors.ink, borderWidth: 3, borderColor: colors.white,
+              ...shadow.card,
+            }} />
+          </M.PointAnnotation>
+        ) : null}
+
+        {captainAt ? (
+          <M.PointAnnotation id="captain" coordinate={[captainAt.lng, captainAt.lat]}>
+            {/* Exactly ONE subview — rnmapbox logs an error above that. */}
+            <View style={{
+              width: 38, height: 38, borderRadius: 19,
+              backgroundColor: colors.ember, borderWidth: 3, borderColor: colors.white,
+              alignItems: 'center', justifyContent: 'center',
+              ...shadow.ember,
+            }}>
+              <Icon name="ride" size={20} color={colors.white} />
+            </View>
+          </M.PointAnnotation>
+        ) : null}
+      </MapShell>
+
+      {/* Position honesty pill — says outright when the server has nothing
+          fresh, rather than letting an empty map imply "no driver". */}
+      {LIVE_STATUSES.includes(ride.status) && !captainAt ? (
+        <View style={{
+          position: 'absolute', top: insets.top + 60, alignSelf: 'center',
+          backgroundColor: colors.espresso, paddingHorizontal: spacing.md, paddingVertical: 7,
+          borderRadius: radius.pill, ...shadow.raised,
+        }}>
+          <AppText variant="caption" color={colors.onEspresso}>
+            {t('rider.current.map.positionUnavailable')}
+          </AppText>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+/* ------------------------------------------------------------------ *
+ *  Sheet content
+ * ------------------------------------------------------------------ */
+
+/**
+ * The headline: what is happening, and — the question everyone actually has —
+ * how far away the car is.
+ */
+function StatusHeadline({ status, distanceM }: { status: RideStatus; distanceM: number | null }) {
+  const { t } = useTranslation();
+  const tone = STATUS_TONE[status] ?? STATUS_TONE.searching;
+  const title = t(`rider.current.banners.${status}.title`, {
+    defaultValue: t('rider.current.banners.searching.title'),
+  });
+  const sub = t(`rider.current.banners.${status}.sub`, { app: APP_NAME, defaultValue: '' });
+  const live = LIVE_STATUSES.includes(status) || status === 'searching';
+
+  return (
+    <View style={{
+      flexDirection: 'row', alignItems: 'center', gap: spacing.md,
+      paddingTop: spacing.sm, paddingBottom: spacing.base,
+    }}>
+      <View style={{
+        width: 46, height: 46, borderRadius: radius.md,
+        backgroundColor: tone.tint, alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Icon name={tone.icon} size={24} color={tone.fg} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+          {live ? <PulseDot color={tone.fg} /> : null}
+          <AppText variant="h2" numberOfLines={1} style={{ flex: 1 }}>{title}</AppText>
+        </View>
+        <AppText variant="caption" color={colors.ink2} numberOfLines={2} style={{ marginTop: 2 }}>
+          {distanceM != null && LIVE_STATUSES.includes(status)
+            ? t('rider.current.map.distanceAway', { distance: formatDistance(distanceM) })
+            : sub || t('rider.current.map.captainOnTheWay')}
+        </AppText>
+      </View>
+    </View>
+  );
+}
+
+function formatDistance(m: number): string {
+  return m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${m} m`;
+}
+
+function CaptainCard({ captain }: { captain: Captain }) {
+  const { t } = useTranslation();
+  return (
+    <View style={{
+      backgroundColor: colors.surfaceAlt, borderRadius: radius.lg, padding: spacing.base,
+    }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+        <View style={{
+          width: 48, height: 48, borderRadius: 24,
+          backgroundColor: colors.emberSoft, alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Icon name="person" size={30} color={colors.ember} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <AppText variant="title" numberOfLines={1}>
+            {captain.fullName ?? t('rider.current.fallbackName')}
+          </AppText>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+            <Icon name="star" size={13} color={colors.sun} />
+            <AppText variant="caption" color={colors.ink2}>
+              {captain.ratingAvg > 0 ? captain.ratingAvg.toFixed(1) : '—'}
+              {'  ·  '}
+              {t('rider.current.ridesCount', { count: captain.totalRides })}
+            </AppText>
+          </View>
+        </View>
+        {/* Calling the captain is the highest-intent action on this screen once
+            someone is assigned — it gets the ember, at thumb size. */}
+        <PressableScale
+          onPress={() => Linking.openURL(`tel:${captain.phone}`)}
+          accessibilityLabel={t('rider.current.yourDriver')}
+          style={{
+            width: 46, height: 46, borderRadius: 23, backgroundColor: colors.ember,
+            alignItems: 'center', justifyContent: 'center', ...shadow.ember,
+          }}
+        >
+          <Icon name="phone" size={22} color={colors.onEmber} />
+        </PressableScale>
+      </View>
+
+      {captain.vehicle ? (
+        <View style={{
+          marginTop: spacing.md, paddingTop: spacing.md,
+          borderTopWidth: 1, borderTopColor: colors.line,
+          flexDirection: 'row', alignItems: 'center', gap: spacing.md,
+        }}>
+          <View style={{ flex: 1 }}>
+            <AppText variant="overline" color={colors.muted}>
+              {t('rider.current.vehicleLabel')}
+            </AppText>
+            <AppText variant="bodyStrong" numberOfLines={1} style={{ marginTop: 2 }}>
+              {captain.vehicle.color} {captain.vehicle.brand} {captain.vehicle.model}
+            </AppText>
+          </View>
+          {/* The plate is what you match against a car pulling up — it earns
+              its own high-contrast chip. */}
+          <View style={{
+            backgroundColor: colors.espresso, borderRadius: radius.sm,
+            paddingHorizontal: spacing.md, paddingVertical: 7,
+          }}>
+            <AppText variant="bodyStrong" color={colors.onEspresso} tracking={1.5}>
+              {captain.vehicle.plate}
+            </AppText>
+          </View>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+/**
+ * Pickup → dropoff, drawn as a route rail (dot, line, square) so the two are
+ * read as one journey rather than two unrelated fields.
+ */
+function TripCard({ ride }: { ride: Ride }) {
+  const { t } = useTranslation();
+  // For an open ride still in progress we already show the live meter card
+  // above, so the fare row here would duplicate. Display the running total
+  // post-completion instead.
+  const fare = ride.fareFinalMru
+    ?? (ride.rideType === 'private_driver' ? ride.privateDriverDetails?.bookedFareMru ?? ride.fareEstimateMru
+    : ride.isOpen ? ride.liveMeter?.fareMru ?? null : ride.fareEstimateMru);
+
+  return (
+    <View style={{ marginTop: spacing.base }}>
+      <View style={{ flexDirection: 'row', gap: spacing.md }}>
+        {/* The rail. Fixed width column so both labels align to one edge. */}
+        <View style={{ width: 14, alignItems: 'center', paddingTop: 6 }}>
+          <View style={{
+            width: 11, height: 11, borderRadius: 6,
+            borderWidth: 3, borderColor: colors.success,
+          }} />
+          <View style={{ flex: 1, width: 2, backgroundColor: colors.line, marginVertical: 4 }} />
+          <View style={{ width: 11, height: 11, borderRadius: 3, backgroundColor: colors.ink }} />
+        </View>
+
+        <View style={{ flex: 1, gap: spacing.base }}>
+          <View>
+            <AppText variant="overline" color={colors.muted}>{t('common.from')}</AppText>
+            <AppText variant="bodyStrong" numberOfLines={2} style={{ marginTop: 2 }}>
+              {ride.pickup.label ?? t('rider.history.pickupFallback')}
+            </AppText>
+          </View>
+          <View>
+            <AppText variant="overline" color={colors.muted}>
+              {ride.isOpen ? t('rider.current.openDestination') : t('common.to')}
+            </AppText>
+            <AppText variant="bodyStrong" numberOfLines={2} style={{ marginTop: 2 }}>
+              {ride.isOpen && !ride.dropoff?.label
+                ? t('rider.current.openDestinationValue')
+                : (ride.dropoff?.label ?? t('rider.history.dropoffFallback'))}
+            </AppText>
+          </View>
+        </View>
+      </View>
+
+      <View style={{
+        flexDirection: 'row', gap: spacing.md, marginTop: spacing.base,
+        borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.base,
+      }}>
+        <View style={{ flex: 1 }}>
+          <AppText variant="overline" color={colors.muted}>{t('rider.current.fare')}</AppText>
+          <AppText variant="title" style={{ marginTop: 2 }}>
+            {fare == null ? '—' : formatMru(fare)}
+          </AppText>
+        </View>
+        <View style={{ flex: 1 }}>
+          <AppText variant="overline" color={colors.muted}>{t('rider.current.payment')}</AppText>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+            <Icon
+              name={ride.paymentMethod === 'cash' ? 'cash' : 'wallet'}
+              size={17}
+              color={colors.ink2}
+            />
+            <AppText variant="title">
+              {ride.paymentMethod === 'cash' ? t('rider.current.cash') : t('rider.current.wallet')}
+            </AppText>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+/**
+ * Hero card displayed during an in-progress open ride. Big running fare,
+ * km + minutes side by side. The fare polls every 3 s through the parent's
+ * usePolling, so it feels live without us running a local timer.
+ */
+function LiveMeterCard({ ride }: { ride: Ride }) {
+  const { t } = useTranslation();
+  const m = ride.liveMeter;
+  // Soft pulse on the fare to make "this number is alive" obvious.
+  const pulse = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(pulse, { toValue: 1.04, duration: 900, useNativeDriver: true }),
+      Animated.timing(pulse, { toValue: 1.00, duration: 900, useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [pulse]);
+
+  const minutes = m ? Math.floor(m.durationS / 60) : 0;
+  const seconds = m ? m.durationS % 60 : 0;
+  const km = m ? (m.distanceM / 1000).toFixed(2) : '0.00';
+
+  return (
+    <View style={{
+      marginTop: spacing.base, backgroundColor: colors.espresso,
+      borderRadius: radius.lg, padding: spacing.lg, gap: spacing.md,
+    }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+        <PulseDot color={colors.saffron} />
+        <AppText variant="overline" color={colors.saffron}>
+          {t('rider.current.openMeterLive')}
+        </AppText>
+      </View>
+
+      <Animated.View style={{ transform: [{ scale: pulse }], alignSelf: 'flex-start' }}>
+        <AppText variant="hero" color={colors.onEspresso}>
+          {formatMru(m?.fareMru ?? 0)}
+        </AppText>
+      </Animated.View>
+
+      <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+        <MeterTile
+          label={t('rider.current.openMeterDistance')}
+          value={km}
+          unit="km"
+        />
+        <MeterTile
+          label={t('rider.current.openMeterDuration')}
+          value={`${minutes}:${String(seconds).padStart(2, '0')}`}
+        />
+      </View>
+
+      {ride.openTariff ? (
+        <AppText variant="caption" color={colors.onEspressoMuted}>
+          {t('rider.current.openMeterTariffSummary', {
+            base: ride.openTariff.baseFareMru,
+            perKm: ride.openTariff.perKmMru,
+            perMin: ride.openTariff.perMinuteMru,
+          })}
+        </AppText>
+      ) : null}
+    </View>
+  );
+}
+
+/** One stat inside a dark meter card. */
+function MeterTile({ label, value, unit }: { label: string; value: string; unit?: string }) {
+  return (
+    <View style={{
+      flex: 1, backgroundColor: colors.espressoAlt, borderRadius: radius.sm,
+      paddingVertical: spacing.md, paddingHorizontal: spacing.base,
+    }}>
+      <AppText variant="overline" color={colors.onEspressoMuted}>{label}</AppText>
+      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4, marginTop: 4 }}>
+        <AppText variant="h2" color={colors.onEspresso}>{value}</AppText>
+        {unit ? <AppText variant="caption" color={colors.onEspressoMuted}>{unit}</AppText> : null}
+      </View>
+    </View>
+  );
+}
+
+function PrivateDriverTimerCard({
+  startedAt, bookedDurationH, bookedFareMru,
+}: { startedAt: string; bookedDurationH: number; bookedFareMru: number }) {
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    const start = new Date(startedAt).getTime();
+    const tick = () => setElapsed(Math.max(0, Math.floor((Date.now() - start) / 1000)));
+    tick();
+    const iv = setInterval(tick, 1000);
+    return () => clearInterval(iv);
+  }, [startedAt]);
+
+  const totalBookedS = bookedDurationH * 3600;
+  const remaining = totalBookedS - elapsed;
+  const isOvertime = remaining < 0;
+  const displayS = Math.abs(remaining);
+  const hours = Math.floor(displayS / 3600);
+  const mins = Math.floor((displayS % 3600) / 60);
+  const secs = displayS % 60;
+  const accent = isOvertime ? colors.danger : colors.saffron;
+
+  return (
+    <View style={{
+      marginTop: spacing.base, backgroundColor: colors.espresso,
+      borderRadius: radius.lg, padding: spacing.lg, gap: spacing.md,
+    }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+        <PulseDot color={accent} />
+        {/* NOTE: these four labels are hardcoded French — they predate the
+            i18n pass and have no keys yet. Everything else on this screen is
+            translated. */}
+        <AppText variant="overline" color={accent}>
+          {isOvertime ? 'TEMPS DÉPASSÉ' : 'Captain PRIVÉ'}
+        </AppText>
+      </View>
+
+      <AppText variant="display" color={colors.onEspresso}>
+        {isOvertime ? '+' : ''}{hours}:{String(mins).padStart(2, '0')}:{String(secs).padStart(2, '0')}
+      </AppText>
+
+      <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+        <MeterTile label="RÉSERVÉ" value={`${bookedDurationH}h`} />
+        <MeterTile label="TARIF" value={formatMru(bookedFareMru)} />
+      </View>
+    </View>
+  );
+}
+
+/* ------------------------------------------------------------------ *
+ *  Small shared pieces
+ * ------------------------------------------------------------------ */
+
+/**
+ * Round, floating back button. On the map layout it is the only chrome over
+ * the map, so it carries its own surface and shadow to stay legible against
+ * whatever the tiles happen to be underneath.
+ */
+function BackButton({ onPress, inline }: { onPress: () => void; inline?: boolean }) {
+  const { t } = useTranslation();
+  return (
+    <PressableScale
+      onPress={onPress}
+      accessibilityLabel={t('common.back')}
+      hitSlop={8}
+      style={{
+        width: 44, height: 44, borderRadius: 22,
+        backgroundColor: colors.surface,
+        alignItems: 'center', justifyContent: 'center',
+        alignSelf: 'flex-start',
+        marginBottom: inline ? spacing.base : 0,
+        ...shadow.card,
+      }}
+    >
+      <Icon name="chevronBack" size={24} color={colors.ink} />
+    </PressableScale>
+  );
+}
+
+/** A soft breathing dot — "this is live, not a screenshot". */
+function PulseDot({ color }: { color: string }) {
+  const o = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(o, { toValue: 0.25, duration: 850, useNativeDriver: true }),
+      Animated.timing(o, { toValue: 1, duration: 850, useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [o]);
+  return <Animated.View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: color, opacity: o }} />;
+}
+
+/* ------------------------------------------------------------------ *
+ *  Rating
+ * ------------------------------------------------------------------ */
 
 function RatingSheet({
   visible, ride, onDone,
@@ -266,6 +895,7 @@ function RatingSheet({
 }) {
   const { t } = useTranslation();
   const ar = isRTL(currentLanguage());
+  const insets = useSafeAreaInsets();
   const [stars, setStars] = useState(0);
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -317,71 +947,66 @@ function RatingSheet({
     <Modal visible={visible} transparent animationType="fade">
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{
-          flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.7)',
-          justifyContent: 'flex-end',
-        }}
+        style={{ flex: 1, backgroundColor: 'rgba(42, 26, 14, 0.6)', justifyContent: 'flex-end' }}
       >
         <View style={{
-          backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24,
-          padding: 24, paddingBottom: 36, gap: 16,
+          backgroundColor: colors.canvas,
+          borderTopLeftRadius: radius.xxl, borderTopRightRadius: radius.xxl,
+          padding: spacing.xl, paddingBottom: insets.bottom + spacing.xl, gap: spacing.base,
         }}>
           {askFavorite ? (
             <>
-              <Text style={{ fontSize: 22, fontWeight: '700', color: '#0f172a' }}>
+              <View style={{
+                width: 52, height: 52, borderRadius: radius.md,
+                backgroundColor: colors.emberSoft, alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Icon name="drivers" size={28} color={colors.ember} />
+              </View>
+              <AppText variant="h2">
                 {t('rider.current.rating.favoriteTitle', {
                   name: captain.fullName ?? t('rider.current.rating.favoriteFallbackName'),
                 })}
-              </Text>
-              <Text style={{ fontSize: 14, color: '#64748b', lineHeight: 20 }}>
+              </AppText>
+              <AppText variant="body" color={colors.ink2}>
                 {t('rider.current.rating.favoriteHint')}
-              </Text>
-              <Pressable
+              </AppText>
+              <Button
+                title={t('rider.current.rating.favoriteAdd')}
+                icon="drivers"
+                busy={submitting}
                 disabled={submitting}
                 onPress={addFavorite}
-                style={({ pressed }) => ({
-                  marginTop: 8, backgroundColor: pressed ? '#0a7a45' : '#10a35e',
-                  paddingVertical: 16, borderRadius: 12,
-                  flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  opacity: submitting ? 0.6 : 1,
-                })}
-              >
-                {submitting && <ActivityIndicator color="#fff" />}
-                <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>
-                  {t('rider.current.rating.favoriteAdd')}
-                </Text>
-              </Pressable>
+              />
               <Pressable
                 disabled={submitting}
                 onPress={onDone}
-                style={({ pressed }) => ({
-                  paddingVertical: 12, alignItems: 'center',
-                  opacity: pressed ? 0.6 : 1,
-                })}
+                hitSlop={8}
+                style={{ alignItems: 'center', paddingVertical: spacing.sm }}
               >
-                <Text style={{ color: '#64748b', fontSize: 14, fontWeight: '600' }}>
-                  {t('common.noThanks')}
-                </Text>
+                <AppText variant="caption" color={colors.ink2}>{t('common.noThanks')}</AppText>
               </Pressable>
             </>
           ) : (
             <>
-              <Text style={{ fontSize: 22, fontWeight: '700', color: '#0f172a' }}>
-                {t('rider.current.rating.question')}
-              </Text>
-              <Text style={{ fontSize: 14, color: '#64748b' }}>
+              <AppText variant="h2">{t('rider.current.rating.question')}</AppText>
+              <AppText variant="body" color={colors.ink2}>
                 {t('rider.current.rating.withDriver', {
                   name: captain.fullName ?? t('rider.current.rating.withDriverFallback'),
                 })}
-              </Text>
+              </AppText>
 
-              <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 8, paddingVertical: 8 }}>
+              <View style={{
+                flexDirection: 'row', justifyContent: 'center',
+                gap: spacing.sm, paddingVertical: spacing.sm,
+              }}>
                 {[1, 2, 3, 4, 5].map((n) => (
-                  <Pressable key={n} onPress={() => setStars(n)} hitSlop={6}>
-                    <Text style={{ fontSize: 42, opacity: n <= stars ? 1 : 0.3 }}>
-                      ⭐
-                    </Text>
-                  </Pressable>
+                  <PressableScale key={n} onPress={() => setStars(n)} hitSlop={6} scaleTo={0.85}>
+                    <Icon
+                      name="star"
+                      size={40}
+                      color={n <= stars ? colors.sun : colors.lineStrong}
+                    />
+                  </PressableScale>
                 ))}
               </View>
 
@@ -389,391 +1014,37 @@ function RatingSheet({
                 value={comment}
                 onChangeText={setComment}
                 placeholder={t('rider.current.rating.commentPlaceholder')}
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={colors.faint}
                 multiline
                 style={{
-                  borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 12,
-                  paddingHorizontal: 12, paddingVertical: 10, fontSize: 14,
-                  color: '#0f172a', backgroundColor: '#f8fafc',
-                  minHeight: 60, textAlignVertical: 'top',
-                  fontFamily: ar ? fonts.arabic.regular : undefined,
+                  borderWidth: 1, borderColor: colors.lineStrong, borderRadius: radius.md,
+                  paddingHorizontal: spacing.md, paddingVertical: spacing.md,
+                  fontSize: 15, color: colors.ink, backgroundColor: colors.sunken,
+                  minHeight: 68, textAlignVertical: 'top',
+                  fontFamily: ar ? fonts.arabic.regular : fonts.text.regular,
                 }}
                 maxLength={500}
               />
 
-              <Pressable
+              <Button
+                title={t('rider.current.rating.submit')}
+                icon="send"
+                busy={submitting}
                 disabled={submitting || stars === 0}
                 onPress={submit}
-                style={({ pressed }) => ({
-                  marginTop: 4, backgroundColor: pressed ? '#0a7a45' : '#10a35e',
-                  paddingVertical: 16, borderRadius: 12,
-                  flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  opacity: submitting || stars === 0 ? 0.5 : 1,
-                })}
-              >
-                {submitting && <ActivityIndicator color="#fff" />}
-                <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>
-                  {t('rider.current.rating.submit')}
-                </Text>
-              </Pressable>
+              />
               <Pressable
                 disabled={submitting}
                 onPress={onDone}
-                style={({ pressed }) => ({
-                  paddingVertical: 10, alignItems: 'center',
-                  opacity: pressed ? 0.6 : 1,
-                })}
+                hitSlop={8}
+                style={{ alignItems: 'center', paddingVertical: spacing.xs }}
               >
-                <Text style={{ color: '#64748b', fontSize: 13 }}>
-                  {t('common.later')}
-                </Text>
+                <AppText variant="caption" color={colors.ink2}>{t('common.later')}</AppText>
               </Pressable>
             </>
           )}
         </View>
       </KeyboardAvoidingView>
     </Modal>
-  );
-}
-
-function StatusBanner({ status }: { status: string }) {
-  const { t } = useTranslation();
-  const palette = STATUS_PALETTE[status as RideStatus] ?? STATUS_PALETTE.searching;
-  const title = t(`rider.current.banners.${status}.title`, {
-    defaultValue: t('rider.current.banners.searching.title'),
-  });
-  const sub = t(`rider.current.banners.${status}.sub`, {
-    app: APP_NAME,
-    defaultValue: '',
-  });
-  return (
-    <View style={{ marginTop: 16, backgroundColor: palette.bg, borderRadius: 14, padding: 16 }}>
-      <Text style={{ fontSize: 17, fontWeight: '700', color: palette.fg }}>{title}</Text>
-      {sub ? <Text style={{ fontSize: 13, color: palette.fg, marginTop: 4 }}>{sub}</Text> : null}
-    </View>
-  );
-}
-
-/** Statuses during which there is a live captain to draw. */
-const LIVE_STATUSES: RideStatus[] = ['accepted', 'arrived', 'in_progress'];
-
-/**
- * The map the rider actually opens the app for: where is my driver.
- *
- * The platform has always collected captain positions — it is what dispatch
- * matches against, kept current by the background tracker the app already pays
- * for in permissions and battery. None of it ever reached the person who wanted
- * it most; this is that half of the loop.
- *
- * Two honesty rules, both inherited from the server:
- *   - `captain.location` is null rather than stale. When the server has nothing
- *     fresh we say "position indisponible" instead of drawing a car in the
- *     wrong street.
- *   - nothing is drawn once the ride is over, so a completed trip stops
- *     exposing a captain's whereabouts.
- */
-function RideMap({ ride }: { ride: Ride }) {
-  const { t } = useTranslation();
-  const M = getMapbox();
-  if (!M || !LIVE_STATUSES.includes(ride.status)) return null;
-
-  const captainAt = ride.captain?.location ?? null;
-  // Centre on the captain when we have one, otherwise on the pickup — the map
-  // stays useful ("your ride is here") even before anyone is assigned.
-  const centre: [number, number] = captainAt
-    ? [captainAt.lng, captainAt.lat]
-    : [ride.pickup.lng, ride.pickup.lat];
-
-  return (
-    <View style={{ height: 220, borderRadius: 16, overflow: 'hidden', marginTop: 16 }}>
-      <MapShell centerCoordinate={centre} zoomLevel={13.5}>
-        <M.PointAnnotation id="pickup" coordinate={[ride.pickup.lng, ride.pickup.lat]}>
-          <View style={{
-            width: 14, height: 14, borderRadius: 7,
-            backgroundColor: '#10a35e', borderWidth: 2, borderColor: '#fff',
-          }} />
-        </M.PointAnnotation>
-
-        {ride.dropoff ? (
-          <M.PointAnnotation id="dropoff" coordinate={[ride.dropoff.lng, ride.dropoff.lat]}>
-            <View style={{
-              width: 14, height: 14, borderRadius: 3,
-              backgroundColor: '#0f172a', borderWidth: 2, borderColor: '#fff',
-            }} />
-          </M.PointAnnotation>
-        ) : null}
-
-        {captainAt ? (
-          <M.PointAnnotation id="captain" coordinate={[captainAt.lng, captainAt.lat]}>
-            <View style={{
-              width: 22, height: 22, borderRadius: 11,
-              backgroundColor: '#f97316', borderWidth: 3, borderColor: '#fff',
-            }} />
-          </M.PointAnnotation>
-        ) : null}
-      </MapShell>
-
-      <View style={{
-        position: 'absolute', left: 10, bottom: 10,
-        backgroundColor: 'rgba(15,23,42,0.85)', paddingHorizontal: 10, paddingVertical: 6,
-        borderRadius: 999,
-      }}>
-        <Text style={{ color: '#fff', fontSize: 12 }}>
-          {!captainAt
-            ? t('rider.current.map.positionUnavailable')
-            : ride.captainDistanceM != null
-              ? t('rider.current.map.distanceAway', {
-                  distance: ride.captainDistanceM >= 1000
-                    ? `${(ride.captainDistanceM / 1000).toFixed(1)} km`
-                    : `${ride.captainDistanceM} m`,
-                })
-              : t('rider.current.map.captainOnTheWay')}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-function CaptainCard({ captain }: { captain: Captain }) {
-  const { t } = useTranslation();
-  return (
-    <View style={{ marginTop: 16, backgroundColor: '#fff', borderRadius: 14, padding: 16 }}>
-      <Text style={{ fontSize: 12, fontWeight: '700', color: '#64748b', letterSpacing: 0.5 }}>
-        {t('rider.current.yourDriver')}
-      </Text>
-      <View style={{ marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-        <View style={{
-          width: 44, height: 44, borderRadius: 22, backgroundColor: '#e2e8f0',
-          alignItems: 'center', justifyContent: 'center',
-        }}>
-          <Text style={{ fontSize: 22 }}>👤</Text>
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 16, fontWeight: '700', color: '#0f172a' }}>
-            {captain.fullName ?? t('rider.current.fallbackName')}
-          </Text>
-          <Text style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
-            ⭐ {captain.ratingAvg > 0 ? captain.ratingAvg.toFixed(1) : '—'} · {t('rider.current.ridesCount', { count: captain.totalRides })}
-          </Text>
-        </View>
-        <Pressable
-          onPress={() => Linking.openURL(`tel:${captain.phone}`)}
-          style={({ pressed }) => ({
-            backgroundColor: pressed ? '#0a7a45' : '#10a35e',
-            paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999,
-          })}
-        >
-          <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>📞</Text>
-        </Pressable>
-      </View>
-
-      {captain.vehicle ? (
-        <View style={{
-          marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#f1f5f9',
-        }}>
-          <Text style={{ fontSize: 12, color: '#64748b' }}>{t('rider.current.vehicleLabel')}</Text>
-          <Text style={{ fontSize: 15, fontWeight: '600', color: '#0f172a', marginTop: 2 }}>
-            {captain.vehicle.color} {captain.vehicle.brand} {captain.vehicle.model}
-          </Text>
-          <Text style={{
-            marginTop: 6, alignSelf: 'flex-start',
-            backgroundColor: '#0f172a', color: '#fff',
-            paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6,
-            fontSize: 13, fontWeight: '700', letterSpacing: 1,
-          }}>
-            {captain.vehicle.plate}
-          </Text>
-        </View>
-      ) : null}
-    </View>
-  );
-}
-
-function TripCard({ ride }: { ride: Ride }) {
-  const { t } = useTranslation();
-  // For an open ride still in progress we already show the live meter card
-  // above, so the fare row here would duplicate. Display the running total
-  // post-completion instead.
-  const fare = ride.fareFinalMru
-    ?? (ride.rideType === 'private_driver' ? ride.privateDriverDetails?.bookedFareMru ?? ride.fareEstimateMru
-    : ride.isOpen ? ride.liveMeter?.fareMru ?? null : ride.fareEstimateMru);
-  return (
-    <View style={{ marginTop: 16, backgroundColor: '#fff', borderRadius: 14, padding: 16, gap: 12 }}>
-      <View>
-        <Text style={{ fontSize: 12, color: '#64748b' }}>{t('common.from')}</Text>
-        <Text style={{ fontSize: 15, color: '#0f172a', marginTop: 2 }}>
-          {ride.pickup.label ?? t('rider.history.pickupFallback')}
-        </Text>
-      </View>
-      <View>
-        <Text style={{ fontSize: 12, color: '#64748b' }}>
-          {ride.isOpen ? t('rider.current.openDestination') : t('common.to')}
-        </Text>
-        <Text style={{ fontSize: 15, color: '#0f172a', marginTop: 2 }}>
-          {ride.isOpen && !ride.dropoff?.label
-            ? t('rider.current.openDestinationValue')
-            : (ride.dropoff?.label ?? t('rider.history.dropoffFallback'))}
-        </Text>
-      </View>
-      <View style={{
-        flexDirection: 'row', justifyContent: 'space-between',
-        borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 12,
-      }}>
-        <View>
-          <Text style={{ fontSize: 12, color: '#64748b' }}>{t('rider.current.fare')}</Text>
-          <Text style={{ fontSize: 16, fontWeight: '700', color: '#0f172a' }}>
-            {fare == null ? '—' : formatMru(fare)}
-          </Text>
-        </View>
-        <View>
-          <Text style={{ fontSize: 12, color: '#64748b' }}>{t('rider.current.payment')}</Text>
-          <Text style={{ fontSize: 16, fontWeight: '700', color: '#0f172a' }}>
-            {ride.paymentMethod === 'cash' ? t('rider.current.cash') : t('rider.current.wallet')}
-          </Text>
-        </View>
-      </View>
-    </View>
-  );
-}
-
-/**
- * Hero card displayed during an in-progress open ride. Big running fare,
- * km + minutes side by side. The fare polls every 3 s through the parent's
- * usePolling, so it feels live without us running a local timer.
- */
-function LiveMeterCard({ ride }: { ride: Ride }) {
-  const { t } = useTranslation();
-  const m = ride.liveMeter;
-  // Soft pulse on the fare to make "this number is alive" obvious.
-  const pulse = useRef(new Animated.Value(1)).current;
-  useEffect(() => {
-    const loop = Animated.loop(Animated.sequence([
-      Animated.timing(pulse, { toValue: 1.04, duration: 900, useNativeDriver: true }),
-      Animated.timing(pulse, { toValue: 1.00, duration: 900, useNativeDriver: true }),
-    ]));
-    loop.start();
-    return () => loop.stop();
-  }, [pulse]);
-
-  const minutes = m ? Math.floor(m.durationS / 60) : 0;
-  const seconds = m ? m.durationS % 60 : 0;
-  const km = m ? (m.distanceM / 1000).toFixed(2) : '0.00';
-
-  return (
-    <View style={{
-      marginTop: 16, backgroundColor: '#0f172a', borderRadius: 16,
-      padding: 18, gap: 14,
-    }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#10a35e' }} />
-        <Text style={{ fontSize: 11, fontWeight: '700', color: '#10a35e', letterSpacing: 0.6 }}>
-          {t('rider.current.openMeterLive').toUpperCase()}
-        </Text>
-      </View>
-
-      <Animated.Text style={{
-        fontSize: 44, fontWeight: '800', color: '#fff', letterSpacing: -1,
-        transform: [{ scale: pulse }],
-      }}>
-        {formatMru(m?.fareMru ?? 0)}
-      </Animated.Text>
-
-      <View style={{ flexDirection: 'row', gap: 10 }}>
-        <View style={{
-          flex: 1, backgroundColor: '#1e293b', borderRadius: 10,
-          paddingVertical: 12, paddingHorizontal: 14,
-        }}>
-          <Text style={{ fontSize: 10, color: '#94a3b8', letterSpacing: 0.4 }}>
-            {t('rider.current.openMeterDistance').toUpperCase()}
-          </Text>
-          <Text style={{ fontSize: 20, fontWeight: '700', color: '#fff', marginTop: 4 }}>
-            {km} <Text style={{ fontSize: 12, color: '#94a3b8' }}>km</Text>
-          </Text>
-        </View>
-        <View style={{
-          flex: 1, backgroundColor: '#1e293b', borderRadius: 10,
-          paddingVertical: 12, paddingHorizontal: 14,
-        }}>
-          <Text style={{ fontSize: 10, color: '#94a3b8', letterSpacing: 0.4 }}>
-            {t('rider.current.openMeterDuration').toUpperCase()}
-          </Text>
-          <Text style={{ fontSize: 20, fontWeight: '700', color: '#fff', marginTop: 4 }}>
-            {minutes}:{String(seconds).padStart(2, '0')}
-          </Text>
-        </View>
-      </View>
-
-      {ride.openTariff ? (
-        <Text style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
-          {t('rider.current.openMeterTariffSummary', {
-            base: ride.openTariff.baseFareMru,
-            perKm: ride.openTariff.perKmMru,
-            perMin: ride.openTariff.perMinuteMru,
-          })}
-        </Text>
-      ) : null}
-    </View>
-  );
-}
-
-function PrivateDriverTimerCard({
-  startedAt, bookedDurationH, bookedFareMru,
-}: { startedAt: string; bookedDurationH: number; bookedFareMru: number }) {
-  const [elapsed, setElapsed] = useState(0);
-  useEffect(() => {
-    const start = new Date(startedAt).getTime();
-    const tick = () => setElapsed(Math.max(0, Math.floor((Date.now() - start) / 1000)));
-    tick();
-    const iv = setInterval(tick, 1000);
-    return () => clearInterval(iv);
-  }, [startedAt]);
-
-  const totalBookedS = bookedDurationH * 3600;
-  const remaining = totalBookedS - elapsed;
-  const isOvertime = remaining < 0;
-  const displayS = Math.abs(remaining);
-  const hours = Math.floor(displayS / 3600);
-  const mins = Math.floor((displayS % 3600) / 60);
-  const secs = displayS % 60;
-
-  return (
-    <View style={{
-      marginTop: 16, backgroundColor: '#0f172a', borderRadius: 16,
-      padding: 18, gap: 14,
-    }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: isOvertime ? '#ef4444' : '#10a35e' }} />
-        <Text style={{ fontSize: 11, fontWeight: '700', color: isOvertime ? '#ef4444' : '#10a35e', letterSpacing: 0.6 }}>
-          {isOvertime ? 'TEMPS DÉPASSÉ' : 'Captain PRIVÉ'}
-        </Text>
-      </View>
-
-      <Text style={{
-        fontSize: 36, fontWeight: '800', color: '#fff', letterSpacing: -1,
-      }}>
-        {isOvertime ? '+' : ''}{hours}:{String(mins).padStart(2, '0')}:{String(secs).padStart(2, '0')}
-      </Text>
-
-      <View style={{ flexDirection: 'row', gap: 10 }}>
-        <View style={{
-          flex: 1, backgroundColor: '#1e293b', borderRadius: 10,
-          paddingVertical: 12, paddingHorizontal: 14,
-        }}>
-          <Text style={{ fontSize: 10, color: '#94a3b8', letterSpacing: 0.4 }}>RÉSERVÉ</Text>
-          <Text style={{ fontSize: 20, fontWeight: '700', color: '#fff', marginTop: 4 }}>
-            {bookedDurationH}h
-          </Text>
-        </View>
-        <View style={{
-          flex: 1, backgroundColor: '#1e293b', borderRadius: 10,
-          paddingVertical: 12, paddingHorizontal: 14,
-        }}>
-          <Text style={{ fontSize: 10, color: '#94a3b8', letterSpacing: 0.4 }}>TARIF</Text>
-          <Text style={{ fontSize: 20, fontWeight: '700', color: '#fff', marginTop: 4 }}>
-            {formatMru(bookedFareMru)}
-          </Text>
-        </View>
-      </View>
-    </View>
   );
 }

@@ -4,6 +4,24 @@
  * Minimal cinematic splash: warm gradient → logo fades in with a soft
  * radial glow → brand name and Arabic slogan bloom in the app's own
  * typefaces → a car drives in on the horizon → everything fades.
+ *
+ * Two rules this file has to respect, both learned the hard way:
+ *
+ * 1. IT IS ON THE CRITICAL PATH. Every millisecond here is a millisecond the
+ *    user stares at a logo instead of using the app. The whole sequence is
+ *    budgeted at SPLASH_DURATION_MS and the phases OVERLAP (each animation
+ *    carries its own `delay` inside one parallel) rather than running as a
+ *    strict `Animated.sequence`. Overlapping reads as fluid; stacking reads as
+ *    slow. The previous version was a rigid sequence totalling ~9.7 s that
+ *    SplashGate hard-cut at 4 s, so the fade-out never even played.
+ *
+ * 2. EVERYTHING RUNS ON THE NATIVE DRIVER. The splash animates while the JS
+ *    thread is at its busiest of the whole app lifetime (auth hydrate, /auth/me,
+ *    loadAppConfig, push registration, i18n). Any `useNativeDriver: false`
+ *    animation is driven from that same thread — it stutters, AND it steals
+ *    time from the startup work. That means: no animating `width`, `top`, or
+ *    colors. The horizon "sweep" is a scaleX on a fixed-width bar for exactly
+ *    this reason — animating its `width` would force the JS driver.
  */
 
 import React, { useEffect, useRef } from 'react';
@@ -16,7 +34,7 @@ import {
   Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors } from '@/theme';
+import { colors, gradients, radius, SHADOW } from '@/theme';
 
 interface SplashScreenProps {
   onAnimationEnd?: () => void;
@@ -24,6 +42,16 @@ interface SplashScreenProps {
 }
 
 const { width: W, height: H } = Dimensions.get('window');
+
+/**
+ * Total wall-clock budget for the splash, from first frame to fully faded.
+ * SplashGate reads this so the gate and the animation can never disagree about
+ * when the brand moment is over.
+ */
+export const SPLASH_DURATION_MS = 1500;
+
+/** When the closing fade starts — the last 300 ms of the budget. */
+const FADE_OUT_AT = SPLASH_DURATION_MS - 300;
 
 export const SplashScreen: React.FC<SplashScreenProps> = ({
   onAnimationEnd,
@@ -36,159 +64,124 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
   const nameY = useRef(new Animated.Value(12)).current;
   const sloganOpacity = useRef(new Animated.Value(0)).current;
   const sloganScale = useRef(new Animated.Value(0.9)).current;
-  const horizonWidth = useRef(new Animated.Value(0)).current;
+  // scaleX, not width — see rule 2 in the file header.
+  const horizonScale = useRef(new Animated.Value(0)).current;
   const horizonOpacity = useRef(new Animated.Value(0)).current;
   const carX = useRef(new Animated.Value(-W)).current;
   const carOpacity = useRef(new Animated.Value(0)).current;
-  const carBounce = useRef(new Animated.Value(0)).current;
   const fadeOut = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    const glowPulse = Animated.loop(
-      Animated.sequence([
-        Animated.timing(glowOpacity, {
-          toValue: 0.5,
-          duration: 1200,
-          useNativeDriver: false,
-        }),
-        Animated.timing(glowOpacity, {
-          toValue: 0.25,
-          duration: 1200,
-          useNativeDriver: false,
-        }),
-      ]),
-    );
-    glowPulse.start();
+    // ONE parallel, each element carrying its own `delay`. The elements overlap
+    // deliberately — the brand name starts rising while the logo is still
+    // settling, the car sets off before the horizon has finished drawing. A
+    // strict Animated.sequence would make each phase wait for the previous to
+    // fully settle, which is what made the old splash feel interminable.
+    const intro = Animated.parallel([
+      // 0 → 420: logo materialises out of the glow.
+      Animated.timing(logoOpacity, {
+        toValue: 1,
+        duration: 380,
+        useNativeDriver: true,
+      }),
+      Animated.spring(logoScale, {
+        toValue: 1,
+        damping: 14,
+        stiffness: 180,
+        mass: 0.7,
+        useNativeDriver: true,
+      }),
+      Animated.timing(glowScale, {
+        toValue: 1,
+        duration: 520,
+        useNativeDriver: true,
+      }),
+      Animated.timing(glowOpacity, {
+        toValue: 0.35,
+        duration: 520,
+        useNativeDriver: true,
+      }),
 
-    // Subtle car bob while it's on-screen
-    const carBob = Animated.loop(
-      Animated.sequence([
-        Animated.timing(carBounce, {
-          toValue: -3,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(carBounce, {
-          toValue: 0,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-      ]),
-    );
+      // 260 → 560: brand name rises under the logo.
+      Animated.timing(nameOpacity, {
+        toValue: 1,
+        duration: 300,
+        delay: 260,
+        useNativeDriver: true,
+      }),
+      Animated.timing(nameY, {
+        toValue: 0,
+        duration: 300,
+        delay: 260,
+        useNativeDriver: true,
+      }),
 
-    Animated.sequence([
-      // Phase 1: Logo materialises
-      Animated.parallel([
-        Animated.timing(logoOpacity, {
-          toValue: 1,
-          duration: 700,
-          useNativeDriver: false,
-        }),
-        Animated.spring(logoScale, {
-          toValue: 1,
-          damping: 14,
-          stiffness: 100,
-          mass: 0.8,
-          useNativeDriver: false,
-        }),
-        Animated.timing(glowScale, {
-          toValue: 1,
-          duration: 900,
-          useNativeDriver: false,
-        }),
-        Animated.timing(glowOpacity, {
-          toValue: 0.35,
-          duration: 900,
-          useNativeDriver: false,
-        }),
-      ]),
+      // 400 → 780: the Arabic slogan blooms.
+      Animated.timing(sloganOpacity, {
+        toValue: 1,
+        duration: 380,
+        delay: 400,
+        useNativeDriver: true,
+      }),
+      Animated.spring(sloganScale, {
+        toValue: 1,
+        damping: 13,
+        stiffness: 150,
+        delay: 400,
+        useNativeDriver: true,
+      }),
 
-      // Phase 2: Brand name
-      Animated.parallel([
-        Animated.timing(nameOpacity, {
-          toValue: 1,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(nameY, {
-          toValue: 0,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-      ]),
+      // 520 → 1000: the road draws itself out from the centre.
+      Animated.timing(horizonOpacity, {
+        toValue: 1,
+        duration: 160,
+        delay: 520,
+        useNativeDriver: true,
+      }),
+      Animated.timing(horizonScale, {
+        toValue: 1,
+        duration: 480,
+        delay: 520,
+        useNativeDriver: true,
+      }),
 
-      // Phase 3: Slogan blooms
-      Animated.parallel([
-        Animated.timing(sloganOpacity, {
-          toValue: 1,
-          duration: 700,
-          useNativeDriver: true,
-        }),
-        Animated.spring(sloganScale, {
-          toValue: 1,
-          damping: 12,
-          stiffness: 90,
-          useNativeDriver: true,
-        }),
-      ]),
+      // 700 → ~1200: the car drives in along it.
+      Animated.timing(carOpacity, {
+        toValue: 1,
+        duration: 220,
+        delay: 700,
+        useNativeDriver: true,
+      }),
+      Animated.spring(carX, {
+        toValue: 0,
+        damping: 18,
+        stiffness: 110,
+        mass: 0.9,
+        delay: 700,
+        useNativeDriver: true,
+      }),
 
-      // Phase 4: Horizon line sweeps
-      Animated.parallel([
-        Animated.timing(horizonOpacity, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: false,
-        }),
-        Animated.timing(horizonWidth, {
-          toValue: 1,
-          duration: 700,
-          useNativeDriver: false,
-        }),
-      ]),
-
-      // Phase 5: Car drives in on the horizon
-      Animated.parallel([
-        Animated.timing(carOpacity, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.spring(carX, {
-          toValue: 0,
-          damping: 16,
-          stiffness: 80,
-          mass: 1,
-          useNativeDriver: true,
-        }),
-      ]),
-
-      // Phase 6: Hold, then fade
+      // The closing fade is part of the same parallel so the whole thing lands
+      // on SPLASH_DURATION_MS exactly, whatever the springs decide to do.
       Animated.timing(fadeOut, {
         toValue: 0,
-        duration: 800,
-        delay: 5300,
-        useNativeDriver: false,
+        duration: 300,
+        delay: FADE_OUT_AT,
+        useNativeDriver: true,
       }),
-    ]).start(() => {
-      glowPulse.stop();
-      carBob.stop();
-      onAnimationEnd?.();
+    ]);
+
+    intro.start(({ finished }) => {
+      if (finished) onAnimationEnd?.();
     });
 
-    // Start the bob shortly after the car appears
-    const bobDelay = setTimeout(() => carBob.start(), 3200);
-
-    return () => {
-      glowPulse.stop();
-      carBob.stop();
-      clearTimeout(bobDelay);
-    };
+    return () => intro.stop();
   }, []);
 
   return (
     <Animated.View style={[styles.container, { opacity: fadeOut }]}>
       <LinearGradient
-        colors={['#FBF3E7', '#F6E4C8', '#EDCFA6', '#D4A76A']}
+        colors={gradients.sand}
         locations={[0, 0.35, 0.65, 1]}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
@@ -253,16 +246,15 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
         كول آلوو تتعدل غايتك
       </Animated.Text>
 
-      {/* Horizon line — the road */}
+      {/* Horizon line — the road. Fixed width, scaled on X from the centre
+          outward: same sweep, but on the native driver (animating `width`
+          would not be). */}
       <Animated.View
         style={[
           styles.horizon,
           {
             opacity: horizonOpacity,
-            width: horizonWidth.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0, W * 0.9],
-            }),
+            transform: [{ scaleX: horizonScale }],
           },
         ]}
       />
@@ -275,10 +267,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
           styles.car,
           {
             opacity: carOpacity,
-            transform: [
-              { translateX: carX },
-              { translateY: carBounce },
-            ],
+            transform: [{ translateX: carX }],
           },
         ]}
       />
@@ -344,9 +333,9 @@ const styles = StyleSheet.create({
     top: H * 0.22,
     width: 96,
     height: 96,
-    borderRadius: 28,
+    borderRadius: radius.xxl,
     overflow: 'hidden',
-    shadowColor: '#5A3414',
+    shadowColor: SHADOW,
     shadowOpacity: 0.25,
     shadowRadius: 24,
     shadowOffset: { width: 0, height: 12 },
@@ -376,8 +365,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: H * 0.22 + 96 + 20 + 56,
     fontFamily: 'Cairo_700Bold',
-    fontSize: 34,
-    lineHeight: 48,
+    fontSize: 22,
+    lineHeight: 34,
     color: colors.ink,
     textAlign: 'center',
     paddingHorizontal: 24,
@@ -387,6 +376,8 @@ const styles = StyleSheet.create({
   horizon: {
     position: 'absolute',
     top: HORIZON_TOP,
+    // Laid out at full width and revealed via scaleX — see the render.
+    width: W * 0.9,
     height: 2,
     borderRadius: 1,
     backgroundColor: colors.saffron,
@@ -410,14 +401,18 @@ const styles = StyleSheet.create({
 
   footer: {
     position: 'absolute',
-    bottom: 28,
-    width: W,
+    bottom: 24,
+    alignSelf: 'center',
     fontFamily: 'Cairo_700Bold',
-    fontSize: 20,
-    lineHeight: 30,
-    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 20,
+    color: colors.white,
     textAlign: 'center',
     writingDirection: 'rtl',
+    backgroundColor: 'rgba(0,0,0,0.22)',
+    paddingHorizontal: 16,
+    paddingVertical: 5,
+    borderRadius: radius.lg,
   },
 });
 

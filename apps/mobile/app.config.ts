@@ -109,6 +109,9 @@ const config: ExpoConfig = {
       'android.permission.CAMERA',
       'android.permission.READ_EXTERNAL_STORAGE',
       'android.permission.RECORD_AUDIO',
+      // Haptic feedback (lib/haptics.ts). Already present in the checked-in
+      // manifest via notifee; declared here so a fresh prebuild keeps it.
+      'android.permission.VIBRATE',
     ],
   },
   web: {

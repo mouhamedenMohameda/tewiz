@@ -3,6 +3,7 @@ import { ScrollView, Text, View, StyleSheet } from 'react-native';
 import { saveCrash } from '@/lib/crash-reporter';
 import { reportError } from '@/lib/sentry';
 import { i18n } from '@/lib/i18n';
+import { colors } from '@/theme';
 
 interface State {
   error: Error | null;
@@ -61,23 +62,42 @@ export class CrashBoundary extends Component<{ children: ReactNode }, State> {
   }
 }
 
+/**
+ * Deliberately OUTSIDE the "Sahara Solaire" palette.
+ *
+ * This screen only ever appears when the app has already failed, and it exists
+ * to be read and screenshotted — a stacktrace on warm sand is harder to read
+ * and, worse, looks like a designed part of the product. The neutral dark
+ * console look tells the user at a glance that this is not a normal screen.
+ * Two reasons to keep the values local rather than adding console greys to the
+ * theme: nothing else in the app should ever reach for them, and a fallback
+ * renderer should depend on as little as possible.
+ */
+const CONSOLE = {
+  bg: '#111111',
+  error: '#FF6B6B',
+  label: '#AAAAAA',
+  stack: '#DDDDDD',
+  hint: '#888888',
+} as const;
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#111' },
+  container: { flex: 1, backgroundColor: CONSOLE.bg },
   content: { padding: 20, paddingTop: 60 },
   title: {
-    color: '#ff6b6b',
+    color: CONSOLE.error,
     fontSize: 20,
     fontWeight: '700',
     marginBottom: 16,
   },
   label: {
-    color: '#aaa',
+    color: CONSOLE.label,
     fontSize: 12,
     marginTop: 12,
     marginBottom: 4,
     textTransform: 'uppercase',
   },
-  message: { color: '#fff', fontSize: 14, fontFamily: 'Sora_500Medium' },
-  stack: { color: '#ddd', fontSize: 11, fontFamily: 'Sora_500Medium' },
-  hint: { color: '#888', marginTop: 24, fontSize: 12, fontStyle: 'italic' },
+  message: { color: colors.white, fontSize: 14, fontFamily: 'Sora_500Medium' },
+  stack: { color: CONSOLE.stack, fontSize: 11, fontFamily: 'Sora_500Medium' },
+  hint: { color: CONSOLE.hint, marginTop: 24, fontSize: 12, fontStyle: 'italic' },
 });

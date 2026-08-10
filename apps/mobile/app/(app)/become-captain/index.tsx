@@ -21,6 +21,8 @@ import { APP_NAME } from '@/lib/brand';
 import { wrapRow } from '@/components/ui';
 import { TermsSheet } from '@/components/TermsSheet';
 import { acceptTerms, useTermsStatus } from '@/lib/terms';
+import { apiErrorMessage } from '@/lib/apiError';
+import { colors, radius, statusTone } from '@/theme';
 
 interface FormState {
   fullName: string;
@@ -85,7 +87,7 @@ export default function BecomeCaptainHome() {
         t('common.error'),
         e.response?.status === 409
           ? t('terms.updateRequired')
-          : e.response?.data?.error?.message ?? t('terms.acceptFail'),
+          : apiErrorMessage(e, t, t('terms.acceptFail')),
       );
     } finally {
       setAcceptingTerms(false);
@@ -97,7 +99,7 @@ export default function BecomeCaptainHome() {
       const r = await api.get<ApplicationDto | null>('/captain/applications/me');
       setApp(r.data);
     } catch (e: any) {
-      Alert.alert(t('common.error'), e.response?.data?.error?.message ?? t('becomeCaptain.loadFail'));
+      Alert.alert(t('common.error'), apiErrorMessage(e, t, t('becomeCaptain.loadFail')));
     } finally {
       setLoading(false);
     }
@@ -143,7 +145,7 @@ export default function BecomeCaptainHome() {
       const r = await api.post<ApplicationDto>('/captain/applications');
       setApp(r.data);
     } catch (e: any) {
-      Alert.alert(t('common.error'), e.response?.data?.error?.message ?? t('becomeCaptain.createFail'));
+      Alert.alert(t('common.error'), apiErrorMessage(e, t, t('becomeCaptain.createFail')));
     } finally {
       setCreating(false);
     }
@@ -207,7 +209,7 @@ export default function BecomeCaptainHome() {
       });
       await load();
     } catch (e: any) {
-      Alert.alert(t('common.error'), e.response?.data?.error?.message ?? t('becomeCaptain.docs.uploadFail'));
+      Alert.alert(t('common.error'), apiErrorMessage(e, t, t('becomeCaptain.docs.uploadFail')));
     } finally {
       setUploadingType(null);
     }
@@ -229,7 +231,7 @@ export default function BecomeCaptainHome() {
         text: t('common.delete'), style: 'destructive',
         onPress: async () => {
           try { await api.delete(`/captain/applications/me/documents/${doc.id}`); await load(); }
-          catch (e: any) { Alert.alert(t('common.error'), e.response?.data?.error?.message ?? t('errors.generic')); }
+          catch (e: any) { Alert.alert(t('common.error'), apiErrorMessage(e, t, t('errors.generic'))); }
         },
       },
     ]);
@@ -284,14 +286,21 @@ export default function BecomeCaptainHome() {
       setApp(r.data);
       Alert.alert(t('becomeCaptain.submittedTitle'), t('becomeCaptain.submittedBody'));
     } catch (e: any) {
-      const data = e.response?.data?.error;
-      const missing = data?.details?.missing as string[] | undefined;
-      Alert.alert(
-        t('becomeCaptain.incompleteTitle'),
-        missing?.length
-          ? t('becomeCaptain.missingPrefix', { items: missing.join('\n• ') })
-          : (data?.message ?? t('becomeCaptain.completeAllSteps')),
-      );
+      const missing = e.response?.data?.error?.details?.missing as string[] | undefined;
+      if (missing?.length) {
+        Alert.alert(
+          t('becomeCaptain.incompleteTitle'),
+          t('becomeCaptain.missingPrefix', { items: missing.join('\n• ') }),
+        );
+      } else {
+        // A 5xx or a dropped connection lands here too — "complete every step"
+        // would be a lie, so only claim an incomplete file when the server said so.
+        const incomplete = e.response?.status === 400 || e.response?.status === 422;
+        Alert.alert(
+          incomplete ? t('becomeCaptain.incompleteTitle') : t('common.error'),
+          apiErrorMessage(e, t, t('becomeCaptain.completeAllSteps')),
+        );
+      }
     } finally {
       setSubmitting(false);
     }
@@ -324,7 +333,7 @@ export default function BecomeCaptainHome() {
     .map((n) => ({ value: String(n), label: String(n) }));
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView
           contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
@@ -359,7 +368,7 @@ export default function BecomeCaptainHome() {
                     placeholder={t('becomeCaptain.personal.fullNamePlaceholder')} autoCapitalize="words" />
 
                   <View style={{ marginTop: 16 }}>
-                    <Text style={{ fontSize: 13, color: '#475569', marginBottom: 8 }}>
+                    <Text style={{ fontSize: 13, color: colors.ink2, marginBottom: 8 }}>
                       {t('becomeCaptain.vehicle.vehicleTypeLabel')}
                     </Text>
                     <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -371,12 +380,12 @@ export default function BecomeCaptainHome() {
                             if (type === 'moto' && Number(form.seats) > 2) setField('seats', '2');
                           }}
                             style={{
-                              flex: 1, borderRadius: 12, borderWidth: 1,
-                              borderColor: active ? '#0f172a' : '#cbd5e1',
-                              backgroundColor: active ? '#0f172a' : '#fff',
+                              flex: 1, borderRadius: radius.md, borderWidth: 1,
+                              borderColor: active ? colors.ink : colors.lineStrong,
+                              backgroundColor: active ? colors.ink : '#fff',
                               paddingVertical: 12, alignItems: 'center',
                             }}>
-                            <Text style={{ color: active ? '#fff' : '#0f172a', fontWeight: '700' }}>
+                            <Text style={{ color: active ? '#fff' : colors.ink, fontWeight: '700' }}>
                               {type === 'car' ? t('becomeCaptain.vehicle.typeCar') : t('becomeCaptain.vehicle.typeMoto')}
                             </Text>
                           </Pressable>
@@ -418,7 +427,7 @@ export default function BecomeCaptainHome() {
 
                   {/* Documents */}
                   <SectionTitle text={t('becomeCaptain.docs.title')} />
-                  <Text style={{ fontSize: 13, color: '#64748b', marginBottom: 4 }}>
+                  <Text style={{ fontSize: 13, color: colors.ink2, marginBottom: 4 }}>
                     {t('becomeCaptain.docs.introV2')}
                   </Text>
                   <View style={{ flexDirection: wrapRow, flexWrap: 'wrap', gap: 12, marginTop: 12 }}>
@@ -447,14 +456,14 @@ export default function BecomeCaptainHome() {
                     onPress={submitApplication}
                     style={({ pressed }) => ({
                       marginTop: 24,
-                      backgroundColor: pressed ? '#0f7c4a' : '#10a35e',
+                      backgroundColor: pressed ? colors.emberDeep : colors.ember,
                       opacity: !allComplete || submitting ? 0.5 : 1,
-                      paddingVertical: 16, borderRadius: 12,
+                      paddingVertical: 16, borderRadius: radius.lg,
                       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
                     })}
                   >
                     {submitting && <ActivityIndicator color="#fff" />}
-                    <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>
+                    <Text style={{ color: colors.white, fontSize: 15, fontWeight: '600' }}>
                       {allComplete ? t('becomeCaptain.submit') : t('becomeCaptain.completeFirst')}
                     </Text>
                   </Pressable>
@@ -475,11 +484,11 @@ export default function BecomeCaptainHome() {
       {/* Expiry-date modal (assurance / vignette / visite technique) */}
       <Modal visible={!!pendingUpload} transparent animationType="fade" onRequestClose={() => setPendingUpload(null)}>
         <View style={{ flex: 1, backgroundColor: 'rgba(15,23,42,0.5)', justifyContent: 'center', padding: 24 }}>
-          <View style={{ backgroundColor: '#fff', borderRadius: 14, padding: 20 }}>
-            <Text style={{ fontSize: 17, fontWeight: '700', color: '#0f172a' }}>
+          <View style={{ backgroundColor: colors.surface, borderRadius: radius.md, padding: 20 }}>
+            <Text style={{ fontSize: 17, fontWeight: '700', color: colors.ink }}>
               {t('becomeCaptain.docs.expiryTitle')}
             </Text>
-            <Text style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>
+            <Text style={{ fontSize: 13, color: colors.ink2, marginTop: 4 }}>
               {t('becomeCaptain.docs.expiryHintPicker', { label: pendingUpload ? docLabel(pendingUpload.type) : '' })}
             </Text>
             <DateField
@@ -496,12 +505,12 @@ export default function BecomeCaptainHome() {
             />
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
               <Pressable onPress={() => setPendingUpload(null)}
-                style={({ pressed }) => ({ flex: 1, padding: 12, borderRadius: 10, backgroundColor: pressed ? '#e2e8f0' : '#f1f5f9', alignItems: 'center' })}>
-                <Text style={{ color: '#0f172a', fontWeight: '600' }}>{t('common.cancel')}</Text>
+                style={({ pressed }) => ({ flex: 1, padding: 12, borderRadius: radius.sm, backgroundColor: pressed ? colors.line : colors.line, alignItems: 'center' })}>
+                <Text style={{ color: colors.ink, fontWeight: '600' }}>{t('common.cancel')}</Text>
               </Pressable>
               <Pressable onPress={confirmExpiry}
-                style={({ pressed }) => ({ flex: 1, padding: 12, borderRadius: 10, backgroundColor: pressed ? '#0f7c4a' : '#10a35e', alignItems: 'center' })}>
-                <Text style={{ color: '#fff', fontWeight: '600' }}>{t('common.send')}</Text>
+                style={({ pressed }) => ({ flex: 1, padding: 12, borderRadius: radius.sm, backgroundColor: pressed ? colors.emberDeep : colors.ember, alignItems: 'center' })}>
+                <Text style={{ color: colors.white, fontWeight: '600' }}>{t('common.send')}</Text>
               </Pressable>
             </View>
           </View>
@@ -513,7 +522,7 @@ export default function BecomeCaptainHome() {
 
 function SectionTitle({ text }: { text: string }) {
   return (
-    <Text style={{ fontSize: 16, fontWeight: '700', color: '#0f172a', marginTop: 24, marginBottom: 4 }}>
+    <Text style={{ fontSize: 15, fontWeight: '700', color: colors.ink, marginTop: 24, marginBottom: 4 }}>
       {text}
     </Text>
   );
@@ -523,20 +532,20 @@ function NoApplication({ onStart, busy }: { onStart: () => void; busy: boolean }
   const { t } = useTranslation();
   return (
     <View style={{ marginTop: 16 }}>
-      <Text style={{ fontSize: 15, color: '#475569', lineHeight: 22 }}>
+      <Text style={{ fontSize: 15, color: colors.ink2, lineHeight: 22 }}>
         {t('becomeCaptain.intro', { app: APP_NAME })}
       </Text>
       <Pressable
         disabled={busy}
         onPress={onStart}
         style={({ pressed }) => ({
-          marginTop: 24, backgroundColor: pressed ? '#0f7c4a' : '#10a35e',
-          opacity: busy ? 0.5 : 1, paddingVertical: 16, borderRadius: 12,
+          marginTop: 24, backgroundColor: pressed ? colors.emberDeep : colors.ember,
+          opacity: busy ? 0.5 : 1, paddingVertical: 16, borderRadius: radius.lg,
           flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
         })}
       >
         {busy && <ActivityIndicator color="#fff" />}
-        <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>{t('becomeCaptain.start')}</Text>
+        <Text style={{ color: colors.white, fontSize: 15, fontWeight: '600' }}>{t('becomeCaptain.start')}</Text>
       </Pressable>
     </View>
   );
@@ -551,33 +560,33 @@ function DocCard({
   const { t } = useTranslation();
   const status = doc?.status;
   const borderColor =
-    status === 'approved' ? '#bbf7d0' : status === 'rejected' ? '#fecaca' :
-    status === 'pending' ? '#fde68a' : '#e2e8f0';
+    status === 'approved' ? statusTone.done.bg : status === 'rejected' ? colors.dangerSoft :
+    status === 'pending' ? statusTone.pending.bg : colors.line;
   const bg =
-    status === 'approved' ? '#f0fdf4' : status === 'rejected' ? '#fef2f2' :
-    status === 'pending' ? '#fefce8' : '#fff';
+    status === 'approved' ? statusTone.done.bg : status === 'rejected' ? statusTone.failed.bg :
+    status === 'pending' ? statusTone.pending.bg : '#fff';
 
   return (
     <Pressable
       onPress={editable ? onPick : undefined}
       onLongPress={doc && editable ? onDelete : undefined}
       style={({ pressed }) => ({
-        width: '47%', backgroundColor: pressed ? '#f1f5f9' : bg,
-        borderColor, borderWidth: 1, borderRadius: 12, padding: 12, minHeight: 110,
+        width: '47%', backgroundColor: pressed ? colors.line : bg,
+        borderColor, borderWidth: 1, borderRadius: radius.md, padding: 12, minHeight: 110,
       })}
     >
-      <Text style={{ fontSize: 13, fontWeight: '600', color: '#0f172a' }} numberOfLines={2}>{label}</Text>
+      <Text style={{ fontSize: 13, fontWeight: '600', color: colors.ink }} numberOfLines={2}>{label}</Text>
       <View style={{ flex: 1 }} />
       {uploading ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <ActivityIndicator size="small" />
-          <Text style={{ fontSize: 12, color: '#64748b' }}>{t('common.sending')}</Text>
+          <Text style={{ fontSize: 12, color: colors.ink2 }}>{t('common.sending')}</Text>
         </View>
       ) : doc ? (
         <View>
           <Text style={{
             fontSize: 11, fontWeight: '700',
-            color: status === 'approved' ? '#15803d' : status === 'rejected' ? '#b91c1c' : '#92400e',
+            color: status === 'approved' ? statusTone.done.fg : status === 'rejected' ? colors.danger : statusTone.pending.fg,
           }}>
             {status === 'approved' ? `✓ ${t('becomeCaptain.docs.statusApproved')}` :
               status === 'rejected' ? `✕ ${t('becomeCaptain.docs.statusRejected')}` :
@@ -585,19 +594,19 @@ function DocCard({
               `⏳ ${t('becomeCaptain.docs.statusPending')}`}
           </Text>
           {doc.expiresAt ? (
-            <Text style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>
+            <Text style={{ fontSize: 11, color: colors.ink2, marginTop: 2 }}>
               {t('becomeCaptain.docs.expiresPrefix', { date: doc.expiresAt.slice(0, 10) })}
             </Text>
           ) : null}
           {doc.rejectReason ? (
-            <Text style={{ fontSize: 10, color: '#b91c1c', marginTop: 2 }} numberOfLines={2}>{doc.rejectReason}</Text>
+            <Text style={{ fontSize: 11, color: colors.danger, marginTop: 2 }} numberOfLines={2}>{doc.rejectReason}</Text>
           ) : null}
           {editable ? (
-            <Text style={{ fontSize: 10, color: '#64748b', marginTop: 4 }}>{t('becomeCaptain.docs.replaceHint')}</Text>
+            <Text style={{ fontSize: 11, color: colors.ink2, marginTop: 4 }}>{t('becomeCaptain.docs.replaceHint')}</Text>
           ) : null}
         </View>
       ) : (
-        <Text style={{ fontSize: 12, color: '#64748b' }}>
+        <Text style={{ fontSize: 12, color: colors.ink2 }}>
           {editable ? t('becomeCaptain.docs.tapToAdd') : t('common.notSent')}
         </Text>
       )}
@@ -628,21 +637,21 @@ function TermsCheckbox({
     >
       <View style={{
         width: 24, height: 24, borderRadius: 6, borderWidth: 2,
-        borderColor: checked ? '#10a35e' : '#0f172a',
-        backgroundColor: checked ? '#10a35e' : 'transparent',
+        borderColor: checked ? colors.ember : colors.ink,
+        backgroundColor: checked ? colors.ember : 'transparent',
         alignItems: 'center', justifyContent: 'center',
       }}>
-        {checked ? <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>✓</Text> : null}
+        {checked ? <Text style={{ color: colors.white, fontSize: 15, fontWeight: '700' }}>✓</Text> : null}
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 15, color: '#0f172a' }}>
+        <Text style={{ fontSize: 15, color: colors.ink }}>
           {t('terms.checkbox')}{' '}
-          <Text style={{ color: '#10a35e', fontWeight: '700', textDecorationLine: 'underline' }}>
+          <Text style={{ color: colors.ember, fontWeight: '700', textDecorationLine: 'underline' }}>
             {t('terms.checkboxLink')}
           </Text>
         </Text>
         {checked && acceptedAt ? (
-          <Text style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+          <Text style={{ fontSize: 11, color: colors.ink2, marginTop: 2 }}>
             {t('terms.acceptedAt', { date: acceptedAt.slice(0, 10) })}
           </Text>
         ) : null}
@@ -653,18 +662,18 @@ function TermsCheckbox({
 
 function ErrorCard({ title, body }: { title: string; body: string }) {
   return (
-    <View style={{ marginTop: 16, backgroundColor: '#fef2f2', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#fecaca' }}>
-      <Text style={{ fontSize: 14, fontWeight: '600', color: '#b91c1c' }}>{title}</Text>
-      <Text style={{ fontSize: 13, color: '#7f1d1d', marginTop: 6 }}>{body}</Text>
+    <View style={{ marginTop: 16, backgroundColor: statusTone.failed.bg, borderRadius: radius.md, padding: 16, borderWidth: 1, borderColor: colors.dangerSoft }}>
+      <Text style={{ fontSize: 13, fontWeight: '600', color: colors.danger }}>{title}</Text>
+      <Text style={{ fontSize: 13, color: colors.danger, marginTop: 6 }}>{body}</Text>
     </View>
   );
 }
 
 function CorrectionCard({ title, body }: { title: string; body: string }) {
   return (
-    <View style={{ marginTop: 16, backgroundColor: '#fffbeb', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#fde68a' }}>
-      <Text style={{ fontSize: 14, fontWeight: '700', color: '#92400e' }}>{title}</Text>
-      <Text style={{ fontSize: 14, color: '#78350f', marginTop: 8, lineHeight: 20 }}>{body}</Text>
+    <View style={{ marginTop: 16, backgroundColor: statusTone.pending.bg, borderRadius: radius.md, padding: 16, borderWidth: 1, borderColor: statusTone.pending.bg }}>
+      <Text style={{ fontSize: 13, fontWeight: '700', color: statusTone.pending.fg }}>{title}</Text>
+      <Text style={{ fontSize: 13, color: statusTone.pending.fg, marginTop: 8, lineHeight: 20 }}>{body}</Text>
     </View>
   );
 }
@@ -672,20 +681,20 @@ function CorrectionCard({ title, body }: { title: string; body: string }) {
 function StatusBanner({ status }: { status: ApplicationStatus }) {
   const { t } = useTranslation();
   const palette: Record<ApplicationStatus, { bg: string; fg: string }> = {
-    draft:            { bg: '#fef9c3', fg: '#854d0e' },
-    submitted:        { bg: '#dbeafe', fg: '#1e40af' },
-    under_review:     { bg: '#e0e7ff', fg: '#3730a3' },
-    needs_correction: { bg: '#fef3c7', fg: '#92400e' },
-    approved:         { bg: '#dcfce7', fg: '#166534' },
-    rejected:         { bg: '#fee2e2', fg: '#991b1b' },
+    draft:            { bg: statusTone.pending.bg, fg: statusTone.pending.fg },
+    submitted:        { bg: statusTone.active.bg, fg: statusTone.active.fg },
+    under_review:     { bg: statusTone.active.bg, fg: statusTone.active.fg },
+    needs_correction: { bg: statusTone.pending.bg, fg: statusTone.pending.fg },
+    approved:         { bg: statusTone.done.bg, fg: statusTone.done.fg },
+    rejected:         { bg: colors.dangerSoft, fg: statusTone.failed.fg },
   };
   const s = palette[status];
   return (
-    <View style={{ backgroundColor: s.bg, borderRadius: 14, padding: 16 }}>
+    <View style={{ backgroundColor: s.bg, borderRadius: radius.md, padding: 16 }}>
       <Text style={{ color: s.fg, fontSize: 12, fontWeight: '700', letterSpacing: 0.5 }}>
         {t(`becomeCaptain.banner.${status}.label` as const).toUpperCase()}
       </Text>
-      <Text style={{ color: s.fg, fontSize: 14, marginTop: 4, lineHeight: 20 }}>
+      <Text style={{ color: s.fg, fontSize: 13, marginTop: 4, lineHeight: 20 }}>
         {t(`becomeCaptain.banner.${status}.desc` as const, { app: APP_NAME })}
       </Text>
     </View>

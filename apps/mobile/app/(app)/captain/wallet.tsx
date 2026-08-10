@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, View,
 } from 'react-native';
@@ -9,11 +9,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import * as Clipboard from 'expo-clipboard';
 import { api } from '@/lib/api';
+import { useApiQuery } from '@/lib/useApiQuery';
 import { formatMru } from '@/lib/format';
 import {
   AppText, Button, Card, Icon, Screen, ScreenHeader, TextField,
 } from '@/components/ui';
-import { colors, gradients, radius, shadow, spacing } from '@/theme';
+import { colors, gradients, radius, shadow, spacing, statusTone } from '@/theme';
 import { APP_NAME } from '@/lib/brand';
 import { wrapRow } from '@/components/ui';
 
@@ -72,28 +73,24 @@ const PROVIDER_PHONES: Partial<Record<Provider, string>> = {
 export default function WalletScreen() {
   const router = useRouter();
   const { t, i18n } = useTranslation();
-  const [summary, setSummary] = useState<WalletSummary | null>(null);
-  const [topups, setTopups] = useState<Topup[]>([]);
-  const [loading, setLoading] = useState(true);
   const [topupModal, setTopupModal] = useState(false);
 
-  const load = useCallback(async () => {
-    try {
-      const [w, t] = await Promise.all([
-        api.get<WalletSummary>('/captain/wallet'),
-        api.get<Topup[]>('/captain/wallet/topups'),
-      ]);
-      setSummary(w.data);
-      setTopups(t.data);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // Two independent queries rather than one Promise.all: the balance and the
+  // top-up list are cached, revalidated and (on a flaky link) retried on their
+  // own, so a failing top-up list no longer takes the balance down with it.
+  const summaryQ = useApiQuery<WalletSummary>(['captain', 'wallet'], '/captain/wallet');
+  const topupsQ = useApiQuery<Topup[]>(['captain', 'wallet', 'topups'], '/captain/wallet/topups');
 
-  useEffect(() => { load(); }, [load]);
+  const summary = summaryQ.data ?? null;
+  const topups = topupsQ.data ?? [];
+  const refreshing = summaryQ.isFetching || topupsQ.isFetching;
+  const reload = useCallback(async () => {
+    await Promise.all([summaryQ.refetch(), topupsQ.refetch()]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [summaryQ.refetch, topupsQ.refetch]);
 
   return (
-    <Screen scroll onRefresh={load} refreshing={loading}>
+    <Screen scroll onRefresh={reload} refreshing={refreshing}>
       <ScreenHeader title={t('captain.wallet.title')} onBack={() => router.back()} />
 
       {/* Balance hero */}
@@ -103,11 +100,11 @@ export default function WalletScreen() {
         end={{ x: 1, y: 1 }}
         style={{ borderRadius: radius.xxl, padding: spacing.xl }}
       >
-        <AppText variant="overline" color="#FFF1DD">{t('captain.wallet.balance')}</AppText>
-        <AppText variant="hero" color={colors.white} style={{ marginTop: spacing.xs, fontSize: 36 }}>
+        <AppText variant="overline" color={colors.onEspresso}>{t('captain.wallet.balance')}</AppText>
+        <AppText variant="hero" color={colors.white} style={{ marginTop: spacing.xs, fontSize: 32 }}>
           {summary ? formatMru(summary.balanceMru) : '—'}
         </AppText>
-        <AppText variant="caption" color="#FFF1DD" style={{ marginTop: spacing.sm, opacity: 0.95 }}>
+        <AppText variant="caption" color={colors.onEspresso} style={{ marginTop: spacing.sm, opacity: 0.95 }}>
           {t('captain.wallet.commissionNote')}
         </AppText>
       </LinearGradient>
@@ -141,7 +138,7 @@ export default function WalletScreen() {
       <TopupModal
         visible={topupModal}
         onClose={() => setTopupModal(false)}
-        onCreated={async () => { setTopupModal(false); await load(); }}
+        onCreated={async () => { setTopupModal(false); await reload(); }}
       />
     </Screen>
   );
@@ -152,9 +149,9 @@ function EmptyHint({ text }: { text: string }) {
 }
 
 const PILL: Record<TopupStatus, { bg: string; fg: string }> = {
-  pending:   { bg: colors.saffronSoft, fg: '#9A6711' },
+  pending:   { bg: colors.saffronSoft, fg: statusTone.pending.fg },
   approved:  { bg: colors.successSoft, fg: colors.success },
-  partial:   { bg: '#FBEFCB', fg: '#9A6711' },
+  partial:   { bg: statusTone.pending.bg, fg: statusTone.pending.fg },
   rejected:  { bg: colors.dangerSoft, fg: colors.danger },
   duplicate: { bg: colors.surfaceAlt, fg: colors.muted },
 };
@@ -355,7 +352,7 @@ function TopupModal({
                 >
                   <Image
                     source={PROVIDER_LOGOS[p]}
-                    style={{ width: 44, height: 44, borderRadius: 10 }}
+                    style={{ width: 44, height: 44, borderRadius: radius.sm }}
                     resizeMode="contain"
                   />
                   <AppText variant="label" color={active ? colors.onEmber : colors.ink} style={{ textAlign: 'center', marginTop: 2 }}>

@@ -45,13 +45,21 @@ export const colors = {
   espressoAlt: '#3A2615',
   onEspresso: '#FBEFDD', // text on espresso
   onEspressoMuted: '#C9B49A',
+  // `danger` is tuned to be read on sand; on espresso it goes muddy. This is
+  // the error voice for dark surfaces — the family needed one.
+  onEspressoDanger: '#F4A99A',
 
   // Semantic.
   success: '#3E9C5F', // validated / completed (used sparingly)
   successSoft: '#E2F2E6',
   danger: '#D6452F', // logout, errors (warm red, harmonizes w/ orange)
   dangerSoft: '#FBE3DC',
+  dangerDeep: '#4A150C', // dark red SURFACE (overtime, alarm cards)
   warning: '#E8920E',
+  // The one cool hue in the palette, reserved for water (flood reports). It is
+  // desaturated on purpose so it reads as a category marker next to the ember,
+  // not as a second brand colour.
+  water: '#1F7A8C',
 
   // Universal.
   white: '#FFFFFF',
@@ -59,8 +67,53 @@ export const colors = {
   onEmber: '#FFFFFF', // text on the orange CTA
 } as const;
 
-/** Warm, tinted shadow color — never pure black (that's what looks cheap). */
-const SHADOW = '#5A3414';
+/**
+ * Warm, tinted shadow color — never pure black (that's what looks cheap).
+ * Exported because sheets anchored to an edge have to aim their shadow by hand
+ * and must still use THIS tint rather than inventing one.
+ */
+export const SHADOW = '#5A3414';
+
+/**
+ * Demand heatmap ramp — hot to cold, but staying inside the warm palette so a
+ * dense map doesn't turn into a different product. Single source of truth: the
+ * cluster fill and the legend both read from here, which is how they stay in
+ * agreement (they used to each carry their own copy of the three hex values).
+ */
+export const heat = {
+  high: '#B41812',
+  mid: '#E84620',
+  low: '#FFA532',
+} as const;
+
+/* ------------------------------------------------------------------ *
+ *  Status tones — tinted background + readable foreground pairs.
+ *
+ *  Every list screen used to carry its own status→colour table, inherited
+ *  from the pre-"Sahara Solaire" design: Tailwind blues for "searching",
+ *  indigos for "accepted", emerald for "completed". Six screens, six
+ *  different stories, none of them the brand's. This is the one table.
+ *
+ *  Pick by MEANING, not by colour:
+ *    neutral  — nothing is happening / archived / not applicable
+ *    pending  — waiting on someone (the user, an admin, a captain)
+ *    active   — happening right now; this is the brand's own ember
+ *    done     — finished successfully
+ *    failed   — cancelled, rejected, expired
+ *    accent   — a category that must NOT be confused with the above
+ *               (currently: convoyage rides among ordinary ones)
+ * ------------------------------------------------------------------ */
+
+export const statusTone = {
+  neutral: { bg: '#F7EEDF', fg: '#6B5740' },
+  pending: { bg: '#FCEFC9', fg: '#9A6711' },
+  active:  { bg: '#FDEAD9', fg: '#D9531B' },
+  done:    { bg: '#E2F2E6', fg: '#2F7A49' },
+  failed:  { bg: '#FBE3DC', fg: '#B5391F' },
+  accent:  { bg: '#EDE6F7', fg: '#6D3FA8' },
+} as const;
+
+export type StatusToneName = keyof typeof statusTone;
 
 /* ------------------------------------------------------------------ *
  *  Gradients (expo-linear-gradient `colors` arrays)
@@ -75,6 +128,10 @@ export const gradients = {
   espresso: ['#3C2716', '#2A1A0E'] as const,
   // Soft sand wash for headers.
   dawn: ['#FCF6EC', '#F7EBD7'] as const,
+  // Deep sand — the splash wash, canvas sinking into dune shadow.
+  sand: ['#FBF3E7', '#F6E4C8', '#EDCFA6', '#D4A76A'] as const,
+  // Live recording — a hotter, redder ember so "armed" never reads as "idle".
+  recording: ['#E5604A', '#D6452F'] as const,
 } as const;
 
 /* ------------------------------------------------------------------ *
@@ -98,6 +155,8 @@ export const spacing = {
  * ------------------------------------------------------------------ */
 
 export const radius = {
+  /** Chips, inset rows, small bordered blocks living inside a card. */
+  xs: 8,
   sm: 10,
   md: 14,
   lg: 18,
@@ -221,30 +280,39 @@ export const type = {
     fontSize: 17,
     lineHeight: 23,
     fontWeight: '700',
+    letterSpacing: -0.2,
   },
   body: {
     fontFamily: fonts.text.regular,
     fontSize: 15,
     lineHeight: 22,
     fontWeight: '400',
+    letterSpacing: -0.1,
   },
   bodyStrong: {
     fontFamily: fonts.text.semibold,
     fontSize: 15,
     lineHeight: 22,
     fontWeight: '600',
+    letterSpacing: -0.1,
   },
+  // Below ~14pt the letters start to crowd rather than sprawl, so tracking
+  // crosses zero and goes slightly POSITIVE — the mirror of what the display
+  // sizes need. A single letter-spacing value for the whole ramp is always
+  // wrong at one end or the other.
   label: {
     fontFamily: fonts.text.semibold,
     fontSize: 13,
     lineHeight: 17,
     fontWeight: '600',
+    letterSpacing: 0.05,
   },
   caption: {
     fontFamily: fonts.text.medium,
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '500',
+    letterSpacing: 0.15,
   },
   /** All-caps eyebrow. */
   overline: {
@@ -258,23 +326,51 @@ export const type = {
 } satisfies Record<string, TypePreset>;
 
 /* ------------------------------------------------------------------ *
- *  Motion — spring & timing presets used across animated primitives.
+ *  Motion
+ *
+ *  Springs are described by RESPONSE (roughly how long it takes to reach the
+ *  target, in seconds — lower is snappier) and DAMPING RATIO (1 = arrives and
+ *  stops; below 1 overshoots and springs back). Those two numbers are the ones
+ *  you can reason about; `springConfig()` in lib/motion.ts turns them into the
+ *  stiffness/damping/mass triplet Animated.spring actually wants.
+ *
+ *  The house default is critically damped — damping ratio 1, no overshoot.
+ *  Bounce is EARNED, not decorative: it belongs only where the user's own
+ *  gesture carried momentum (a flick, a throw, a drag release). A menu that
+ *  merely appeared and then wobbles reads as a toy.
  * ------------------------------------------------------------------ */
 
+export const spring = {
+  /** Press feedback — must feel instantaneous, so the response is very short. */
+  press: { response: 0.22, dampingRatio: 1 },
+  /** Something appearing on its own: entrances, reveals, layout settles. */
+  enter: { response: 0.4, dampingRatio: 1 },
+  /** Repositioning an existing object (Apple's own picture-in-picture values). */
+  move: { response: 0.4, dampingRatio: 1 },
+  /** A sheet/drawer settling after a drag — the flick earns the bounce. */
+  sheet: { response: 0.3, dampingRatio: 0.8 },
+  /** Anything thrown by a flick and landing on a snap point. */
+  flick: { response: 0.4, dampingRatio: 0.8 },
+} as const;
+
 export const motion = {
-  // Press feedback spring (react-native-reanimated withSpring config).
-  press: { damping: 18, stiffness: 320, mass: 0.6 },
-  // Gentle entrance spring.
-  enter: { damping: 16, stiffness: 140, mass: 0.9 },
-  // Durations (ms).
+  spring,
+  // Durations (ms) — for cross-fades and non-interactive reveals only. Anything
+  // a finger can touch gets a spring instead, because a fixed duration can't
+  // respond to the user changing their mind halfway through.
   fast: 140,
   base: 240,
   slow: 420,
+  /** How far a control dips under the thumb. */
   pressScale: 0.96,
+  /** Cross-fade used in place of travel when Reduce Motion is on. */
+  reducedFade: 160,
 } as const;
 
 /* Font assets to feed `useFonts` in the root layout. */
-export { default as fontAssets, latinFontAssets } from './fontAssets';
+export { default as fontAssets, latinFontAssets, arabicFontAssets } from './fontAssets';
 
-export const theme = { colors, gradients, spacing, radius, shadow, type, fonts, motion } as const;
+export const theme = {
+  colors, gradients, statusTone, heat, spacing, radius, shadow, type, fonts, motion, spring,
+} as const;
 export type Theme = typeof theme;

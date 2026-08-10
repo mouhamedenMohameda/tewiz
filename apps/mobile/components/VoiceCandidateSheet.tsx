@@ -22,14 +22,14 @@
 
 import {
   FlatList,
-  Modal,
   Pressable,
   StyleSheet,
   View,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { PlainText as Text } from '@/components/ui';
+import { PlainText as Text, Sheet } from '@/components/ui';
 import type { Candidate, SideBlock, Side } from '@/lib/voiceLocation';
+import { colors, spacing, statusTone } from '@/theme';
 
 interface Props {
   visible: boolean;
@@ -59,51 +59,40 @@ export function VoiceCandidateSheet({
   const transcript = block?.extracted.raw_phrase ?? null;
 
   return (
-    <Modal
-      transparent
+    <Sheet
       visible={visible}
-      animationType="slide"
-      onRequestClose={onClose}
+      onClose={onClose}
+      title={title}
+      // The transcript is what the user just said — it belongs in the header,
+      // right next to the question it is answering, not floating above a list.
+      subtitle={transcript ? t('voiceCandidate.youSaid', { text: transcript }) : undefined}
     >
-      <Pressable style={styles.backdrop} onPress={onClose} />
-      <View style={styles.sheet}>
-        <View style={styles.handle} />
-        <View style={styles.header}>
-          <Text style={styles.title}>{title}</Text>
-          {transcript ? (
-            <Text style={styles.subtitle} numberOfLines={2}>
-              {t('voiceCandidate.youSaid', { text: transcript })}
-            </Text>
-          ) : null}
+      {candidates.length === 0 ? (
+        <View style={styles.empty}>
+          <Text style={styles.emptyText}>
+            {t('voiceCandidate.emptyBody')}
+          </Text>
         </View>
+      ) : (
+        <FlatList
+          data={candidates}
+          keyExtractor={(c) => String(c.poi_id)}
+          renderItem={({ item }) => (
+            <CandidateRow
+              candidate={item}
+              preselected={item.poi_id === preselectedPoiId}
+              onPress={() => onSelect(item)}
+            />
+          )}
+          ItemSeparatorComponent={() => <View style={styles.sep} />}
+          style={{ flexShrink: 1 }}
+        />
+      )}
 
-        {candidates.length === 0 ? (
-          <View style={styles.empty}>
-            <Text style={styles.emptyText}>
-              {t('voiceCandidate.emptyBody')}
-            </Text>
-          </View>
-        ) : (
-          <FlatList
-            data={candidates}
-            keyExtractor={(c) => String(c.poi_id)}
-            renderItem={({ item }) => (
-              <CandidateRow
-                candidate={item}
-                preselected={item.poi_id === preselectedPoiId}
-                onPress={() => onSelect(item)}
-              />
-            )}
-            ItemSeparatorComponent={() => <View style={styles.sep} />}
-            style={{ maxHeight: 420 }}
-          />
-        )}
-
-        <Pressable style={styles.cancel} onPress={onClose}>
-          <Text style={styles.cancelText}>{t('common.cancel')}</Text>
-        </Pressable>
-      </View>
-    </Modal>
+      <Pressable style={styles.cancel} onPress={onClose}>
+        <Text style={styles.cancelText}>{t('common.cancel')}</Text>
+      </Pressable>
+    </Sheet>
   );
 }
 
@@ -128,20 +117,20 @@ function CandidateRow({
     : null;
 
   const confColor =
-    candidate.confidence === 'high' ? '#10a35e'
-    : candidate.confidence === 'medium' ? '#f59e0b'
-    : '#94a3b8';
+    candidate.confidence === 'high' ? colors.ember
+    : candidate.confidence === 'medium' ? statusTone.pending.fg
+    : colors.faint;
 
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [
         styles.row,
-        pressed && { backgroundColor: '#f1f5f9' },
+        pressed && { backgroundColor: colors.line },
       ]}
     >
-      <View style={[styles.bullet, { backgroundColor: preselected ? '#10a35e' : '#e2e8f0' }]}>
-        <Text style={{ color: preselected ? '#fff' : '#94a3b8', fontWeight: '700' }}>
+      <View style={[styles.bullet, { backgroundColor: preselected ? colors.ember : colors.line }]}>
+        <Text style={{ color: preselected ? '#fff' : colors.faint, fontWeight: '700' }}>
           {preselected ? '✓' : '○'}
         </Text>
       </View>
@@ -167,39 +156,14 @@ function formatMeters(m: number): string {
   return `${(m / 1000).toFixed(1)} km`;
 }
 
+// The scrim, surface, handle and header now come from <Sheet>, so every sheet
+// in the app shares one set of values instead of six near-misses.
 const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(15,23,42,0.5)',
-  },
-  sheet: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingTop: 8,
-    paddingBottom: 24,
-    paddingHorizontal: 16,
-  },
-  handle: {
-    alignSelf: 'center',
-    width: 36, height: 4, borderRadius: 2,
-    backgroundColor: '#cbd5e1',
-    marginBottom: 12,
-  },
-  header: {
-    paddingBottom: 12, gap: 4,
-  },
-  title: {
-    fontSize: 18, fontWeight: '700', color: '#0f172a',
-  },
-  subtitle: {
-    fontSize: 12, color: '#64748b', fontStyle: 'italic',
-  },
   empty: {
     paddingVertical: 32, paddingHorizontal: 16,
   },
   emptyText: {
-    fontSize: 13, color: '#64748b', textAlign: 'center',
+    fontSize: 13, color: colors.ink2, textAlign: 'center',
   },
   row: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
@@ -210,25 +174,25 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   name: {
-    fontSize: 15, fontWeight: '600', color: '#0f172a',
+    fontSize: 15, fontWeight: '600', color: colors.ink,
   },
   meta: {
-    fontSize: 11, color: '#64748b', marginTop: 2,
+    fontSize: 11, color: colors.ink2, marginTop: 2,
   },
   arabic: {
-    fontSize: 12, color: '#475569', marginTop: 1,
+    fontSize: 12, color: colors.ink2, marginTop: 1,
     writingDirection: 'rtl',
   },
   confDot: {
     width: 8, height: 8, borderRadius: 4,
   },
   sep: {
-    height: 1, backgroundColor: '#f1f5f9', marginStart: 40,
+    height: 1, backgroundColor: colors.line, marginStart: 40,
   },
   cancel: {
-    marginTop: 12, alignItems: 'center', paddingVertical: 12,
+    marginTop: spacing.md, alignItems: 'center', paddingVertical: spacing.md,
   },
   cancelText: {
-    color: '#64748b', fontSize: 14, fontWeight: '600',
+    color: colors.ink2, fontSize: 13, fontWeight: '600',
   },
 });

@@ -124,11 +124,11 @@ export default function AuthWelcome() {
 
         <View style={{ flex: 1, paddingHorizontal: spacing.xl, justifyContent: 'space-between' }}>
           {/* Brand */}
-          <FadeInView delay={80} style={{ alignItems: 'center', marginTop: SCREEN_H * 0.12 }}>
+          <FadeInView delay={40} style={{ alignItems: 'center', marginTop: SCREEN_H * 0.12 }}>
             <Image
               source={require('@/assets/icon.png')}
               style={{
-                width: 104, height: 104, borderRadius: 30,
+                width: 104, height: 104, borderRadius: radius.xxl,
                 ...shadow.raised,
               }}
             />
@@ -136,13 +136,13 @@ export default function AuthWelcome() {
             <AppText
               variant="hero"
               color={colors.white}
-              style={{ marginTop: spacing.lg, fontSize: 46, letterSpacing: -1.2 }}
+              style={{ marginTop: spacing.lg, fontSize: 40, letterSpacing: -1.2 }}
             >
               {APP_NAME}
             </AppText>
             <AppText
               variant="title"
-              color="#FFF4E6"
+              color={colors.onEspresso}
               align="center"
               style={{ marginTop: spacing.xs, maxWidth: 280, opacity: 0.95 }}
             >
@@ -151,7 +151,7 @@ export default function AuthWelcome() {
           </FadeInView>
 
           {/* Actions */}
-          <FadeInView delay={260}>
+          <FadeInView delay={120}>
             <Button
               title={t('auth.welcome.primary')}
               variant="dark"

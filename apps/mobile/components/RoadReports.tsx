@@ -5,7 +5,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PlainText as Text } from '@/components/ui';
-import { fonts } from '@/theme';
+import { colors, fonts, radius, statusTone } from '@/theme';
 import { currentLanguage, isRTL } from '@/lib/i18n';
 import { getMapbox } from '@/lib/mapbox';
 import { api } from '@/lib/api';
@@ -31,13 +31,13 @@ interface RoadReport {
 }
 
 const REASON_META: Record<RoadReason, { emoji: string; color: string }> = {
-  sand:              { emoji: '🏜️', color: '#ca8a04' },
-  flood:             { emoji: '🌊', color: '#0891b2' },
-  construction:      { emoji: '🚧', color: '#f59e0b' },
-  police_checkpoint: { emoji: '👮', color: '#1e40af' },
-  accident:          { emoji: '💥', color: '#dc2626' },
-  protest:           { emoji: '✊', color: '#7c3aed' },
-  other:             { emoji: '⚠️', color: '#475569' },
+  sand:              { emoji: '🏜️', color: colors.warning },
+  flood:             { emoji: '🌊', color: colors.water },
+  construction:      { emoji: '🚧', color: statusTone.pending.fg },
+  police_checkpoint: { emoji: '👮', color: statusTone.active.fg },
+  accident:          { emoji: '💥', color: colors.danger },
+  protest:           { emoji: '✊', color: statusTone.accent.fg },
+  other:             { emoji: '⚠️', color: colors.ink2 },
 };
 
 /**
@@ -134,10 +134,10 @@ export function RoadReportMarkers({
           >
             <View style={{
               width: 28, height: 28, borderRadius: 14,
-              backgroundColor: m.color, borderWidth: 2, borderColor: '#fff',
+              backgroundColor: m.color, borderWidth: 2, borderColor: colors.white,
               alignItems: 'center', justifyContent: 'center',
             }}>
-              <Text style={{ fontSize: 14 }}>{m.emoji}</Text>
+              <Text style={{ fontSize: 13 }}>{m.emoji}</Text>
             </View>
           </M.PointAnnotation>
         );
@@ -176,14 +176,14 @@ export function RoadReportButton({
           disabled={!at}
           onPress={() => setSheetOpen(true)}
           style={({ pressed }) => ({
-            backgroundColor: pressed ? '#c2410c' : '#ea580c',
+            backgroundColor: pressed ? colors.emberDeep : colors.ember,
             opacity: at ? 1 : 0.5,
-            paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999,
+            paddingHorizontal: 14, paddingVertical: 10, borderRadius: radius.pill,
             flexDirection: 'row', alignItems: 'center', gap: 6,
             shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 6, shadowOffset: { width: 0, height: 3 },
           })}
         >
-          <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>
+          <Text style={{ color: colors.white, fontSize: 13, fontWeight: '700' }}>
             {t('roadReports.reportBtn')}
           </Text>
         </Pressable>
@@ -243,17 +243,17 @@ function ReportSheet({
         flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.6)',
         justifyContent: 'flex-end',
       }}>
-        <SafeAreaView edges={['bottom']} style={{ backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24 }}>
+        <SafeAreaView edges={['bottom']} style={{ backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24 }}>
           <View style={{ padding: 20, gap: 14 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text style={{ fontSize: 18, fontWeight: '700', color: '#0f172a' }}>
+              <Text style={{ fontSize: 17, fontWeight: '700', color: colors.ink }}>
                 {t('roadReports.sheetTitle')}
               </Text>
               <Pressable onPress={onClose}>
-                <Text style={{ color: '#64748b', fontSize: 18 }}>✕</Text>
+                <Text style={{ color: colors.ink2, fontSize: 18 }}>✕</Text>
               </Pressable>
             </View>
-            <Text style={{ fontSize: 12, color: '#64748b' }}>
+            <Text style={{ fontSize: 12, color: colors.ink2 }}>
               {t('roadReports.sheetHint')}
             </Text>
 
@@ -267,14 +267,14 @@ function ReportSheet({
                     onPress={() => setReason(r)}
                     style={({ pressed }) => ({
                       flexDirection: 'row', alignItems: 'center', gap: 6,
-                      paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999,
-                      backgroundColor: active ? m.color : (pressed ? '#e2e8f0' : '#f1f5f9'),
+                      paddingHorizontal: 12, paddingVertical: 8, borderRadius: radius.pill,
+                      backgroundColor: active ? m.color : (pressed ? colors.line : colors.line),
                     })}
                   >
-                    <Text style={{ fontSize: 14 }}>{m.emoji}</Text>
+                    <Text style={{ fontSize: 13 }}>{m.emoji}</Text>
                     <Text style={{
                       fontSize: 13, fontWeight: '600',
-                      color: active ? '#fff' : '#0f172a',
+                      color: active ? '#fff' : colors.ink,
                     }}>
                       {t(`roadReports.reasons.${r}` as const)}
                     </Text>
@@ -287,13 +287,13 @@ function ReportSheet({
               value={note}
               onChangeText={setNote}
               placeholder={t('roadReports.notePlaceholder')}
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={colors.faint}
               multiline
               maxLength={500}
               style={{
-                borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 10,
-                paddingHorizontal: 12, paddingVertical: 10, fontSize: 14,
-                color: '#0f172a', backgroundColor: '#f8fafc',
+                borderWidth: 1, borderColor: colors.lineStrong, borderRadius: radius.sm,
+                paddingHorizontal: 12, paddingVertical: 10, fontSize: 13,
+                color: colors.ink, backgroundColor: colors.canvas,
                 minHeight: 60, textAlignVertical: 'top',
                 fontFamily: ar ? fonts.arabic.regular : undefined,
               }}
@@ -303,14 +303,14 @@ function ReportSheet({
               disabled={submitting || !reason}
               onPress={submit}
               style={({ pressed }) => ({
-                backgroundColor: pressed ? '#c2410c' : '#ea580c',
+                backgroundColor: pressed ? colors.emberDeep : colors.ember,
                 opacity: submitting || !reason ? 0.5 : 1,
-                paddingVertical: 16, borderRadius: 12,
+                paddingVertical: 16, borderRadius: radius.lg,
                 flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
               })}
             >
               {submitting && <ActivityIndicator color="#fff" />}
-              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>
+              <Text style={{ color: colors.white, fontSize: 15, fontWeight: '700' }}>
                 {t('roadReports.submit')}
               </Text>
             </Pressable>

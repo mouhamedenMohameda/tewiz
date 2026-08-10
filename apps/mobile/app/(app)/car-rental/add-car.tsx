@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Pressable, ScrollView, Switch, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, Switch, View } from 'react-native';
+import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -116,7 +117,7 @@ export default function AddCarScreen() {
             <View key={p}>
               <Image source={{ uri: p }} style={{ width: 110, height: 90, borderRadius: radius.md }} />
               <Pressable onPress={() => setPhotos((prev) => prev.filter((x) => x !== p))}
-                style={{ position: 'absolute', top: 4, right: 4, backgroundColor: '#000a', borderRadius: 10, padding: 2 }}>
+                style={{ position: 'absolute', top: 4, right: 4, backgroundColor: '#000a', borderRadius: radius.sm, padding: 2 }}>
                 <Icon name="close" size={14} color="#fff" />
               </Pressable>
             </View>

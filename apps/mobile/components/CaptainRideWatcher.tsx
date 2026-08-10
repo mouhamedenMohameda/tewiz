@@ -487,7 +487,7 @@ export function CaptainRideWatcher() {
                   flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between',
                 }}>
                   <View style={{ flex: 1 }}>
-                    <Text variant="hero" color={colors.white} style={{ fontSize: 44 }}>
+                    <Text variant="hero" color={colors.white} style={{ fontSize: 40 }}>
                       {alertRide.fareEstimateMru ? formatMru(alertRide.fareEstimateMru) : '—'}
                     </Text>
                     <Text variant="caption" color="rgba(255,255,255,0.92)" style={{ marginTop: 4 }}>
@@ -842,7 +842,7 @@ function DestinationCard({
 function ZoneStat({ value, label, highlight }: { value: number; label: string; highlight?: boolean }) {
   return (
     <View style={{ flex: 1 }}>
-      <Text variant="display" color={highlight ? colors.ember : colors.ink} style={{ fontSize: 30, lineHeight: 34 }}>
+      <Text variant="display" color={highlight ? colors.ember : colors.ink} style={{ fontSize: 32, lineHeight: 34 }}>
         {value}
       </Text>
       <Text variant="caption" color={colors.ink2} style={{ marginTop: 2 }}>

@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next';
 import { PlainText as Text } from '@/components/ui';
 import { useAppConfig, isUpdateRequired } from '@/lib/appConfig';
 import { APP_NAME } from '@/lib/brand';
+import { colors, radius } from '@/theme';
 
 export default function UpdateGate() {
   const { t } = useTranslation();
@@ -42,20 +43,20 @@ export default function UpdateGate() {
   return (
     <View style={{
       position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: '#0f172a', zIndex: 9999,
+      backgroundColor: colors.ink, zIndex: 9999,
     }}>
       <SafeAreaView style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 28 }}>
         <View style={{
-          width: 72, height: 72, borderRadius: 36, backgroundColor: '#10a35e',
+          width: 72, height: 72, borderRadius: 36, backgroundColor: colors.ember,
           alignItems: 'center', justifyContent: 'center', marginBottom: 24,
         }}>
           <Text style={{ fontSize: 34 }}>⬆️</Text>
         </View>
 
-        <Text style={{ color: '#fff', fontSize: 24, fontWeight: '700', textAlign: 'center' }}>
+        <Text style={{ color: colors.white, fontSize: 26, fontWeight: '700', textAlign: 'center' }}>
           {t('update.title')}
         </Text>
-        <Text style={{ color: '#cbd5e1', fontSize: 15, lineHeight: 23, textAlign: 'center', marginTop: 12 }}>
+        <Text style={{ color: colors.lineStrong, fontSize: 15, lineHeight: 23, textAlign: 'center', marginTop: 12 }}>
           {t('update.body', { app: APP_NAME })}
         </Text>
 
@@ -64,16 +65,16 @@ export default function UpdateGate() {
             onPress={openStore}
             style={({ pressed }) => ({
               marginTop: 32, alignSelf: 'stretch',
-              backgroundColor: pressed ? '#0f7c4a' : '#10a35e',
-              paddingVertical: 16, borderRadius: 12, alignItems: 'center',
+              backgroundColor: pressed ? colors.emberDeep : colors.ember,
+              paddingVertical: 16, borderRadius: radius.lg, alignItems: 'center',
             })}
           >
-            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>
+            <Text style={{ color: colors.white, fontSize: 15, fontWeight: '700' }}>
               {t('update.cta')}
             </Text>
           </Pressable>
         ) : (
-          <Text style={{ color: '#94a3b8', fontSize: 13, textAlign: 'center', marginTop: 28 }}>
+          <Text style={{ color: colors.faint, fontSize: 13, textAlign: 'center', marginTop: 28 }}>
             {t('update.noLink')}
           </Text>
         )}

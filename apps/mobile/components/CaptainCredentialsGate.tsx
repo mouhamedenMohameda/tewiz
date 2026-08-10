@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import * as Clipboard from 'expo-clipboard';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { colors, radius, statusTone } from '@/theme';
 
 interface Credentials {
   phone: string;
@@ -93,23 +94,23 @@ export default function CaptainCredentialsGate() {
       // route is the explicit "log out" button below.
       onRequestClose={() => {}}
     >
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#0f172a' }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.ink }}>
         <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 32 }}>
           <View style={{
             width: 56, height: 56, borderRadius: 28,
-            backgroundColor: '#10a35e', alignItems: 'center', justifyContent: 'center',
+            backgroundColor: colors.ember, alignItems: 'center', justifyContent: 'center',
             marginTop: 16,
           }}>
-            <Text style={{ color: '#fff', fontSize: 28, fontWeight: '700' }}>✓</Text>
+            <Text style={{ color: colors.white, fontSize: 28, fontWeight: '700' }}>✓</Text>
           </View>
 
           <Text style={{
-            color: '#fff', fontSize: 26, fontWeight: '700', marginTop: 20,
+            color: colors.white, fontSize: 26, fontWeight: '700', marginTop: 20,
           }}>
             {t('becomeCaptain.credentials.title')}
           </Text>
           <Text style={{
-            color: '#cbd5e1', fontSize: 15, lineHeight: 22, marginTop: 8,
+            color: colors.lineStrong, fontSize: 15, lineHeight: 22, marginTop: 8,
           }}>
             {t('becomeCaptain.credentials.intro')}
           </Text>
@@ -133,10 +134,10 @@ export default function CaptainCredentialsGate() {
           />
 
           <View style={{
-            marginTop: 24, backgroundColor: '#422006', borderRadius: 14,
-            padding: 16, borderWidth: 1, borderColor: '#92400e',
+            marginTop: 24, backgroundColor: colors.espressoAlt, borderRadius: radius.md,
+            padding: 16, borderWidth: 1, borderColor: statusTone.pending.fg,
           }}>
-            <Text style={{ color: '#fde68a', fontSize: 14, lineHeight: 20 }}>
+            <Text style={{ color: statusTone.pending.bg, fontSize: 13, lineHeight: 20 }}>
               ⚠️  {t('becomeCaptain.credentials.warning')}
             </Text>
           </View>
@@ -146,14 +147,14 @@ export default function CaptainCredentialsGate() {
             onPress={confirmLogout}
             style={({ pressed }) => ({
               marginTop: 28,
-              backgroundColor: pressed ? '#0f7c4a' : '#10a35e',
+              backgroundColor: pressed ? colors.emberDeep : colors.ember,
               opacity: loggingOut ? 0.6 : 1,
-              paddingVertical: 16, borderRadius: 12,
+              paddingVertical: 16, borderRadius: radius.lg,
               flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
             })}
           >
             {loggingOut && <ActivityIndicator color="#fff" />}
-            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>
+            <Text style={{ color: colors.white, fontSize: 15, fontWeight: '700' }}>
               {t('becomeCaptain.credentials.logout')}
             </Text>
           </Pressable>
@@ -176,11 +177,11 @@ function CredentialCard({
 }) {
   return (
     <View style={{
-      marginTop: 20, backgroundColor: '#1e293b', borderRadius: 14, padding: 16,
-      borderWidth: 1, borderColor: '#334155',
+      marginTop: 20, backgroundColor: colors.espressoAlt, borderRadius: radius.md, padding: 16,
+      borderWidth: 1, borderColor: colors.ink2,
     }}>
       <Text style={{
-        color: '#94a3b8', fontSize: 12, fontWeight: '600',
+        color: colors.faint, fontSize: 12, fontWeight: '600',
         letterSpacing: 0.5, textTransform: 'uppercase',
       }}>
         {label}
@@ -192,7 +193,7 @@ function CredentialCard({
           selectable
           style={{
             flex: 1,
-            color: '#fff',
+            color: colors.white,
             fontSize: monospace ? 22 : 20,
             fontWeight: '700',
             fontFamily: monospace ? 'Sora_700Bold' : undefined,
@@ -204,11 +205,11 @@ function CredentialCard({
         <Pressable
           onPress={onCopy}
           style={({ pressed }) => ({
-            backgroundColor: copied ? '#166534' : pressed ? '#475569' : '#334155',
-            paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10,
+            backgroundColor: copied ? statusTone.done.fg : pressed ? colors.ink2 : colors.ink2,
+            paddingHorizontal: 14, paddingVertical: 10, borderRadius: radius.sm,
           })}
         >
-          <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>
+          <Text style={{ color: colors.white, fontSize: 13, fontWeight: '600' }}>
             {copied ? copiedLabel : copyLabel}
           </Text>
         </Pressable>

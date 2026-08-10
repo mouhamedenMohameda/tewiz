@@ -28,7 +28,7 @@ import { NotificationsBellButton } from '@/components/NotificationsBellButton';
 import {
   AppText, Button, Card, FadeInView, Icon, PressableScale, type IconName,
 } from '@/components/ui';
-import { colors, gradients, radius, shadow, spacing } from '@/theme';
+import { colors, gradients, radius, shadow, spacing, statusTone } from '@/theme';
 import { APP_NAME } from '@/lib/brand';
 
 type Presence = 'offline' | 'online' | 'on_ride';
@@ -531,7 +531,7 @@ export default function CaptainHome() {
               <NavRow icon="heatmap" tint={colors.dangerSoft} fg={colors.danger}
                 title={t('captain.nav.heatmapTitle')} subtitle={t('captain.nav.heatmapSubtitle')}
                 onPress={() => router.push('/(app)/captain/heatmap')} />
-              <NavRow icon="recurring" tint="#E9EFE6" fg={colors.success}
+              <NavRow icon="recurring" tint={statusTone.done.bg} fg={colors.success}
                 title={t('captain.nav.recurringTitle')} subtitle={t('captain.nav.recurringSubtitle')}
                 onPress={() => router.push('/(app)/captain/recurring')} />
             </View>
@@ -574,12 +574,12 @@ function StateCard({
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <PulseDot color={colors.success} />
-          <AppText variant="overline" color={onRide ? colors.saffron : '#FFF1DD'}>{t('captain.state.youAre')}</AppText>
+          <AppText variant="overline" color={onRide ? colors.saffron : colors.onEspresso}>{t('captain.state.youAre')}</AppText>
         </View>
         <AppText variant="display" color={colors.white} style={{ marginTop: spacing.xs }}>
           {onRide ? t('captain.state.onRide') : t('captain.state.online')}
         </AppText>
-        <AppText variant="body" color={onRide ? colors.onEspressoMuted : '#FFF1DD'} style={{ marginTop: spacing.xs }}>
+        <AppText variant="body" color={onRide ? colors.onEspressoMuted : colors.onEspresso} style={{ marginTop: spacing.xs }}>
           {onRide ? t('captain.state.onRideBody') : t('captain.state.onlineBody')}
         </AppText>
 

@@ -20,7 +20,7 @@ import {
   ScreenHeader,
   SelectField,
 } from '@/components/ui';
-import { colors, fonts, radius, shadow, spacing } from '@/theme';
+import { colors, fonts, radius, shadow, spacing, statusTone } from '@/theme';
 import { currentLanguage, isRTL } from '@/lib/i18n';
 import { useAuth } from '@/lib/auth';
 import { MAURITANIA_CITIES } from '@/lib/cities';
@@ -71,11 +71,11 @@ function openWhatsapp(phone: string) {
 
 const STATUS_TINT: Record<CarpoolingBookingStatus, { bg: string; fg: string }> = {
   requested: { bg: colors.saffronSoft, fg: colors.warning },
-  accepted: { bg: '#E6F4EA', fg: colors.success },
-  completed: { bg: '#E6F4EA', fg: colors.success },
-  declined: { bg: '#FEE2E2', fg: '#dc2626' },
+  accepted: { bg: statusTone.done.bg, fg: colors.success },
+  completed: { bg: statusTone.done.bg, fg: colors.success },
+  declined: { bg: colors.dangerSoft, fg: colors.danger },
   cancelled: { bg: colors.sunken, fg: colors.muted },
-  no_show: { bg: '#FEE2E2', fg: '#dc2626' },
+  no_show: { bg: colors.dangerSoft, fg: colors.danger },
   expired: { bg: colors.sunken, fg: colors.muted },
 };
 
@@ -86,7 +86,7 @@ function StatusBadge({ status }: { status: CarpoolingBookingStatus }) {
     <View style={{
       alignSelf: 'flex-start',
       backgroundColor: tint.bg,
-      borderRadius: 999,
+      borderRadius: radius.pill,
       paddingHorizontal: 10,
       paddingVertical: 3,
     }}>
@@ -210,7 +210,7 @@ export default function CarpoolingScreen() {
             right: spacing.lg,
             bottom: Platform.select({ ios: 36, android: 24, default: 24 }),
             backgroundColor: colors.ember,
-            borderRadius: 999,
+            borderRadius: radius.pill,
             paddingHorizontal: spacing.lg,
             paddingVertical: spacing.base,
             ...shadow.ember,
@@ -474,12 +474,12 @@ function PassengerView() {
                   {trip.isBoosted && (
                     <View style={{
                       alignSelf: 'flex-start',
-                      backgroundColor: '#FEF3C7',
-                      borderRadius: 999,
+                      backgroundColor: statusTone.pending.bg,
+                      borderRadius: radius.pill,
                       paddingHorizontal: 10,
                       paddingVertical: 4,
                     }}>
-                      <AppText variant="caption" style={{ color: '#92400E' }}>⭐</AppText>
+                      <AppText variant="caption" style={{ color: statusTone.pending.fg }}>⭐</AppText>
                     </View>
                   )}
                 </View>
@@ -552,7 +552,7 @@ function PassengerBookingCard({ booking, busy, onCancel }: {
 
       {accepted && booking.otpCode && (
         <View style={{
-          backgroundColor: '#E6F4EA', borderRadius: radius.md, padding: spacing.base, gap: 4,
+          backgroundColor: statusTone.done.bg, borderRadius: radius.md, padding: spacing.base, gap: 4,
         }}>
           <AppText variant="caption" color={colors.success}>{t('carpooling.booking.otpTitle')}</AppText>
           <AppText variant="title" style={{ fontSize: 32, letterSpacing: 6, color: colors.success }}>
@@ -831,7 +831,7 @@ function DriverView() {
                 borderRadius: radius.md,
                 paddingHorizontal: spacing.base,
                 paddingVertical: spacing.md,
-                fontSize: 24,
+                fontSize: 26,
                 // Arabic placeholder is cursive: letterSpacing breaks its
                 // shaping, so only space out the typed digits.
                 letterSpacing: isRTL(currentLanguage()) && !otp ? 0 : 4,
