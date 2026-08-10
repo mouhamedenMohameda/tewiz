@@ -1,12 +1,22 @@
 import { Router } from 'express';
+import { env } from '../../config/env.js';
 import { type AuthedRequest } from '../../middleware/auth.js';
 import { requirePhone } from '../../middleware/require-phone.js';
 import { HttpError } from '../../middleware/error.js';
+import { perUserLimiter } from '../../middleware/rate-limit.js';
 import { uploadAudio } from '../../middleware/upload.js';
 import * as voiceRides from './voice-rides.service.js';
 
 // Parent (riderRouter) enforces requireAuth + requireRole('rider', 'captain').
 export const riderVoiceRidesRouter = Router();
+
+// Submissions only — the GET routes below are cheap reads the waiting screen
+// polls, and capping those would break the very flow this protects.
+const submitLimiter = perUserLimiter({
+  windowMs: 60 * 60 * 1000,
+  limit: env.VOICE_RIDE_RATE_LIMIT,
+  message: 'Trop de demandes vocales. Réessayez dans une heure.',
+});
 
 /**
  * POST /rider/voice-rides
@@ -15,7 +25,10 @@ export const riderVoiceRidesRouter = Router();
  * request (without the internal audio key) so the app can open the waiting
  * screen and start polling GET /rider/voice-rides/:id.
  */
-riderVoiceRidesRouter.post('/', requirePhone, uploadAudio.single('audio'), async (req, res) => {
+// The limiter sits ahead of multer so a throttled caller is refused before we
+// buffer their audio into memory — rejecting after the upload would still pay
+// the bandwidth and the allocation this is meant to prevent.
+riderVoiceRidesRouter.post('/', submitLimiter, requirePhone, uploadAudio.single('audio'), async (req, res) => {
   const userId = req.user!.id;
   const file = req.file;
   if (!file) {

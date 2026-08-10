@@ -820,6 +820,40 @@ export async function confirmPassengerRide(input: {
 // ────────────────────────────────────────────────────────────────────────────
 // Reads
 
+/**
+ * Recombine independently-computed enrichments of the same ride.
+ *
+ * Every `enrichWith*` helper is shaped `ride => ({ ...ride, someNewField })`, so
+ * folding them (`a` feeds `b` feeds `c`) and fanning them out (all read the same
+ * base, then merge) produce the same object — PROVIDED no two of them write the
+ * same field, which today none do. That is the whole reason the read paths can
+ * issue their queries at once instead of one after another.
+ *
+ * The exception is deliberate and lives at the call site, not here:
+ * `enrichWithCaptainPosition` rewrites the `captain` object that
+ * `enrichWithCaptain` built, so those two stay chained. Merging a
+ * position-enriched result must therefore come after any other producer of
+ * `captain` — with only one producer, ordering the spread by argument position
+ * is enough.
+ *
+ * `base` is spread first so the result keeps its identity even when `parts` is
+ * empty, and so a part that (wrongly) dropped a base field cannot silently
+ * shrink the payload.
+ */
+function mergeEnriched<B extends object, P extends object[]>(
+  base: B,
+  parts: [...P],
+): B & UnionToIntersection<P[number]> {
+  return Object.assign({}, base, ...parts);
+}
+
+/** Collapse `A | B | C` into `A & B & C`, so a merged payload keeps every key. */
+type UnionToIntersection<U> = (U extends unknown ? (k: U) => void : never) extends (
+  k: infer I,
+) => void
+  ? I
+  : never;
+
 export async function getRideForUser(
   rideId: string,
   userId: string,
@@ -852,27 +886,45 @@ export async function getRideForUser(
   // The assigned captain gets the rider's contact (name + phone) so they can
   // call at pickup. The rider gets the captain's details. Admin gets neither
   // here (the admin console joins separately).
+  //
+  // Each branch fans its lookups out rather than folding them: every enricher
+  // below keys off the ride row we already hold (`id`, `captainId`, `bookerId`,
+  // `rideType`), so none of them needs another's output and the request paid the
+  // SUM of their latencies for no reason. See `mergeEnriched` for why spreading
+  // the results is equivalent to chaining them.
   if (role === 'captain' && ride.captain_id === userId) {
-    const withBooker = await enrichWithBooker(shaped);
-    const enriched = await enrichRideWithAllDetails(withBooker);
-    return enrichWithLiveMeter(enriched);
+    const parts = await Promise.all([
+      enrichWithBooker(shaped),
+      enrichRideWithAllDetails(shaped),
+      enrichWithLiveMeter(shaped),
+    ]);
+    return mergeEnriched(shaped, parts);
   }
   if (role === 'rider' && ride.booker_id === userId) {
-    const withCaptain = await enrichWithCaptain(shaped);
-    const enriched = await enrichRideWithAllDetails(withCaptain);
-    return enrichWithLiveMeter(enriched);
+    const parts = await Promise.all([
+      enrichWithCaptain(shaped),
+      enrichRideWithAllDetails(shaped),
+      enrichWithLiveMeter(shaped),
+    ]);
+    return mergeEnriched(shaped, parts);
   }
   if (role === 'admin') {
     // The operator console shows the assigned captain (name + phone) plus the
     // full list of captains who accepted — the winner and everyone who tapped
     // a moment too late.
-    const withCaptain = await enrichWithCaptain(shaped);
-    const withAcceptances = await enrichWithAcceptances(withCaptain);
-    const enriched = await enrichRideWithAllDetails(withAcceptances);
-    return enrichWithLiveMeter(enriched);
+    const parts = await Promise.all([
+      enrichWithCaptain(shaped),
+      enrichWithAcceptances(shaped),
+      enrichRideWithAllDetails(shaped),
+      enrichWithLiveMeter(shaped),
+    ]);
+    return mergeEnriched(shaped, parts);
   }
-  const enriched = await enrichRideWithAllDetails(shaped);
-  return enrichWithLiveMeter(enriched);
+  const parts = await Promise.all([
+    enrichRideWithAllDetails(shaped),
+    enrichWithLiveMeter(shaped),
+  ]);
+  return mergeEnriched(shaped, parts);
 }
 
 export async function getCurrentRideForRider(userId: string) {
@@ -896,10 +948,19 @@ export async function getCurrentRideForRider(userId: string) {
   );
   if (!r.rows[0]) return null;
   const ride = shape(r.rows[0], { revealCode: true });
-  const withCaptain = await enrichWithCaptain(ride);
-  const withPosition = await enrichWithCaptainPosition(withCaptain);
-  const enriched = await enrichRideWithAllDetails(withPosition);
-  return enrichWithLiveMeter(enriched);
+
+  // Captain → position is the one genuine dependency in this file: the position
+  // step merges `location` INTO the captain object the previous step built, and
+  // skips its query entirely when no captain row came back. It stays a chain.
+  // The type details and the live meter depend on neither, so they run alongside
+  // it instead of behind it — this is the endpoint the tracking screen polls for
+  // the whole trip, so its latency is paid over and over.
+  const parts = await Promise.all([
+    enrichWithCaptain(ride).then(enrichWithCaptainPosition),
+    enrichRideWithAllDetails(ride),
+    enrichWithLiveMeter(ride),
+  ]);
+  return mergeEnriched(ride, parts);
 }
 
 /** Statuses during which the rider is entitled to see where their captain is. */
@@ -1292,9 +1353,13 @@ export async function getCurrentRideForCaptain(captainId: string) {
     [captainId],
   );
   if (!r.rows[0]) return null;
-  const withBooker = await enrichWithBooker(shape(r.rows[0], { revealCode: true }));
-  const enriched = await enrichRideWithAllDetails(withBooker);
-  return enrichWithLiveMeter(enriched);
+  const ride = shape(r.rows[0], { revealCode: true });
+  const parts = await Promise.all([
+    enrichWithBooker(ride),
+    enrichRideWithAllDetails(ride),
+    enrichWithLiveMeter(ride),
+  ]);
+  return mergeEnriched(ride, parts);
 }
 
 /**

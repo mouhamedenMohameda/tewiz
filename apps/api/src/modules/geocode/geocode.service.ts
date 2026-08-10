@@ -9,6 +9,7 @@
  */
 
 import { env } from '../../config/env.js';
+import { cached } from '../../lib/cache.js';
 import { HttpError } from '../../middleware/error.js';
 
 export interface GeocodeResult {
@@ -30,11 +31,42 @@ export interface SearchPlacesInput {
 /** True when an external geocoder is configured (Google or the free Nominatim). */
 export const GEOCODER_AVAILABLE = true; // Nominatim is always available as a fallback.
 
+/**
+ * Collapse queries that must share a cache entry.
+ *
+ * Rider search sends a query per keystroke-ish, so "Marché  Capitale " and
+ * "marché capitale" are the same intent typed twice. Case and whitespace are
+ * folded; accents deliberately are NOT, because they change what the upstream
+ * matches and folding them would serve one query's results for another's.
+ */
+function cacheKey(q: string, proximity: string | undefined, limit: number): string {
+  const normalised = q.trim().toLowerCase().replace(/\s+/g, ' ');
+  return `geocode:${normalised}|${proximity ?? ''}|${limit}`;
+}
+
+/**
+ * Search places, reading through the Redis cache.
+ *
+ * Every call here is billed (Google) or rate-limited by policy (Nominatim), and
+ * the query distribution is extremely repetitive — a handful of Nouakchott
+ * landmarks account for most of the traffic. Caching turns that into one
+ * upstream call per hour per distinct query.
+ *
+ * The stampede guard inside `cached()` matters as much as the cache: without
+ * it, ten riders searching the same place at the same moment on a cold key
+ * would produce ten billed calls, which is precisely when the bill spikes.
+ *
+ * Failures are never cached, so an upstream outage does not persist past its
+ * own duration.
+ */
 export async function searchPlaces(input: SearchPlacesInput): Promise<GeocodeResult[]> {
   const limit = Math.min(Math.max(input.limit ?? 6, 1), 10);
-  return env.GOOGLE_PLACES_API_KEY
-    ? searchWithGooglePlaces(input.q, input.proximity, limit)
-    : searchWithNominatim(input.q, input.proximity, limit);
+
+  return cached(cacheKey(input.q, input.proximity, limit), env.GEOCODE_CACHE_TTL_MS, () =>
+    env.GOOGLE_PLACES_API_KEY
+      ? searchWithGooglePlaces(input.q, input.proximity, limit)
+      : searchWithNominatim(input.q, input.proximity, limit),
+  );
 }
 
 // ---------------------------------------------------------------------------
