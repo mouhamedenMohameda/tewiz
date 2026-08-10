@@ -197,7 +197,7 @@ export default function LoginScreen() {
             </AppText>
           </FadeInView>
 
-          <FadeInView delay={120} style={{ marginTop: spacing.xxl, gap: spacing.base }}>
+          <FadeInView delay={60} style={{ marginTop: spacing.xxl, gap: spacing.base }}>
             <TextField
               label={t('auth.login.phoneLabel')}
               icon="phone"

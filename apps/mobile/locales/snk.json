@@ -132,6 +132,9 @@
       "vignette": "Vignette",
       "visite_technique": "Visite technique"
     },
+    "errAlreadyCaptain": "Nimeron bee ya captain jaabaanen ya.",
+    "errApplicationExists": "Captain maabure wa ñi nimeron bee. Ballal xa jokke xa a nta wuruni.",
+    "errPhoneRequired": "Telefon nimeron ti sikki a ke captain maabure ke.",
     "incompleteTitle": "Dossier nta koota",
     "intro": "{{app}} doogu ka wonta, an bayel, 14 nataal (NNI, permis, carte grise, assurance, vignette, visite technique, oto nataal), équipe validation kanu.",
     "loadFail": "A nta dossier jura.",

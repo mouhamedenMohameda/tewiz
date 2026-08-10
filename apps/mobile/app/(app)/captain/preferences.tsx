@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator, Alert, Switch, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { useApiQuery } from '@/lib/useApiQuery';
 import { AppText, Card, Icon, Screen, ScreenHeader } from '@/components/ui';
 import { colors, radius, spacing } from '@/theme';
 
@@ -13,36 +15,33 @@ interface Preferences {
 
 type Key = keyof Preferences;
 
+/** Shared cache key — the toggle handler writes to it directly. */
+const PREFS_KEY = ['captain', 'preferences'] as const;
+
 export default function CaptainPreferencesScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const [prefs, setPrefs] = useState<Preferences | null>(null);
-  const [loading, setLoading] = useState(true);
   const [busyKey, setBusyKey] = useState<Key | null>(null);
+  const queryClient = useQueryClient();
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const r = await api.get<Preferences>('/captain/preferences');
-      setPrefs(r.data);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
+  const { data: prefs, isFetching, refetch } = useApiQuery<Preferences>(
+    PREFS_KEY,
+    '/captain/preferences',
+  );
 
   async function toggle(key: Key, next: boolean) {
     if (!prefs) return;
     setBusyKey(key);
-    // Optimistic: the toggle visually flips immediately and rolls back on error.
+    // Optimistic: the toggle visually flips immediately and rolls back on
+    // error. Written straight into the query cache so the rollback restores
+    // what the cache actually held, not a copy that could have drifted from it.
     const prev = prefs;
-    setPrefs({ ...prefs, [key]: next });
+    queryClient.setQueryData<Preferences>(PREFS_KEY, { ...prefs, [key]: next });
     try {
       const r = await api.patch<Preferences>('/captain/preferences', { [key]: next });
-      setPrefs(r.data);
+      queryClient.setQueryData<Preferences>(PREFS_KEY, r.data);
     } catch (e: any) {
-      setPrefs(prev);
+      queryClient.setQueryData<Preferences>(PREFS_KEY, prev);
       Alert.alert(
         t('captain.preferences.saveError'),
         e.response?.data?.error?.message ?? '',
@@ -53,7 +52,7 @@ export default function CaptainPreferencesScreen() {
   }
 
   return (
-    <Screen scroll onRefresh={load} refreshing={loading}>
+    <Screen scroll onRefresh={refetch} refreshing={isFetching}>
       <ScreenHeader title={t('captain.preferences.title')} onBack={() => router.back()} />
 
       <AppText variant="body" color={colors.ink2}>

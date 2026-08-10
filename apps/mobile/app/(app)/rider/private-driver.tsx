@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { api } from '@/lib/api';
+import { useApiQuery } from '@/lib/useApiQuery';
+import { QuoteUnavailable } from '@/components/QuoteUnavailable';
 import { formatMru } from '@/lib/format';
 import { AppText, Button, Card, Icon, Screen, ScreenHeader } from '@/components/ui';
 import { colors, radius, spacing } from '@/theme';
@@ -19,14 +21,15 @@ export default function PrivateDriverScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const [duration, setDuration] = useState(3);
-  const [quote, setQuote] = useState<Quote | null>(null);
+  // Tariffs barely change between two visits, so this is exactly the kind of
+  // value worth caching: re-opening the screen shows the price immediately
+  // instead of spinning through a round trip on a 2G link.
+  const { data: quote, isError } = useApiQuery<Quote>(
+    ['rider', 'quote', 'private-driver'],
+    '/rider/rides/private-driver-quote',
+    { staleMs: 5 * 60_000 },
+  );
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    api.get<Quote>('/rider/rides/private-driver-quote')
-      .then((r) => setQuote(r.data))
-      .catch(() => Alert.alert(t('errors.generic')));
-  }, []);
 
   async function start() {
     setLoading(true);
@@ -52,6 +55,10 @@ export default function PrivateDriverScreen() {
     }
   }
 
+  // The old code alerted from the fetch's .catch(). React Query swallows the
+  // rejection into `isError`, so without this an outage would leave the user
+  // watching a spinner with no explanation.
+  if (isError) return <QuoteUnavailable />;
   if (!quote) return <ActivityIndicator />;
   if (!quote.enabled) {
     return (
@@ -67,7 +74,7 @@ export default function PrivateDriverScreen() {
   const total = quote.hourlyRateMru * duration;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.surface }}>
       <ScreenHeader title="Captain Privé" onBack={() => router.back()} />
 
       <View style={{ flex: 1, padding: spacing.lg, justifyContent: 'space-between' }}>

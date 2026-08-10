@@ -143,6 +143,9 @@
       "vignette": "Vignette",
       "visite_technique": "Visite technique"
     },
+    "errAlreadyCaptain": "Ce numéro est déjà celui d’un captain validé.",
+    "errApplicationExists": "Une demande de captain est déjà en cours pour ce numéro. Contactez le support si elle ne s'affiche pas.",
+    "errPhoneRequired": "Ajoutez votre numéro de téléphone avant de postuler comme captain.",
     "incompleteTitle": "Dossier incomplet",
     "intro": "Pour conduire pour {{app}}, renseignez votre nom et votre véhicule, envoyez 5 photos (CNI, permis, carte grise, assurance et une photo de votre véhicule avec la plaque), puis attendez la validation. Le WhatsApp est facultatif — sinon votre numéro de connexion est utilisé.",
     "loadFail": "Impossible de charger le dossier.",

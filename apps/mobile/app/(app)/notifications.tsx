@@ -9,11 +9,14 @@
  * recipient_id so each user sees only their own messages.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { useApiQuery } from '@/lib/useApiQuery';
+import { INBOX_KEY, UNREAD_KEY } from '@/lib/notificationKeys';
 import { AppText, Card, Icon, PressableScale, Screen, ScreenHeader } from '@/components/ui';
 import { colors, radius, spacing } from '@/theme';
 
@@ -42,28 +45,31 @@ const TYPE_ACCENT: Record<string, { tint: string; fg: string }> = {
 export default function NotificationsScreen() {
   const router = useRouter();
   const { t, i18n } = useTranslation();
-  const [data, setData] = useState<InboxResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const queryClient = useQueryClient();
+  const {
+    data, isLoading, isFetching, refetch,
+  } = useApiQuery<InboxResponse>(INBOX_KEY, '/notifications');
 
-  const load = useCallback(async () => {
-    try {
-      const r = await api.get<InboxResponse>('/notifications');
-      setData(r.data);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
+  /**
+   * Apply an optimistic change to the cached inbox, then tell the bell badge
+   * to re-check itself.
+   *
+   * The badge lives on a DIFFERENT query (`['notifications','unread']`, polled
+   * every 60 s by NotificationsBellButton). Without the invalidate, marking
+   * everything read here left the bell showing a count for up to a minute
+   * after the list it counts had visibly emptied.
+   */
+  const patchInbox = useCallback((fn: (prev: InboxResponse) => InboxResponse) => {
+    queryClient.setQueryData<InboxResponse>(INBOX_KEY, (prev) => (prev ? fn(prev) : prev));
+    void queryClient.invalidateQueries({ queryKey: UNREAD_KEY });
+  }, [queryClient]);
 
   const markRead = async (id: string) => {
-    setData((prev) => prev ? {
+    patchInbox((prev) => ({
       ...prev,
       items: prev.items.map((it) => it.id === id ? { ...it, readAt: it.readAt ?? new Date().toISOString() } : it),
       unreadCount: Math.max(0, prev.unreadCount - 1),
-    } : prev);
+    }));
     try {
       await api.post(`/notifications/${id}/read`);
     } catch {
@@ -72,11 +78,11 @@ export default function NotificationsScreen() {
   };
 
   const markAllRead = async () => {
-    setData((prev) => prev ? {
+    patchInbox((prev) => ({
       ...prev,
       items: prev.items.map((it) => it.readAt ? it : { ...it, readAt: new Date().toISOString() }),
       unreadCount: 0,
-    } : prev);
+    }));
     try {
       await api.post('/notifications/read-all');
     } catch {
@@ -96,7 +102,7 @@ export default function NotificationsScreen() {
         ) : null}
       />
 
-      {loading && !data && (
+      {isLoading && !data && (
         <View style={{ marginTop: spacing.xxl, alignItems: 'center' }}>
           <ActivityIndicator color={colors.ember} />
         </View>
@@ -107,8 +113,8 @@ export default function NotificationsScreen() {
         contentContainerStyle={{ paddingBottom: spacing.xxl }}
         refreshControl={
           <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => { setRefreshing(true); load(); }}
+            refreshing={isFetching}
+            onRefresh={refetch}
             tintColor={colors.ember}
           />
         }

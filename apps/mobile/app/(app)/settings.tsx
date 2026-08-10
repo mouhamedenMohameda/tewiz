@@ -27,7 +27,7 @@ import {
   AppText, Button, Card, Icon, PressableScale, Screen, ScreenHeader, TextField,
   type IconName,
 } from '@/components/ui';
-import { colors, radius, shadow, spacing } from '@/theme';
+import { colors, radius, shadow, spacing, statusTone } from '@/theme';
 import { APP_NAME } from '@/lib/brand';
 
 const SUPPORT_WHATSAPP = '22233322777';
@@ -233,7 +233,7 @@ export default function SettingsScreen() {
           padding={spacing.lg}
           style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}
         >
-          <RoundIcon name="shield" tint="#FDECEC" fg={colors.danger} />
+          <RoundIcon name="shield" tint={statusTone.failed.bg} fg={colors.danger} />
           <View style={{ flex: 1 }}>
             <AppText variant="bodyStrong">Je suis dépanneur</AppText>
             <AppText variant="caption" color={colors.muted} style={{ marginTop: 2, lineHeight: 18 }}>
@@ -336,7 +336,7 @@ export default function SettingsScreen() {
               opacity: pressed ? 0.6 : 1,
             })}
           >
-            <RoundIcon name="whatsapp" tint="#E6F6EC" fg={colors.success} />
+            <RoundIcon name="whatsapp" tint={statusTone.done.bg} fg={colors.success} />
             <AppText variant="bodyStrong" color={colors.ember} style={{ flex: 1 }}>
               {t('settings.about.support')}
             </AppText>
@@ -382,6 +382,20 @@ export default function SettingsScreen() {
           </Card>
         </Section>
       ) : null}
+
+      {/* Footer credit */}
+      <AppText
+        variant="caption"
+        style={{
+          textAlign: 'center',
+          writingDirection: 'rtl',
+          marginTop: spacing.xl,
+          marginBottom: spacing.md,
+          color: colors.muted,
+        }}
+      >
+        صُنع بحب ❤️ في نواكشوط، لكل الموريتانيين
+      </AppText>
     </Screen>
   );
 }

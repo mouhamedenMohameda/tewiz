@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, Image, Pressable, RefreshControl, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, View } from 'react-native';
+import { Image } from 'expo-image';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -71,7 +72,7 @@ export default function CarRentalScreen() {
           renderItem={({ item }) => (
             <Card padding={0} onPress={() => router.push(`/(app)/car-rental/${item.id}`)} style={{ overflow: 'hidden' }}>
               {item.photos[0] ? (
-                <Image source={{ uri: item.photos[0] }} style={{ width: '100%', height: 170 }} resizeMode="cover" />
+                <Image source={{ uri: item.photos[0] }} style={{ width: '100%', height: 170 }} contentFit="cover" />
               ) : (
                 <View style={{ width: '100%', height: 170, backgroundColor: colors.sunken, alignItems: 'center', justifyContent: 'center' }}>
                   <Icon name="car" size={40} color={colors.faint} />

@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Linking, RefreshControl, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, RefreshControl, ScrollView, View } from 'react-native';
+import { Image } from 'expo-image';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -234,7 +235,7 @@ export default function MyCarsScreen() {
             <Card key={c.id} padding={0} style={{ overflow: 'hidden' }} onPress={() => router.push(`/(app)/car-rental/add-car?id=${c.id}`)}>
               <View style={{ flexDirection: 'row', gap: spacing.md, alignItems: 'center' }}>
                 {c.photos[0] ? (
-                  <Image source={{ uri: c.photos[0] }} style={{ width: 90, height: 90 }} resizeMode="cover" />
+                  <Image source={{ uri: c.photos[0] }} style={{ width: 90, height: 90 }} contentFit="cover" />
                 ) : (
                   <View style={{ width: 90, height: 90, backgroundColor: colors.sunken, alignItems: 'center', justifyContent: 'center' }}>
                     <Icon name="car" size={28} color={colors.faint} />

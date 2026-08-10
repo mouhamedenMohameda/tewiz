@@ -4,6 +4,7 @@ import { PlainText as Text } from '@/components/ui';
 import {
   getMapbox, initMapbox, MAPBOX_STYLE_URL, MAPBOX_TOKEN, NKC_CENTER, DEFAULT_ZOOM,
 } from '@/lib/mapbox';
+import { colors } from '@/theme';
 
 interface Props {
   children?: ReactNode;
@@ -22,6 +23,16 @@ interface Props {
    */
   logoPosition?: OrnamentPosition;
   attributionPosition?: OrnamentPosition;
+  /**
+   * Fired once the native module is confirmed and the <Camera> has actually
+   * mounted — i.e. the first moment `cameraRef.current` is usable.
+   *
+   * Needed because MapShell decides whether it can render at all inside its
+   * OWN effect, and child effects run before parent ones: a parent that drives
+   * the camera from an effect finds `cameraRef.current === null` on first
+   * mount and, with nothing to re-trigger it, never gets a second chance.
+   */
+  onReady?: () => void;
 }
 
 /** Mapbox ornament placement — one vertical + one horizontal anchor. */
@@ -39,7 +50,7 @@ type OrnamentPosition =
 export const MapShell = forwardRef<any, Props>(function MapShell(
   {
     children, centerCoordinate, zoomLevel, showsUserLocation, onPress, cameraRef, style,
-    logoPosition, attributionPosition,
+    logoPosition, attributionPosition, onReady,
   },
   ref,
 ) {
@@ -49,6 +60,13 @@ export const MapShell = forwardRef<any, Props>(function MapShell(
   useEffect(() => {
     setReady(initMapbox());
   }, []);
+
+  // Second effect, not folded into the one above: it must run on the render
+  // where `ready` is already true, which is the render that mounts <Camera>.
+  useEffect(() => {
+    if (ready) onReady?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
 
   if (!M) {
     return (
@@ -114,12 +132,12 @@ export const MapShell = forwardRef<any, Props>(function MapShell(
 const styles = StyleSheet.create({
   fallback: {
     flex: 1,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
   },
   fallbackEmoji: { fontSize: 32, marginBottom: 8 },
-  fallbackTitle: { fontSize: 15, fontWeight: '600', color: '#0f172a' },
-  fallbackBody: { fontSize: 13, color: '#64748b', marginTop: 4, textAlign: 'center' },
+  fallbackTitle: { fontSize: 15, fontWeight: '600', color: colors.ink },
+  fallbackBody: { fontSize: 13, color: colors.ink2, marginTop: 4, textAlign: 'center' },
 });
