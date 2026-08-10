@@ -1027,12 +1027,17 @@ function RiderChip({
   label: string;
   variant?: 'neutral' | 'gold' | 'success' | 'warning' | 'danger';
 }) {
+  // `fg`, not `value`: the worklets babel plugin rewrites `.value` inside style
+  // objects into a Reanimated warning that crashes without Reanimated present.
+  // This one is currently safe (it feeds a `color=` prop, not a style object),
+  // but it is one refactor away from the same trap — and bg/fg is the naming the
+  // rest of the design system already uses.
   const palette = {
-    neutral: { bg: colors.surfaceAlt, value: colors.ink, label: colors.ink2 },
-    gold:    { bg: colors.saffronSoft, value: colors.warning, label: colors.ink2 },
-    success: { bg: colors.successSoft, value: colors.success, label: colors.ink2 },
-    warning: { bg: colors.saffronSoft, value: colors.warning, label: colors.ink2 },
-    danger:  { bg: colors.dangerSoft, value: colors.danger, label: colors.ink2 },
+    neutral: { bg: colors.surfaceAlt, fg: colors.ink, label: colors.ink2 },
+    gold:    { bg: colors.saffronSoft, fg: colors.warning, label: colors.ink2 },
+    success: { bg: colors.successSoft, fg: colors.success, label: colors.ink2 },
+    warning: { bg: colors.saffronSoft, fg: colors.warning, label: colors.ink2 },
+    danger:  { bg: colors.dangerSoft, fg: colors.danger, label: colors.ink2 },
   }[variant];
   return (
     <View style={{
@@ -1042,7 +1047,7 @@ function RiderChip({
     }}>
       <Text style={{ fontSize: 14 }}>{icon}</Text>
       <View>
-        <Text variant="bodyStrong" color={palette.value}>{value}</Text>
+        <Text variant="bodyStrong" color={palette.fg}>{value}</Text>
         <Text variant="caption" color={palette.label} style={{ marginTop: -2 }}>{label}</Text>
       </View>
     </View>
