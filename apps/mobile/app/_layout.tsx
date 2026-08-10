@@ -29,7 +29,8 @@ import { NotificationTapHandler } from '@/components/NotificationTapHandler';
 import { SplashGate } from '@/components/SplashGate';
 import UpdateGate from '@/components/UpdateGate';
 import { AppQueryProvider } from '@/lib/queryClient';
-import { colors, fontAssets } from '@/theme';
+import { colors } from '@/theme';
+import fontAssets from '@/theme/fontAssets';
 
 // Hold the native splash until our custom fonts are ready, so the UI never
 // flashes the system font and re-flows.

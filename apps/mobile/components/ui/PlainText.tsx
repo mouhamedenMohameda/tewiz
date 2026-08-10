@@ -15,6 +15,7 @@
 import { useTranslation } from 'react-i18next';
 import { I18nManager, Platform, Text as RNText, type TextProps } from 'react-native';
 import { currentLanguage, isRTL } from '@/lib/i18n';
+import { DEFAULT_MAX_FONT_SCALE } from '@/theme';
 import { arabicFaceForStyle, arabicLineHeight } from './arabicFont';
 
 export function PlainText({ style, ...rest }: TextProps) {
@@ -24,6 +25,9 @@ export function PlainText({ style, ...rest }: TextProps) {
 
   return (
     <RNText
+      // No ramp step to look up here, so a single conservative ceiling. Callers
+      // that know better pass their own.
+      maxFontSizeMultiplier={DEFAULT_MAX_FONT_SCALE}
       {...rest}
       style={[
         // Alignment follows the LANGUAGE via the paragraph's base writing

@@ -40,7 +40,9 @@ export function NotificationsBellButton() {
         <View style={{
           position: 'absolute',
           top: 4, right: 4,
-          minWidth: 18, height: 18, borderRadius: 9,
+          // minHeight, not height: the count inside scales with Dynamic Type,
+          // and a fixed 18pt box would clip "99+" at large text sizes.
+          minWidth: 18, minHeight: 18, borderRadius: 9,
           backgroundColor: colors.ember,
           paddingHorizontal: 5,
           alignItems: 'center', justifyContent: 'center',

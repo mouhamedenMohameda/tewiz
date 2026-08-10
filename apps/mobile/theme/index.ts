@@ -10,8 +10,6 @@
  *   import { colors, spacing, radius, shadow, type, gradients } from '@/theme';
  */
 
-import { Platform } from 'react-native';
-
 /* ------------------------------------------------------------------ *
  *  Color
  * ------------------------------------------------------------------ */
@@ -326,6 +324,39 @@ export const type = {
 } satisfies Record<string, TypePreset>;
 
 /* ------------------------------------------------------------------ *
+ *  Dynamic Type — how far each ramp step may grow.
+ *
+ *  React Native scales text with the OS setting by default, and on iOS the
+ *  accessibility sizes go past 300%. Left uncapped, a 40pt hero becomes 124pt
+ *  and takes the screen hostage; worse, EVERY step hits the same ceiling, so
+ *  the hierarchy the ramp exists to express collapses into one undifferentiated
+ *  size.
+ *
+ *  So the cap is per step, and it is inverse to the size: small text — the text
+ *  someone actually turned this setting on to read — gets the most headroom,
+ *  and display sizes, which are already large and are doing a job of hierarchy
+ *  rather than of reading, get the least. That is the same compression Apple's
+ *  own Dynamic Type ramp applies, and it is what keeps a caption and a title
+ *  still looking like a caption and a title at maximum size.
+ * ------------------------------------------------------------------ */
+
+export const maxFontScale = {
+  hero: 1.3,
+  display: 1.3,
+  h1: 1.4,
+  h2: 1.4,
+  title: 1.6,
+  body: 1.8,
+  bodyStrong: 1.8,
+  label: 1.9,
+  caption: 2,
+  overline: 2,
+} as const satisfies Record<keyof typeof type, number>;
+
+/** Fallback for <PlainText>, which carries no ramp step to look up. */
+export const DEFAULT_MAX_FONT_SCALE = 1.8;
+
+/* ------------------------------------------------------------------ *
  *  Motion
  *
  *  Springs are described by RESPONSE (roughly how long it takes to reach the
@@ -367,8 +398,13 @@ export const motion = {
   reducedFade: 160,
 } as const;
 
-/* Font assets to feed `useFonts` in the root layout. */
-export { default as fontAssets, latinFontAssets, arabicFontAssets } from './fontAssets';
+/*
+ * Font BINARIES deliberately do NOT live behind this module. Re-exporting them
+ * here dragged @expo-google-fonts — and through it the whole React Native
+ * runtime — into anything that wanted a colour or a spacing value, which meant
+ * the design tokens could not be reasoned about (or tested) on their own.
+ * The root layout imports them straight from '@/theme/fontAssets'.
+ */
 
 export const theme = {
   colors, gradients, statusTone, heat, spacing, radius, shadow, type, fonts, motion, spring,

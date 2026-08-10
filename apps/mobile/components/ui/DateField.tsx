@@ -10,13 +10,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   FlatList,
   Pressable,
+  useWindowDimensions,
   View,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
-import { colors, fonts, radius, spacing } from '@/theme';
+import { colors, DEFAULT_MAX_FONT_SCALE, fonts, radius, spacing } from '@/theme';
 import { haptics } from '@/lib/haptics';
 import { AppText } from './Text';
 import { Icon } from './Icon';
@@ -24,6 +25,15 @@ import { Sheet } from './Sheet';
 
 const ITEM_HEIGHT = 44;
 const VISIBLE_ITEMS = 5;
+/**
+ * The wheel is the one control in the app whose row height is load-bearing:
+ * snapToInterval, getItemLayout and the highlight band all key off it. So it
+ * has to grow with Dynamic Type, or the labels get clipped by their own rows.
+ * Capped at the same ceiling as body text, since that is what the rows are.
+ */
+function rowHeight(fontScale: number): number {
+  return Math.round(ITEM_HEIGHT * Math.min(Math.max(fontScale, 1), DEFAULT_MAX_FONT_SCALE));
+}
 
 export interface DateFieldProps {
   label?: string;
@@ -79,6 +89,7 @@ export function DateField({
   containerStyle,
 }: DateFieldProps) {
   const [open, setOpen] = useState(false);
+  const itemHeight = rowHeight(useWindowDimensions().fontScale);
 
   const minParsed = parse(minDate ?? '1925-01-01') ?? { y: 1925, m: 1, d: 1 };
   const todayDate = new Date();
@@ -182,15 +193,15 @@ export function DateField({
         <View style={{
           flexDirection: 'row',
           paddingHorizontal: spacing.lg,
-          height: ITEM_HEIGHT * VISIBLE_ITEMS,
+          height: itemHeight * VISIBLE_ITEMS,
           position: 'relative',
         }}>
           {/* Highlight band for the centered row. */}
           <View pointerEvents="none" style={{
             position: 'absolute',
             left: spacing.lg, right: spacing.lg,
-            top: ITEM_HEIGHT * Math.floor(VISIBLE_ITEMS / 2),
-            height: ITEM_HEIGHT,
+            top: itemHeight * Math.floor(VISIBLE_ITEMS / 2),
+            height: itemHeight,
             backgroundColor: colors.emberSoft,
             borderRadius: radius.md,
             borderWidth: 1,
@@ -198,18 +209,21 @@ export function DateField({
           }} />
 
           <Wheel
+            itemHeight={itemHeight}
             values={days}
             selected={draftD}
             onChange={setDraftD}
             renderLabel={(v) => pad(v)}
           />
           <Wheel
+            itemHeight={itemHeight}
             values={months}
             selected={draftM}
             onChange={setDraftM}
             renderLabel={(v) => monthLabels?.[v - 1] ?? pad(v)}
           />
           <Wheel
+            itemHeight={itemHeight}
             values={years}
             selected={draftY}
             onChange={setDraftY}
@@ -260,12 +274,13 @@ export function DateField({
 }
 
 function Wheel<T extends number>({
-  values, selected, onChange, renderLabel,
+  values, selected, onChange, renderLabel, itemHeight,
 }: {
   values: T[];
   selected: T;
   onChange: (v: T) => void;
   renderLabel: (v: T) => string;
+  itemHeight: number;
 }) {
   const listRef = useRef<FlatList<T>>(null);
   const padCount = Math.floor(VISIBLE_ITEMS / 2);
@@ -276,15 +291,17 @@ function Wheel<T extends number>({
     if (idx >= 0) {
       // Defer to allow layout.
       const t = setTimeout(() => {
-        listRef.current?.scrollToOffset({ offset: idx * ITEM_HEIGHT, animated: false });
+        listRef.current?.scrollToOffset({ offset: idx * itemHeight, animated: false });
       }, 0);
       return () => clearTimeout(t);
     }
-  }, [values, selected]);
+    // itemHeight is a dependency: if the user changes their text size while the
+    // app is running, every offset in this list moves with it.
+  }, [values, selected, itemHeight]);
 
   function handleMomentumEnd(e: NativeSyntheticEvent<NativeScrollEvent>) {
     const y = e.nativeEvent.contentOffset.y;
-    const idx = Math.round(y / ITEM_HEIGHT);
+    const idx = Math.round(y / itemHeight);
     const clamped = Math.max(0, Math.min(values.length - 1, idx));
     const next = values[clamped];
     if (next !== undefined && next !== selected) {
@@ -296,7 +313,7 @@ function Wheel<T extends number>({
       onChange(next);
     }
     // Re-snap precisely (in case the scroll over/undershot the snap).
-    listRef.current?.scrollToOffset({ offset: clamped * ITEM_HEIGHT, animated: true });
+    listRef.current?.scrollToOffset({ offset: clamped * itemHeight, animated: true });
   }
 
   return (
@@ -306,7 +323,7 @@ function Wheel<T extends number>({
         data={values}
         keyExtractor={(v) => String(v)}
         showsVerticalScrollIndicator={false}
-        snapToInterval={ITEM_HEIGHT}
+        snapToInterval={itemHeight}
         decelerationRate="fast"
         // Let the ends rubber-band. Stopping dead at the first and last value
         // reads as the wheel having seized; resistance reads as "that's all
@@ -314,16 +331,16 @@ function Wheel<T extends number>({
         bounces
         onMomentumScrollEnd={handleMomentumEnd}
         getItemLayout={(_, index) => ({
-          length: ITEM_HEIGHT,
-          offset: index * ITEM_HEIGHT,
+          length: itemHeight,
+          offset: index * itemHeight,
           index,
         })}
-        contentContainerStyle={{ paddingVertical: padCount * ITEM_HEIGHT }}
+        contentContainerStyle={{ paddingVertical: padCount * itemHeight }}
         renderItem={({ item }) => {
           const isActive = item === selected;
           return (
             <View style={{
-              height: ITEM_HEIGHT,
+              height: itemHeight,
               alignItems: 'center',
               justifyContent: 'center',
             }}>
