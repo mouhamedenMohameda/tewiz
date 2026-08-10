@@ -338,7 +338,7 @@ const styles = schemed(() => StyleSheet.create({
     height: 96,
     borderRadius: radius.xxl,
     overflow: 'hidden',
-    shadowColor: shadowTint.value,
+    shadowColor: shadowTint.color,
     shadowOpacity: 0.25,
     shadowRadius: 24,
     shadowOffset: { width: 0, height: 12 },

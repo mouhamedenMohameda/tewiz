@@ -59,8 +59,9 @@ import { AppText } from './Text';
  * app barely registers, so the sheet would stop reading as "in front".
  */
 const scrim = schemed(() => ({
-  value: currentScheme() === 'dark' ? 'rgba(0,0,0,0.62)' : 'rgba(42,26,14,0.45)',
-})) as { value: string };
+  // Not `value` — see the note on shadowTint in theme/index.ts.
+  color: currentScheme() === 'dark' ? 'rgba(0,0,0,0.62)' : 'rgba(42,26,14,0.45)',
+})) as { color: string };
 /** Past this fraction of the sheet's height, a release dismisses. */
 const DISMISS_FRACTION = 0.4;
 const TAP_SLOP = 4;
@@ -251,7 +252,7 @@ export function Sheet({
         <Animated.View
           style={{
             position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: scrim.value,
+            backgroundColor: scrim.color,
             opacity: fade,
           }}
         >
@@ -282,7 +283,7 @@ export function Sheet({
               paddingBottom: insets.bottom + spacing.lg,
               // Aimed upward: a sheet welded to the bottom edge throws a
               // downward shadow clean off the screen and reads as flat.
-              shadowColor: shadowTint.value,
+              shadowColor: shadowTint.color,
               shadowOpacity: 0.2,
               shadowRadius: 28,
               shadowOffset: { width: 0, height: -10 },

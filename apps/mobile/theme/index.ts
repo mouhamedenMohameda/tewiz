@@ -99,8 +99,14 @@ export const colors: Palette = fromPalette((p) => p);
  * palette's rule 2) with the shadow only deepening the gap beneath.
  */
 export const shadowTint = schemed(() => ({
-  value: active === 'dark' ? '#000000' : '#5A3414',
-})) as { value: string };
+  // NOT named `value`. The react-native-worklets babel plugin rewrites every
+  // `<expr>.value` it finds inside a style object into a Reanimated dev-warning
+  // that require()s react-native-reanimated — which nothing in this app pulls
+  // in, so the require lands undefined and the component crashes at render.
+  // Typecheck and the node tests both pass right through it; it only shows up
+  // on device. Keep style-facing token keys off the name `value`.
+  color: active === 'dark' ? '#000000' : '#5A3414',
+})) as { color: string };
 
 
 /**
@@ -230,7 +236,7 @@ export const shadow = schemed(() => ({
   none: {},
   // Resting card.
   card: {
-    shadowColor: shadowTint.value,
+    shadowColor: shadowTint.color,
     shadowOpacity: 0.1,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 8 },
@@ -238,7 +244,7 @@ export const shadow = schemed(() => ({
   },
   // Floating / hero surfaces.
   raised: {
-    shadowColor: shadowTint.value,
+    shadowColor: shadowTint.color,
     shadowOpacity: 0.16,
     shadowRadius: 28,
     shadowOffset: { width: 0, height: 16 },
