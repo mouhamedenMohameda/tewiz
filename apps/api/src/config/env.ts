@@ -103,6 +103,29 @@ const EnvSchema = z.object({
   // Geocoding (Google Places). Falls back to Nominatim when unset.
   GOOGLE_PLACES_API_KEY: z.string().optional(),
 
+  // Per-user ceiling on place search, over a 15-minute window. This is the one
+  // route a signed-in user can drive that bills us per call. Caching helps only
+  // with REPEATED queries — a caller sending a fresh string every time misses on
+  // every request, and every miss is a paid Google call — so the ceiling is what
+  // actually bounds the bill. 60 leaves a rider room to search a pickup and a
+  // dropoff several times over (the client debounces at 300 ms, so a typed query
+  // costs a handful of requests) while capping what one account can spend.
+  GEOCODE_RATE_LIMIT: z.coerce.number().int().min(1).default(60),
+
+  // Per-user ceiling on voice-ride submissions, over a 1-hour window. Each one
+  // is an audio upload of up to MAX_UPLOAD_BYTES that lands on disk and stays
+  // there, so the resource being protected is storage, not an API bill. A rider
+  // books a handful of rides an hour; 20 is far above that and far below what it
+  // takes to fill a disk.
+  VOICE_RIDE_RATE_LIMIT: z.coerce.number().int().min(1).default(20),
+
+  // How long a place-search result stays cached. This is the one API path
+  // billed per call, and rider search repeats the same handful of Nouakchott
+  // landmarks all day, so the hit rate is what keeps the bill flat as usage
+  // grows. An hour is well inside Google's caching terms and short enough that
+  // a newly added POI shows up the same day.
+  GEOCODE_CACHE_TTL_MS: z.coerce.number().int().default(60 * 60 * 1000),
+
   // Voice-to-Location proxy. The main API forwards rider audio to the
   // voice-location-api (which lives behind an API key the client must
   // never see). Defaults assume both apps run on the same host.

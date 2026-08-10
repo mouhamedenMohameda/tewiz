@@ -1,10 +1,21 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { env } from '../../config/env.js';
 import { requireAuth } from '../../middleware/auth.js';
+import { perUserLimiter } from '../../middleware/rate-limit.js';
 import { searchPlaces } from './geocode.service.js';
 
 export const geocodeRouter = Router();
+// requireAuth first so the limiter can key on the user id rather than the
+// carrier-NAT address every mobile client shares.
 geocodeRouter.use(requireAuth);
+geocodeRouter.use(
+  perUserLimiter({
+    windowMs: 15 * 60 * 1000,
+    limit: env.GEOCODE_RATE_LIMIT,
+    message: 'Trop de recherches. Patientez quelques minutes.',
+  }),
+);
 
 const querySchema = z.object({
   q: z.string().min(2).max(120),

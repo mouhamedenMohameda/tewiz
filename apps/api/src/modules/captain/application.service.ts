@@ -80,12 +80,47 @@ export async function getOrCreateDraft(userId: string) {
       'Ajoutez votre numéro de téléphone avant de postuler comme Captain.');
   }
 
-  const created = await pool.query<ApplicationRow>(
-    `INSERT INTO captain_applications (phone, user_id, status)
-     VALUES ($1, $2, 'draft') RETURNING *`,
-    [user.rows[0].phone, userId],
+  const phone = user.rows[0].phone;
+
+  // `captain_applications_open_one` allows one open application *per phone*,
+  // but the lookup at the top of this function is per user_id — the two
+  // disagree as soon as a number moves to a fresh account (a re-seeded test
+  // account, a deleted user whose application row stays behind). The stale row
+  // then makes the INSERT below violate the index, and the applicant only sees
+  // a 500 on the very first tap.
+  //
+  // `users.phone` is unique, so whoever is authenticated with this number is
+  // the legitimate owner of any open application filed under it. Re-attach the
+  // orphan — but only when its recorded owner no longer holds that number, so
+  // a live applicant's file is never stolen.
+  const reclaimed = await pool.query<ApplicationRow>(
+    `UPDATE captain_applications a
+        SET user_id = $2
+      WHERE a.phone = $1
+        AND a.status IN ('draft','submitted','under_review','needs_correction')
+        AND (a.user_id IS NULL OR NOT EXISTS (
+              SELECT 1 FROM users u WHERE u.id = a.user_id AND u.phone = a.phone))
+      RETURNING *`,
+    [phone, userId],
   );
-  return await withDocuments(created.rows[0]!);
+  if (reclaimed.rows[0]) return await withDocuments(reclaimed.rows[0]);
+
+  try {
+    const created = await pool.query<ApplicationRow>(
+      `INSERT INTO captain_applications (phone, user_id, status)
+       VALUES ($1, $2, 'draft') RETURNING *`,
+      [phone, userId],
+    );
+    return await withDocuments(created.rows[0]!);
+  } catch (e) {
+    // Backstop: an open application exists for this number and a live account
+    // still owns it. Name the reason instead of leaking a generic 500.
+    if ((e as { code?: string }).code === '23505') {
+      throw new HttpError(409, 'application_exists',
+        'Une demande est déjà en cours pour ce numéro.');
+    }
+    throw e;
+  }
 }
 
 export async function getMyApplication(userId: string) {
