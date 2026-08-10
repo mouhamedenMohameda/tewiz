@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform,
+  ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
   Pressable, RefreshControl, ScrollView, View,
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
-import { DateField, PlainText as Text, ScreenHeader, SelectField, type SelectOption } from '@/components/ui';
+import { Button, DateField, PlainText as Text, ScreenHeader, SelectField, Sheet, type SelectOption } from '@/components/ui';
 import { Field } from '@/lib/form';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -22,7 +22,7 @@ import { wrapRow } from '@/components/ui';
 import { TermsSheet } from '@/components/TermsSheet';
 import { acceptTerms, useTermsStatus } from '@/lib/terms';
 import { apiErrorMessage } from '@/lib/apiError';
-import { colors, radius, statusTone } from '@/theme';
+import { colors, radius, spacing, statusTone } from '@/theme';
 
 interface FormState {
   fullName: string;
@@ -481,41 +481,41 @@ export default function BecomeCaptainHome() {
         onClose={() => setTermsOpen(false)}
       />
 
-      {/* Expiry-date modal (assurance / vignette / visite technique) */}
-      <Modal visible={!!pendingUpload} transparent animationType="fade" onRequestClose={() => setPendingUpload(null)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(15,23,42,0.5)', justifyContent: 'center', padding: 24 }}>
-          <View style={{ backgroundColor: colors.surface, borderRadius: radius.md, padding: 20 }}>
-            <Text style={{ fontSize: 17, fontWeight: '700', color: colors.ink }}>
-              {t('becomeCaptain.docs.expiryTitle')}
-            </Text>
-            <Text style={{ fontSize: 13, color: colors.ink2, marginTop: 4 }}>
-              {t('becomeCaptain.docs.expiryHintPicker', { label: pendingUpload ? docLabel(pendingUpload.type) : '' })}
-            </Text>
-            <DateField
-              containerStyle={{ marginTop: 12 }}
-              value={expiryInput}
-              onChange={setExpiryInput}
-              placeholder={t('becomeCaptain.docs.expiryTapToPick')}
-              modalTitle={t('becomeCaptain.docs.expiryTitle')}
-              cancelLabel={t('common.cancel')}
-              confirmLabel={t('common.confirm')}
-              minDate={minExpiry}
-              maxDate={maxExpiry}
-              monthLabels={Array.isArray(monthLabels) ? monthLabels : undefined}
-            />
-            <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
-              <Pressable onPress={() => setPendingUpload(null)}
-                style={({ pressed }) => ({ flex: 1, padding: 12, borderRadius: radius.sm, backgroundColor: pressed ? colors.line : colors.line, alignItems: 'center' })}>
-                <Text style={{ color: colors.ink, fontWeight: '600' }}>{t('common.cancel')}</Text>
-              </Pressable>
-              <Pressable onPress={confirmExpiry}
-                style={({ pressed }) => ({ flex: 1, padding: 12, borderRadius: radius.sm, backgroundColor: pressed ? colors.emberDeep : colors.ember, alignItems: 'center' })}>
-                <Text style={{ color: colors.white, fontWeight: '600' }}>{t('common.send')}</Text>
-              </Pressable>
-            </View>
-          </View>
+      {/* Expiry date (assurance / vignette / visite technique) */}
+      <Sheet
+        visible={!!pendingUpload}
+        onClose={() => setPendingUpload(null)}
+        title={t('becomeCaptain.docs.expiryTitle')}
+        subtitle={t('becomeCaptain.docs.expiryHintPicker', { label: pendingUpload ? docLabel(pendingUpload.type) : '' })}
+        contentStyle={{ gap: spacing.base }}
+      >
+        <DateField
+          value={expiryInput}
+          onChange={setExpiryInput}
+          placeholder={t('becomeCaptain.docs.expiryTapToPick')}
+          modalTitle={t('becomeCaptain.docs.expiryTitle')}
+          cancelLabel={t('common.cancel')}
+          confirmLabel={t('common.confirm')}
+          minDate={minExpiry}
+          maxDate={maxExpiry}
+          monthLabels={Array.isArray(monthLabels) ? monthLabels : undefined}
+        />
+        <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+          <Button
+            title={t('common.cancel')}
+            variant="secondary"
+            onPress={() => setPendingUpload(null)}
+            style={{ flex: 1 }}
+            fullWidth={false}
+          />
+          <Button
+            title={t('common.send')}
+            onPress={confirmExpiry}
+            style={{ flex: 1 }}
+            fullWidth={false}
+          />
         </View>
-      </Modal>
+      </Sheet>
     </SafeAreaView>
   );
 }

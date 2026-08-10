@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert, Animated, Easing, KeyboardAvoidingView,
-  Modal, Platform, Pressable, View,
+  ActivityIndicator, Alert, Animated, Easing, Pressable, View,
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -11,7 +10,7 @@ import { useAuth } from '@/lib/auth';
 import { ModeToggle } from '@/components/ModeToggle';
 import { NotificationsBellButton } from '@/components/NotificationsBellButton';
 import {
-  AppText, Button, Card, FadeInView, Icon, PressableScale, Screen, TextField, wrapRow,
+  AppText, Button, Card, FadeInView, Icon, PressableScale, Screen, Sheet, TextField, wrapRow,
   type IconName,
 } from '@/components/ui';
 import { colors, gradients, radius, shadow, spacing } from '@/theme';
@@ -322,49 +321,41 @@ function PhonePrompt({
 }) {
   const { t } = useTranslation();
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' }}
+    <Sheet
+      visible={visible}
+      onClose={onCancel}
+      title={t('phonePrompt.title')}
+      subtitle={t('phonePrompt.body')}
+      dismissible={!busy}
+      contentStyle={{ gap: spacing.base }}
+    >
+      {/* Anchored to the trigger's meaning rather than floating: the phone mark
+          says at a glance which piece of information is being asked for. */}
+      <View
+        style={{
+          width: 48, height: 48, borderRadius: radius.md,
+          backgroundColor: colors.emberSoft, alignItems: 'center', justifyContent: 'center',
+        }}
       >
-        <View
-          style={{
-            backgroundColor: colors.canvas,
-            borderTopLeftRadius: radius.xxl, borderTopRightRadius: radius.xxl,
-            padding: spacing.xl, paddingBottom: spacing.xxl, gap: spacing.base,
-          }}
-        >
-          <View
-            style={{
-              width: 48, height: 48, borderRadius: radius.md,
-              backgroundColor: colors.emberSoft, alignItems: 'center', justifyContent: 'center',
-            }}
-          >
-            <Icon name="phone" size={26} color={colors.ember} />
-          </View>
-          <AppText variant="h2">{t('phonePrompt.title')}</AppText>
-          <AppText variant="body" color={colors.ink2}>
-            {t('phonePrompt.body')}
-          </AppText>
-          <TextField
-            label={t('phonePrompt.phoneLabel')}
-            icon="phone"
-            autoFocus
-            keyboardType="phone-pad"
-            value={value}
-            onChangeText={onChange}
-            placeholder="+22245XXXXXXX"
-            autoCapitalize="none"
-            autoCorrect={false}
-            textContentType="telephoneNumber"
-          />
-          <Button title={t('common.saveAndContinue')} iconRight="arrow" busy={busy} onPress={onSave} />
-          <Pressable onPress={onCancel} hitSlop={8} style={{ alignItems: 'center', paddingVertical: spacing.sm }}>
-            <AppText variant="caption" color={colors.ink2}>{t('common.cancel')}</AppText>
-          </Pressable>
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
+        <Icon name="phone" size={26} color={colors.ember} />
+      </View>
+      <TextField
+        label={t('phonePrompt.phoneLabel')}
+        icon="phone"
+        autoFocus
+        keyboardType="phone-pad"
+        value={value}
+        onChangeText={onChange}
+        placeholder="+22245XXXXXXX"
+        autoCapitalize="none"
+        autoCorrect={false}
+        textContentType="telephoneNumber"
+      />
+      <Button title={t('common.saveAndContinue')} iconRight="arrow" busy={busy} onPress={onSave} />
+      <Pressable onPress={onCancel} hitSlop={8} style={{ alignItems: 'center', paddingVertical: spacing.sm }}>
+        <AppText variant="caption" color={colors.ink2}>{t('common.cancel')}</AppText>
+      </Pressable>
+    </Sheet>
   );
 }
 

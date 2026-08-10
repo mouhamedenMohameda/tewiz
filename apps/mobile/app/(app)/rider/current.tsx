@@ -22,13 +22,13 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert, Animated, KeyboardAvoidingView, Linking, Modal, Platform,
+  ActivityIndicator, Alert, Animated, Linking,
   Pressable, ScrollView, TextInput, useWindowDimensions, View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText, Button, Icon, PressableScale, Screen, type IconName } from '@/components/ui';
+import { AppText, Button, Icon, PressableScale, Screen, Sheet, type IconName } from '@/components/ui';
 import { colors, radius, shadow, spacing, fonts } from '@/theme';
 import { currentLanguage, isRTL } from '@/lib/i18n';
 import { api } from '@/lib/api';
@@ -944,16 +944,25 @@ function RatingSheet({
   }
 
   return (
-    <Modal visible={visible} transparent animationType="fade">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1, backgroundColor: 'rgba(42, 26, 14, 0.6)', justifyContent: 'flex-end' }}
-      >
-        <View style={{
-          backgroundColor: colors.canvas,
-          borderTopLeftRadius: radius.xxl, borderTopRightRadius: radius.xxl,
-          padding: spacing.xl, paddingBottom: insets.bottom + spacing.xl, gap: spacing.base,
-        }}>
+    <Sheet
+      visible={visible}
+      // Dragging it away or tapping outside means the same thing the buttons
+      // already offer — "later". Rating is a favour the user is doing us; a
+      // prompt with no way out would be the wrong way to ask for it.
+      onClose={onDone}
+      dismissible={!submitting}
+      title={askFavorite
+        ? t('rider.current.rating.favoriteTitle', {
+            name: captain.fullName ?? t('rider.current.rating.favoriteFallbackName'),
+          })
+        : t('rider.current.rating.question')}
+      subtitle={askFavorite
+        ? t('rider.current.rating.favoriteHint')
+        : t('rider.current.rating.withDriver', {
+            name: captain.fullName ?? t('rider.current.rating.withDriverFallback'),
+          })}
+      contentStyle={{ gap: spacing.base, paddingBottom: spacing.sm }}
+    >
           {askFavorite ? (
             <>
               <View style={{
@@ -962,14 +971,6 @@ function RatingSheet({
               }}>
                 <Icon name="drivers" size={28} color={colors.ember} />
               </View>
-              <AppText variant="h2">
-                {t('rider.current.rating.favoriteTitle', {
-                  name: captain.fullName ?? t('rider.current.rating.favoriteFallbackName'),
-                })}
-              </AppText>
-              <AppText variant="body" color={colors.ink2}>
-                {t('rider.current.rating.favoriteHint')}
-              </AppText>
               <Button
                 title={t('rider.current.rating.favoriteAdd')}
                 icon="drivers"
@@ -988,13 +989,6 @@ function RatingSheet({
             </>
           ) : (
             <>
-              <AppText variant="h2">{t('rider.current.rating.question')}</AppText>
-              <AppText variant="body" color={colors.ink2}>
-                {t('rider.current.rating.withDriver', {
-                  name: captain.fullName ?? t('rider.current.rating.withDriverFallback'),
-                })}
-              </AppText>
-
               <View style={{
                 flexDirection: 'row', justifyContent: 'center',
                 gap: spacing.sm, paddingVertical: spacing.sm,
@@ -1043,8 +1037,6 @@ function RatingSheet({
               </Pressable>
             </>
           )}
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
+    </Sheet>
   );
 }

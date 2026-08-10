@@ -1,11 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator, Alert, Modal, Pressable, TextInput, View,
-} from 'react-native';
+import { Alert, Pressable, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { PlainText as Text } from '@/components/ui';
-import { colors, fonts, radius, statusTone } from '@/theme';
+import { Button, PlainText as Text, PressableScale, Sheet } from '@/components/ui';
+import { colors, fonts, radius, spacing, statusTone } from '@/theme';
 import { currentLanguage, isRTL } from '@/lib/i18n';
 import { getMapbox } from '@/lib/mapbox';
 import { api } from '@/lib/api';
@@ -238,85 +235,67 @@ function ReportSheet({
   }
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={{
-        flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.6)',
-        justifyContent: 'flex-end',
-      }}>
-        <SafeAreaView edges={['bottom']} style={{ backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24 }}>
-          <View style={{ padding: 20, gap: 14 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text style={{ fontSize: 17, fontWeight: '700', color: colors.ink }}>
-                {t('roadReports.sheetTitle')}
-              </Text>
-              <Pressable onPress={onClose}>
-                <Text style={{ color: colors.ink2, fontSize: 18 }}>✕</Text>
-              </Pressable>
-            </View>
-            <Text style={{ fontSize: 12, color: colors.ink2 }}>
-              {t('roadReports.sheetHint')}
-            </Text>
-
-            <View style={{ flexDirection: wrapRow, flexWrap: 'wrap', gap: 8 }}>
-              {(Object.keys(REASON_META) as RoadReason[]).map((r) => {
-                const m = REASON_META[r];
-                const active = reason === r;
-                return (
-                  <Pressable
-                    key={r}
-                    onPress={() => setReason(r)}
-                    style={({ pressed }) => ({
-                      flexDirection: 'row', alignItems: 'center', gap: 6,
-                      paddingHorizontal: 12, paddingVertical: 8, borderRadius: radius.pill,
-                      backgroundColor: active ? m.color : (pressed ? colors.line : colors.line),
-                    })}
-                  >
-                    <Text style={{ fontSize: 13 }}>{m.emoji}</Text>
-                    <Text style={{
-                      fontSize: 13, fontWeight: '600',
-                      color: active ? '#fff' : colors.ink,
-                    }}>
-                      {t(`roadReports.reasons.${r}` as const)}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            <TextInput
-              value={note}
-              onChangeText={setNote}
-              placeholder={t('roadReports.notePlaceholder')}
-              placeholderTextColor={colors.faint}
-              multiline
-              maxLength={500}
+    <Sheet
+      visible={visible}
+      onClose={onClose}
+      title={t('roadReports.sheetTitle')}
+      subtitle={t('roadReports.sheetHint')}
+      dismissible={!submitting}
+      contentStyle={{ gap: spacing.md }}
+    >
+      {/* The hand-rolled ✕ is gone: the sheet already offers three ways out
+          (drag it down, tap outside, Android back), all of them bigger targets
+          than a 18pt glyph in a corner. */}
+      <View style={{ flexDirection: wrapRow, flexWrap: 'wrap', gap: spacing.sm }}>
+        {(Object.keys(REASON_META) as RoadReason[]).map((r) => {
+          const m = REASON_META[r];
+          const active = reason === r;
+          return (
+            <PressableScale
+              key={r}
+              onPress={() => setReason(r)}
+              scaleTo={0.96}
               style={{
-                borderWidth: 1, borderColor: colors.lineStrong, borderRadius: radius.sm,
-                paddingHorizontal: 12, paddingVertical: 10, fontSize: 13,
-                color: colors.ink, backgroundColor: colors.canvas,
-                minHeight: 60, textAlignVertical: 'top',
-                fontFamily: ar ? fonts.arabic.regular : undefined,
+                flexDirection: 'row', alignItems: 'center', gap: 6,
+                paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
+                borderRadius: radius.pill,
+                backgroundColor: active ? m.color : colors.line,
               }}
-            />
-
-            <Pressable
-              disabled={submitting || !reason}
-              onPress={submit}
-              style={({ pressed }) => ({
-                backgroundColor: pressed ? colors.emberDeep : colors.ember,
-                opacity: submitting || !reason ? 0.5 : 1,
-                paddingVertical: 16, borderRadius: radius.lg,
-                flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-              })}
             >
-              {submitting && <ActivityIndicator color="#fff" />}
-              <Text style={{ color: colors.white, fontSize: 15, fontWeight: '700' }}>
-                {t('roadReports.submit')}
+              <Text style={{ fontSize: 13 }}>{m.emoji}</Text>
+              <Text style={{
+                fontSize: 13, fontWeight: '600',
+                color: active ? colors.white : colors.ink,
+              }}>
+                {t(`roadReports.reasons.${r}` as const)}
               </Text>
-            </Pressable>
-          </View>
-        </SafeAreaView>
+            </PressableScale>
+          );
+        })}
       </View>
-    </Modal>
+
+      <TextInput
+        value={note}
+        onChangeText={setNote}
+        placeholder={t('roadReports.notePlaceholder')}
+        placeholderTextColor={colors.faint}
+        multiline
+        maxLength={500}
+        style={{
+          borderWidth: 1, borderColor: colors.lineStrong, borderRadius: radius.sm,
+          paddingHorizontal: spacing.md, paddingVertical: spacing.sm, fontSize: 13,
+          color: colors.ink, backgroundColor: colors.canvas,
+          minHeight: 60, textAlignVertical: 'top',
+          fontFamily: ar ? fonts.arabic.regular : undefined,
+        }}
+      />
+
+      <Button
+        title={t('roadReports.submit')}
+        busy={submitting}
+        disabled={submitting || !reason}
+        onPress={submit}
+      />
+    </Sheet>
   );
 }

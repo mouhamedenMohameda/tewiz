@@ -9,11 +9,11 @@
  */
 
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
-import { AppText, Button, Icon } from '@/components/ui';
+import { AppText, Button, Icon, PressableScale, Sheet } from '@/components/ui';
 import { uploadCarPhoto } from '@/lib/carRental';
 import { colors, fonts, radius, spacing, statusTone } from '@/theme';
 import { currentLanguage, isRTL } from '@/lib/i18n';
@@ -34,36 +34,41 @@ export function RatingModal({ visible, name, busy, onSubmit, onClose }: {
   }, [visible]);
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={{ flex: 1, backgroundColor: 'rgba(15,23,42,0.55)', justifyContent: 'center', padding: spacing.lg }}>
-        <View style={{ backgroundColor: colors.canvas, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.base }}>
-          <AppText variant="h2">{t('carRental.rate.title')}</AppText>
-          <AppText variant="body" color={colors.ink2}>{t('carRental.rate.prompt', { name })}</AppText>
-          <View style={{ flexDirection: 'row', gap: spacing.sm, justifyContent: 'center', paddingVertical: spacing.sm }}>
-            {[1, 2, 3, 4, 5].map((n) => (
-              <Pressable key={n} onPress={() => setStars(n)} hitSlop={6}>
-                <Icon name="star" size={38} color={n <= stars ? colors.warning : colors.sunken} />
-              </Pressable>
-            ))}
-          </View>
-          <TextInput
-            value={comment}
-            onChangeText={setComment}
-            placeholder={t('carRental.rate.commentPlaceholder')}
-            placeholderTextColor={colors.muted}
-            multiline
-            style={{
-              borderWidth: 1, borderColor: colors.sunken, borderRadius: radius.md,
-              paddingHorizontal: spacing.base, paddingVertical: spacing.md,
-              minHeight: 64, textAlignVertical: 'top', color: colors.ink,
-              fontFamily: isRTL(currentLanguage()) ? fonts.arabic.regular : undefined,
-            }}
-          />
-          <Button title={t('carRental.rate.submitBtn')} icon="check" busy={busy} onPress={() => onSubmit(stars, comment)} />
-          <Button title={t('carRental.rate.cancelBtn')} variant="ghost" onPress={onClose} />
-        </View>
+    <Sheet
+      visible={visible}
+      onClose={onClose}
+      title={t('carRental.rate.title')}
+      subtitle={t('carRental.rate.prompt', { name })}
+      dismissible={!busy}
+      contentStyle={{ gap: spacing.base }}
+    >
+      {/* Was a centred dialog. It carries a keyboard, and on a phone a form
+          floating in the middle of the screen puts its input under the
+          keyboard and its controls out of thumb reach. Same content, anchored
+          where the hand is. */}
+      <View style={{ flexDirection: 'row', gap: spacing.sm, justifyContent: 'center', paddingVertical: spacing.sm }}>
+        {[1, 2, 3, 4, 5].map((n) => (
+          <PressableScale key={n} onPress={() => setStars(n)} hitSlop={6} scaleTo={0.85} haptic>
+            <Icon name="star" size={38} color={n <= stars ? colors.warning : colors.sunken} />
+          </PressableScale>
+        ))}
       </View>
-    </Modal>
+      <TextInput
+        value={comment}
+        onChangeText={setComment}
+        placeholder={t('carRental.rate.commentPlaceholder')}
+        placeholderTextColor={colors.muted}
+        multiline
+        style={{
+          borderWidth: 1, borderColor: colors.sunken, borderRadius: radius.md,
+          paddingHorizontal: spacing.base, paddingVertical: spacing.md,
+          minHeight: 64, textAlignVertical: 'top', color: colors.ink,
+          fontFamily: isRTL(currentLanguage()) ? fonts.arabic.regular : undefined,
+        }}
+      />
+      <Button title={t('carRental.rate.submitBtn')} icon="check" busy={busy} onPress={() => onSubmit(stars, comment)} />
+      <Button title={t('carRental.rate.cancelBtn')} variant="ghost" onPress={onClose} />
+    </Sheet>
   );
 }
 
@@ -108,58 +113,60 @@ export function BookingActionModal({
   const canSubmit = !uploading && (!requireOtp || otp.trim().length >= 3);
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={{ flex: 1, backgroundColor: 'rgba(15,23,42,0.55)', justifyContent: 'center', padding: spacing.lg }}>
-        <View style={{ backgroundColor: colors.canvas, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.base }}>
-          <AppText variant="h2">{title}</AppText>
-          <AppText variant="body" color={colors.ink2}>{hint}</AppText>
+    <Sheet
+      visible={visible}
+      onClose={onClose}
+      title={title}
+      subtitle={hint}
+      dismissible={!busy && !uploading}
+      contentStyle={{ gap: spacing.base }}
+    >
+      {requireOtp && (
+        <TextInput
+          value={otp}
+          onChangeText={setOtp}
+          keyboardType="number-pad"
+          maxLength={6}
+          placeholder={t('carRental.otp.placeholder')}
+          placeholderTextColor={colors.muted}
+          style={{
+            borderWidth: 1, borderColor: colors.sunken, borderRadius: radius.md,
+            paddingHorizontal: spacing.base, paddingVertical: spacing.md,
+            // Arabic placeholder is cursive: letterSpacing breaks its
+            // shaping, so only space out the typed digits.
+            fontSize: 26, letterSpacing: isRTL(currentLanguage()) && !otp ? 0 : 4,
+            textAlign: 'center', color: colors.ink,
+            fontFamily: isRTL(currentLanguage()) ? fonts.arabic.regular : undefined,
+          }}
+        />
+      )}
 
-          {requireOtp && (
-            <TextInput
-              value={otp}
-              onChangeText={setOtp}
-              keyboardType="number-pad"
-              maxLength={6}
-              placeholder={t('carRental.otp.placeholder')}
-              placeholderTextColor={colors.muted}
-              style={{
-                borderWidth: 1, borderColor: colors.sunken, borderRadius: radius.md,
-                paddingHorizontal: spacing.base, paddingVertical: spacing.md,
-                // Arabic placeholder is cursive: letterSpacing breaks its
-                // shaping, so only space out the typed digits.
-                fontSize: 26, letterSpacing: isRTL(currentLanguage()) && !otp ? 0 : 4,
-                textAlign: 'center', color: colors.ink,
-                fontFamily: isRTL(currentLanguage()) ? fonts.arabic.regular : undefined,
-              }}
-            />
-          )}
-
-          {withPhotos && (
-            <View style={{ gap: spacing.sm }}>
-              <AppText variant="caption" color={colors.muted}>{t('carRental.photos.label')}</AppText>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm }}>
-                {photos.map((p) => (
-                  <View key={p}>
-                    <Image source={{ uri: p }} style={{ width: 92, height: 74, borderRadius: radius.md }} />
-                    <Pressable onPress={() => setPhotos((prev) => prev.filter((x) => x !== p))}
-                      style={{ position: 'absolute', top: 3, right: 3, backgroundColor: '#000a', borderRadius: radius.sm, padding: 2 }}>
-                      <Icon name="close" size={13} color="#fff" />
-                    </Pressable>
-                  </View>
-                ))}
-                <Pressable onPress={addPhoto} disabled={uploading}
-                  style={{ width: 92, height: 74, borderRadius: radius.md, borderWidth: 2, borderColor: colors.line, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' }}>
-                  {uploading ? <ActivityIndicator color={colors.ember} /> : <Icon name="sparkle" size={20} color={colors.muted} />}
+      {withPhotos && (
+        <View style={{ gap: spacing.sm }}>
+          <AppText variant="caption" color={colors.muted}>{t('carRental.photos.label')}</AppText>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm }}>
+            {photos.map((p) => (
+              <View key={p}>
+                <Image source={{ uri: p }} style={{ width: 92, height: 74, borderRadius: radius.md }} />
+                <Pressable onPress={() => setPhotos((prev) => prev.filter((x) => x !== p))}
+                  // Neutral rather than the warm palette: this badge sits on
+                  // arbitrary user photos, where contrast beats brand.
+                  style={{ position: 'absolute', top: 3, right: 3, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: radius.sm, padding: 2 }}>
+                  <Icon name="close" size={13} color={colors.white} />
                 </Pressable>
-              </ScrollView>
-            </View>
-          )}
-
-          <Button title={submitLabel} icon="check" busy={busy} disabled={!canSubmit} onPress={() => onSubmit(otp.trim(), photos)} />
-          <Button title={t('carRental.otp.cancelBtn')} variant="ghost" onPress={onClose} />
+              </View>
+            ))}
+            <Pressable onPress={addPhoto} disabled={uploading}
+              style={{ width: 92, height: 74, borderRadius: radius.md, borderWidth: 2, borderColor: colors.line, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' }}>
+              {uploading ? <ActivityIndicator color={colors.ember} /> : <Icon name="sparkle" size={20} color={colors.muted} />}
+            </Pressable>
+          </ScrollView>
         </View>
-      </View>
-    </Modal>
+      )}
+
+      <Button title={submitLabel} icon="check" busy={busy} disabled={!canSubmit} onPress={() => onSubmit(otp.trim(), photos)} />
+      <Button title={t('carRental.otp.cancelBtn')} variant="ghost" onPress={onClose} />
+    </Sheet>
   );
 }
 

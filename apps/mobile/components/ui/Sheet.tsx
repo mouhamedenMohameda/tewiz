@@ -31,8 +31,10 @@
 import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
+  KeyboardAvoidingView,
   Modal,
   PanResponder,
+  Platform,
   Pressable,
   useWindowDimensions,
   View,
@@ -70,6 +72,13 @@ export interface SheetProps {
   dismissible?: boolean;
   /** Fraction of the screen the sheet may grow to. */
   maxHeightRatio?: number;
+  /**
+   * Lift the sheet above the keyboard. On by default — a sheet is anchored to
+   * the bottom edge, which is exactly where the keyboard appears, so any sheet
+   * containing an input needs this. Turn it off only for a sheet that has no
+   * text entry and whose height you want held perfectly still.
+   */
+  avoidKeyboard?: boolean;
   contentStyle?: StyleProp<ViewStyle>;
 }
 
@@ -81,6 +90,7 @@ export function Sheet({
   subtitle,
   dismissible = true,
   maxHeightRatio = 0.78,
+  avoidKeyboard = true,
   contentStyle,
 }: SheetProps) {
   const { height: screenHeight } = useWindowDimensions();
@@ -228,7 +238,10 @@ export function Sheet({
       // leaving the prop off, which RN treats as "no handler at all".
       onRequestClose={dismissible ? onClose : () => {}}
     >
-      <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+      <View style={{ flex: 1 }}>
+        {/* The scrim sits OUTSIDE the keyboard-avoiding view on purpose: it has
+            to stay full-bleed. Inside, the avoider's padding would inset it and
+            leave a bright strip along the bottom edge as the keyboard opens. */}
         <Animated.View
           style={{
             position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
@@ -246,6 +259,12 @@ export function Sheet({
           ) : null}
         </Animated.View>
 
+        <KeyboardAvoidingView
+          // Matches what the screens that hand-rolled this were already doing.
+          behavior={avoidKeyboard ? (Platform.OS === 'ios' ? 'padding' : 'height') : undefined}
+          style={{ flex: 1, justifyContent: 'flex-end' }}
+          pointerEvents="box-none"
+        >
         <Animated.View
           onLayout={(e) => { sheetHeight.current = e.nativeEvent.layout.height; }}
           style={[
@@ -305,6 +324,7 @@ export function Sheet({
             {children}
           </View>
         </Animated.View>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );
