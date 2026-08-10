@@ -113,7 +113,7 @@ export default function RestaurantsScreen() {
         data={filtered}
         keyExtractor={(r) => r.id}
         renderItem={({ item, index }) => (
-          <FadeInView delay={Math.min(60 + index * 30, 400)}>
+          <FadeInView delay={Math.min(index * 25, 150)}>
             <RestaurantCard
               restaurant={item}
               onPress={() => router.push(`/(app)/rider/restaurant/${item.id}`)}
@@ -208,12 +208,12 @@ function HeroBanner({ count }: { count: number | null }) {
         }}>
           <Icon name="restaurant" size={22} color={colors.white} />
         </View>
-        <AppText variant="overline" color="#FFF1DD">{t('rider.restaurants.heroOverline')}</AppText>
+        <AppText variant="overline" color={colors.onEspresso}>{t('rider.restaurants.heroOverline')}</AppText>
       </View>
       <AppText variant="h1" color={colors.white} style={{ marginTop: spacing.md, maxWidth: 260 }}>
         {t('rider.restaurants.heroTitle')}
       </AppText>
-      <AppText variant="body" color="#FFF1DD" style={{ marginTop: spacing.xs, maxWidth: 280 }}>
+      <AppText variant="body" color={colors.onEspresso} style={{ marginTop: spacing.xs, maxWidth: 280 }}>
         {count === null
           ? t('rider.restaurants.heroLoading')
           : t('rider.restaurants.heroCount', { count })}
@@ -253,7 +253,7 @@ function CategoryChip({
         <AppText variant="label" color={fg}>{label}</AppText>
         <View style={{
           minWidth: 18, paddingHorizontal: 5, paddingVertical: 1,
-          borderRadius: 9,
+          borderRadius: radius.sm,
           backgroundColor: active && !disabled ? 'rgba(255,255,255,0.25)' : colors.surfaceAlt,
         }}>
           <AppText

@@ -11,7 +11,7 @@ import {
   RoadReportButton, RoadReportMarkers, useRoadReports,
 } from '@/components/RoadReports';
 import { AppText, Icon } from '@/components/ui';
-import { colors, radius, shadow, spacing } from '@/theme';
+import { colors, heat, radius, shadow, spacing } from '@/theme';
 
 interface Cell {
   h3Index: string;
@@ -26,9 +26,9 @@ const FALLBACK_CENTER: [number, number] = [-15.9785, 18.0853];
 const FALLBACK_ZOOM = 11;
 
 function accentFor(score: number): string {
-  if (score >= 0.66) return '#B41812';
-  if (score >= 0.33) return '#E84620';
-  return '#FFA532';
+  if (score >= 0.66) return heat.high;
+  if (score >= 0.33) return heat.mid;
+  return heat.low;
 }
 
 interface Cluster {
@@ -233,7 +233,7 @@ export default function HeatmapScreen() {
               <View style={{
                 width: 30, height: 30, borderRadius: 15,
                 backgroundColor: accentFor(c.score),
-                borderWidth: 2, borderColor: '#fff',
+                borderWidth: 2, borderColor: colors.white,
                 alignItems: 'center', justifyContent: 'center',
               }}>
                 <AppText variant="label" color={colors.white}>{String(i + 1)}</AppText>
@@ -280,9 +280,11 @@ export default function HeatmapScreen() {
             backgroundColor: 'rgba(255, 252, 246, 0.96)',
             borderRadius: radius.md, padding: spacing.sm + 2, gap: 6, ...shadow.card,
           }}>
-            <LegendRow color="#B41812" label={t('captain.heatmap.legendHigh')} />
-            <LegendRow color="#E84620" label={t('captain.heatmap.legendMid')} />
-            <LegendRow color="#FFA532" label={t('captain.heatmap.legendLow')} />
+            {/* Same source as accentFor() — the legend and the map can no
+                longer drift apart the way two copies of three hex values do. */}
+            <LegendRow color={heat.high} label={t('captain.heatmap.legendHigh')} />
+            <LegendRow color={heat.mid} label={t('captain.heatmap.legendMid')} />
+            <LegendRow color={heat.low} label={t('captain.heatmap.legendLow')} />
           </View>
         ) : null}
       </View>

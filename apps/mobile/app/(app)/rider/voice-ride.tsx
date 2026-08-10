@@ -269,7 +269,7 @@ function RecordView({
 
         <Pressable onPress={onToggle} style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}>
           <LinearGradient
-            colors={isRecording ? ['#E5604A', '#D6452F'] : gradients.ember}
+            colors={isRecording ? gradients.recording : gradients.ember}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={{
@@ -290,7 +290,7 @@ function RecordView({
       </AppText>
 
       {error ? (
-        <AppText variant="caption" color="#F4A99A" align="center" style={{ marginTop: spacing.base }}>
+        <AppText variant="caption" color={colors.onEspressoDanger} align="center" style={{ marginTop: spacing.base }}>
           {error}
         </AppText>
       ) : null}

@@ -157,7 +157,10 @@ export default function RiderHome() {
     }
   }, [user?.role]);
 
-  useEffect(() => { loadApp(); }, [loadApp]);
+  // `useFocusEffect` ALREADY fires on first focus, which for this screen is its
+  // mount. Pairing it with a `useEffect(loadApp)` — as this did — meant every
+  // arrival on the home screen fired both endpoints twice: four requests where
+  // two would do, on a network where that is measured in seconds.
   useFocusEffect(useCallback(() => { loadApp(); }, [loadApp]));
 
   const blocked = !!current;
@@ -222,7 +225,7 @@ export default function RiderHome() {
       ) : null}
 
       {/* Hero — order a ride */}
-      <FadeInView delay={60} style={{ marginTop: spacing.lg }}>
+      <FadeInView delay={30} style={{ marginTop: spacing.lg }}>
         <Hero
           blocked={blocked}
           onVoice={() => go('voice')}
@@ -232,7 +235,7 @@ export default function RiderHome() {
 
       {/* Spotlight — the services we push hardest get a full-size featured card. */}
       {spotlightModules.length > 0 ? (
-        <FadeInView delay={140}>
+        <FadeInView delay={60}>
           <AppText variant="overline" color={colors.muted} style={{ marginTop: spacing.xxl, marginBottom: spacing.md }}>
             {t('rider.home.discover')}
           </AppText>
@@ -254,7 +257,7 @@ export default function RiderHome() {
 
       {/* Secondary services — grouped behind category tabs instead of one flat grid. */}
       {categories.length > 0 && currentCategory ? (
-        <FadeInView delay={190} style={{ marginTop: spacing.xxl }}>
+        <FadeInView delay={90} style={{ marginTop: spacing.xxl }}>
           <CategoryTabs
             categories={categories}
             active={currentCategory.key}
@@ -277,14 +280,14 @@ export default function RiderHome() {
 
       {/* Personal shortcuts — bundled into one low-emphasis card, not services. */}
       {utilityModules.length > 0 ? (
-        <FadeInView delay={230} style={{ marginTop: spacing.xxl }}>
+        <FadeInView delay={120} style={{ marginTop: spacing.xxl }}>
           <QuickAccessBundle modules={utilityModules} onPress={(route) => router.push(route as any)} />
         </FadeInView>
       ) : null}
 
       {/* Become a captain — riders only */}
       {user?.role === 'rider' ? (
-        <FadeInView delay={270} style={{ marginTop: spacing.xxl }}>
+        <FadeInView delay={150} style={{ marginTop: spacing.xxl }}>
           <BecomeCaptainCard
             loading={loadingApp}
             application={application}
@@ -406,7 +409,7 @@ function Hero({ blocked, onVoice, onMap }: { blocked: boolean; onVoice: () => vo
       end={{ x: 1, y: 1 }}
       style={{ borderRadius: radius.xxl, padding: spacing.xl, ...shadow.ember }}
     >
-      <AppText variant="overline" color="#FFF1DD">{t('rider.hero.overline')}</AppText>
+      <AppText variant="overline" color={colors.onEspresso}>{t('rider.hero.overline')}</AppText>
       {/* alignSelf pins the width-capped title to the reading edge (logical:
           left in LTR, right in RTL) — without it the 240pt box floats. */}
       <AppText

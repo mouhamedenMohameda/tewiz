@@ -1,6 +1,7 @@
-import { Modal, Pressable, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { PlainText as Text } from '@/components/ui';
+import { Button, PlainText as Text, PressableScale, Sheet } from '@/components/ui';
+import { colors, radius, spacing, type as typo } from '@/theme';
 
 export interface RideCancelReasonOption {
   key: string;
@@ -27,63 +28,49 @@ export function RideCancelReasonSheet({
   onSelect,
 }: RideCancelReasonSheetProps) {
   const { t } = useTranslation();
+
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={{
-        flex: 1,
-        backgroundColor: 'rgba(15,23,42,0.55)',
-        justifyContent: 'flex-end',
-      }}>
-        <Pressable style={{ flex: 1 }} onPress={onClose} />
-        <View style={{
-          backgroundColor: '#fff',
-          borderTopLeftRadius: 24,
-          borderTopRightRadius: 24,
-          paddingHorizontal: 20,
-          paddingTop: 18,
-          paddingBottom: 28,
-          maxHeight: '72%',
-        }}>
-          <Text style={{ fontSize: 18, fontWeight: '800', color: '#0f172a' }}>{title}</Text>
-          <Text style={{ fontSize: 13, color: '#64748b', marginTop: 6 }}>{body}</Text>
-
-          <ScrollView style={{ marginTop: 16 }} contentContainerStyle={{ gap: 10 }}>
-            {options.map((option) => (
-              <Pressable
-                key={option.key}
-                disabled={busy}
-                onPress={() => onSelect(option.key)}
-                style={({ pressed }) => ({
-                  borderRadius: 14,
-                  borderWidth: 1,
-                  borderColor: '#e2e8f0',
-                  backgroundColor: pressed ? '#f8fafc' : '#fff',
-                  paddingHorizontal: 14,
-                  paddingVertical: 14,
-                  opacity: busy ? 0.5 : 1,
-                })}
-              >
-                <Text style={{ fontSize: 15, fontWeight: '600', color: '#0f172a' }}>{option.label}</Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-
-          <Pressable
+    <Sheet
+      visible={visible}
+      onClose={onClose}
+      title={title}
+      subtitle={body}
+      // Cancelling a ride is consequential, but it is not irreversible and the
+      // user can always ask again — so it stays dismissible. Trapping people in
+      // a sheet to make them feel the weight of a choice is a tax, not a
+      // safeguard.
+      dismissible={!busy}
+      maxHeightRatio={0.72}
+    >
+      <ScrollView
+        style={{ flexShrink: 1 }}
+        contentContainerStyle={{ gap: spacing.sm }}
+        showsVerticalScrollIndicator={false}
+      >
+        {options.map((option) => (
+          <PressableScale
+            key={option.key}
             disabled={busy}
-            onPress={onClose}
-            style={({ pressed }) => ({
-              marginTop: 16,
-              alignItems: 'center',
-              paddingVertical: 12,
-              borderRadius: 12,
-              backgroundColor: pressed ? '#e2e8f0' : '#f1f5f9',
+            onPress={() => onSelect(option.key)}
+            scaleTo={0.98}
+            style={{
+              borderRadius: radius.md,
+              borderWidth: 1,
+              borderColor: colors.line,
+              backgroundColor: colors.surface,
+              paddingHorizontal: spacing.base,
+              paddingVertical: spacing.base,
               opacity: busy ? 0.5 : 1,
-            })}
+            }}
           >
-            <Text style={{ fontSize: 14, fontWeight: '700', color: '#334155' }}>{t('common.close')}</Text>
-          </Pressable>
-        </View>
+            <Text style={{ ...typo.bodyStrong, color: colors.ink }}>{option.label}</Text>
+          </PressableScale>
+        ))}
+      </ScrollView>
+
+      <View style={{ marginTop: spacing.base }}>
+        <Button title={t('common.close')} variant="secondary" onPress={onClose} disabled={busy} />
       </View>
-    </Modal>
+    </Sheet>
   );
 }

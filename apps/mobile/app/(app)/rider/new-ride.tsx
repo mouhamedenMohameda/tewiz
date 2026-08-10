@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { PlainText as Text } from '@/components/ui';
-import { fonts } from '@/theme';
+import { colors, fonts, radius, statusTone } from '@/theme';
 import { currentLanguage, isRTL } from '@/lib/i18n';
 import { api } from '@/lib/api';
 import { formatMru } from '@/lib/format';
@@ -354,7 +354,7 @@ export default function NewRideScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.surface }} edges={['top']}>
       {/* Pinned header — stays put while the form + map scroll below it. */}
       <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginStart: -8 }}>
@@ -364,14 +364,14 @@ export default function NewRideScreen() {
             style={({ pressed }) => ({
               width: 40, height: 40, borderRadius: 20,
               alignItems: 'center', justifyContent: 'center',
-              backgroundColor: pressed ? '#f1f5f9' : 'transparent',
+              backgroundColor: pressed ? colors.line : 'transparent',
             })}
             accessibilityRole="button"
             accessibilityLabel={t('common.back')}
           >
-            <Text style={{ color: '#0f172a', fontSize: 30, fontWeight: '600', lineHeight: 32, marginTop: -2 }}>‹</Text>
+            <Text style={{ color: colors.ink, fontSize: 32, fontWeight: '600', lineHeight: 32, marginTop: -2 }}>‹</Text>
           </Pressable>
-          <Text style={{ fontSize: 20, fontWeight: '700', color: '#0f172a' }}>
+          <Text style={{ fontSize: 21, fontWeight: '700', color: colors.ink }}>
             {t('rider.newRide.title')}
           </Text>
         </View>
@@ -387,7 +387,7 @@ export default function NewRideScreen() {
       >
         <View style={{ paddingHorizontal: 16, gap: 8 }}>
           <Field
-            color="#2d4fd6"
+            color={colors.success}
             label={t('rider.newRide.pickupLabel')}
             value={pickup?.label ?? null}
             onPress={() => setActive('pickup')}
@@ -398,7 +398,7 @@ export default function NewRideScreen() {
             <OpenFareCard quote={openQuote} />
           ) : (
             <Field
-              color="#dc2626"
+              color={colors.danger}
               label={t('rider.newRide.dropoffLabel')}
               value={dropoff?.label ?? null}
               onPress={() => setActive('dropoff')}
@@ -417,7 +417,7 @@ export default function NewRideScreen() {
 
           {kind === 'other' ? (
             <View style={{ gap: 6, marginTop: 4 }}>
-              <Text style={{ fontSize: 11, color: '#64748b' }}>
+              <Text style={{ fontSize: 11, color: colors.ink2 }}>
                 {t('rider.newRide.thirdPartyHint')}
               </Text>
               <TwoCol
@@ -440,7 +440,7 @@ export default function NewRideScreen() {
 
           {kind === 'colis' ? (
             <View style={{ gap: 6, marginTop: 4 }}>
-              <Text style={{ fontSize: 11, color: '#64748b' }}>
+              <Text style={{ fontSize: 11, color: colors.ink2 }}>
                 {t('rider.newRide.colisHint')}
               </Text>
               <TwoCol
@@ -479,7 +479,7 @@ export default function NewRideScreen() {
                 <M.LineLayer
                   id="ride-route-line"
                   style={{
-                    lineColor: '#2563eb',
+                    lineColor: colors.ember,
                     lineWidth: 4,
                     lineOpacity: 0.75,
                   }}
@@ -491,7 +491,7 @@ export default function NewRideScreen() {
                 id="pickup"
                 coordinate={[pickup.lng, pickup.lat]}
               >
-                <View style={pinStyle('#2d4fd6')} />
+                <View style={pinStyle(colors.success)} />
               </M.PointAnnotation>
             ) : null}
             {M && dropoff ? (
@@ -499,7 +499,7 @@ export default function NewRideScreen() {
                 id="dropoff"
                 coordinate={[dropoff.lng, dropoff.lat]}
               >
-                <View style={pinStyle('#dc2626')} />
+                <View style={pinStyle(colors.danger)} />
               </M.PointAnnotation>
             ) : null}
             <RoadReportMarkers reports={reports} />
@@ -508,9 +508,9 @@ export default function NewRideScreen() {
           {active ? (
             <View style={{
               position: 'absolute', top: 12, left: 12, right: 12,
-              backgroundColor: '#0f172a', borderRadius: 10, padding: 10,
+              backgroundColor: colors.ink, borderRadius: radius.sm, padding: 10,
             }}>
-              <Text style={{ color: '#fff', fontSize: 12, textAlign: 'center' }}>
+              <Text style={{ color: colors.white, fontSize: 12, textAlign: 'center' }}>
                 {active === 'pickup' ? t('rider.newRide.searchPickupTitle') : t('rider.newRide.searchDropoffTitle')}
               </Text>
             </View>
@@ -518,12 +518,12 @@ export default function NewRideScreen() {
         </View>
       </ScrollView>
 
-      <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: '#e2e8f0' }}>
+      <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: colors.line }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <Text style={{ fontSize: 13, color: '#64748b' }}>
+          <Text style={{ fontSize: 13, color: colors.ink2 }}>
             {isOpen ? t('rider.newRide.openFareLabel') : t('captain.rides.estimatedFare')}
           </Text>
-          <Text style={{ fontSize: 20, fontWeight: '700', color: '#0f172a' }}>
+          <Text style={{ fontSize: 21, fontWeight: '700', color: colors.ink }}>
             {isOpen
               ? t('rider.newRide.openFareMeter')
               : (estimating ? '…' : estimate ? formatMru(estimate.fareMru) : '—')}
@@ -531,17 +531,17 @@ export default function NewRideScreen() {
         </View>
         {!isOpen && estimate?.isIntercityPricing ? (
           <View style={{ marginBottom: 10 }}>
-            <Text style={{ fontSize: 12, color: '#64748b' }}>
+            <Text style={{ fontSize: 12, color: colors.ink2 }}>
               {t('rider.newRide.interCitySolo')}
             </Text>
           </View>
         ) : null}
         {!isOpen ? (
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <Text style={{ fontSize: 13, color: '#64748b' }}>
+            <Text style={{ fontSize: 13, color: colors.ink2 }}>
               {t('rider.newRide.distanceDuration')}
             </Text>
-            <Text style={{ fontSize: 13, fontWeight: '600', color: '#0f172a' }}>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.ink }}>
               {routeDistanceKm && routeDurationMin
                 ? `${routeDistanceKm} ${t('common.kmShort')} · ${routeDurationMin} min`
                 : '—'}
@@ -552,14 +552,14 @@ export default function NewRideScreen() {
           disabled={!pickup || (!isOpen && !dropoff) || submitting}
           onPress={confirm}
           style={({ pressed }) => ({
-            backgroundColor: pressed ? '#0a7a45' : '#10a35e',
+            backgroundColor: pressed ? colors.emberDeep : colors.ember,
             opacity: !pickup || (!isOpen && !dropoff) || submitting ? 0.4 : 1,
-            paddingVertical: 16, borderRadius: 12,
+            paddingVertical: 16, borderRadius: radius.lg,
             flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
           })}
         >
           {submitting && <ActivityIndicator color="#fff" />}
-          <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>
+          <Text style={{ color: colors.white, fontSize: 15, fontWeight: '700' }}>
             {isOpen ? t('rider.newRide.submitOpen') : t('rider.newRide.submit')}
           </Text>
         </Pressable>
@@ -586,20 +586,20 @@ function Field({
   return (
     <View style={{
       flexDirection: 'row', alignItems: 'center', gap: 10,
-      backgroundColor: '#f1f5f9', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 12,
+      backgroundColor: colors.line, borderRadius: radius.sm, paddingHorizontal: 12, paddingVertical: 12,
     }}>
       <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: color }} />
       <Pressable onPress={onPress} style={{ flex: 1 }}>
-        <Text style={{ fontSize: 11, color: '#64748b' }}>{label}</Text>
+        <Text style={{ fontSize: 11, color: colors.ink2 }}>{label}</Text>
         <Text style={{
-          fontSize: 14, color: value ? '#0f172a' : '#94a3b8', marginTop: 2,
+          fontSize: 13, color: value ? colors.ink : colors.faint, marginTop: 2,
         }} numberOfLines={1}>
           {value ?? t('common.tapToReplace')}
         </Text>
       </Pressable>
       {value ? (
         <Pressable onPress={onClear} hitSlop={10}>
-          <Text style={{ color: '#94a3b8', fontSize: 18 }}>✕</Text>
+          <Text style={{ color: colors.faint, fontSize: 18 }}>✕</Text>
         </Pressable>
       ) : null}
     </View>
@@ -646,17 +646,17 @@ function SearchSheet({
   const ar = isRTL(currentLanguage());
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.surface }}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={{ flex: 1 }}
         >
-          <View style={{ padding: 16, gap: 12, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' }}>
+          <View style={{ padding: 16, gap: 12, borderBottomWidth: 1, borderBottomColor: colors.line }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
               <Pressable onPress={onClose} hitSlop={12} style={{ paddingVertical: 8, paddingHorizontal: 4 }}>
-                <Text style={{ color: '#0f172a', fontSize: 16, fontWeight: '600' }}>{t('common.cancel')}</Text>
+                <Text style={{ color: colors.ink, fontSize: 15, fontWeight: '600' }}>{t('common.cancel')}</Text>
               </Pressable>
-              <Text style={{ fontSize: 17, fontWeight: '700', color: '#0f172a', flex: 1, textAlign: 'center' }}>
+              <Text style={{ fontSize: 17, fontWeight: '700', color: colors.ink, flex: 1, textAlign: 'center' }}>
                 {kind === 'pickup' ? t('rider.newRide.searchPickupTitle') : t('rider.newRide.searchDropoffTitle')}
               </Text>
               <View style={{ width: 56 }} />
@@ -666,11 +666,11 @@ function SearchSheet({
               value={q}
               onChangeText={setQ}
               placeholder={t('rider.newRide.searchPlaceholder')}
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={colors.faint}
               style={{
-                borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 10,
-                paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, color: '#0f172a',
-                backgroundColor: '#f8fafc',
+                borderWidth: 1, borderColor: colors.lineStrong, borderRadius: radius.sm,
+                paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: colors.ink,
+                backgroundColor: colors.canvas,
                 fontFamily: ar ? fonts.arabic.medium : undefined,
               }}
               returnKeyType="search"
@@ -688,7 +688,7 @@ function SearchSheet({
               keyboardShouldPersistTaps="handled"
               ListEmptyComponent={
                 <View style={{ padding: 24, alignItems: 'center' }}>
-                  <Text style={{ color: '#94a3b8', fontSize: 13 }}>
+                  <Text style={{ color: colors.faint, fontSize: 13 }}>
                     {q.trim().length < 2 ? t('rider.newRide.minCharsHint') : t('rider.newRide.noResults')}
                   </Text>
                 </View>
@@ -698,12 +698,12 @@ function SearchSheet({
                   onPress={() => onPick(item)}
                   style={({ pressed }) => ({
                     paddingHorizontal: 16, paddingVertical: 14,
-                    backgroundColor: pressed ? '#f1f5f9' : '#fff',
-                    borderBottomWidth: 1, borderBottomColor: '#f1f5f9',
+                    backgroundColor: pressed ? colors.line : '#fff',
+                    borderBottomWidth: 1, borderBottomColor: colors.line,
                   })}
                 >
-                  <Text style={{ fontSize: 15, fontWeight: '600', color: '#0f172a' }}>{item.name}</Text>
-                  <Text style={{ fontSize: 12, color: '#64748b', marginTop: 2 }} numberOfLines={1}>
+                  <Text style={{ fontSize: 15, fontWeight: '600', color: colors.ink }}>{item.name}</Text>
+                  <Text style={{ fontSize: 12, color: colors.ink2, marginTop: 2 }} numberOfLines={1}>
                     {item.label}
                   </Text>
                 </Pressable>
@@ -735,15 +735,15 @@ function KindSelector({
             onPress={() => onChange(o.value)}
             style={({ pressed }) => ({
               flex: 1,
-              backgroundColor: active ? '#0f172a' : (pressed ? '#e2e8f0' : '#f1f5f9'),
-              paddingVertical: 10, borderRadius: 10,
+              backgroundColor: active ? colors.ink : (pressed ? colors.line : colors.line),
+              paddingVertical: 10, borderRadius: radius.sm,
               alignItems: 'center', gap: 2,
             })}
           >
-            <Text style={{ fontSize: 18 }}>{o.icon}</Text>
+            <Text style={{ fontSize: 17 }}>{o.icon}</Text>
             <Text style={{
               fontSize: 11, fontWeight: '700',
-              color: active ? '#fff' : '#475569',
+              color: active ? '#fff' : colors.ink2,
             }}>
               {o.label}
             </Text>
@@ -765,7 +765,7 @@ function DurationPicker({
   ];
   return (
     <View style={{ gap: 6 }}>
-      <Text style={{ fontSize: 11, color: '#64748b' }}>Durée de la réservation</Text>
+      <Text style={{ fontSize: 11, color: colors.ink2 }}>Durée de la réservation</Text>
       <View style={{ flexDirection: 'row', gap: 6 }}>
         {durations.map((d) => {
           const active = d.h === value;
@@ -775,15 +775,15 @@ function DurationPicker({
               onPress={() => onChange(d.h)}
               style={{
                 flex: 1,
-                backgroundColor: active ? '#0f172a' : '#f1f5f9',
-                paddingVertical: 10, borderRadius: 10,
+                backgroundColor: active ? colors.ink : colors.line,
+                paddingVertical: 10, borderRadius: radius.sm,
                 alignItems: 'center', gap: 2,
               }}
             >
-              <Text style={{ fontSize: 14, fontWeight: '700', color: active ? '#fff' : '#0f172a' }}>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: active ? '#fff' : colors.ink }}>
                 {d.label}
               </Text>
-              <Text style={{ fontSize: 10, color: active ? '#94a3b8' : '#64748b' }}>
+              <Text style={{ fontSize: 11, color: active ? colors.faint : colors.ink2 }}>
                 {formatMru(hourlyRate * d.h)}
               </Text>
             </Pressable>
@@ -826,13 +826,13 @@ function OpenRideToggle({
 
   const bg = anim.interpolate({
     inputRange: [0, 1],
-    outputRange: ['#f1f5f9', '#0f172a'],
+    outputRange: [colors.line, colors.ink],
   });
   const dot = anim.interpolate({
     inputRange: [0, 1],
     outputRange: [3, 27],
   });
-  const labelColor = value ? '#fff' : '#475569';
+  const labelColor = value ? '#fff' : colors.ink2;
 
   return (
     <Pressable
@@ -846,7 +846,7 @@ function OpenRideToggle({
     >
       <Animated.View style={{
         backgroundColor: bg as unknown as string,
-        borderRadius: 14,
+        borderRadius: radius.md,
         paddingVertical: 12,
         paddingHorizontal: 14,
         flexDirection: 'row',
@@ -855,21 +855,21 @@ function OpenRideToggle({
       }}>
         <View style={{
           width: 54, height: 30, borderRadius: 15,
-          backgroundColor: value ? '#10a35e' : '#cbd5e1',
+          backgroundColor: value ? colors.ember : colors.lineStrong,
           justifyContent: 'center',
         }}>
           <Animated.View style={{
-            width: 24, height: 24, borderRadius: 12, backgroundColor: '#fff',
+            width: 24, height: 24, borderRadius: 12, backgroundColor: colors.surface,
             transform: [{ translateX: dot }],
             shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 2, shadowOffset: { width: 0, height: 1 },
             elevation: 2,
           }} />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 14, fontWeight: '700', color: labelColor }}>
+          <Text style={{ fontSize: 13, fontWeight: '700', color: labelColor }}>
             {t('rider.newRide.openRideTitle')}
           </Text>
-          <Text style={{ fontSize: 11, color: value ? '#cbd5e1' : '#64748b', marginTop: 2 }}>
+          <Text style={{ fontSize: 11, color: value ? colors.lineStrong : colors.ink2, marginTop: 2 }}>
             {t('rider.newRide.openRideHint')}
           </Text>
         </View>
@@ -890,23 +890,23 @@ function OpenFareCard({
   if (!quote) {
     return (
       <View style={{
-        backgroundColor: '#fef3c7', borderRadius: 10,
+        backgroundColor: statusTone.pending.bg, borderRadius: radius.sm,
         paddingHorizontal: 12, paddingVertical: 14,
         flexDirection: 'row', alignItems: 'center', gap: 10,
       }}>
-        <ActivityIndicator color="#854d0e" />
-        <Text style={{ fontSize: 13, color: '#854d0e' }}>{t('common.loading')}</Text>
+        <ActivityIndicator color={statusTone.pending.fg} />
+        <Text style={{ fontSize: 13, color: statusTone.pending.fg }}>{t('common.loading')}</Text>
       </View>
     );
   }
   return (
     <View style={{
-      backgroundColor: '#0f172a', borderRadius: 12,
+      backgroundColor: colors.ink, borderRadius: radius.md,
       paddingHorizontal: 14, paddingVertical: 14, gap: 10,
     }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <Text style={{ fontSize: 16 }}>🧮</Text>
-        <Text style={{ fontSize: 13, fontWeight: '700', color: '#fff', letterSpacing: 0.5 }}>
+        <Text style={{ fontSize: 13, fontWeight: '700', color: colors.white, letterSpacing: 0.5 }}>
           {t('rider.newRide.openMeterLabel')}
         </Text>
       </View>
@@ -915,7 +915,7 @@ function OpenFareCard({
         <MeterCell value={`${quote.perKmMru} MRU`} label={t('rider.newRide.meterPerKm')} />
         <MeterCell value={`${quote.perMinuteMru} MRU`} label={t('rider.newRide.meterPerMin')} />
       </View>
-      <Text style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
+      <Text style={{ fontSize: 11, color: colors.faint, marginTop: 2 }}>
         {t('rider.newRide.meterMin', { min: formatMru(quote.minFareMru) })}
       </Text>
     </View>
@@ -925,11 +925,11 @@ function OpenFareCard({
 function MeterCell({ value, label }: { value: string; label: string }) {
   return (
     <View style={{
-      flex: 1, backgroundColor: '#1e293b', borderRadius: 8,
+      flex: 1, backgroundColor: colors.espressoAlt, borderRadius: radius.xs,
       paddingHorizontal: 8, paddingVertical: 8, alignItems: 'center',
     }}>
-      <Text style={{ fontSize: 14, fontWeight: '800', color: '#fde68a' }}>{value}</Text>
-      <Text style={{ fontSize: 9, color: '#94a3b8', marginTop: 2, letterSpacing: 0.4 }}>
+      <Text style={{ fontSize: 13, fontWeight: '800', color: statusTone.pending.bg }}>{value}</Text>
+      <Text style={{ fontSize: 11, color: colors.faint, marginTop: 2, letterSpacing: 0.4 }}>
         {label.toUpperCase()}
       </Text>
     </View>
@@ -945,17 +945,17 @@ function SmallInput({
   const ar = isRTL(currentLanguage());
   return (
     <View>
-      <Text style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>{label}</Text>
+      <Text style={{ fontSize: 11, color: colors.ink2, marginBottom: 4 }}>{label}</Text>
       <TextInput
         value={value}
         onChangeText={onChange}
         placeholder={placeholder}
-        placeholderTextColor="#94a3b8"
+        placeholderTextColor={colors.faint}
         keyboardType={keyboardType ?? 'default'}
         style={{
-          borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8,
-          paddingHorizontal: 10, paddingVertical: 8, fontSize: 14,
-          color: '#0f172a', backgroundColor: '#fff',
+          borderWidth: 1, borderColor: colors.lineStrong, borderRadius: radius.xs,
+          paddingHorizontal: 10, paddingVertical: 8, fontSize: 13,
+          color: colors.ink, backgroundColor: colors.surface,
           fontFamily: ar ? fonts.arabic.regular : undefined,
         }}
       />
@@ -977,31 +977,31 @@ function PhoneInput({
   const ar = isRTL(currentLanguage());
   return (
     <View>
-      <Text style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>{label}</Text>
+      <Text style={{ fontSize: 11, color: colors.ink2, marginBottom: 4 }}>{label}</Text>
       <View style={{
         flexDirection: 'row', alignItems: 'stretch',
-        borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8,
-        backgroundColor: '#fff', overflow: 'hidden',
+        borderWidth: 1, borderColor: colors.lineStrong, borderRadius: radius.xs,
+        backgroundColor: colors.surface, overflow: 'hidden',
       }}>
         <View style={{
           paddingHorizontal: 10, justifyContent: 'center',
-          backgroundColor: '#f1f5f9',
+          backgroundColor: colors.line,
           ...(ar
-            ? { borderLeftWidth: 1, borderLeftColor: '#cbd5e1' }
-            : { borderRightWidth: 1, borderRightColor: '#cbd5e1' }),
+            ? { borderLeftWidth: 1, borderLeftColor: colors.lineStrong }
+            : { borderRightWidth: 1, borderRightColor: colors.lineStrong }),
         }}>
-          <Text style={{ fontSize: 14, fontWeight: '600', color: '#475569' }}>+222</Text>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: colors.ink2 }}>+222</Text>
         </View>
         <TextInput
           value={value}
           onChangeText={(txt) => onChange(txt.replace(/\D/g, '').slice(0, 8))}
           placeholder="45 12 34 56"
-          placeholderTextColor="#94a3b8"
+          placeholderTextColor={colors.faint}
           keyboardType="phone-pad"
           maxLength={8}
           style={{
-            flex: 1, paddingHorizontal: 10, paddingVertical: 8, fontSize: 14,
-            color: '#0f172a',
+            flex: 1, paddingHorizontal: 10, paddingVertical: 8, fontSize: 13,
+            color: colors.ink,
             fontFamily: ar ? fonts.arabic.regular : undefined,
           }}
         />
@@ -1017,7 +1017,7 @@ function pinStyle(color: string) {
     borderRadius: 9,
     backgroundColor: color,
     borderWidth: 3,
-    borderColor: '#fff',
+    borderColor: colors.white,
     shadowColor: '#000',
     shadowOpacity: 0.3,
     shadowRadius: 3,

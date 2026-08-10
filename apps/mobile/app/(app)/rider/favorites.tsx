@@ -1,4 +1,3 @@
-import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator, Alert, FlatList, Pressable,
   RefreshControl, View,
@@ -8,6 +7,8 @@ import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PlainText as Text, ScreenHeader } from '@/components/ui';
 import { api } from '@/lib/api';
+import { useApiQuery } from '@/lib/useApiQuery';
+import { colors, radius, statusTone } from '@/theme';
 
 interface Favorite {
   captainId: string;
@@ -22,20 +23,9 @@ interface Favorite {
 export default function FavoritesScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const [items, setItems] = useState<Favorite[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const r = await api.get<Favorite[]>('/rider/favorites');
-      setItems(r.data);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
+  const {
+    data: items = [], isLoading, isFetching, refetch,
+  } = useApiQuery<Favorite[]>(['rider', 'favorites'], '/rider/favorites');
 
   async function remove(captainId: string, name: string) {
     Alert.alert(
@@ -48,7 +38,7 @@ export default function FavoritesScreen() {
           onPress: async () => {
             try {
               await api.delete(`/rider/favorites/${captainId}`);
-              await load();
+              await refetch();
             } catch (e: any) {
               Alert.alert(t('common.impossible'), e.response?.data?.error?.message ?? t('errors.generic'));
             }
@@ -59,10 +49,10 @@ export default function FavoritesScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
       <View style={{ padding: 20 }}>
         <ScreenHeader title={t('rider.favorites.title')} onBack={() => router.back()} />
-        <Text style={{ fontSize: 13, color: '#64748b', marginTop: 4, lineHeight: 18 }}>
+        <Text style={{ fontSize: 13, color: colors.ink2, marginTop: 4, lineHeight: 18 }}>
           {t('rider.favorites.intro')}
         </Text>
       </View>
@@ -70,21 +60,21 @@ export default function FavoritesScreen() {
       <FlatList
         data={items}
         keyExtractor={(it) => it.captainId}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
+        refreshControl={<RefreshControl refreshing={isFetching} onRefresh={refetch} />}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40, gap: 10 }}
         ListEmptyComponent={
-          loading ? (
+          isLoading ? (
             <View style={{ padding: 40, alignItems: 'center' }}>
               <ActivityIndicator />
             </View>
           ) : (
             <View style={{
-              backgroundColor: '#fff', borderRadius: 14, padding: 28, alignItems: 'center',
+              backgroundColor: colors.surface, borderRadius: radius.md, padding: 28, alignItems: 'center',
             }}>
-              <Text style={{ color: '#0f172a', fontSize: 15, fontWeight: '600' }}>
+              <Text style={{ color: colors.ink, fontSize: 15, fontWeight: '600' }}>
                 {t('rider.favorites.emptyTitle')}
               </Text>
-              <Text style={{ color: '#64748b', fontSize: 13, marginTop: 6, textAlign: 'center' }}>
+              <Text style={{ color: colors.ink2, fontSize: 13, marginTop: 6, textAlign: 'center' }}>
                 {t('rider.favorites.emptyBody')}
               </Text>
             </View>
@@ -96,19 +86,19 @@ export default function FavoritesScreen() {
             ? item.ratingAvg.toFixed(1)
             : t('rider.favorites.noRating');
           return (
-            <View style={{ backgroundColor: '#fff', borderRadius: 14, padding: 16 }}>
+            <View style={{ backgroundColor: colors.surface, borderRadius: radius.md, padding: 16 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                 <View style={{
-                  width: 44, height: 44, borderRadius: 22, backgroundColor: '#fef3c7',
+                  width: 44, height: 44, borderRadius: 22, backgroundColor: statusTone.pending.bg,
                   alignItems: 'center', justifyContent: 'center',
                 }}>
                   <Text style={{ fontSize: 22 }}>⭐</Text>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 16, fontWeight: '700', color: '#0f172a' }}>
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: colors.ink }}>
                     {name}
                   </Text>
-                  <Text style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                  <Text style={{ fontSize: 12, color: colors.ink2, marginTop: 2 }}>
                     ⭐ {t('rider.favorites.ratingCount', { rating: ratingDisplay, count: item.totalRides })}
                   </Text>
                 </View>
@@ -117,12 +107,12 @@ export default function FavoritesScreen() {
                 onPress={() => remove(item.captainId, name)}
                 style={({ pressed }) => ({
                   marginTop: 12, paddingTop: 10,
-                  borderTopWidth: 1, borderTopColor: '#f1f5f9',
+                  borderTopWidth: 1, borderTopColor: colors.line,
                   alignItems: 'center',
                   opacity: pressed ? 0.5 : 1,
                 })}
               >
-                <Text style={{ color: '#dc2626', fontSize: 13, fontWeight: '600' }}>
+                <Text style={{ color: colors.danger, fontSize: 13, fontWeight: '600' }}>
                   {t('rider.favorites.removeAction')}
                 </Text>
               </Pressable>

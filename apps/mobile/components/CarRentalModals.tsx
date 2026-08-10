@@ -9,12 +9,13 @@
  */
 
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
 import { AppText, Button, Icon } from '@/components/ui';
 import { uploadCarPhoto } from '@/lib/carRental';
-import { colors, fonts, radius, spacing } from '@/theme';
+import { colors, fonts, radius, spacing, statusTone } from '@/theme';
 import { currentLanguage, isRTL } from '@/lib/i18n';
 
 export function RatingModal({ visible, name, busy, onSubmit, onClose }: {
@@ -126,7 +127,7 @@ export function BookingActionModal({
                 paddingHorizontal: spacing.base, paddingVertical: spacing.md,
                 // Arabic placeholder is cursive: letterSpacing breaks its
                 // shaping, so only space out the typed digits.
-                fontSize: 24, letterSpacing: isRTL(currentLanguage()) && !otp ? 0 : 4,
+                fontSize: 26, letterSpacing: isRTL(currentLanguage()) && !otp ? 0 : 4,
                 textAlign: 'center', color: colors.ink,
                 fontFamily: isRTL(currentLanguage()) ? fonts.arabic.regular : undefined,
               }}
@@ -141,7 +142,7 @@ export function BookingActionModal({
                   <View key={p}>
                     <Image source={{ uri: p }} style={{ width: 92, height: 74, borderRadius: radius.md }} />
                     <Pressable onPress={() => setPhotos((prev) => prev.filter((x) => x !== p))}
-                      style={{ position: 'absolute', top: 3, right: 3, backgroundColor: '#000a', borderRadius: 10, padding: 2 }}>
+                      style={{ position: 'absolute', top: 3, right: 3, backgroundColor: '#000a', borderRadius: radius.sm, padding: 2 }}>
                       <Icon name="close" size={13} color="#fff" />
                     </Pressable>
                   </View>
@@ -163,7 +164,7 @@ export function BookingActionModal({
 }
 
 const OTP_BOX = {
-  backgroundColor: '#E6F4EA',
+  backgroundColor: statusTone.done.bg,
   borderRadius: radius.md,
   padding: spacing.base,
   gap: 4,

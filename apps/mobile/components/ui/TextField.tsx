@@ -81,7 +81,7 @@ export function TextField({
           style={{
             flex: 1,
             paddingVertical: 15,
-            fontSize: 16,
+            fontSize: 15,
             color: colors.ink,
             fontFamily: mono ? fonts.mono : ar ? fonts.arabic.medium : fonts.text.medium,
             letterSpacing: mono ? 2 : 0,

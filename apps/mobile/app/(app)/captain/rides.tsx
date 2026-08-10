@@ -19,7 +19,7 @@ import {
   AppText, Button, Card, Icon, PlainText as Text, PressableScale, Screen, ScreenHeader,
   type IconName,
 } from '@/components/ui';
-import { colors, radius, spacing } from '@/theme';
+import { colors, radius, spacing, statusTone } from '@/theme';
 import { wrapRow } from '@/components/ui';
 
 // Note: the new-ride alert (modal + ringing) is handled globally by
@@ -286,7 +286,7 @@ function HistorySection({ items }: { items: Ride[] }) {
               marginTop: spacing.base,
               overflow: 'hidden',
               borderWidth: 1,
-              borderColor: '#f0dfb2',
+              borderColor: statusTone.pending.fg,
             }}
           >
             <View style={{ flexDirection: 'row' }}>
@@ -305,10 +305,10 @@ function HistorySection({ items }: { items: Ride[] }) {
                     </AppText>
                   </View>
                   <View style={{
-                    backgroundColor: '#fff6dd',
+                    backgroundColor: statusTone.pending.bg,
                     borderRadius: radius.md,
                     borderWidth: 1,
-                    borderColor: '#f0dfb2',
+                    borderColor: statusTone.pending.fg,
                     paddingHorizontal: spacing.sm,
                     paddingVertical: spacing.xs,
                   }}>
@@ -360,7 +360,7 @@ function HistorySection({ items }: { items: Ride[] }) {
                 style={{
                   overflow: 'hidden',
                   borderWidth: 1,
-                  borderColor: '#eef1f5',
+                  borderColor: colors.line,
                 }}
               >
                 <View style={{ flexDirection: 'row' }}>
@@ -548,7 +548,7 @@ function InboxList({ items, onAccepted }: { items: InboxItem[]; onAccepted: () =
           <AppText variant="body" color={colors.muted}>{t('captain.rides.emptyInbox')}</AppText>
         </Card>
       ) : items.map((it) => {
-        const accent = it.isFavorite ? colors.sun : (it.rideType === 'colis' ? colors.espresso : it.rideType === 'private_driver' ? '#1e40af' : it.rideType === 'convoyage' ? '#7c3aed' : colors.ember);
+        const accent = it.isFavorite ? colors.sun : (it.rideType === 'colis' ? colors.espresso : it.rideType === 'private_driver' ? statusTone.active.fg : it.rideType === 'convoyage' ? statusTone.accent.fg : colors.ember);
         const isColis = it.rideType === 'colis';
         return (
           <Card key={it.id} padding={0} style={{ marginTop: spacing.md, overflow: 'hidden' }}>
@@ -559,11 +559,11 @@ function InboxList({ items, onAccepted }: { items: InboxItem[]; onAccepted: () =
                   <View style={{ flexDirection: wrapRow, alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                     <Chip icon={isColis ? 'parcel' : it.rideType === 'private_driver' ? 'clock' : it.rideType === 'convoyage' ? 'ride' : 'ride'}
                       label={isColis ? t('captain.rides.colis') : it.rideType === 'private_driver' ? `Captain · ${it.bookedDurationH}h` : it.rideType === 'convoyage' ? `Convoyage${it.vehiclePlate ? ` · ${it.vehiclePlate}` : ''}` : t('captain.rides.passenger')}
-                      bg={isColis ? colors.espresso : it.rideType === 'private_driver' ? '#dbeafe' : it.rideType === 'convoyage' ? '#ede9fe' : colors.emberSoft}
-                      fg={isColis ? colors.saffron : it.rideType === 'private_driver' ? '#1e40af' : it.rideType === 'convoyage' ? '#7c3aed' : colors.ember} />
+                      bg={isColis ? colors.espresso : it.rideType === 'private_driver' ? statusTone.active.bg : it.rideType === 'convoyage' ? statusTone.accent.bg : colors.emberSoft}
+                      fg={isColis ? colors.saffron : it.rideType === 'private_driver' ? statusTone.active.fg : it.rideType === 'convoyage' ? statusTone.accent.fg : colors.ember} />
                     {it.isFavorite ? <Chip icon="star" label={t('captain.rides.favorite')} bg={colors.saffronSoft} fg={colors.warning} /> : null}
-                    {it.source === 'operator' ? <Chip icon="phone" label={t('captainAlert.callCenterBadge')} bg="#ede9fe" fg="#6d28d9" /> : null}
-                    {it.isOpen ? <Chip icon="clock" label={t('captain.rides.openBadge')} bg="#dcfce7" fg="#166534" /> : null}
+                    {it.source === 'operator' ? <Chip icon="phone" label={t('captainAlert.callCenterBadge')} bg={statusTone.accent.bg} fg={statusTone.accent.fg} /> : null}
+                    {it.isOpen ? <Chip icon="clock" label={t('captain.rides.openBadge')} bg={statusTone.done.bg} fg={statusTone.done.fg} /> : null}
                     {it.homewardProgressM && it.homewardProgressM > 0
                       ? <Chip icon="home" label={t('captain.rides.getsCloser')} bg={colors.successSoft} fg={colors.success} /> : null}
                   </View>
@@ -737,8 +737,8 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
         })()}
 
         {ride.rideType === 'convoyage' && ride.convoyageDetails ? (
-          <View style={{ marginTop: spacing.md, backgroundColor: '#1e293b', borderRadius: 8, padding: spacing.sm }}>
-            <AppText variant="overline" color="#94a3b8">VÉHICULE À CONVOYER</AppText>
+          <View style={{ marginTop: spacing.md, backgroundColor: colors.espressoAlt, borderRadius: radius.xs, padding: spacing.sm }}>
+            <AppText variant="overline" color={colors.faint}>VÉHICULE À CONVOYER</AppText>
             <AppText variant="bodyStrong" color={colors.onEspresso} style={{ marginTop: 2 }}>
               {ride.convoyageDetails.vehiclePlate}
               {ride.convoyageDetails.vehicleDescription ? ` — ${ride.convoyageDetails.vehicleDescription}` : ''}
@@ -939,34 +939,34 @@ function CaptainMeterCard({ ride }: { ride: Ride }) {
   const km = m ? (m.distanceM / 1000).toFixed(2) : '0.00';
 
   return (
-    <Card padding={spacing.lg} style={{ marginTop: spacing.base, backgroundColor: '#0f172a' }}>
+    <Card padding={spacing.lg} style={{ marginTop: spacing.base, backgroundColor: colors.ink }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#10a35e' }} />
-        <Text style={{ fontSize: 11, fontWeight: '700', color: '#10a35e', letterSpacing: 0.6 }}>
+        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.ember }} />
+        <Text style={{ fontSize: 11, fontWeight: '700', color: colors.ember, letterSpacing: 0.6 }}>
           {t('captain.rides.openMeterLive').toUpperCase()}
         </Text>
       </View>
       <Animated.Text style={{
-        fontSize: 40, fontWeight: '800', color: '#fff', letterSpacing: -1,
+        fontSize: 40, fontWeight: '800', color: colors.white, letterSpacing: -1,
         marginTop: 10,
         transform: [{ scale: pulse }],
       }}>
         {formatMru(m?.fareMru ?? 0)}
       </Animated.Text>
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
-        <View style={{ flex: 1, backgroundColor: '#1e293b', borderRadius: 10, padding: 12 }}>
-          <Text style={{ fontSize: 10, color: '#94a3b8', letterSpacing: 0.4 }}>
+        <View style={{ flex: 1, backgroundColor: colors.espressoAlt, borderRadius: radius.sm, padding: 12 }}>
+          <Text style={{ fontSize: 11, color: colors.faint, letterSpacing: 0.4 }}>
             {t('captain.rides.openMeterDistance').toUpperCase()}
           </Text>
-          <Text style={{ fontSize: 18, fontWeight: '700', color: '#fff', marginTop: 4 }}>
-            {km} <Text style={{ fontSize: 11, color: '#94a3b8' }}>km</Text>
+          <Text style={{ fontSize: 17, fontWeight: '700', color: colors.white, marginTop: 4 }}>
+            {km} <Text style={{ fontSize: 11, color: colors.faint }}>km</Text>
           </Text>
         </View>
-        <View style={{ flex: 1, backgroundColor: '#1e293b', borderRadius: 10, padding: 12 }}>
-          <Text style={{ fontSize: 10, color: '#94a3b8', letterSpacing: 0.4 }}>
+        <View style={{ flex: 1, backgroundColor: colors.espressoAlt, borderRadius: radius.sm, padding: 12 }}>
+          <Text style={{ fontSize: 11, color: colors.faint, letterSpacing: 0.4 }}>
             {t('captain.rides.openMeterDuration').toUpperCase()}
           </Text>
-          <Text style={{ fontSize: 18, fontWeight: '700', color: '#fff', marginTop: 4 }}>
+          <Text style={{ fontSize: 17, fontWeight: '700', color: colors.white, marginTop: 4 }}>
             {minutes}:{String(seconds).padStart(2, '0')}
           </Text>
         </View>
@@ -1000,38 +1000,38 @@ function CaptainPrivateDriverCard({ ride }: { ride: Ride }) {
   const elapsedM = Math.floor((elapsedS % 3600) / 60);
 
   return (
-    <Card padding={spacing.lg} style={{ marginTop: spacing.base, backgroundColor: isOvertime ? '#450a0a' : '#0f172a' }}>
+    <Card padding={spacing.lg} style={{ marginTop: spacing.base, backgroundColor: isOvertime ? colors.dangerDeep : colors.ink }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: isOvertime ? '#ef4444' : '#10a35e' }} />
-        <Text style={{ fontSize: 11, fontWeight: '700', color: isOvertime ? '#ef4444' : '#10a35e', letterSpacing: 0.6 }}>
+        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: isOvertime ? colors.danger : colors.ember }} />
+        <Text style={{ fontSize: 11, fontWeight: '700', color: isOvertime ? colors.danger : colors.ember, letterSpacing: 0.6 }}>
           {isOvertime ? 'DÉPASSEMENT' : 'Captain PRIVÉ EN COURS'}
         </Text>
       </View>
       <Text style={{
-        fontSize: 36, fontWeight: '800', color: '#fff', letterSpacing: -1, marginTop: 10,
+        fontSize: 32, fontWeight: '800', color: colors.white, letterSpacing: -1, marginTop: 10,
       }}>
         {isOvertime ? '+' : ''}{timeStr}
       </Text>
-      <Text style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
+      <Text style={{ fontSize: 12, color: colors.faint, marginTop: 4 }}>
         {isOvertime ? 'Temps dépassé' : 'Temps restant'}
       </Text>
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
-        <View style={{ flex: 1, backgroundColor: isOvertime ? '#7f1d1d' : '#1e293b', borderRadius: 10, padding: 12 }}>
-          <Text style={{ fontSize: 10, color: '#94a3b8', letterSpacing: 0.4 }}>DURÉE RÉSERVÉE</Text>
-          <Text style={{ fontSize: 18, fontWeight: '700', color: '#fff', marginTop: 4 }}>
+        <View style={{ flex: 1, backgroundColor: isOvertime ? colors.danger : colors.espressoAlt, borderRadius: radius.sm, padding: 12 }}>
+          <Text style={{ fontSize: 11, color: colors.faint, letterSpacing: 0.4 }}>DURÉE RÉSERVÉE</Text>
+          <Text style={{ fontSize: 17, fontWeight: '700', color: colors.white, marginTop: 4 }}>
             {pd.bookedDurationH}h
           </Text>
         </View>
-        <View style={{ flex: 1, backgroundColor: isOvertime ? '#7f1d1d' : '#1e293b', borderRadius: 10, padding: 12 }}>
-          <Text style={{ fontSize: 10, color: '#94a3b8', letterSpacing: 0.4 }}>TEMPS ÉCOULÉ</Text>
-          <Text style={{ fontSize: 18, fontWeight: '700', color: '#fff', marginTop: 4 }}>
+        <View style={{ flex: 1, backgroundColor: isOvertime ? colors.danger : colors.espressoAlt, borderRadius: radius.sm, padding: 12 }}>
+          <Text style={{ fontSize: 11, color: colors.faint, letterSpacing: 0.4 }}>TEMPS ÉCOULÉ</Text>
+          <Text style={{ fontSize: 17, fontWeight: '700', color: colors.white, marginTop: 4 }}>
             {elapsedH}h{String(elapsedM).padStart(2, '0')}
           </Text>
         </View>
       </View>
-      <View style={{ backgroundColor: isOvertime ? '#7f1d1d' : '#1e293b', borderRadius: 10, padding: 12, marginTop: 10 }}>
-        <Text style={{ fontSize: 10, color: '#94a3b8', letterSpacing: 0.4 }}>TARIF</Text>
-        <Text style={{ fontSize: 18, fontWeight: '700', color: '#fff', marginTop: 4 }}>
+      <View style={{ backgroundColor: isOvertime ? colors.danger : colors.espressoAlt, borderRadius: radius.sm, padding: 12, marginTop: 10 }}>
+        <Text style={{ fontSize: 11, color: colors.faint, letterSpacing: 0.4 }}>TARIF</Text>
+        <Text style={{ fontSize: 17, fontWeight: '700', color: colors.white, marginTop: 4 }}>
           {formatMru(pd.bookedFareMru)}
         </Text>
       </View>

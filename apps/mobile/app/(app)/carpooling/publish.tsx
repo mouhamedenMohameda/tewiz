@@ -12,7 +12,7 @@ import {
   SelectField,
   TextField,
 } from '@/components/ui';
-import { colors, radius, spacing } from '@/theme';
+import { colors, radius, spacing, statusTone } from '@/theme';
 import { useAuth } from '@/lib/auth';
 import { MAURITANIA_CITIES } from '@/lib/cities';
 import {
@@ -273,10 +273,10 @@ export default function CarpoolingPublishScreen() {
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 borderWidth: 1,
-                borderColor: boost ? '#F59E0B' : colors.line,
+                borderColor: boost ? statusTone.pending.fg : colors.line,
                 borderRadius: radius.md,
                 padding: spacing.base,
-                backgroundColor: boost ? '#FFFBEB' : colors.surface,
+                backgroundColor: boost ? statusTone.pending.bg : colors.surface,
               }}
             >
               <View style={{ flex: 1, paddingEnd: spacing.md }}>
@@ -290,12 +290,12 @@ export default function CarpoolingPublishScreen() {
                 height: 24,
                 borderRadius: 12,
                 borderWidth: 2,
-                borderColor: boost ? '#D97706' : colors.lineStrong,
-                backgroundColor: boost ? '#F59E0B' : 'transparent',
+                borderColor: boost ? statusTone.pending.fg : colors.lineStrong,
+                backgroundColor: boost ? statusTone.pending.fg : 'transparent',
               }} />
             </Pressable>
 
-            <View style={{ borderRadius: radius.md, backgroundColor: '#E6F4EA', padding: spacing.base }}>
+            <View style={{ borderRadius: radius.md, backgroundColor: statusTone.done.bg, padding: spacing.base }}>
               <AppText variant="bodyStrong" style={{ color: colors.success }}>
                 {boost
                   ? t('carpooling.publish.boostFeeLine', { fee: BOOST_FEE_MRU })

@@ -23,6 +23,7 @@ import { useTranslation } from 'react-i18next';
 import i18n from 'i18next';
 import { PlainText as Text } from '@/components/ui';
 import { APP_NAME } from '@/lib/brand';
+import { colors, radius, statusTone } from '@/theme';
 
 // Languages offered inside the sheet. The captain can read the terms in either
 // one regardless of the app's global language — switching here does NOT change
@@ -120,10 +121,10 @@ export function TermsSheet({
       statusBarTranslucent
       onRequestClose={dismissible ? onClose : () => {}}
     >
-      <View style={{ flex: 1, backgroundColor: '#fff', paddingTop: insets.top }}>
+      <View style={{ flex: 1, backgroundColor: colors.surface, paddingTop: insets.top }}>
         <View style={{
           paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12,
-          borderBottomWidth: 1, borderBottomColor: '#e2e8f0',
+          borderBottomWidth: 1, borderBottomColor: colors.line,
         }}>
           {/* Language switch — reads the terms in AR or FR without changing the
               app language. */}
@@ -135,23 +136,23 @@ export function TermsSheet({
                   key={l.code}
                   onPress={() => switchLang(l.code)}
                   style={{
-                    paddingVertical: 6, paddingHorizontal: 14, borderRadius: 999,
+                    paddingVertical: 6, paddingHorizontal: 14, borderRadius: radius.pill,
                     borderWidth: 1,
-                    borderColor: active ? '#10a35e' : '#cbd5e1',
-                    backgroundColor: active ? '#10a35e' : '#fff',
+                    borderColor: active ? colors.ember : colors.lineStrong,
+                    backgroundColor: active ? colors.ember : '#fff',
                   }}
                 >
-                  <Text style={{ fontSize: 13, fontWeight: '700', color: active ? '#fff' : '#475569' }}>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: active ? '#fff' : colors.ink2 }}>
                     {l.label}
                   </Text>
                 </Pressable>
               );
             })}
           </View>
-          <Text style={[{ fontSize: 20, fontWeight: '700', color: '#0f172a' }, dirStyle]}>
+          <Text style={[{ fontSize: 21, fontWeight: '700', color: colors.ink }, dirStyle]}>
             {tt('terms.title', { app: APP_NAME })}
           </Text>
-          <Text style={[{ fontSize: 12, color: '#64748b', marginTop: 4 }, dirStyle]}>
+          <Text style={[{ fontSize: 12, color: colors.ink2, marginTop: 4 }, dirStyle]}>
             {tt('terms.subtitle')}
           </Text>
         </View>
@@ -166,23 +167,23 @@ export function TermsSheet({
         >
           {notice ? (
             <View style={{
-              backgroundColor: '#fffbeb', borderWidth: 1, borderColor: '#fde68a',
-              borderRadius: 12, padding: 14, marginBottom: 18,
+              backgroundColor: statusTone.pending.bg, borderWidth: 1, borderColor: statusTone.pending.bg,
+              borderRadius: radius.md, padding: 14, marginBottom: 18,
             }}>
-              <Text style={{ fontSize: 14, color: '#78350f', lineHeight: 21 }}>{notice}</Text>
+              <Text style={{ fontSize: 13, color: statusTone.pending.fg, lineHeight: 21 }}>{notice}</Text>
             </View>
           ) : null}
 
-          <Text style={[{ fontSize: 14, color: '#334155', lineHeight: 22 }, dirStyle]}>
+          <Text style={[{ fontSize: 13, color: colors.ink2, lineHeight: 22 }, dirStyle]}>
             {tt('terms.intro', { app: APP_NAME })}
           </Text>
 
           {sections.map((s, i) => (
             <View key={i} style={{ marginTop: 22 }}>
-              <Text style={[{ fontSize: 15, fontWeight: '700', color: '#0f172a' }, dirStyle]}>
+              <Text style={[{ fontSize: 15, fontWeight: '700', color: colors.ink }, dirStyle]}>
                 {interpolateApp(s.title)}
               </Text>
-              <Text style={[{ fontSize: 14, color: '#334155', lineHeight: 23, marginTop: 6 }, dirStyle]}>
+              <Text style={[{ fontSize: 13, color: colors.ink2, lineHeight: 23, marginTop: 6 }, dirStyle]}>
                 {interpolateApp(s.body)}
               </Text>
             </View>
@@ -191,10 +192,10 @@ export function TermsSheet({
 
         <View style={{
           paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12 + insets.bottom,
-          borderTopWidth: 1, borderTopColor: '#e2e8f0', backgroundColor: '#fff',
+          borderTopWidth: 1, borderTopColor: colors.line, backgroundColor: colors.surface,
         }}>
           {!readToEnd ? (
-            <Text style={{ fontSize: 12, color: '#94a3b8', marginBottom: 10, textAlign: 'center' }}>
+            <Text style={{ fontSize: 12, color: colors.faint, marginBottom: 10, textAlign: 'center' }}>
               {tt('terms.scrollHint')}
             </Text>
           ) : null}
@@ -203,14 +204,14 @@ export function TermsSheet({
             disabled={!canAccept}
             onPress={onAccept}
             style={({ pressed }) => ({
-              backgroundColor: pressed ? '#0f7c4a' : '#10a35e',
+              backgroundColor: pressed ? colors.emberDeep : colors.ember,
               opacity: canAccept ? 1 : 0.4,
-              paddingVertical: 16, borderRadius: 12,
+              paddingVertical: 16, borderRadius: radius.lg,
               flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
             })}
           >
             {busy && <ActivityIndicator color="#fff" />}
-            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>
+            <Text style={{ color: colors.white, fontSize: 15, fontWeight: '700' }}>
               {tt('terms.accept')}
             </Text>
           </Pressable>
@@ -220,7 +221,7 @@ export function TermsSheet({
               onPress={onClose}
               style={{ paddingVertical: 14, alignItems: 'center' }}
             >
-              <Text style={{ color: '#475569', fontSize: 15, fontWeight: '600' }}>
+              <Text style={{ color: colors.ink2, fontSize: 15, fontWeight: '600' }}>
                 {tt('terms.close')}
               </Text>
             </Pressable>
@@ -231,7 +232,7 @@ export function TermsSheet({
               onPress={onSecondary}
               style={{ paddingVertical: 14, alignItems: 'center' }}
             >
-              <Text style={{ color: '#b91c1c', fontSize: 15, fontWeight: '600' }}>
+              <Text style={{ color: colors.danger, fontSize: 15, fontWeight: '600' }}>
                 {secondaryLabel}
               </Text>
             </Pressable>

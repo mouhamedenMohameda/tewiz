@@ -3,6 +3,7 @@ export { PlainText } from './PlainText';
 export { Button, type ButtonProps } from './Button';
 export { Card, type CardProps } from './Card';
 export { Screen, type ScreenProps } from './Screen';
+export { Sheet, type SheetProps } from './Sheet';
 export { TextField, type TextFieldProps } from './TextField';
 export { SelectField, type SelectFieldProps, type SelectOption } from './SelectField';
 export { DateField, type DateFieldProps } from './DateField';

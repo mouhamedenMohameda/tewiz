@@ -9,9 +9,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import {
   FlatList,
-  Modal,
   Pressable,
-  StyleSheet,
   TextInput,
   View,
   type StyleProp,
@@ -21,6 +19,7 @@ import { colors, fonts, radius, spacing } from '@/theme';
 import { currentLanguage, isRTL } from '@/lib/i18n';
 import { AppText } from './Text';
 import { Icon, type IconName } from './Icon';
+import { Sheet } from './Sheet';
 
 export interface SelectOption {
   value: string;
@@ -109,13 +108,13 @@ export function SelectField({
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
               {selected.swatch ? <Swatch color={selected.swatch} /> : null}
               <AppText
-                style={{ fontSize: 16, color: colors.ink, fontFamily: fonts.text.medium }}
+                style={{ fontSize: 15, color: colors.ink, fontFamily: fonts.text.medium }}
               >
                 {selected.label}
               </AppText>
             </View>
           ) : (
-            <AppText style={{ fontSize: 16, color: colors.faint, fontFamily: fonts.text.medium }}>
+            <AppText style={{ fontSize: 15, color: colors.faint, fontFamily: fonts.text.medium }}>
               {placeholder ?? ''}
             </AppText>
           )}
@@ -130,114 +129,90 @@ export function SelectField({
         </AppText>
       ) : null}
 
-      <Modal
+      {/* The picker rises from the bottom edge and returns to it, is draggable
+          and flickable, and dims what's behind — the same sheet the rest of the
+          app uses. It used to cross-fade in place, which reads as a different
+          kind of surface from every other sheet in the product even though it
+          does the same job. `contentStyle` drops the sheet's own horizontal
+          padding because the rows are full-bleed and pad themselves. */}
+      <Sheet
         visible={open}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setOpen(false)}
+        onClose={() => setOpen(false)}
+        title={modalTitle}
+        maxHeightRatio={0.8}
+        contentStyle={{ paddingHorizontal: 0, paddingTop: spacing.sm }}
       >
-        <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-          <Pressable
-            onPress={() => setOpen(false)}
-            style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(15,23,42,0.45)' }]}
-          />
-          <View
-            style={{
-              backgroundColor: colors.canvas,
-              borderTopLeftRadius: radius.xl,
-              borderTopRightRadius: radius.xl,
-              paddingTop: spacing.base,
-              paddingBottom: spacing.xl,
-              maxHeight: '80%',
-            }}
-          >
-            <View style={{
-              alignSelf: 'center',
-              width: 44, height: 4, borderRadius: 2,
-              backgroundColor: colors.lineStrong, marginBottom: spacing.md,
-            }} />
-
-            {modalTitle ? (
-              <AppText
-                variant="h2"
-                style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}
-              >
-                {modalTitle}
-              </AppText>
-            ) : null}
-
-            {searchable ? (
-              <View style={{
-                marginHorizontal: spacing.lg,
-                marginBottom: spacing.md,
-                flexDirection: 'row',
-                alignItems: 'center',
-                backgroundColor: colors.surface,
-                borderRadius: radius.md,
-                borderWidth: 1.5,
-                borderColor: colors.line,
-                paddingHorizontal: spacing.base,
-                gap: spacing.sm,
-              }}>
-                <Icon name="search" size={18} color={colors.muted} />
-                <TextInput
-                  value={query}
-                  onChangeText={setQuery}
-                  placeholder={searchPlaceholder}
-                  placeholderTextColor={colors.faint}
-                  autoCorrect={false}
-                  autoCapitalize="none"
-                  style={{
-                    flex: 1,
-                    paddingVertical: 12,
-                    fontSize: 16,
-                    color: colors.ink,
-                    fontFamily: ar ? fonts.arabic.medium : fonts.text.medium,
-                  }}
-                />
-              </View>
-            ) : null}
-
-            <FlatList
-              data={filtered}
-              keyExtractor={(o) => o.value}
-              keyboardShouldPersistTaps="handled"
-              renderItem={({ item }) => {
-                const isActive = item.value === value;
-                return (
-                  <Pressable
-                    onPress={() => { onChange(item.value); setOpen(false); }}
-                    style={({ pressed }) => ({
-                      paddingHorizontal: spacing.lg,
-                      paddingVertical: 14,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: spacing.md,
-                      backgroundColor: pressed ? colors.emberSoft : 'transparent',
-                    })}
-                  >
-                    {item.swatch ? <Swatch color={item.swatch} large /> : null}
-                    <AppText style={{
-                      flex: 1,
-                      fontSize: 16,
-                      color: colors.ink,
-                      fontFamily: isActive ? fonts.text.bold : fonts.text.medium,
-                    }}>
-                      {item.label}
-                    </AppText>
-                    {isActive ? (
-                      <Icon name="checkSmall" size={20} color={colors.ember} />
-                    ) : null}
-                  </Pressable>
-                );
+        {searchable ? (
+          <View style={{
+            marginHorizontal: spacing.lg,
+            marginBottom: spacing.md,
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: colors.sunken,
+            borderRadius: radius.md,
+            borderWidth: 1.5,
+            borderColor: colors.line,
+            paddingHorizontal: spacing.base,
+            gap: spacing.sm,
+          }}>
+            <Icon name="search" size={18} color={colors.muted} />
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder={searchPlaceholder}
+              placeholderTextColor={colors.faint}
+              autoCorrect={false}
+              autoCapitalize="none"
+              style={{
+                flex: 1,
+                paddingVertical: 12,
+                fontSize: 15,
+                color: colors.ink,
+                fontFamily: ar ? fonts.arabic.medium : fonts.text.medium,
               }}
-              ItemSeparatorComponent={() => (
-                <View style={{ height: 1, backgroundColor: colors.line, marginHorizontal: spacing.lg }} />
-              )}
             />
           </View>
-        </View>
-      </Modal>
+        ) : null}
+
+        <FlatList
+          data={filtered}
+          keyExtractor={(o) => o.value}
+          keyboardShouldPersistTaps="handled"
+          style={{ flexShrink: 1 }}
+          renderItem={({ item }) => {
+            const isActive = item.value === value;
+            return (
+              <Pressable
+                onPress={() => { onChange(item.value); setOpen(false); }}
+                style={({ pressed }) => ({
+                  paddingHorizontal: spacing.lg,
+                  paddingVertical: 14,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: spacing.md,
+                  backgroundColor: pressed ? colors.emberSoft : 'transparent',
+                })}
+              >
+                {item.swatch ? <Swatch color={item.swatch} large /> : null}
+                <AppText style={{
+                  flex: 1,
+                  fontSize: 15,
+                  color: colors.ink,
+                  fontFamily: isActive ? fonts.text.bold : fonts.text.medium,
+                }}>
+                  {item.label}
+                </AppText>
+                {isActive ? (
+                  <Icon name="checkSmall" size={20} color={colors.ember} />
+                ) : null}
+              </Pressable>
+            );
+          }}
+          ItemSeparatorComponent={() => (
+            <View style={{ height: 1, backgroundColor: colors.line, marginHorizontal: spacing.lg }} />
+          )}
+        />
+      </Sheet>
     </View>
   );
 }

@@ -9,9 +9,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   FlatList,
-  Modal,
   Pressable,
-  StyleSheet,
   View,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -19,8 +17,10 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { colors, fonts, radius, spacing } from '@/theme';
+import { haptics } from '@/lib/haptics';
 import { AppText } from './Text';
 import { Icon } from './Icon';
+import { Sheet } from './Sheet';
 
 const ITEM_HEIGHT = 44;
 const VISIBLE_ITEMS = 5;
@@ -158,7 +158,7 @@ export function DateField({
         <Icon name="calendar" size={20} color={colors.muted} />
         <AppText style={{
           flex: 1,
-          fontSize: 16,
+          fontSize: 15,
           color: human ? colors.ink : colors.faint,
           fontFamily: fonts.text.medium,
         }}>
@@ -173,114 +173,88 @@ export function DateField({
         </AppText>
       ) : null}
 
-      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+      <Sheet
+        visible={open}
+        onClose={() => setOpen(false)}
+        title={modalTitle}
+        contentStyle={{ paddingHorizontal: 0 }}
+      >
+        <View style={{
+          flexDirection: 'row',
+          paddingHorizontal: spacing.lg,
+          height: ITEM_HEIGHT * VISIBLE_ITEMS,
+          position: 'relative',
+        }}>
+          {/* Highlight band for the centered row. */}
+          <View pointerEvents="none" style={{
+            position: 'absolute',
+            left: spacing.lg, right: spacing.lg,
+            top: ITEM_HEIGHT * Math.floor(VISIBLE_ITEMS / 2),
+            height: ITEM_HEIGHT,
+            backgroundColor: colors.emberSoft,
+            borderRadius: radius.md,
+            borderWidth: 1,
+            borderColor: colors.lineStrong,
+          }} />
+
+          <Wheel
+            values={days}
+            selected={draftD}
+            onChange={setDraftD}
+            renderLabel={(v) => pad(v)}
+          />
+          <Wheel
+            values={months}
+            selected={draftM}
+            onChange={setDraftM}
+            renderLabel={(v) => monthLabels?.[v - 1] ?? pad(v)}
+          />
+          <Wheel
+            values={years}
+            selected={draftY}
+            onChange={setDraftY}
+            renderLabel={(v) => String(v)}
+          />
+        </View>
+
+        <View style={{
+          flexDirection: 'row',
+          gap: spacing.sm,
+          paddingHorizontal: spacing.lg,
+          marginTop: spacing.lg,
+        }}>
           <Pressable
             onPress={() => setOpen(false)}
-            style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(15,23,42,0.45)' }]}
-          />
-          <View
-            style={{
-              backgroundColor: colors.canvas,
-              borderTopLeftRadius: radius.xl,
-              borderTopRightRadius: radius.xl,
-              paddingTop: spacing.base,
-              paddingBottom: spacing.xl,
-            }}
+            style={({ pressed }) => ({
+              flex: 1,
+              paddingVertical: 14,
+              borderRadius: radius.md,
+              backgroundColor: pressed ? colors.surfaceAlt : colors.surface,
+              borderWidth: 1.5,
+              borderColor: colors.line,
+              alignItems: 'center',
+            })}
           >
-            <View style={{
-              alignSelf: 'center',
-              width: 44, height: 4, borderRadius: 2,
-              backgroundColor: colors.lineStrong, marginBottom: spacing.md,
-            }} />
-
-            {modalTitle ? (
-              <AppText
-                variant="h2"
-                style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}
-              >
-                {modalTitle}
-              </AppText>
-            ) : null}
-
-            <View style={{
-              flexDirection: 'row',
-              paddingHorizontal: spacing.lg,
-              height: ITEM_HEIGHT * VISIBLE_ITEMS,
-              position: 'relative',
-            }}>
-              {/* Highlight band for the centered row. */}
-              <View pointerEvents="none" style={{
-                position: 'absolute',
-                left: spacing.lg, right: spacing.lg,
-                top: ITEM_HEIGHT * Math.floor(VISIBLE_ITEMS / 2),
-                height: ITEM_HEIGHT,
-                backgroundColor: colors.emberSoft,
-                borderRadius: radius.md,
-                borderWidth: 1,
-                borderColor: colors.lineStrong,
-              }} />
-
-              <Wheel
-                values={days}
-                selected={draftD}
-                onChange={setDraftD}
-                renderLabel={(v) => pad(v)}
-              />
-              <Wheel
-                values={months}
-                selected={draftM}
-                onChange={setDraftM}
-                renderLabel={(v) => monthLabels?.[v - 1] ?? pad(v)}
-              />
-              <Wheel
-                values={years}
-                selected={draftY}
-                onChange={setDraftY}
-                renderLabel={(v) => String(v)}
-              />
-            </View>
-
-            <View style={{
-              flexDirection: 'row',
-              gap: spacing.sm,
-              paddingHorizontal: spacing.lg,
-              marginTop: spacing.lg,
-            }}>
-              <Pressable
-                onPress={() => setOpen(false)}
-                style={({ pressed }) => ({
-                  flex: 1,
-                  paddingVertical: 14,
-                  borderRadius: radius.md,
-                  backgroundColor: pressed ? colors.surfaceAlt : colors.surface,
-                  borderWidth: 1.5,
-                  borderColor: colors.line,
-                  alignItems: 'center',
-                })}
-              >
-                <AppText style={{ fontSize: 16, fontFamily: fonts.text.semibold, color: colors.ink }}>
-                  {cancelLabel}
-                </AppText>
-              </Pressable>
-              <Pressable
-                onPress={confirm}
-                style={({ pressed }) => ({
-                  flex: 1,
-                  paddingVertical: 14,
-                  borderRadius: radius.md,
-                  backgroundColor: pressed ? colors.emberDeep : colors.ember,
-                  alignItems: 'center',
-                })}
-              >
-                <AppText style={{ fontSize: 16, fontFamily: fonts.text.bold, color: colors.onEmber }}>
-                  {confirmLabel}
-                </AppText>
-              </Pressable>
-            </View>
-          </View>
+            <AppText style={{ fontSize: 15, fontFamily: fonts.text.semibold, color: colors.ink }}>
+              {cancelLabel}
+            </AppText>
+          </Pressable>
+          <Pressable
+            onPress={confirm}
+            style={({ pressed }) => ({
+              flex: 1,
+              paddingVertical: 14,
+              borderRadius: radius.md,
+              backgroundColor: pressed ? colors.emberDeep : colors.ember,
+              alignItems: 'center',
+            })}
+          >
+            <AppText style={{ fontSize: 15, fontFamily: fonts.text.bold, color: colors.onEmber }}>
+              {confirmLabel}
+            </AppText>
+          </Pressable>
         </View>
-      </Modal>
+      </Sheet>
     </View>
   );
 }
@@ -313,7 +287,14 @@ function Wheel<T extends number>({
     const idx = Math.round(y / ITEM_HEIGHT);
     const clamped = Math.max(0, Math.min(values.length - 1, idx));
     const next = values[clamped];
-    if (next !== undefined && next !== selected) onChange(next);
+    if (next !== undefined && next !== selected) {
+      // A detent: the wheel came to rest on a different value. This is the
+      // canonical case for a selection tick — one per landing, caused
+      // unambiguously by this scroll, and it tells the user the value took
+      // without them having to look down at the wheel.
+      haptics.selection();
+      onChange(next);
+    }
     // Re-snap precisely (in case the scroll over/undershot the snap).
     listRef.current?.scrollToOffset({ offset: clamped * ITEM_HEIGHT, animated: true });
   }
@@ -327,7 +308,10 @@ function Wheel<T extends number>({
         showsVerticalScrollIndicator={false}
         snapToInterval={ITEM_HEIGHT}
         decelerationRate="fast"
-        bounces={false}
+        // Let the ends rubber-band. Stopping dead at the first and last value
+        // reads as the wheel having seized; resistance reads as "that's all
+        // there is", which is what we actually mean.
+        bounces
         onMomentumScrollEnd={handleMomentumEnd}
         getItemLayout={(_, index) => ({
           length: ITEM_HEIGHT,
