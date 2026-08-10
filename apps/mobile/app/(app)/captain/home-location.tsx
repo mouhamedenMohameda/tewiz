@@ -11,7 +11,7 @@ import { api } from '@/lib/api';
 import { MapShell } from '@/components/MapShell';
 import { getMapbox, NKC_CENTER } from '@/lib/mapbox';
 import { AppText, Button, Card, Icon, Screen, ScreenHeader } from '@/components/ui';
-import { colors, fonts, radius, shadow, spacing } from '@/theme';
+import { colors, fonts, radius, shadow, spacing, statusTone } from '@/theme';
 import { currentLanguage, isRTL } from '@/lib/i18n';
 import { APP_NAME } from '@/lib/brand';
 
@@ -295,10 +295,10 @@ export default function HomeLocationScreen() {
             marginTop: spacing.base, padding: spacing.md, borderRadius: radius.md,
             backgroundColor: isLocked ? colors.saffronSoft : colors.successSoft,
           }}>
-            <AppText variant="overline" color={isLocked ? '#9A6711' : '#166534'}>
+            <AppText variant="overline" color={isLocked ? statusTone.pending.fg : statusTone.done.fg}>
               {isLocked ? t('captain.homeLocation.locked') : t('captain.homeLocation.editable')}
             </AppText>
-            <AppText variant="caption" color={isLocked ? '#9A6711' : '#166534'} style={{ marginTop: 3 }}>
+            <AppText variant="caption" color={isLocked ? statusTone.pending.fg : statusTone.done.fg} style={{ marginTop: 3 }}>
               {isLocked
                 ? t('captain.homeLocation.lockedUntil', { date: new Date(home.lockedUntil).toLocaleDateString(i18n.language) })
                 : t('captain.homeLocation.lockedDone')}

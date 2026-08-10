@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, View } from 'react-native';
+import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -67,7 +68,7 @@ export default function CarDetailScreen() {
         {car.photos.length > 0 ? (
           <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false}>
             {car.photos.map((p) => (
-              <Image key={p} source={{ uri: p }} style={{ width: 380, height: 240 }} resizeMode="cover" />
+              <Image key={p} source={{ uri: p }} style={{ width: 380, height: 240 }} contentFit="cover" />
             ))}
           </ScrollView>
         ) : (

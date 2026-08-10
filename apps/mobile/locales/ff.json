@@ -132,6 +132,9 @@
       "vignette": "Vignette",
       "visite_technique": "Visite technique"
     },
+    "errAlreadyCaptain": "Limngal ngal ko captain jaɓaaɗo.",
+    "errApplicationExists": "Ñaagunde captain woni e yahdude e limngal ngal. Jokkondir e ballal so a yi’aani ndi.",
+    "errPhoneRequired": "Ɓeydu limngal telefon maa ado ñaagaade captain.",
     "incompleteTitle": "Dossier timmaani",
     "intro": "Ngam doggude e {{app}}, hoɗo addude bayeele maa, 14 nataal (NNI, permis, carte grise, assurance, vignette, visite technique, e nataale otoo) e sabbii validation équipe o.",
     "loadFail": "Ronkii yiɗtude dossier.",

@@ -67,7 +67,7 @@ export default function PublishListingScreen() {
   const fee = config?.publicationFeeMru ?? 0;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.surface }}>
       <ScreenHeader title={`Publier · ${meta?.label ?? 'Annonce'}`} onBack={() => router.back()} />
 
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}>

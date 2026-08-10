@@ -267,7 +267,7 @@ function ProgressBar({ ratio, muted }: { ratio: number; muted?: boolean }) {
       style={{
         height: 6,
         borderRadius: 3,
-        backgroundColor: '#e2e8f0',
+        backgroundColor: colors.line,
         overflow: 'hidden',
         marginTop: spacing.sm,
       }}
@@ -276,7 +276,7 @@ function ProgressBar({ ratio, muted }: { ratio: number; muted?: boolean }) {
         style={{
           height: '100%',
           width: `${Math.min(100, Math.max(0, ratio * 100))}%`,
-          backgroundColor: muted ? '#94a3b8' : colors.ember,
+          backgroundColor: muted ? colors.faint : colors.ember,
         }}
       />
     </View>

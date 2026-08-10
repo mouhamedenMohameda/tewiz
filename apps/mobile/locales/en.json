@@ -133,6 +133,9 @@
       "vignette": "Vignette",
       "visite_technique": "Technical inspection"
     },
+    "errAlreadyCaptain": "This number already belongs to an approved captain.",
+    "errApplicationExists": "A captain application is already open for this number. Contact support if you cannot see it.",
+    "errPhoneRequired": "Add your phone number before applying as a captain.",
     "incompleteTitle": "Application incomplete",
     "intro": "To drive for {{app}}, you must provide your personal info, 14 photos (ID, licence, registration, insurance, vignette, technical inspection, and vehicle photos) and wait for the team's approval.",
     "loadFail": "Could not load your application.",

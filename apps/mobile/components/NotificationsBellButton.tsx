@@ -9,6 +9,7 @@ import { Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AppText, Icon } from '@/components/ui';
 import { useApiQuery } from '@/lib/useApiQuery';
+import { UNREAD_KEY } from '@/lib/notificationKeys';
 import { colors, radius, shadow, spacing } from '@/theme';
 
 export function NotificationsBellButton() {
@@ -17,7 +18,7 @@ export function NotificationsBellButton() {
   // screens, so they all read one poll and the badge updates everywhere at
   // once instead of each mount running its own 60 s timer.
   const { data } = useApiQuery<{ unreadCount: number }>(
-    ['notifications', 'unread'],
+    UNREAD_KEY,
     '/notifications?limit=1',
     { pollMs: 60_000, staleMs: 30_000 },
   );

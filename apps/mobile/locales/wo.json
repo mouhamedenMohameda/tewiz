@@ -132,6 +132,9 @@
       "vignette": "Vignette",
       "visite_technique": "Visite technique"
     },
+    "errAlreadyCaptain": "Limu telefon bii captain bu nangu la ba noppi.",
+    "errApplicationExists": "Am na ndoorte captain bu génn ci limu telefon bii. Jokkoo ak ndimbal bi su la wonewul.",
+    "errPhoneRequired": "Dugalal sa limu telefon balaa ngay laaj captain.",
     "incompleteTitle": "Dossier matalewul",
     "intro": "Ngir door ngir {{app}}, war nga jox sa bayel, 14 nataal (NNI, permis, carte grise, assurance, vignette, visite technique, ak nataal oto) te xaar validation équipe bi.",
     "loadFail": "Mënul jële dossier bi.",

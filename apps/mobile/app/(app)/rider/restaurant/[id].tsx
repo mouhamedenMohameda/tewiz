@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Linking, Pressable, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, View } from 'react-native';
+import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -158,7 +159,7 @@ export default function RestaurantDetailScreen() {
           <Image
             source={{ uri: cover }}
             style={{ width: '100%', height: '100%' }}
-            resizeMode="cover"
+            contentFit="cover"
             onError={() => setImgFailed(true)}
           />
         )}
@@ -243,7 +244,7 @@ export default function RestaurantDetailScreen() {
         </FadeInView>
 
         {(eta || restaurant.zone) ? (
-          <FadeInView delay={80} style={{
+          <FadeInView delay={30} style={{
             flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg,
             paddingTop: spacing.lg, borderTopWidth: 1, borderTopColor: colors.line,
           }}>
@@ -253,7 +254,7 @@ export default function RestaurantDetailScreen() {
         ) : null}
 
         {restaurant.description ? (
-          <FadeInView delay={140} style={{ marginTop: spacing.lg }}>
+          <FadeInView delay={60} style={{ marginTop: spacing.lg }}>
             <AppText variant="overline" color={colors.muted}>{t('rider.restaurants.about')}</AppText>
             <AppText variant="body" color={colors.ink2} style={{ marginTop: spacing.sm }}>
               {restaurant.description}
@@ -262,7 +263,7 @@ export default function RestaurantDetailScreen() {
         ) : null}
 
         {phones.length > 0 ? (
-          <FadeInView delay={170} style={{ marginTop: spacing.lg }}>
+          <FadeInView delay={80} style={{ marginTop: spacing.lg }}>
             <AppText variant="overline" color={colors.muted}>{t('rider.restaurants.phoneLabel')}</AppText>
             <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
               {phones.map((num, i) => (
@@ -298,7 +299,7 @@ export default function RestaurantDetailScreen() {
         ) : null}
 
         {restaurant.address ? (
-          <FadeInView delay={200} style={{ marginTop: spacing.lg }}>
+          <FadeInView delay={100} style={{ marginTop: spacing.lg }}>
             <AppText variant="overline" color={colors.muted}>{t('rider.restaurants.address')}</AppText>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm }}>
               <View style={{
@@ -316,7 +317,7 @@ export default function RestaurantDetailScreen() {
 
       {/* Structured menu — dishes grouped by category, with prices. */}
       {menuSections.length > 0 ? (
-        <FadeInView delay={230} style={{
+        <FadeInView delay={120} style={{
           marginHorizontal: spacing.lg,
           marginTop: spacing.md,
           backgroundColor: colors.surface,
@@ -365,7 +366,7 @@ export default function RestaurantDetailScreen() {
 
       {/* CTAs — primary actions */}
       <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.xl, marginBottom: spacing.huge, gap: spacing.sm }}>
-        <FadeInView delay={260}>
+        <FadeInView delay={140}>
           {/* Primary: take a ride to this restaurant. */}
           <PressableScale
             onPress={goAsRide}
@@ -384,7 +385,7 @@ export default function RestaurantDetailScreen() {
           </PressableScale>
         </FadeInView>
 
-        <FadeInView delay={310}>
+        <FadeInView delay={160}>
           {/* Secondary: send a parcel FROM this restaurant to current location. */}
           <PressableScale
             onPress={goAsColis}
