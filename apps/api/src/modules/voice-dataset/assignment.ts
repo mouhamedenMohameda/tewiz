@@ -42,6 +42,50 @@ const CANDIDATE_POOL = 40;
 const LANDMARK_RADIUS_M = 700;
 const LANDMARK_COUNT = 3;
 
+/**
+ * Categories a place must belong to before it can be assigned.
+ *
+ * The first version drew from raw OSM popularity and handed testers things like
+ * "an electronics shop" (Aziz Telecom). That failed twice over:
+ *
+ *   * UNIDENTIFIABLE. Category plus district plus landmarks only pins a place
+ *     down when the category is itself distinguishing. There is one maternity
+ *     in Sebkha; there are fifty phone shops.
+ *   * UNREALISTIC. No rider asks a taxi for "the electronics shop". They name
+ *     landmarks — the maternity, Mgeysira market, Carrefour Madrid — so a
+ *     corpus built on small shops tests speech the pipeline will never hear.
+ *
+ * Restricting to landmark-grade categories fixes both at once, and has a third
+ * effect that resolves the tension in this whole screen: for these kinds the
+ * descriptor and the spoken name converge. "A maternity · Sebkha" reads as
+ * "the maternity in Sebkha" — identifying, without ever printing the label the
+ * tester would otherwise read aloud.
+ *
+ * The long tail stays fully searchable in free mode; it is only barred from
+ * being ASSIGNED.
+ */
+const ASSIGNABLE_KINDS = [
+  // Neighbourhoods and localities — what riders name most often.
+  'suburb', 'neighbourhood', 'quarter', 'city', 'town', 'village', 'locality',
+  // Civic and health landmarks.
+  'hospital', 'clinic', 'doctors', 'maternity', 'pharmacy',
+  'university', 'college', 'school', 'kindergarten',
+  'police', 'townhall', 'courthouse', 'post_office', 'prison', 'embassy',
+  // Commerce at landmark scale — a market, not a stall.
+  'marketplace', 'supermarket', 'mall',
+  // Movement.
+  'bus_station', 'taxi', 'fuel', 'aerodrome', 'airport', 'ferry_terminal',
+  'crossing', 'junction', 'roundabout', 'motorway_junction',
+  // Worship, leisure, hospitality.
+  'place_of_worship', 'mosque', 'stadium', 'sports_centre', 'pitch', 'park',
+  'hotel', 'restaurant',
+] as const;
+
+/** SQL fragment restricting candidates to the assignable categories. */
+const ASSIGNABLE_FILTER = `kind = ANY(ARRAY[${
+  ASSIGNABLE_KINDS.map((k) => `'${k}'`).join(',')
+}])`;
+
 export interface AssignedLandmark {
   label: string;
   kind: string;
@@ -157,7 +201,7 @@ async function drawPlace(opts: {
                      > $${params.length}`;
   }
 
-  const run = async (homonym: boolean): Promise<CandidateRow | null> => {
+  const run = async (homonym: boolean, landmarkGrade: boolean): Promise<CandidateRow | null> => {
     const { rows } = await pool.query<CandidateRow>(
       `${CANDIDATE_CTE}
        SELECT id, label, name_ar, kind, lat, lng, name_count FROM (
@@ -166,6 +210,7 @@ async function drawPlace(opts: {
             AND lng BETWEEN $3 AND $4
             AND ($5::bigint IS NULL OR id <> $5::bigint)
             AND name_count ${homonym ? '> 1' : '= 1'}
+            ${landmarkGrade ? `AND ${ASSIGNABLE_FILTER}` : ''}
             ${distanceSql}
           ORDER BY popularity DESC
           LIMIT ${CANDIDATE_POOL}
@@ -177,7 +222,13 @@ async function drawPlace(opts: {
     return rows[0] ?? null;
   };
 
-  return (await run(opts.wantHomonym)) ?? (await run(!opts.wantHomonym));
+  // Landmark-grade first, on both sides of the ambiguity filter. Only if a zone
+  // genuinely has no such POI do we relax the category — an imperfect
+  // assignment beats an error, and the tester can always skip it.
+  return (await run(opts.wantHomonym, true))
+    ?? (await run(!opts.wantHomonym, true))
+    ?? (await run(opts.wantHomonym, false))
+    ?? (await run(!opts.wantHomonym, false));
 }
 
 /** Nearby POIs used to identify a place on screen without writing its name. */
@@ -286,8 +337,19 @@ export async function buildAssignment(scenario: Scenario): Promise<Assignment> {
     : null;
   const destination = destinationRow ? await toPlace(destinationRow) : null;
 
+  // Report the structure that was actually assignable, not the one asked for.
+  // A sparse corner of the corpus can leave an endpoint undrawable, and a brief
+  // announcing "from X to Y" while showing one place reads as a bug to the
+  // tester — and would be recorded against the wrong structure label.
+  let structure = scenario.structure;
+  if (needsDestination && !destination) {
+    structure = pickup ? 'pickup_only' : structure;
+  } else if (needsPickup && !pickup && destination) {
+    structure = 'destination_only';
+  }
+
   return {
-    scenario,
+    scenario: { ...scenario, structure },
     pickup,
     destination,
     tripDistanceM: pickup && destination ? metresBetween(pickup, destination) : null,
