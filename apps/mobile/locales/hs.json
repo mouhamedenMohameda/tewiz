@@ -681,6 +681,106 @@
         "captainOnTheWay": "سائقك جاي"
       }
     },
+    "dataset": {
+      "title": "جمع لكلام",
+      "subtitle": "قاعدة لمعطيات",
+      "entryTitle": "سجل تسجيلات د لختبار",
+      "entryHint": "عاوننا نقيسو فهم الحسانية. غير للمختبرين.",
+      "assignment": "المهمة متاعك",
+      "speakNaturally": "اختار زوج د لبلايص تعرفهم وقلها كيف تقولها لسائق تاكسي بصح. ما تفصّح فوق العادة.",
+      "startRecording": "ابدا التسجيل",
+      "otherAssignment": "مهمة أخرى",
+      "recordingHint": "قول الكورس اللي باغيه، ومن بعد اضغط باش توقف.",
+      "tapToStop": "اضغط باش توقف",
+      "tooShortTitle": "قصير بزاف",
+      "tooShortBody": "تكلم شوية زايد.",
+      "loadFailedTitle": "المهمة ماهي موجودة",
+      "loadFailedBody": "ما قدرناش نجيبو مهمة. شوف الكونكسيون متاعك.",
+      "retry": "إعادة المحاولة",
+      "yourClip": "التسجيل متاعك · {{seconds}} ث",
+      "replayed": "تسمع",
+      "notReplayed": "اسمعو قبل ما تأكد",
+      "mustReplay": "اسمع التسجيل متاعك قبل ما تصيفطو.",
+      "groundTruth": "لبلايص اللي تقالت بصح",
+      "pickupTitle": "بلاصة لخروج",
+      "destinationTitle": "لمقصد",
+      "choosePlace": "اختار بلاصة",
+      "openRideNoDestination": "كورس مفتوحة: ما فيها مقصد.",
+      "searchPlaceholder": "قلب على بلاصة…",
+      "noResults": "ما لقيناش بلاصة.",
+      "zoneChips": "لبلايص لمعروفين · {{zone}}",
+      "transcriptLabel": "الكتابة (اختياري)",
+      "transcriptHint": "اكتب اللي تقال، بالحسانية. تقدر تخطيها وتكملها من بعد.",
+      "transcriptPlaceholder": "ماشي من …",
+      "saveTranscript": "احفظ",
+      "speaker": "اللي تكلم",
+      "submit": "صيفط لعينة",
+      "discard": "امسح وعاود",
+      "uploading": "راهو ماشي…",
+      "submitFailedTitle": "ما تصيفطش",
+      "submitFailedBody": "عاود من بعد شوية.",
+      "yourContribution": "المشاركة متاعك",
+      "recorded": "مسجلين",
+      "validated": "متأكدين",
+      "transcribed": "مكتوبين",
+      "fillTranscripts": "كمل {{count}} د الكتابة",
+      "noPendingTranscripts": "الكتابة متاعك گاع كاملة.",
+      "backToRecording": "ارجع للتسجيل",
+      "axis": {
+        "structure": "البنية",
+        "noise": "الصوت اللي حوالك",
+        "language": "اللغة",
+        "difficulty": "الصعوبة",
+        "zone": "المقاطعة"
+      },
+      "structures": {
+        "pickup_only": "غير بلاصة لخروج",
+        "destination_only": "غير لمقصد",
+        "from_to": "من X لـ Y",
+        "round_trip": "مشي وعاد",
+        "open_ride": "كورس مفتوحة"
+      },
+      "noises": {
+        "quiet_indoor": "داخل ساكت",
+        "street": "فالزنقة",
+        "moving_car": "سيارة ماشية",
+        "wind": "ريح"
+      },
+      "languages": {
+        "hassaniya": "حسانية صافية",
+        "hassaniya_french": "حسانية + فرنسية",
+        "french": "فرنسية",
+        "arabic": "عربية فصحى"
+      },
+      "difficulties": {
+        "plain": "اسم ساهل",
+        "landmarks": "مع حزايا",
+        "homonym": "اسم ملخبط",
+        "vague": "بلاصة ما بينة"
+      },
+      "zones": {
+        "tevragh_zeina": "تفرغ زينة",
+        "ksar": "لكصر",
+        "sebkha": "السبخة",
+        "riyad": "الرياض",
+        "arafat": "عرفات",
+        "toujounine": "توجنين",
+        "dar_naim": "دار النعيم",
+        "el_mina": "الميناء",
+        "teyarett": "تيارت"
+      },
+      "genders": {
+        "f": "مرا",
+        "m": "راجل",
+        "other": "أخرى"
+      },
+      "ageBands": {
+        "18_25": "18-25 عام",
+        "26_40": "26-40 عام",
+        "41_60": "41-60 عام",
+        "60_plus": "60 عام وفوك"
+      }
+    },
     "favorites": {
       "emptyBody": "بعد رحلة بـ 5 نجوم يمكنك إضافة الكابتن هنا.",
       "emptyTitle": "لا مفضلة بعد",

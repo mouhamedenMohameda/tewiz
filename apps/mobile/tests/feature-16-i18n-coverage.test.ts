@@ -53,10 +53,10 @@ const REFERENCE = leafKeys(load('fr'));
 const COVERAGE_FLOOR: Record<string, number> = {
   ar: 100,   // complete
   en: 95,
-  hs: 57,    // hassaniya  — the everyday spoken language in Mauritania
-  ff: 56,    // pulaar
-  snk: 56,   // soninké
-  wo: 56,    // wolof
+  hs: 59,    // hassaniya  — the everyday spoken language in Mauritania
+  ff: 58,    // pulaar
+  snk: 58,   // soninké
+  wo: 58,    // wolof
 };
 
 function coverage(lang: string): number {

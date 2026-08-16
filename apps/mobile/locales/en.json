@@ -1220,6 +1220,106 @@
         "captainOnTheWay": "Your Captain is on the way"
       }
     },
+    "dataset": {
+      "title": "Voice dataset",
+      "subtitle": "Dataset",
+      "entryTitle": "Record test voice clips",
+      "entryHint": "Help measure Hassaniya understanding. Testers only.",
+      "assignment": "Your assignment",
+      "speakNaturally": "Pick two places you know and say it the way you would to a real taxi driver. Don't enunciate more than usual.",
+      "startRecording": "Start recording",
+      "otherAssignment": "Another assignment",
+      "recordingHint": "State your ride request, then tap to stop.",
+      "tapToStop": "Tap to stop",
+      "tooShortTitle": "Too short",
+      "tooShortBody": "Speak a little longer.",
+      "loadFailedTitle": "Assignment unavailable",
+      "loadFailedBody": "Could not load an assignment. Check your connection.",
+      "retry": "Try again",
+      "yourClip": "Your recording · {{seconds}} s",
+      "replayed": "Listened to",
+      "notReplayed": "Listen before validating",
+      "mustReplay": "Listen to your recording before sending it.",
+      "groundTruth": "Places actually said",
+      "pickupTitle": "Pickup point",
+      "destinationTitle": "Destination",
+      "choosePlace": "Choose a place",
+      "openRideNoDestination": "Open ride: no destination to fill in.",
+      "searchPlaceholder": "Search for a place…",
+      "noResults": "No place found.",
+      "zoneChips": "Frequent places · {{zone}}",
+      "transcriptLabel": "Transcript (optional)",
+      "transcriptHint": "Write what is said, in Hassaniya. You can skip it and come back later.",
+      "transcriptPlaceholder": "ماشي من …",
+      "saveTranscript": "Save",
+      "speaker": "Speaker",
+      "submit": "Send sample",
+      "discard": "Delete and start over",
+      "uploading": "Sending…",
+      "submitFailedTitle": "Send failed",
+      "submitFailedBody": "Try again in a moment.",
+      "yourContribution": "Your contribution",
+      "recorded": "Recorded",
+      "validated": "Validated",
+      "transcribed": "Transcribed",
+      "fillTranscripts": "Complete {{count}} transcript(s)",
+      "noPendingTranscripts": "All your transcripts are up to date.",
+      "backToRecording": "Back to recording",
+      "axis": {
+        "structure": "Structure",
+        "noise": "Sound environment",
+        "language": "Language",
+        "difficulty": "Difficulty",
+        "zone": "District"
+      },
+      "structures": {
+        "pickup_only": "Pickup only",
+        "destination_only": "Destination only",
+        "from_to": "From X to Y",
+        "round_trip": "Round trip",
+        "open_ride": "Open ride"
+      },
+      "noises": {
+        "quiet_indoor": "Quiet indoors",
+        "street": "In the street",
+        "moving_car": "Moving car",
+        "wind": "Wind"
+      },
+      "languages": {
+        "hassaniya": "Pure Hassaniya",
+        "hassaniya_french": "Hassaniya + French",
+        "french": "French",
+        "arabic": "Standard Arabic"
+      },
+      "difficulties": {
+        "plain": "Simple name",
+        "landmarks": "With landmarks",
+        "homonym": "Ambiguous name",
+        "vague": "Vague place"
+      },
+      "zones": {
+        "tevragh_zeina": "Tevragh-Zeina",
+        "ksar": "Ksar",
+        "sebkha": "Sebkha",
+        "riyad": "Riyad",
+        "arafat": "Arafat",
+        "toujounine": "Toujounine",
+        "dar_naim": "Dar Naim",
+        "el_mina": "El Mina",
+        "teyarett": "Teyarett"
+      },
+      "genders": {
+        "f": "Female",
+        "m": "Male",
+        "other": "Other"
+      },
+      "ageBands": {
+        "18_25": "18-25 years",
+        "26_40": "26-40 years",
+        "41_60": "41-60 years",
+        "60_plus": "60 and over"
+      }
+    },
     "favorites": {
       "emptyBody": "After a 5-star ride you'll be able to add the driver here.",
       "emptyTitle": "No favourites yet",
