@@ -49,7 +49,7 @@ import {
   type DatasetSample, type PoiOption, type Scenario, type ScenarioStructure,
 } from '@/lib/voiceDataset';
 
-type Phase = 'brief' | 'recording' | 'annotate' | 'uploading' | 'transcripts';
+type Phase = 'brief' | 'annotate' | 'uploading' | 'transcripts';
 
 const MIN_RECORD_MS = 1500;
 const MAX_RECORD_MS = 60_000;
@@ -187,9 +187,11 @@ export default function DatasetCollectScreen() {
     onAutoStop: onClipReady,
   });
 
+  // No phase change: the brief stays mounted so the map, the category and the
+  // landmarks remain visible while the tester speaks. Losing them at the moment
+  // of recording was the whole point of the complaint that produced this.
   const startRecording = useCallback(async () => {
-    const ok = await recorder.start();
-    if (ok) setPhase('recording');
+    await recorder.start();
   }, [recorder]);
 
   const stopRecording = useCallback(async () => {
@@ -271,13 +273,18 @@ export default function DatasetCollectScreen() {
 
       {phase === 'brief' && (
         <>
-          <CollectionModeToggle mode={mode} onChange={switchMode} />
+          {!recorder.isRecording ? (
+            <CollectionModeToggle mode={mode} onChange={switchMode} />
+          ) : null}
           {mode === 'assigned' ? (
             <AssignedBrief
               assignment={assignment}
               stats={stats}
               loading={loadingBrief}
+              isRecording={recorder.isRecording}
+              durationMs={recorder.durationMs}
               onStart={startRecording}
+              onStop={stopRecording}
               onShuffle={() => loadBrief('assigned')}
               onOpenTranscripts={() => setPhase('transcripts')}
               error={recorder.error}
@@ -287,20 +294,16 @@ export default function DatasetCollectScreen() {
               scenario={scenario}
               stats={stats}
               loading={loadingBrief}
+              isRecording={recorder.isRecording}
+              durationMs={recorder.durationMs}
               onStart={startRecording}
+              onStop={stopRecording}
               onShuffle={() => loadBrief('free')}
               onOpenTranscripts={() => setPhase('transcripts')}
               error={recorder.error}
             />
           )}
         </>
-      )}
-
-      {phase === 'recording' && (
-        <RecordingView
-          durationMs={recorder.durationMs}
-          onStop={stopRecording}
-        />
       )}
 
       {phase === 'annotate' && clipUri && (
@@ -400,12 +403,16 @@ function CollectionModeToggle({ mode, onChange }: {
 // ── Assigned brief ───────────────────────────────────────────────────────────
 
 function AssignedBrief({
-  assignment, stats, loading, onStart, onShuffle, onOpenTranscripts, error,
+  assignment, stats, loading, isRecording, durationMs,
+  onStart, onStop, onShuffle, onOpenTranscripts, error,
 }: {
   assignment: Assignment | null;
   stats: CollectorStats | null;
   loading: boolean;
+  isRecording: boolean;
+  durationMs: number;
   onStart: () => void;
+  onStop: () => void;
   onShuffle: () => void;
   onOpenTranscripts: () => void;
   error: string | null;
@@ -440,6 +447,14 @@ function AssignedBrief({
         </AppText>
       ) : null}
 
+      <RecordControl
+        isRecording={isRecording}
+        durationMs={durationMs}
+        idleHint={t('rider.dataset.assignedHint')}
+        onStart={onStart}
+        onStop={onStop}
+      />
+
       <Card>
         <AppText variant="overline" color={colors.ember}>
           {t('rider.dataset.howToSay')}
@@ -468,17 +483,19 @@ function AssignedBrief({
 
       {error ? <AppText variant="caption" color={colors.danger}>{error}</AppText> : null}
 
-      <Button title={t('rider.dataset.startRecording')} icon="voice" onPress={onStart} fullWidth />
       {/* A tester who does not know the place would guess, and a guess recorded
-          against an exact gold label is noise wearing the badge of truth. */}
-      <Button
-        title={t('rider.dataset.unknownPlace')}
-        variant="ghost"
-        icon="refresh"
-        onPress={onShuffle}
-      />
+          against an exact gold label is noise wearing the badge of truth.
+          Hidden mid-recording: reassigning then would discard the take. */}
+      {!isRecording ? (
+        <Button
+          title={t('rider.dataset.unknownPlace')}
+          variant="ghost"
+          icon="refresh"
+          onPress={onShuffle}
+        />
+      ) : null}
 
-      {stats ? (
+      {stats && !isRecording ? (
         <Card>
           <AppText variant="overline" color={colors.muted}>
             {t('rider.dataset.yourContribution')}
@@ -613,12 +630,16 @@ function AssignmentMap({ pickup, destination }: {
 // ── Free-mode brief ──────────────────────────────────────────────────────────
 
 function BriefView({
-  scenario, stats, loading, onStart, onShuffle, onOpenTranscripts, error,
+  scenario, stats, loading, isRecording, durationMs,
+  onStart, onStop, onShuffle, onOpenTranscripts, error,
 }: {
   scenario: Scenario | null;
   stats: CollectorStats | null;
   loading: boolean;
+  isRecording: boolean;
+  durationMs: number;
   onStart: () => void;
+  onStop: () => void;
   onShuffle: () => void;
   onOpenTranscripts: () => void;
   error: string | null;
@@ -685,15 +706,24 @@ function BriefView({
         <AppText variant="caption" color={colors.danger}>{error}</AppText>
       ) : null}
 
-      <Button title={t('rider.dataset.startRecording')} icon="voice" onPress={onStart} fullWidth />
-      <Button
-        title={t('rider.dataset.otherAssignment')}
-        variant="ghost"
-        icon="refresh"
-        onPress={onShuffle}
+      <RecordControl
+        isRecording={isRecording}
+        durationMs={durationMs}
+        idleHint={t('rider.dataset.speakNaturally')}
+        onStart={onStart}
+        onStop={onStop}
       />
 
-      {stats ? (
+      {!isRecording ? (
+        <Button
+          title={t('rider.dataset.otherAssignment')}
+          variant="ghost"
+          icon="refresh"
+          onPress={onShuffle}
+        />
+      ) : null}
+
+      {stats && !isRecording ? (
         <Card>
           <AppText variant="overline" color={colors.muted}>
             {t('rider.dataset.yourContribution')}
@@ -745,33 +775,52 @@ function Counter({ label, value }: { label: string; value: number }) {
   );
 }
 
-// ── Recording ────────────────────────────────────────────────────────────────
+// ── Recording control ───────────────────────────────────────────────────────
 
-function RecordingView({ durationMs, onStop }: { durationMs: number; onStop: () => void }) {
+/**
+ * Record/stop, rendered INSIDE the brief rather than on a screen of its own.
+ *
+ * The first version pushed a dedicated recording screen, which unmounted the
+ * map, the category and the landmarks at the exact moment the tester needed
+ * them — they had to memorise the assignment before speaking. Nothing is
+ * leaked by keeping the brief up: the written name is not on it either way.
+ */
+function RecordControl({ isRecording, durationMs, idleHint, onStart, onStop }: {
+  isRecording: boolean;
+  durationMs: number;
+  /** Shown before recording — the two modes ask for different things. */
+  idleHint: string;
+  onStart: () => void;
+  onStop: () => void;
+}) {
   const { t } = useTranslation();
   const secs = Math.floor(durationMs / 1000);
   const mmss = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
 
   return (
-    <View style={{ alignItems: 'center', paddingVertical: spacing.xxl, gap: spacing.lg }}>
-      <AppText variant="h1">{mmss}</AppText>
-      <AppText variant="body" color={colors.muted} align="center" style={{ maxWidth: 280 }}>
-        {t('rider.dataset.recordingHint')}
-      </AppText>
-      <Pressable
-        onPress={onStop}
-        style={{
-          width: 120, height: 120, borderRadius: 60,
-          backgroundColor: colors.danger,
-          alignItems: 'center', justifyContent: 'center',
-        }}
-      >
-        <Icon name="close" size={48} color={colors.white} />
-      </Pressable>
-      <AppText variant="caption" color={colors.muted}>
-        {t('rider.dataset.tapToStop')}
-      </AppText>
-    </View>
+    <Card>
+      <View style={{ alignItems: 'center', gap: spacing.md }}>
+        <AppText variant="h1" color={isRecording ? colors.danger : colors.ink}>
+          {isRecording ? mmss : '0:00'}
+        </AppText>
+        <AppText variant="caption" color={colors.muted} align="center" style={{ maxWidth: 280 }}>
+          {isRecording ? t('rider.dataset.recordingHint') : idleHint}
+        </AppText>
+        <Pressable
+          onPress={isRecording ? onStop : onStart}
+          style={{
+            width: 96, height: 96, borderRadius: 48,
+            backgroundColor: isRecording ? colors.danger : colors.ember,
+            alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <Icon name={isRecording ? 'close' : 'voice'} size={40} color={colors.white} />
+        </Pressable>
+        <AppText variant="caption" color={colors.muted}>
+          {isRecording ? t('rider.dataset.tapToStop') : t('rider.dataset.startRecording')}
+        </AppText>
+      </View>
+    </Card>
   );
 }
 
