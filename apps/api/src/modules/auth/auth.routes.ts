@@ -136,6 +136,12 @@ authRouter.post('/login', async (req, res) => {
       adminRole: userRow!.admin_role,
       fullName: userRow!.full_name,
       language: userRow!.language,
+      // Carried on login, not only on /auth/me. The mobile client refreshes
+      // from /auth/me at boot, but that effect returns early when no session
+      // exists yet — so a user who signs in during the current app session had
+      // no way to learn they are a tester until the next cold start, and the
+      // collection screen stayed hidden behind an app restart nobody knew to do.
+      isTester: userRow!.is_tester ?? false,
       mustResetPassword: userRow!.must_reset_password,
     },
     tokens: {
@@ -536,7 +542,9 @@ interface UserRowWithPassword extends UserRow {
 async function findUserByPhoneWithPassword(phone: string): Promise<UserRowWithPassword | null> {
   const { rows } = await pool.query<UserRowWithPassword>(
     `SELECT id, phone, role, admin_role, full_name, language, status,
-            password_hash, COALESCE(must_reset_password, false) AS must_reset_password
+            password_hash,
+            COALESCE(is_tester, false) AS is_tester,
+            COALESCE(must_reset_password, false) AS must_reset_password
        FROM users WHERE phone = $1`,
     [phone],
   );

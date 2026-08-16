@@ -93,7 +93,7 @@ export default function LoginScreen() {
       }
 
       const r = await api.post<{
-        user: { id: string; phone: string; role: 'rider' | 'captain' | 'admin'; fullName: string | null; mustResetPassword?: boolean };
+        user: { id: string; phone: string; role: 'rider' | 'captain' | 'admin'; fullName: string | null; isTester?: boolean; mustResetPassword?: boolean };
         tokens: { accessToken: string; refreshToken: string };
       }>('/auth/login', {
         phone: normalizedPhone,
@@ -108,6 +108,11 @@ export default function LoginScreen() {
           phone: r.data.user.phone,
           role: r.data.user.role,
           fullName: r.data.user.fullName,
+          // Without this the dataset-collection entry stays hidden until the
+          // next cold start: the /auth/me refresh that carries this flag runs
+          // only on layout mount, which has already passed by the time a login
+          // completes.
+          isTester: r.data.user.isTester ?? false,
         },
         accessToken: r.data.tokens.accessToken,
         refreshToken: r.data.tokens.refreshToken,
