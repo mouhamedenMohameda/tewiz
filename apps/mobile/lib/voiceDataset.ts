@@ -39,6 +39,8 @@ export interface AssignedLandmark {
 
 export interface AssignedPlace {
   poiId: number;
+  /** The moughataa the POI actually sits in — not the scenario's assigned zone. */
+  district: string;
   /** Deliberately NOT shown while recording — see getAssignment. */
   label: string;
   nameAr: string | null;

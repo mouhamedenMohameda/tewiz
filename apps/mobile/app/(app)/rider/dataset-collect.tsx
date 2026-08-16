@@ -326,6 +326,7 @@ export default function DatasetCollectScreen() {
           ageBand={ageBand}
           onAgeBand={setAgeBand}
           canSubmit={annotationComplete}
+          assigned={mode === 'assigned'}
           onSubmit={submit}
           onDiscard={discardClip}
         />
@@ -434,10 +435,10 @@ function AssignedBrief({
       <AssignmentMap pickup={pickup} destination={destination} />
 
       {pickup ? (
-        <AssignedPlaceCard place={pickup} role="pickup" zone={scenario.zone} />
+        <AssignedPlaceCard place={pickup} role="pickup" />
       ) : null}
       {destination ? (
-        <AssignedPlaceCard place={destination} role="destination" zone={scenario.zone} />
+        <AssignedPlaceCard place={destination} role="destination" />
       ) : null}
       {assignment.tripDistanceM !== null ? (
         <AppText variant="caption" color={colors.muted} align="center">
@@ -526,10 +527,9 @@ function AssignedBrief({
  * the landmarks around it. That is enough to know which physical place is meant
  * while leaving the tester to produce the name from their own vocabulary.
  */
-function AssignedPlaceCard({ place, role, zone }: {
+function AssignedPlaceCard({ place, role }: {
   place: AssignedPlace;
   role: 'pickup' | 'destination';
-  zone: string;
 }) {
   const { t } = useTranslation();
   const ambiguous = place.nameCount > 1;
@@ -549,7 +549,7 @@ function AssignedPlaceCard({ place, role, zone }: {
         {t(`rider.dataset.kinds.${place.kind}`, { defaultValue: place.kind })}
       </AppText>
       <AppText variant="caption" color={colors.muted}>
-        {t(`rider.dataset.zones.${zone}`, { defaultValue: zone })}
+        {t(`rider.dataset.zones.${place.district}`, { defaultValue: place.district })}
       </AppText>
 
       {place.landmarks.length > 0 ? (
@@ -845,6 +845,8 @@ interface AnnotateViewProps {
   ageBand: string | null;
   onAgeBand: (v: string) => void;
   canSubmit: boolean;
+  /** True when the two places came from an assignment, not a free choice. */
+  assigned: boolean;
   onSubmit: () => void;
   onDiscard: () => void;
 }
@@ -875,6 +877,11 @@ function AnnotateView(props: AnnotateViewProps) {
         <AppText variant="overline" color={colors.muted}>
           {t('rider.dataset.groundTruth')}
         </AppText>
+        {props.assigned ? (
+          <AppText variant="caption" color={colors.muted} style={{ marginTop: spacing.xs }}>
+            {t('rider.dataset.revealedHint')}
+          </AppText>
+        ) : null}
 
         <PoiRow
           label={t('rider.dataset.pickupTitle')}

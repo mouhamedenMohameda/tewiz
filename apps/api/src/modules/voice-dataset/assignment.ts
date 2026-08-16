@@ -23,7 +23,7 @@
  */
 
 import { pool } from '../../db/pool.js';
-import { zoneCentre, type Scenario } from './scenario.js';
+import { SCENARIO_ZONES, zoneCentre, type Scenario } from './scenario.js';
 
 /** Generous box around Nouakchott — destinations may sit anywhere inside it. */
 const CITY_BOX = { minLat: 17.90, maxLat: 18.25, minLng: -16.10, maxLng: -15.80 };
@@ -50,6 +50,15 @@ export interface AssignedLandmark {
 
 export interface AssignedPlace {
   poiId: number;
+  /**
+   * The moughataa this POI actually sits in, nearest-centre.
+   *
+   * NOT the scenario's assigned zone: the destination is drawn from the whole
+   * city, so labelling it with the assigned zone told testers a place in Arafat
+   * was in Riyad — which is exactly what made the brief and the annotation look
+   * like two different places.
+   */
+  district: string;
   /** Withheld by the client until after recording — see migration 0082. */
   label: string;
   nameAr: string | null;
@@ -201,6 +210,7 @@ async function landmarksFor(place: CandidateRow): Promise<AssignedLandmark[]> {
 async function toPlace(row: CandidateRow): Promise<AssignedPlace> {
   return {
     poiId: Number(row.id),
+    district: nearestZone(row.lat, row.lng),
     label: row.label,
     nameAr: row.name_ar,
     kind: row.kind,
@@ -209,6 +219,21 @@ async function toPlace(row: CandidateRow): Promise<AssignedPlace> {
     nameCount: row.name_count,
     landmarks: await landmarksFor(row),
   };
+}
+
+/** Nearest moughataa centre to a coordinate — the POI's own district. */
+function nearestZone(lat: number, lng: number): string {
+  // Widened to string: SCENARIO_ZONES is `as const`, so holding an element in a
+  // mutable binding would pin it to the first entry's literal code type.
+  let bestCode: string = SCENARIO_ZONES[0]!.code;
+  let bestDist = Number.POSITIVE_INFINITY;
+  for (const zone of SCENARIO_ZONES) {
+    const dLat = lat - zone.lat;
+    const dLng = (lng - zone.lng) * Math.cos((lat * Math.PI) / 180);
+    const d = dLat * dLat + dLng * dLng;
+    if (d < bestDist) { bestDist = d; bestCode = zone.code; }
+  }
+  return bestCode;
 }
 
 function metresBetween(a: AssignedPlace, b: AssignedPlace): number {
