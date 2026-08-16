@@ -11,11 +11,14 @@
  *    assigns the *shape* (structure, noise, language, difficulty, zone); the
  *    tester supplies places from their own life and says them their own way.
  *
- * 2. ANNOTATION COMES AFTER, AND REQUIRES LISTENING BACK.
- *    The submit button stays disabled until the clip has been played once. A
- *    mislabelled sample is worse than a missing one: it silently caps the
- *    measured accuracy of every architecture scored against the corpus, and
- *    nothing downstream can detect it.
+ * 2. ANNOTATION COMES AFTER, with playback available but not compulsory.
+ *    An earlier version blocked submission until the clip had been replayed,
+ *    reasoning that a mislabelled sample is worse than a missing one. That
+ *    reasoning holds when the annotator did not produce the audio — it does not
+ *    hold here, where the same person spoke five seconds earlier and knows
+ *    exactly what they said. It bought no accuracy and taxed every single
+ *    sample. The real guard against bad labels is the reviewer pass in
+ *    admin-web, which listens to the audio without having recorded it.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -61,7 +64,6 @@ export default function DatasetCollectScreen() {
   // Annotation state
   const [clipUri, setClipUri] = useState<string | null>(null);
   const [clipDurationS, setClipDurationS] = useState(0);
-  const [hasReplayed, setHasReplayed] = useState(false);
   const [structure, setStructure] = useState<ScenarioStructure>('from_to');
   const [pickup, setPickup] = useState<PoiOption | null>(null);
   const [destination, setDestination] = useState<PoiOption | null>(null);
@@ -111,7 +113,6 @@ export default function DatasetCollectScreen() {
     }
     setClipUri(uri);
     setClipDurationS(Math.round(durationMs / 1000));
-    setHasReplayed(false);
     setPhase('annotate');
   }, [t]);
 
@@ -133,7 +134,6 @@ export default function DatasetCollectScreen() {
   const resetAnnotation = useCallback(() => {
     setClipUri(null);
     setClipDurationS(0);
-    setHasReplayed(false);
     setPickup(null);
     setDestination(null);
     setTranscriptText('');
@@ -225,8 +225,6 @@ export default function DatasetCollectScreen() {
         <AnnotateView
           clipUri={clipUri}
           durationS={clipDurationS}
-          hasReplayed={hasReplayed}
-          onReplayed={() => setHasReplayed(true)}
           structure={structure}
           onStructure={setStructure}
           pickup={pickup}
@@ -242,7 +240,7 @@ export default function DatasetCollectScreen() {
           onGender={setGender}
           ageBand={ageBand}
           onAgeBand={setAgeBand}
-          canSubmit={hasReplayed && annotationComplete}
+          canSubmit={annotationComplete}
           onSubmit={submit}
           onDiscard={discardClip}
         />
@@ -449,8 +447,6 @@ function RecordingView({ durationMs, onStop }: { durationMs: number; onStop: () 
 interface AnnotateViewProps {
   clipUri: string;
   durationS: number;
-  hasReplayed: boolean;
-  onReplayed: () => void;
   structure: ScenarioStructure;
   onStructure: (s: ScenarioStructure) => void;
   pickup: PoiOption | null;
@@ -479,8 +475,6 @@ function AnnotateView(props: AnnotateViewProps) {
       <ClipPlayer
         uri={props.clipUri}
         durationS={props.durationS}
-        hasReplayed={props.hasReplayed}
-        onPlayed={props.onReplayed}
       />
 
       <Card>
@@ -556,12 +550,6 @@ function AnnotateView(props: AnnotateViewProps) {
         />
       </Card>
 
-      {!props.hasReplayed ? (
-        <AppText variant="caption" color={colors.muted} align="center">
-          {t('rider.dataset.mustReplay')}
-        </AppText>
-      ) : null}
-
       <Button
         title={t('rider.dataset.submit')}
         icon="check"
@@ -586,11 +574,9 @@ function AnnotateView(props: AnnotateViewProps) {
  * loaded holds the audio session, and the next recording then fails to start
  * on iOS.
  */
-function ClipPlayer({ uri, durationS, hasReplayed, onPlayed }: {
+function ClipPlayer({ uri, durationS }: {
   uri: string;
   durationS: number;
-  hasReplayed: boolean;
-  onPlayed: () => void;
 }) {
   const { t } = useTranslation();
   const soundRef = useRef<Audio.Sound | null>(null);
@@ -609,19 +595,16 @@ function ClipPlayer({ uri, durationS, hasReplayed, onPlayed }: {
         sound.setOnPlaybackStatusUpdate((status) => {
           if (!status.isLoaded) return;
           setPlaying(status.isPlaying);
-          if (status.didJustFinish) {
-            setPlaying(false);
-            onPlayed();
-          }
+          if (status.didJustFinish) setPlaying(false);
         });
       }
       await soundRef.current.replayAsync();
     } catch {
-      // Playback failure must not trap the tester on this screen: unlock the
-      // submit button rather than making a broken player block a good sample.
-      onPlayed();
+      // Playback is a convenience, not a gate — a failure here must not block
+      // the sample. Reset the button and let the tester carry on.
+      setPlaying(false);
     }
-  }, [uri, onPlayed]);
+  }, [uri]);
 
   return (
     <Card>
@@ -638,8 +621,8 @@ function ClipPlayer({ uri, durationS, hasReplayed, onPlayed }: {
         </Pressable>
         <View style={{ flex: 1 }}>
           <AppText variant="body">{t('rider.dataset.yourClip', { seconds: durationS })}</AppText>
-          <AppText variant="caption" color={hasReplayed ? colors.success : colors.muted}>
-            {hasReplayed ? t('rider.dataset.replayed') : t('rider.dataset.notReplayed')}
+          <AppText variant="caption" color={colors.muted}>
+            {t('rider.dataset.replayHint')}
           </AppText>
         </View>
       </View>

@@ -4,7 +4,7 @@ import { HttpError } from '../../middleware/error.js';
 import { perUserLimiter } from '../../middleware/rate-limit.js';
 import { uploadAudio } from '../../middleware/upload.js';
 import { requireTester } from './require-tester.js';
-import { nextScenario, getCoverage } from './scenario.js';
+import { nextScenario, getCoverage, zoneCentre } from './scenario.js';
 import * as dataset from './voice-dataset.service.js';
 
 // Parent (riderRouter) enforces requireAuth + requireRole('rider', 'captain').
@@ -50,7 +50,10 @@ riderVoiceDatasetRouter.get('/pois', async (req, res) => {
   const zone = typeof req.query.zone === 'string' ? req.query.zone : '';
 
   if (q.trim().length >= 2) {
-    res.json(await dataset.searchPois(q));
+    // The assigned zone biases ranking towards the moughataa the tester was
+    // told to draw places from — the cheapest available fix for homonyms,
+    // which Nouakchott has plenty of.
+    res.json(await dataset.searchPois(q, { near: zoneCentre(zone) ?? undefined }));
     return;
   }
   if (zone) {

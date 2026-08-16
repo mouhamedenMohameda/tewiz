@@ -680,50 +680,13 @@
       }
     },
     "dataset": {
-      "title": "Dajale baat",
-      "subtitle": "Dataset",
-      "entryTitle": "Enregistre baat yu test",
-      "entryHint": "Dimbali nu saytu ni hassaniya di dégge. Testeur yi rekk.",
+      "ageBands": {
+        "18_25": "18-25 at",
+        "26_40": "26-40 at",
+        "41_60": "41-60 at",
+        "60_plus": "60 at ak yéene"
+      },
       "assignment": "Sa liggéey",
-      "speakNaturally": "Tannal ñaari bérab yu nga xam, te wax ko ni nga koy waxe ab taksi bu wér. Bul rafetal sa wax.",
-      "startRecording": "Tàmbali enregistrement",
-      "otherAssignment": "Beneen liggéey",
-      "recordingHint": "Wax sa course, ba noppi laal ngir taxaw.",
-      "tapToStop": "Laal ngir taxaw",
-      "tooShortTitle": "Gàtt rekk",
-      "tooShortBody": "Waxal tuuti gën a yàgg.",
-      "loadFailedTitle": "Liggéey bi amul",
-      "loadFailedBody": "Mënunu jël liggéey. Saytul sa connexion.",
-      "retry": "Jéem ko",
-      "yourClip": "Sa enregistrement · {{seconds}} s",
-      "replayed": "Dégg nañu ko",
-      "notReplayed": "Dégglu ko laata nga koy nangu",
-      "mustReplay": "Dégglul sa enregistrement laata nga koy yónnee.",
-      "groundTruth": "Bérab yi ñu wax dëgg",
-      "pickupTitle": "Bérab bu ngay jóge",
-      "destinationTitle": "Fu ngay dem",
-      "choosePlace": "Tannal ab bérab",
-      "openRideNoDestination": "Course bu ubbeeku: amul fu mu jëm.",
-      "searchPlaceholder": "Wutal ab bérab…",
-      "noResults": "Gisunu benn bérab.",
-      "zoneChips": "Bérab yu bare · {{zone}}",
-      "transcriptLabel": "Bind (soo ko bëggee)",
-      "transcriptHint": "Bindal li ñu wax, ci hassaniya. Man nga koy wéyal te def ko ëllëg.",
-      "transcriptPlaceholder": "ماشي من …",
-      "saveTranscript": "Denc",
-      "speaker": "Ki wax",
-      "submit": "Yónnee échantillon bi",
-      "discard": "Far te tàmbali ci bopp",
-      "uploading": "Mu ngi yónnee…",
-      "submitFailedTitle": "Yónnee bi antuwul",
-      "submitFailedBody": "Jéemaatal ci kanam tuuti.",
-      "yourContribution": "Sa ndimbal",
-      "recorded": "Yu ñu enregistre",
-      "validated": "Yu ñu nangu",
-      "transcribed": "Yu ñu bind",
-      "fillTranscripts": "Matal {{count}} bind",
-      "noPendingTranscripts": "Sa bind yépp matna.",
-      "backToRecording": "Dellu ci enregistrement",
       "axis": {
         "structure": "Tëraliin",
         "noise": "Baat yi ci wet",
@@ -731,6 +694,53 @@
         "difficulty": "Jafe-jafe",
         "zone": "Gox"
       },
+      "backToRecording": "Dellu ci enregistrement",
+      "choosePlace": "Tannal ab bérab",
+      "destinationTitle": "Fu ngay dem",
+      "difficulties": {
+        "plain": "Tur bu yomb",
+        "landmarks": "Ak royukaay",
+        "homonym": "Tur bu jaxasoo",
+        "vague": "Bérab bu leer ul"
+      },
+      "discard": "Far te tàmbali ci bopp",
+      "entryHint": "Dimbali nu saytu ni hassaniya di dégge. Testeur yi rekk.",
+      "entryTitle": "Enregistre baat yu test",
+      "fillTranscripts": "Matal {{count}} bind",
+      "genders": {
+        "f": "Jigéen",
+        "m": "Góor",
+        "other": "Beneen"
+      },
+      "groundTruth": "Bérab yi ñu wax dëgg",
+      "languages": {
+        "hassaniya": "Hassaniya bu set",
+        "hassaniya_french": "Hassaniya + Farañse",
+        "french": "Farañse",
+        "arabic": "Araab bu am téere"
+      },
+      "loadFailedBody": "Mënunu jël liggéey. Saytul sa connexion.",
+      "loadFailedTitle": "Liggéey bi amul",
+      "noPendingTranscripts": "Sa bind yépp matna.",
+      "noResults": "Gisunu benn bérab.",
+      "noises": {
+        "quiet_indoor": "Biir bu dal",
+        "street": "Ci mbedd mi",
+        "moving_car": "Oto bu dox",
+        "wind": "Ngelaw"
+      },
+      "openRideNoDestination": "Course bu ubbeeku: amul fu mu jëm.",
+      "otherAssignment": "Beneen liggéey",
+      "pickupTitle": "Bérab bu ngay jóge",
+      "recorded": "Yu ñu enregistre",
+      "recordingHint": "Wax sa course, ba noppi laal ngir taxaw.",
+      "replayHint": "Dégglu ko bu la mucc.",
+      "retry": "Jéem ko",
+      "saveTranscript": "Denc",
+      "searchPlaceholder": "Wutal ab bérab…",
+      "speakNaturally": "Tannal ñaari bérab yu nga xam, te wax ko ni nga koy waxe ab taksi bu wér. Bul rafetal sa wax.",
+      "speaker": "Ki wax",
+      "startRecording": "Tàmbali enregistrement",
       "structures": {
         "pickup_only": "Fu ngay jóge rekk",
         "destination_only": "Fu ngay dem rekk",
@@ -738,24 +748,23 @@
         "round_trip": "Dem ak dellu",
         "open_ride": "Course bu ubbeeku"
       },
-      "noises": {
-        "quiet_indoor": "Biir bu dal",
-        "street": "Ci mbedd mi",
-        "moving_car": "Oto bu dox",
-        "wind": "Ngelaw"
-      },
-      "languages": {
-        "hassaniya": "Hassaniya bu set",
-        "hassaniya_french": "Hassaniya + Farañse",
-        "french": "Farañse",
-        "arabic": "Araab bu am téere"
-      },
-      "difficulties": {
-        "plain": "Tur bu yomb",
-        "landmarks": "Ak royukaay",
-        "homonym": "Tur bu jaxasoo",
-        "vague": "Bérab bu leer ul"
-      },
+      "submit": "Yónnee échantillon bi",
+      "submitFailedBody": "Jéemaatal ci kanam tuuti.",
+      "submitFailedTitle": "Yónnee bi antuwul",
+      "subtitle": "Dataset",
+      "tapToStop": "Laal ngir taxaw",
+      "title": "Dajale baat",
+      "tooShortBody": "Waxal tuuti gën a yàgg.",
+      "tooShortTitle": "Gàtt rekk",
+      "transcribed": "Yu ñu bind",
+      "transcriptHint": "Bindal li ñu wax, ci hassaniya. Man nga koy wéyal te def ko ëllëg.",
+      "transcriptLabel": "Bind (soo ko bëggee)",
+      "transcriptPlaceholder": "ماشي من …",
+      "uploading": "Mu ngi yónnee…",
+      "validated": "Yu ñu nangu",
+      "yourClip": "Sa enregistrement · {{seconds}} s",
+      "yourContribution": "Sa ndimbal",
+      "zoneChips": "Bérab yu bare · {{zone}}",
       "zones": {
         "tevragh_zeina": "Tevragh-Zeina",
         "ksar": "Ksar",
@@ -766,17 +775,6 @@
         "dar_naim": "Dar Naim",
         "el_mina": "El Mina",
         "teyarett": "Teyarett"
-      },
-      "genders": {
-        "f": "Jigéen",
-        "m": "Góor",
-        "other": "Beneen"
-      },
-      "ageBands": {
-        "18_25": "18-25 at",
-        "26_40": "26-40 at",
-        "41_60": "41-60 at",
-        "60_plus": "60 at ak yéene"
       }
     },
     "favorites": {

@@ -22,7 +22,9 @@ import { AppText, Icon, Sheet, TextField } from '@/components/ui';
 import { searchPois, zonePois, type PoiOption } from '@/lib/voiceDataset';
 import { colors, radius, spacing } from '@/theme';
 
-const SEARCH_DEBOUNCE_MS = 300;
+// Short enough that the list feels like it tracks typing, long enough that a
+// full word does not fire a request per keystroke.
+const SEARCH_DEBOUNCE_MS = 180;
 const MIN_QUERY_LENGTH = 2;
 
 export interface PoiPickerSheetProps {
@@ -64,7 +66,7 @@ export function PoiPickerSheet({ visible, title, zone, onSelect, onClose }: PoiP
     setLoading(true);
     const seq = ++requestSeq.current;
     const timer = setTimeout(() => {
-      searchPois(q)
+      searchPois(q, zone)
         .then((r) => {
           if (seq === requestSeq.current) setResults(r);
         })
@@ -76,7 +78,7 @@ export function PoiPickerSheet({ visible, title, zone, onSelect, onClose }: PoiP
         });
     }, SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, zone]);
 
   const pick = useCallback((poi: PoiOption) => {
     onSelect(poi);
@@ -96,7 +98,10 @@ export function PoiPickerSheet({ visible, title, zone, onSelect, onClose }: PoiP
         autoCapitalize="none"
       />
 
-      {!searching && chips.length > 0 ? (
+      {/* Chips stay up by default AND come back when a search returns nothing —
+          which is exactly the moment the tester needs a fallback rather than an
+          empty list. */}
+      {(!searching || (!loading && results.length === 0)) && chips.length > 0 ? (
         <View style={{ marginTop: spacing.base }}>
           <AppText variant="overline" color={colors.muted}>
             {t('rider.dataset.zoneChips', { zone: t(`rider.dataset.zones.${zone}`) })}

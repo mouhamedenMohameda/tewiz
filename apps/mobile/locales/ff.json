@@ -680,50 +680,13 @@
       }
     },
     "dataset": {
-      "title": "Mooɓtugol sawto",
-      "subtitle": "Dataset",
-      "entryTitle": "Winndu sawtooji test",
-      "entryHint": "Wallu min ƴeewde faamamuyee hassaniya. Ko testeur tan.",
+      "ageBands": {
+        "18_25": "duuɓi 18-25",
+        "26_40": "duuɓi 26-40",
+        "41_60": "duuɓi 41-60",
+        "60_plus": "duuɓi 60 e ɓeydii"
+      },
       "assignment": "Golle maa",
-      "speakNaturally": "Suɓo nokkuuje ɗiɗi ɗe anndu-ɗaa, wiyaa no wiyataa-ɗaa taksi goonga. Taa ɓeydu wolwude no feewi.",
-      "startRecording": "Fuɗɗo winndugol",
-      "otherAssignment": "Golle goɗɗe",
-      "recordingHint": "Wiyu course maa, refti memto ngam dartinde.",
-      "tapToStop": "Memto ngam dartinde",
-      "tooShortTitle": "Daɓɓo no feewi",
-      "tooShortBody": "Wolwu seeɗa ɓeydi.",
-      "loadFailedTitle": "Golle ngalaa",
-      "loadFailedBody": "Min mbaawaa loowde golle. Ƴeewu jokkondiral maa.",
-      "retry": "Etto kadi",
-      "yourClip": "Winndannde maa · {{seconds}} s",
-      "replayed": "Nanaama",
-      "notReplayed": "Nanu ado teeŋtinde",
-      "mustReplay": "Nanu winndannde maa ado neldude ɗum.",
-      "groundTruth": "Nokkuuje wiyaaɗe goonga",
-      "pickupTitle": "Nokku ummorde",
-      "destinationTitle": "Nokku faade",
-      "choosePlace": "Suɓo nokku",
-      "openRideNoDestination": "Course udditiiɗo: alaa nokku faade.",
-      "searchPlaceholder": "Ɗaɓɓit nokku…",
-      "noResults": "Nokku heɓaaka.",
-      "zoneChips": "Nokkuuje keewɗe · {{zone}}",
-      "transcriptLabel": "Binndol (suɓngo)",
-      "transcriptHint": "Winndu ko wiyaa, e hassaniya. Aɗa waawi ɓennude ngam waɗde ɗum caggal.",
-      "transcriptPlaceholder": "ماشي من …",
-      "saveTranscript": "Danndu",
-      "speaker": "Baɗɗo wolde",
-      "submit": "Neldu échantillon",
-      "discard": "Momtu njaɓɓoɗaa",
-      "uploading": "Ina neldee…",
-      "submitFailedTitle": "Neldugol horiima",
-      "submitFailedBody": "Etto kadi seeɗa caggal.",
-      "yourContribution": "Ballal maa",
-      "recorded": "Winndaaɗe",
-      "validated": "Teeŋtinaaɗe",
-      "transcribed": "Binndaaɗe",
-      "fillTranscripts": "Timmin {{count}} binndol",
-      "noPendingTranscripts": "Binndi maa fof timmi.",
-      "backToRecording": "Rutto e winndugol",
       "axis": {
         "structure": "Sifaa",
         "noise": "Sawto banndi",
@@ -731,6 +694,53 @@
         "difficulty": "Saɗteende",
         "zone": "Leegal"
       },
+      "backToRecording": "Rutto e winndugol",
+      "choosePlace": "Suɓo nokku",
+      "destinationTitle": "Nokku faade",
+      "difficulties": {
+        "plain": "Innde newiinde",
+        "landmarks": "E maandeeji",
+        "homonym": "Innde jiiɓnde",
+        "vague": "Nokku laaɓaani"
+      },
+      "discard": "Momtu njaɓɓoɗaa",
+      "entryHint": "Wallu min ƴeewde faamamuyee hassaniya. Ko testeur tan.",
+      "entryTitle": "Winndu sawtooji test",
+      "fillTranscripts": "Timmin {{count}} binndol",
+      "genders": {
+        "f": "Debbo",
+        "m": "Gorko",
+        "other": "Goɗɗo"
+      },
+      "groundTruth": "Nokkuuje wiyaaɗe goonga",
+      "languages": {
+        "hassaniya": "Hassaniya laaɓɗo",
+        "hassaniya_french": "Hassaniya + Farayse",
+        "french": "Farayse",
+        "arabic": "Aarabeere laaɓnde"
+      },
+      "loadFailedBody": "Min mbaawaa loowde golle. Ƴeewu jokkondiral maa.",
+      "loadFailedTitle": "Golle ngalaa",
+      "noPendingTranscripts": "Binndi maa fof timmi.",
+      "noResults": "Nokku heɓaaka.",
+      "noises": {
+        "quiet_indoor": "Nder deeƴre",
+        "street": "E laawol",
+        "moving_car": "Oto dogooto",
+        "wind": "Henndu"
+      },
+      "openRideNoDestination": "Course udditiiɗo: alaa nokku faade.",
+      "otherAssignment": "Golle goɗɗe",
+      "pickupTitle": "Nokku ummorde",
+      "recorded": "Winndaaɗe",
+      "recordingHint": "Wiyu course maa, refti memto ngam dartinde.",
+      "replayHint": "Nanu ɗum kadi so a sikkitiima.",
+      "retry": "Etto kadi",
+      "saveTranscript": "Danndu",
+      "searchPlaceholder": "Ɗaɓɓit nokku…",
+      "speakNaturally": "Suɓo nokkuuje ɗiɗi ɗe anndu-ɗaa, wiyaa no wiyataa-ɗaa taksi goonga. Taa ɓeydu wolwude no feewi.",
+      "speaker": "Baɗɗo wolde",
+      "startRecording": "Fuɗɗo winndugol",
       "structures": {
         "pickup_only": "Ummorde tan",
         "destination_only": "Faade tan",
@@ -738,24 +748,23 @@
         "round_trip": "Yahde e artude",
         "open_ride": "Course udditiiɗo"
       },
-      "noises": {
-        "quiet_indoor": "Nder deeƴre",
-        "street": "E laawol",
-        "moving_car": "Oto dogooto",
-        "wind": "Henndu"
-      },
-      "languages": {
-        "hassaniya": "Hassaniya laaɓɗo",
-        "hassaniya_french": "Hassaniya + Farayse",
-        "french": "Farayse",
-        "arabic": "Aarabeere laaɓnde"
-      },
-      "difficulties": {
-        "plain": "Innde newiinde",
-        "landmarks": "E maandeeji",
-        "homonym": "Innde jiiɓnde",
-        "vague": "Nokku laaɓaani"
-      },
+      "submit": "Neldu échantillon",
+      "submitFailedBody": "Etto kadi seeɗa caggal.",
+      "submitFailedTitle": "Neldugol horiima",
+      "subtitle": "Dataset",
+      "tapToStop": "Memto ngam dartinde",
+      "title": "Mooɓtugol sawto",
+      "tooShortBody": "Wolwu seeɗa ɓeydi.",
+      "tooShortTitle": "Daɓɓo no feewi",
+      "transcribed": "Binndaaɗe",
+      "transcriptHint": "Winndu ko wiyaa, e hassaniya. Aɗa waawi ɓennude ngam waɗde ɗum caggal.",
+      "transcriptLabel": "Binndol (suɓngo)",
+      "transcriptPlaceholder": "ماشي من …",
+      "uploading": "Ina neldee…",
+      "validated": "Teeŋtinaaɗe",
+      "yourClip": "Winndannde maa · {{seconds}} s",
+      "yourContribution": "Ballal maa",
+      "zoneChips": "Nokkuuje keewɗe · {{zone}}",
       "zones": {
         "tevragh_zeina": "Tevragh-Zeina",
         "ksar": "Ksar",
@@ -766,17 +775,6 @@
         "dar_naim": "Dar Naim",
         "el_mina": "El Mina",
         "teyarett": "Teyarett"
-      },
-      "genders": {
-        "f": "Debbo",
-        "m": "Gorko",
-        "other": "Goɗɗo"
-      },
-      "ageBands": {
-        "18_25": "duuɓi 18-25",
-        "26_40": "duuɓi 26-40",
-        "41_60": "duuɓi 41-60",
-        "60_plus": "duuɓi 60 e ɓeydii"
       }
     },
     "favorites": {

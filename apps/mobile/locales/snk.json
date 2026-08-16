@@ -680,50 +680,13 @@
       }
     },
     "dataset": {
-      "title": "Sefe mulla",
-      "subtitle": "Dataset",
-      "entryTitle": "Sefe safandi test danŋe",
-      "entryHint": "An ma nda hassaniya faamu kappa. Testeur doroŋ.",
+      "ageBands": {
+        "18_25": "sanne 18-25",
+        "26_40": "sanne 26-40",
+        "41_60": "sanne 41-60",
+        "60_plus": "sanne 60 nda katu"
+      },
       "assignment": "An golli",
-      "speakNaturally": "Sugandi kille filli an ŋa tu, a fo ken ni an ŋa fo taksi kore da. An ma sefe ke munyu.",
-      "startRecording": "Sefe safandi tanbe",
-      "otherAssignment": "Golli tanan",
-      "recordingHint": "Course bira, an ŋa maaga ka dabari.",
-      "tapToStop": "Maaga ka dabari",
-      "tooShortTitle": "A kayya",
-      "tooShortBody": "Sefe jamu doroŋ.",
-      "loadFailedTitle": "Golli nta",
-      "loadFailedBody": "Golli nta kanmu. An connexion xa filli.",
-      "retry": "Niini koota",
-      "yourClip": "An safandi · {{seconds}} s",
-      "replayed": "A mukku",
-      "notReplayed": "A mukku fo an ŋa a tanga",
-      "mustReplay": "An safandi mukku fo an ŋa a kini.",
-      "groundTruth": "Kille ku birante kore",
-      "pickupTitle": "Fatanden kille",
-      "destinationTitle": "Taaxanden kille",
-      "choosePlace": "Kille sugandi",
-      "openRideNoDestination": "Course lanŋinte: taaxanden kille nta.",
-      "searchPlaceholder": "Kille ñiini…",
-      "noResults": "Kille nta tanbe.",
-      "zoneChips": "Kille jamanu · {{zone}}",
-      "transcriptLabel": "Safande (an sugandi)",
-      "transcriptHint": "Sefe ke birante safa, hassaniya ra. An ŋa a bata, an ŋa a dabari xoore.",
-      "transcriptPlaceholder": "ماشي من …",
-      "saveTranscript": "A marandi",
-      "speaker": "Sefeyinŋe",
-      "submit": "Échantillon kini",
-      "discard": "A tuŋu an ŋa niini",
-      "uploading": "A faabini…",
-      "submitFailedTitle": "A nta kini",
-      "submitFailedBody": "Niini koota doroŋ xoore.",
-      "yourContribution": "An dembe",
-      "recorded": "Safandinte",
-      "validated": "Tanginte",
-      "transcribed": "Safante",
-      "fillTranscripts": "Safande {{count}} dabari",
-      "noPendingTranscripts": "An safande su dabarinte.",
-      "backToRecording": "Safandi da koota",
       "axis": {
         "structure": "Siiro",
         "noise": "Mulla naanu",
@@ -731,6 +694,53 @@
         "difficulty": "Xasabe",
         "zone": "Debe"
       },
+      "backToRecording": "Safandi da koota",
+      "choosePlace": "Kille sugandi",
+      "destinationTitle": "Taaxanden kille",
+      "difficulties": {
+        "plain": "Toxo nooxu",
+        "landmarks": "Taagunu nda",
+        "homonym": "Toxo jaabante",
+        "vague": "Kille nta yiga"
+      },
+      "discard": "A tuŋu an ŋa niini",
+      "entryHint": "An ma nda hassaniya faamu kappa. Testeur doroŋ.",
+      "entryTitle": "Sefe safandi test danŋe",
+      "fillTranscripts": "Safande {{count}} dabari",
+      "genders": {
+        "f": "Yaxare",
+        "m": "Yugo",
+        "other": "Tanan"
+      },
+      "groundTruth": "Kille ku birante kore",
+      "languages": {
+        "hassaniya": "Hassaniya kore",
+        "hassaniya_french": "Hassaniya + Faransi",
+        "french": "Faransi",
+        "arabic": "Arabu kitaabu"
+      },
+      "loadFailedBody": "Golli nta kanmu. An connexion xa filli.",
+      "loadFailedTitle": "Golli nta",
+      "noPendingTranscripts": "An safande su dabarinte.",
+      "noResults": "Kille nta tanbe.",
+      "noises": {
+        "quiet_indoor": "Ka sooma",
+        "street": "Kille ra",
+        "moving_car": "Woto dagante",
+        "wind": "Fonne"
+      },
+      "openRideNoDestination": "Course lanŋinte: taaxanden kille nta.",
+      "otherAssignment": "Golli tanan",
+      "pickupTitle": "Fatanden kille",
+      "recorded": "Safandinte",
+      "recordingHint": "Course bira, an ŋa maaga ka dabari.",
+      "replayHint": "A mukku koota an ŋa siki.",
+      "retry": "Niini koota",
+      "saveTranscript": "A marandi",
+      "searchPlaceholder": "Kille ñiini…",
+      "speakNaturally": "Sugandi kille filli an ŋa tu, a fo ken ni an ŋa fo taksi kore da. An ma sefe ke munyu.",
+      "speaker": "Sefeyinŋe",
+      "startRecording": "Sefe safandi tanbe",
       "structures": {
         "pickup_only": "Fatanden doroŋ",
         "destination_only": "Taaxanden doroŋ",
@@ -738,24 +748,23 @@
         "round_trip": "Taaxu da koota",
         "open_ride": "Course lanŋinte"
       },
-      "noises": {
-        "quiet_indoor": "Ka sooma",
-        "street": "Kille ra",
-        "moving_car": "Woto dagante",
-        "wind": "Fonne"
-      },
-      "languages": {
-        "hassaniya": "Hassaniya kore",
-        "hassaniya_french": "Hassaniya + Faransi",
-        "french": "Faransi",
-        "arabic": "Arabu kitaabu"
-      },
-      "difficulties": {
-        "plain": "Toxo nooxu",
-        "landmarks": "Taagunu nda",
-        "homonym": "Toxo jaabante",
-        "vague": "Kille nta yiga"
-      },
+      "submit": "Échantillon kini",
+      "submitFailedBody": "Niini koota doroŋ xoore.",
+      "submitFailedTitle": "A nta kini",
+      "subtitle": "Dataset",
+      "tapToStop": "Maaga ka dabari",
+      "title": "Sefe mulla",
+      "tooShortBody": "Sefe jamu doroŋ.",
+      "tooShortTitle": "A kayya",
+      "transcribed": "Safante",
+      "transcriptHint": "Sefe ke birante safa, hassaniya ra. An ŋa a bata, an ŋa a dabari xoore.",
+      "transcriptLabel": "Safande (an sugandi)",
+      "transcriptPlaceholder": "ماشي من …",
+      "uploading": "A faabini…",
+      "validated": "Tanginte",
+      "yourClip": "An safandi · {{seconds}} s",
+      "yourContribution": "An dembe",
+      "zoneChips": "Kille jamanu · {{zone}}",
       "zones": {
         "tevragh_zeina": "Tevragh-Zeina",
         "ksar": "Ksar",
@@ -766,17 +775,6 @@
         "dar_naim": "Dar Naim",
         "el_mina": "El Mina",
         "teyarett": "Teyarett"
-      },
-      "genders": {
-        "f": "Yaxare",
-        "m": "Yugo",
-        "other": "Tanan"
-      },
-      "ageBands": {
-        "18_25": "sanne 18-25",
-        "26_40": "sanne 26-40",
-        "41_60": "sanne 41-60",
-        "60_plus": "sanne 60 nda katu"
       }
     },
     "favorites": {

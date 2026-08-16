@@ -1247,50 +1247,13 @@
       }
     },
     "dataset": {
-      "title": "جمع التسجيلات",
-      "subtitle": "قاعدة البيانات",
-      "entryTitle": "تسجيل مقاطع صوتية للاختبار",
-      "entryHint": "ساعدنا في قياس فهم الحسانية. مخصص للمختبرين.",
+      "ageBands": {
+        "18_25": "18-25 سنة",
+        "26_40": "26-40 سنة",
+        "41_60": "41-60 سنة",
+        "60_plus": "60 سنة فأكثر"
+      },
       "assignment": "مهمتك",
-      "speakNaturally": "اختر مكانين تعرفهما وقلها كما تقولها لسائق تاكسي حقيقي. لا تنطق بوضوح أكثر من المعتاد.",
-      "startRecording": "ابدأ التسجيل",
-      "otherAssignment": "مهمة أخرى",
-      "recordingHint": "اطلب سيارتك ثم اضغط للتوقف.",
-      "tapToStop": "اضغط للتوقف",
-      "tooShortTitle": "قصير جدًا",
-      "tooShortBody": "تحدث لمدة أطول قليلًا.",
-      "loadFailedTitle": "المهمة غير متوفرة",
-      "loadFailedBody": "تعذّر تحميل المهمة. تحقق من اتصالك.",
-      "retry": "أعد المحاولة",
-      "yourClip": "تسجيلك · {{seconds}} ث",
-      "replayed": "تم الاستماع",
-      "notReplayed": "استمع قبل التأكيد",
-      "mustReplay": "استمع إلى تسجيلك قبل إرساله.",
-      "groundTruth": "الأماكن المذكورة فعلًا",
-      "pickupTitle": "نقطة الانطلاق",
-      "destinationTitle": "الوجهة",
-      "choosePlace": "اختر مكانًا",
-      "openRideNoDestination": "رحلة مفتوحة: لا حاجة لتحديد وجهة.",
-      "searchPlaceholder": "ابحث عن مكان…",
-      "noResults": "لم يتم العثور على مكان.",
-      "zoneChips": "أماكن شائعة · {{zone}}",
-      "transcriptLabel": "النص المكتوب (اختياري)",
-      "transcriptHint": "اكتب ما قيل بالحسانية. يمكنك التخطي وإكماله لاحقًا.",
-      "transcriptPlaceholder": "ماشي من …",
-      "saveTranscript": "حفظ",
-      "speaker": "المتحدث",
-      "submit": "إرسال العيّنة",
-      "discard": "حذف وإعادة",
-      "uploading": "جارٍ الإرسال…",
-      "submitFailedTitle": "فشل الإرسال",
-      "submitFailedBody": "أعد المحاولة بعد لحظات.",
-      "yourContribution": "مساهمتك",
-      "recorded": "مسجّلة",
-      "validated": "مُعتمدة",
-      "transcribed": "مكتوبة",
-      "fillTranscripts": "أكمل {{count}} نصًا",
-      "noPendingTranscripts": "كل نصوصك مكتملة.",
-      "backToRecording": "العودة إلى التسجيل",
       "axis": {
         "structure": "البنية",
         "noise": "المحيط الصوتي",
@@ -1298,6 +1261,53 @@
         "difficulty": "الصعوبة",
         "zone": "الحي"
       },
+      "backToRecording": "العودة إلى التسجيل",
+      "choosePlace": "اختر مكانًا",
+      "destinationTitle": "الوجهة",
+      "difficulties": {
+        "plain": "اسم بسيط",
+        "landmarks": "مع معالم (حزا …)",
+        "homonym": "اسم ملتبس",
+        "vague": "مكان غير محدد"
+      },
+      "discard": "حذف وإعادة",
+      "entryHint": "ساعدنا في قياس فهم الحسانية. مخصص للمختبرين.",
+      "entryTitle": "تسجيل مقاطع صوتية للاختبار",
+      "fillTranscripts": "أكمل {{count}} نصًا",
+      "genders": {
+        "f": "أنثى",
+        "m": "ذكر",
+        "other": "آخر"
+      },
+      "groundTruth": "الأماكن المذكورة فعلًا",
+      "languages": {
+        "hassaniya": "حسانية خالصة",
+        "hassaniya_french": "حسانية + فرنسية",
+        "french": "فرنسية",
+        "arabic": "عربية فصحى"
+      },
+      "loadFailedBody": "تعذّر تحميل المهمة. تحقق من اتصالك.",
+      "loadFailedTitle": "المهمة غير متوفرة",
+      "noPendingTranscripts": "كل نصوصك مكتملة.",
+      "noResults": "لم يتم العثور على مكان.",
+      "noises": {
+        "quiet_indoor": "داخل هادئ",
+        "street": "في الشارع",
+        "moving_car": "سيارة تسير",
+        "wind": "رياح"
+      },
+      "openRideNoDestination": "رحلة مفتوحة: لا حاجة لتحديد وجهة.",
+      "otherAssignment": "مهمة أخرى",
+      "pickupTitle": "نقطة الانطلاق",
+      "recorded": "مسجّلة",
+      "recordingHint": "اطلب سيارتك ثم اضغط للتوقف.",
+      "replayHint": "استمع مرة أخرى إذا لم تكن متأكدًا.",
+      "retry": "أعد المحاولة",
+      "saveTranscript": "حفظ",
+      "searchPlaceholder": "ابحث عن مكان…",
+      "speakNaturally": "اختر مكانين تعرفهما وقلها كما تقولها لسائق تاكسي حقيقي. لا تنطق بوضوح أكثر من المعتاد.",
+      "speaker": "المتحدث",
+      "startRecording": "ابدأ التسجيل",
       "structures": {
         "pickup_only": "نقطة الانطلاق فقط",
         "destination_only": "الوجهة فقط",
@@ -1305,24 +1315,23 @@
         "round_trip": "ذهاب وعودة",
         "open_ride": "رحلة مفتوحة"
       },
-      "noises": {
-        "quiet_indoor": "داخل هادئ",
-        "street": "في الشارع",
-        "moving_car": "سيارة تسير",
-        "wind": "رياح"
-      },
-      "languages": {
-        "hassaniya": "حسانية خالصة",
-        "hassaniya_french": "حسانية + فرنسية",
-        "french": "فرنسية",
-        "arabic": "عربية فصحى"
-      },
-      "difficulties": {
-        "plain": "اسم بسيط",
-        "landmarks": "مع معالم (حزا …)",
-        "homonym": "اسم ملتبس",
-        "vague": "مكان غير محدد"
-      },
+      "submit": "إرسال العيّنة",
+      "submitFailedBody": "أعد المحاولة بعد لحظات.",
+      "submitFailedTitle": "فشل الإرسال",
+      "subtitle": "قاعدة البيانات",
+      "tapToStop": "اضغط للتوقف",
+      "title": "جمع التسجيلات",
+      "tooShortBody": "تحدث لمدة أطول قليلًا.",
+      "tooShortTitle": "قصير جدًا",
+      "transcribed": "مكتوبة",
+      "transcriptHint": "اكتب ما قيل بالحسانية. يمكنك التخطي وإكماله لاحقًا.",
+      "transcriptLabel": "النص المكتوب (اختياري)",
+      "transcriptPlaceholder": "ماشي من …",
+      "uploading": "جارٍ الإرسال…",
+      "validated": "مُعتمدة",
+      "yourClip": "تسجيلك · {{seconds}} ث",
+      "yourContribution": "مساهمتك",
+      "zoneChips": "أماكن شائعة · {{zone}}",
       "zones": {
         "tevragh_zeina": "تفرغ زينة",
         "ksar": "لكصر",
@@ -1333,17 +1342,6 @@
         "dar_naim": "دار النعيم",
         "el_mina": "الميناء",
         "teyarett": "تيارت"
-      },
-      "genders": {
-        "f": "أنثى",
-        "m": "ذكر",
-        "other": "آخر"
-      },
-      "ageBands": {
-        "18_25": "18-25 سنة",
-        "26_40": "26-40 سنة",
-        "41_60": "41-60 سنة",
-        "60_plus": "60 سنة فأكثر"
       }
     },
     "favorites": {

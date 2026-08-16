@@ -68,26 +68,55 @@ const POI_SELECT = `
 `;
 
 /**
- * Fuzzy POI search over the voiceloc_pois corpus, for the annotation picker.
+ * POI search over the voiceloc_pois corpus, for the annotation picker.
  *
- * Ranked by trigram similarity first and popularity second, so a query that
- * matches several same-named POIs surfaces the prominent one first — which is
- * usually, though not always, the one the tester meant. The homonym scenario
- * exists precisely because "usually" is not "always", so the picker shows the
- * neighbourhood alongside each result rather than relying on rank alone.
+ * Ranking, in order — the first version got this wrong and testers reported the
+ * picker as unusable:
+ *
+ *   1. PREFIX of the folded text: typing "sta" should put "Stade Olympique"
+ *      first, not somewhere below a fuzzy match on an unrelated name.
+ *   2. SUBSTRING anywhere: covers the second and later name variants inside
+ *      search_text.
+ *   3. word_similarity(query, text): tolerates typos. Asymmetric on purpose —
+ *      it normalises by the QUERY's trigrams, where the plain similarity() used
+ *      before normalised by the union and therefore scored a long multi-script
+ *      search_text near zero even on a verbatim hit.
+ *   4. DISTANCE to the assigned zone, when one is given: Nouakchott has several
+ *      "Carrefour X", and the one in the tester's assigned moughataa is nearly
+ *      always the one meant.
+ *   5. POPULARITY, as the final tiebreak.
+ *
+ * Matching runs on voiceloc_fold() (lowercase + unaccent, migration 0081) on
+ * both sides, because riders type "marche" and OSM stores "Marché".
  */
-export async function searchPois(query: string, limit = 20): Promise<PoiOption[]> {
-  const q = query.trim().toLowerCase();
+export async function searchPois(
+  query: string,
+  opts: { limit?: number; near?: { lat: number; lng: number } } = {},
+): Promise<PoiOption[]> {
+  const q = query.trim();
   if (q.length < 2) return [];
+  const limit = Math.min(Math.max(opts.limit ?? 20, 1), 50);
 
   const { rows } = await pool.query<PoiRow>(
-    `SELECT ${POI_SELECT}
-       FROM voiceloc_pois
-      WHERE search_text ILIKE '%' || $1 || '%'
-         OR similarity(search_text, $1) > 0.25
-      ORDER BY similarity(search_text, $1) DESC, popularity DESC
-      LIMIT $2`,
-    [q, limit],
+    `WITH needle AS (SELECT voiceloc_fold($1) AS n)
+     SELECT ${POI_SELECT}
+       FROM voiceloc_pois, needle
+      WHERE voiceloc_fold(search_text) LIKE '%' || needle.n || '%'
+         -- 0.40 measured against the real corpus shape: it catches a
+         -- transposition ("marhce" scores 0.429) and a misspelling
+         -- ("olimpique") without letting short queries pull in unrelated POIs.
+         OR word_similarity(needle.n, voiceloc_fold(search_text)) > 0.40
+      ORDER BY
+        (voiceloc_fold(search_text) LIKE needle.n || '%') DESC,
+        (voiceloc_fold(search_text) LIKE '%' || needle.n || '%') DESC,
+        word_similarity(needle.n, voiceloc_fold(search_text)) DESC,
+        -- Squared degrees is monotonic in true distance at city scale, so it
+        -- orders correctly without the cost of a proper geodesic.
+        CASE WHEN $2::float8 IS NULL THEN 0
+             ELSE (lat - $2) * (lat - $2) + (lng - $3) * (lng - $3) END ASC,
+        popularity DESC
+      LIMIT $4`,
+    [q, opts.near?.lat ?? null, opts.near?.lng ?? null, limit],
   );
   return rows.map(shapePoi);
 }

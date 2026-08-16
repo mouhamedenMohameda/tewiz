@@ -90,9 +90,14 @@ export async function getStats(): Promise<CollectorStats> {
   return data;
 }
 
-/** Fuzzy POI search across the whole corpus (2+ characters). */
-export async function searchPois(q: string): Promise<PoiOption[]> {
-  const { data } = await api.get<PoiOption[]>(`${BASE}/pois`, { params: { q } });
+/**
+ * POI search across the whole corpus (2+ characters).
+ *
+ * `zone` is not a filter — it biases ranking towards the assigned moughataa so
+ * that, among several POIs sharing a name, the nearby one comes first.
+ */
+export async function searchPois(q: string, zone?: string): Promise<PoiOption[]> {
+  const { data } = await api.get<PoiOption[]>(`${BASE}/pois`, { params: { q, zone } });
   return data;
 }
 
