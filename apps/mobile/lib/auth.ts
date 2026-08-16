@@ -14,6 +14,11 @@ export interface AuthUser {
   // guest is promoted to a real captain. Optional so older persisted sessions
   // (pre-guest) and login/refresh paths can omit it.
   isGuest?: boolean;
+  // Grants the voice-dataset collection screen. Server-side flag, refreshed
+  // from /auth/me on boot — the JWT does not carry it, so a grant or a
+  // revocation takes effect without the tester logging out. Optional so
+  // sessions persisted before the flag existed still deserialize.
+  isTester?: boolean;
 }
 
 export type ActiveMode = 'rider' | 'captain';

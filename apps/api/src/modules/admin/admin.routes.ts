@@ -24,6 +24,7 @@ import { adminDocumentRequirementsRouter } from './document-requirements.routes.
 import { getRequiredDocumentTypes } from './document-requirements.service.js';
 import { adminStatsRouter } from './stats.routes.js';
 import { adminVoiceRidesRouter } from '../voice-rides/admin-voice-rides.routes.js';
+import { adminVoiceDatasetRouter } from '../voice-dataset/admin-voice-dataset.routes.js';
 import { adminRestaurantsRouter } from '../restaurants/admin-restaurants.routes.js';
 import { adminDishesRouter } from '../restaurants/admin-dishes.routes.js';
 import { adminNotificationsRouter } from '../notifications/admin.routes.js';
@@ -101,6 +102,18 @@ adminRouter.use(
     ['ops_manager', 'dispatcher'],
   ),
   adminVoiceRidesRouter,
+);
+// Voice-dataset corpus — ops reviews samples and manages the tester roster,
+// dispatchers and support can look. Granting the tester flag is an access
+// grant, and the export carries recorded voices, so writes stay with
+// ops_manager (plus super_admin, which bypasses every check).
+adminRouter.use(
+  '/voice-dataset',
+  requireAdminRoleByMethod(
+    ['ops_manager', 'dispatcher', 'support'],
+    ['ops_manager'],
+  ),
+  adminVoiceDatasetRouter,
 );
 // Restaurants directory — ops acts, everyone except finance can look.
 adminRouter.use(

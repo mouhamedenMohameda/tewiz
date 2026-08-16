@@ -23,6 +23,7 @@ const NAV = [
   { href: '/users',          label: 'Utilisateurs', icon: '👥' },
   { href: '/captains',       label: 'Captains',  icon: '🚕' },
   { href: '/voice-requests', label: 'Demandes vocales', icon: '🎙️' },
+  { href: '/voice-dataset',  label: 'Jeu de données', icon: '🧪' },
   { href: '/rides',          label: 'Courses',     icon: '🛣️' },
   { href: '/rides/new',      label: 'Nouvelle course', icon: '🗺️' },
   { href: '/restaurants',    label: 'Restaurants', icon: '🍽️' },

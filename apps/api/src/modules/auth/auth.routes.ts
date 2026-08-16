@@ -367,6 +367,7 @@ authRouter.get('/me', requireAuth, async (req, res) => {
     fullName: user.full_name,
     language: user.language,
     isGuest: user.is_guest ?? false,
+    isTester: user.is_tester ?? false,
     mustResetPassword: user.must_reset_password ?? false,
   });
 });
@@ -413,6 +414,7 @@ authRouter.patch('/me', requireAuth, async (req, res) => {
       fullName: user.full_name,
       language: user.language,
       isGuest: user.is_guest ?? false,
+      isTester: user.is_tester ?? false,
       mustResetPassword: user.must_reset_password ?? false,
     });
     return;
@@ -424,6 +426,7 @@ authRouter.patch('/me', requireAuth, async (req, res) => {
       WHERE id = $${params.length}
       RETURNING id, phone, role, admin_role, full_name, language,
                 COALESCE(is_guest, false) AS is_guest,
+                COALESCE(is_tester, false) AS is_tester,
                 COALESCE(must_reset_password, false) AS must_reset_password`,
     params,
   );
@@ -437,6 +440,7 @@ authRouter.patch('/me', requireAuth, async (req, res) => {
     fullName: u.full_name,
     language: u.language,
     isGuest: u.is_guest ?? false,
+    isTester: u.is_tester ?? false,
     mustResetPassword: u.must_reset_password ?? false,
   });
 });
@@ -519,6 +523,7 @@ interface UserRow {
   full_name: string | null;
   language: 'fr' | 'ar' | 'en';
   is_guest?: boolean;
+  is_tester?: boolean;
   must_reset_password?: boolean;
 }
 
@@ -542,6 +547,7 @@ async function getUserById(id: string): Promise<UserRow | null> {
   const { rows } = await pool.query<UserRow>(
     `SELECT id, phone, role, admin_role, full_name, language,
             COALESCE(is_guest, false) AS is_guest,
+            COALESCE(is_tester, false) AS is_tester,
             COALESCE(must_reset_password, false) AS must_reset_password
        FROM users WHERE id = $1`,
     [id],

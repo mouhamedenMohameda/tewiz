@@ -1246,6 +1246,106 @@
         "captainOnTheWay": "Votre Captain arrive"
       }
     },
+    "dataset": {
+      "title": "Collecte vocale",
+      "subtitle": "Jeu de données",
+      "entryTitle": "Enregistrer des vocaux de test",
+      "entryHint": "Aidez à mesurer la compréhension du hassaniya. Réservé aux testeurs.",
+      "assignment": "Votre consigne",
+      "speakNaturally": "Choisissez deux lieux que vous connaissez et dites-le comme vous le diriez à un vrai taxi. N'articulez pas plus que d'habitude.",
+      "startRecording": "Commencer l'enregistrement",
+      "otherAssignment": "Une autre consigne",
+      "recordingHint": "Formulez votre demande de course, puis appuyez pour arrêter.",
+      "tapToStop": "Appuyez pour arrêter",
+      "tooShortTitle": "Trop court",
+      "tooShortBody": "Parlez un peu plus longtemps.",
+      "loadFailedTitle": "Consigne indisponible",
+      "loadFailedBody": "Impossible de charger une consigne. Vérifiez votre connexion.",
+      "retry": "Réessayer",
+      "yourClip": "Votre enregistrement · {{seconds}} s",
+      "replayed": "Écouté",
+      "notReplayed": "À écouter avant de valider",
+      "mustReplay": "Écoutez votre enregistrement avant de l'envoyer.",
+      "groundTruth": "Lieux réellement dits",
+      "pickupTitle": "Point de départ",
+      "destinationTitle": "Destination",
+      "choosePlace": "Choisir un lieu",
+      "openRideNoDestination": "Course ouverte : pas de destination à renseigner.",
+      "searchPlaceholder": "Chercher un lieu…",
+      "noResults": "Aucun lieu trouvé.",
+      "zoneChips": "Lieux fréquents · {{zone}}",
+      "transcriptLabel": "Transcription (optionnel)",
+      "transcriptHint": "Écrivez ce qui est dit, en hassaniya. Vous pouvez passer et le faire plus tard.",
+      "transcriptPlaceholder": "ماشي من …",
+      "saveTranscript": "Enregistrer",
+      "speaker": "Locuteur",
+      "submit": "Envoyer l'échantillon",
+      "discard": "Supprimer et recommencer",
+      "uploading": "Envoi en cours…",
+      "submitFailedTitle": "Envoi échoué",
+      "submitFailedBody": "Réessayez dans un instant.",
+      "yourContribution": "Votre contribution",
+      "recorded": "Enregistrés",
+      "validated": "Validés",
+      "transcribed": "Transcrits",
+      "fillTranscripts": "Compléter {{count}} transcription(s)",
+      "noPendingTranscripts": "Toutes vos transcriptions sont à jour.",
+      "backToRecording": "Retour à l'enregistrement",
+      "axis": {
+        "structure": "Structure",
+        "noise": "Ambiance sonore",
+        "language": "Langue",
+        "difficulty": "Difficulté",
+        "zone": "Quartier"
+      },
+      "structures": {
+        "pickup_only": "Départ seul",
+        "destination_only": "Destination seule",
+        "from_to": "De X vers Y",
+        "round_trip": "Aller-retour",
+        "open_ride": "Course ouverte"
+      },
+      "noises": {
+        "quiet_indoor": "Intérieur calme",
+        "street": "Dans la rue",
+        "moving_car": "Voiture en marche",
+        "wind": "Vent"
+      },
+      "languages": {
+        "hassaniya": "Hassaniya pur",
+        "hassaniya_french": "Hassaniya + français",
+        "french": "Français",
+        "arabic": "Arabe littéraire"
+      },
+      "difficulties": {
+        "plain": "Nom simple",
+        "landmarks": "Avec repères (حزا …)",
+        "homonym": "Nom ambigu",
+        "vague": "Lieu imprécis"
+      },
+      "zones": {
+        "tevragh_zeina": "Tevragh-Zeina",
+        "ksar": "Ksar",
+        "sebkha": "Sebkha",
+        "riyad": "Riyad",
+        "arafat": "Arafat",
+        "toujounine": "Toujounine",
+        "dar_naim": "Dar Naim",
+        "el_mina": "El Mina",
+        "teyarett": "Teyarett"
+      },
+      "genders": {
+        "f": "Femme",
+        "m": "Homme",
+        "other": "Autre"
+      },
+      "ageBands": {
+        "18_25": "18-25 ans",
+        "26_40": "26-40 ans",
+        "41_60": "41-60 ans",
+        "60_plus": "60 ans et +"
+      }
+    },
     "favorites": {
       "emptyBody": "Après une course 5 étoiles, vous pourrez ajouter le Captain ici.",
       "emptyTitle": "Aucun favori pour le moment",

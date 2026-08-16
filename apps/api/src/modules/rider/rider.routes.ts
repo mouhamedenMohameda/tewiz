@@ -4,6 +4,7 @@ import { riderRidesRouter } from '../rides/rider-rides.routes.js';
 import { riderFavoritesRouter } from '../favorites/favorites.routes.js';
 import { riderRecurringRouter } from '../recurring/rider.routes.js';
 import { riderVoiceRidesRouter } from '../voice-rides/rider-voice-rides.routes.js';
+import { riderVoiceDatasetRouter } from '../voice-dataset/rider-voice-dataset.routes.js';
 import { riderRestaurantsRouter } from '../restaurants/rider-restaurants.routes.js';
 // Retired (Phase 2): the fully-automated voice-to-location proxy. Superseded
 // by the human-in-the-loop /voice-rides flow. Kept on disk for rollback.
@@ -22,6 +23,12 @@ riderRouter.use('/recurring-rides', riderRecurringRouter);
 // Voice-first rides (human-in-the-loop): rider records a voice memo, an admin
 // listens and places the ride. See voice-rides/.
 riderRouter.use('/voice-rides', riderVoiceRidesRouter);
+
+// Ground-truth collection for the Hassaniya voice pipeline. Gated behind the
+// users.is_tester flag by the sub-router itself — mounting it here rather than
+// under /admin is deliberate: the collectors are riders using the mobile app,
+// and the screen has to sit where the recorder already lives.
+riderRouter.use('/voice-dataset', riderVoiceDatasetRouter);
 
 // Restaurants directory — read-only catalog used by the mobile rider home.
 // Curation (CRUD + bulk-import) lives under /admin/restaurants.

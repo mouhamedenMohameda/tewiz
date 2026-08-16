@@ -90,12 +90,14 @@ export default function RootLayout() {
           role: r.data.role,
           fullName: r.data.fullName,
           isGuest: r.data.isGuest ?? false,
+          isTester: r.data.isTester ?? false,
         };
         if (
           fresh.role !== user.role ||
           fresh.fullName !== user.fullName ||
           fresh.phone !== user.phone ||
-          fresh.isGuest !== (user.isGuest ?? false)
+          fresh.isGuest !== (user.isGuest ?? false) ||
+          fresh.isTester !== (user.isTester ?? false)
         ) {
           await setUser(fresh);
         }

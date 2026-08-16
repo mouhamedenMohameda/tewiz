@@ -244,6 +244,28 @@ export default function SettingsScreen() {
         </Card>
       </Section>
 
+      {/* Voice-dataset collection — internal tool, only for flagged testers.
+          The flag is refreshed from /auth/me on boot, so a grant or revocation
+          shows up without the tester signing out. */}
+      {user?.isTester ? (
+        <Section title={t('rider.dataset.title')}>
+          <Card
+            onPress={() => router.push('/(app)/rider/dataset-collect')}
+            padding={spacing.lg}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}
+          >
+            <RoundIcon name="voice" tint={colors.emberSoft} fg={colors.ember} />
+            <View style={{ flex: 1 }}>
+              <AppText variant="bodyStrong">{t('rider.dataset.entryTitle')}</AppText>
+              <AppText variant="caption" color={colors.muted} style={{ marginTop: 2, lineHeight: 18 }}>
+                {t('rider.dataset.entryHint')}
+              </AppText>
+            </View>
+            <Icon name="chevron" size={20} color={colors.faint} />
+          </Card>
+        </Section>
+      ) : null}
+
       {user?.role === 'captain' ? (
         <Section title={t('captain.preferences.title')}>
           <Card padding={spacing.lg} style={{ gap: spacing.md }}>

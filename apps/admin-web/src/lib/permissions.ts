@@ -14,6 +14,7 @@ export const PAGE_PERMS: Record<string, AdminRole[]> = {
   '/users':              ['super_admin', 'ops_manager'],
   '/captains':           ['super_admin', 'ops_manager', 'dispatcher', 'kyc_reviewer', 'finance', 'support'],
   '/voice-requests':     ['super_admin', 'ops_manager', 'dispatcher', 'support'],
+  '/voice-dataset':      ['super_admin', 'ops_manager', 'dispatcher', 'support'],
   '/rides':              ['super_admin', 'ops_manager', 'dispatcher', 'finance', 'support'],
   '/rides/new':          ['super_admin', 'ops_manager', 'dispatcher'],
   '/restaurants':        ['super_admin', 'ops_manager', 'dispatcher', 'kyc_reviewer', 'support'],
