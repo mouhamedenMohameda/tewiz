@@ -5,6 +5,7 @@ import { perUserLimiter } from '../../middleware/rate-limit.js';
 import { uploadAudio } from '../../middleware/upload.js';
 import { requireTester } from './require-tester.js';
 import { nextScenario, getCoverage, zoneCentre } from './scenario.js';
+import { buildAssignment } from './assignment.js';
 import * as dataset from './voice-dataset.service.js';
 
 // Parent (riderRouter) enforces requireAuth + requireRole('rider', 'captain').
@@ -29,6 +30,20 @@ const uploadLimiter = perUserLimiter({
  */
 riderVoiceDatasetRouter.get('/scenario', async (_req, res) => {
   res.json(await nextScenario());
+});
+
+/**
+ * GET /rider/voice-dataset/assignment
+ * The same assignment plus the two concrete POIs the tester should speak.
+ *
+ * The response DOES carry each place's written name — the client withholds it
+ * during recording and reveals it afterwards for confirmation. Keeping it
+ * server-side until a second request would cost a round trip at the exact
+ * moment the tester is waiting, and the name is not a secret: the point is
+ * only that it is not on screen while they speak.
+ */
+riderVoiceDatasetRouter.get('/assignment', async (_req, res) => {
+  res.json(await buildAssignment(await nextScenario()));
 });
 
 /**
@@ -136,6 +151,9 @@ riderVoiceDatasetRouter.post(
       zone: dataset.parseZone(str('zone')),
       speakerGender: str('speakerGender') ?? null,
       speakerAgeBand: str('speakerAgeBand') ?? null,
+      // Defaults to 'free': an older client that does not send the field was
+      // necessarily picking its own places.
+      assignmentMode: str('assignmentMode') === 'assigned' ? 'assigned' : 'free',
     });
 
     res.status(201).json(sample);

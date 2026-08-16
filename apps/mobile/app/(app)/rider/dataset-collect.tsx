@@ -4,12 +4,21 @@
  * Records ground-truth samples for evaluating the Hassaniya voice-to-ride
  * pipeline. Two design decisions drive the whole flow:
  *
- * 1. THE ASSIGNMENT COMES BEFORE THE RECORDING, AND CARRIES NO PLACE NAMES.
- *    If a tester picked the POIs first, they would then pronounce the canonical
- *    label they had just read off the screen — "Marché Capitale", articulated —
- *    and the corpus would be full of speech no rider ever produces. The server
- *    assigns the *shape* (structure, noise, language, difficulty, zone); the
- *    tester supplies places from their own life and says them their own way.
+ * 1. THE WRITTEN NAME IS NEVER ON SCREEN WHILE RECORDING.
+ *    A tester who reads "Marché Capitale" off the screen pronounces the
+ *    canonical label, articulated — read speech, which is measurably easier for
+ *    an ASR than the spontaneous speech a real rider produces. Both modes
+ *    respect this:
+ *
+ *      * ASSIGNED (default) — the server names the two POIs, so the gold label
+ *        is exact and no post-hoc search can attach the wrong homonym. The
+ *        screen identifies each place by MAP PIN, category, district and
+ *        nearby landmarks; the name is revealed only after the recording, for
+ *        confirmation.
+ *      * FREE — the server constrains only the shape (structure, noise,
+ *        language, difficulty, zone) and the tester supplies places from their
+ *        own life. Keeps places the OSM corpus does not contain — which is
+ *        disproportionately where the pipeline fails today.
  *
  * 2. ANNOTATION COMES AFTER, with playback available but not compulsory.
  *    An earlier version blocked submission until the clip had been replayed,
@@ -29,12 +38,15 @@ import { Audio } from 'expo-av';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useVoiceRecorder } from '@/lib/useVoiceRecorder';
 import { PoiPickerSheet } from '@/components/PoiPickerSheet';
+import { MapShell } from '@/components/MapShell';
+import { getMapbox } from '@/lib/mapbox';
 import { AppText, Button, Card, Icon, Screen, ScreenHeader, TextField } from '@/components/ui';
 import { colors, radius, spacing } from '@/theme';
 import {
-  getScenario, getStats, submitSample, setTranscript, listPendingTranscripts,
-  type CollectorStats, type DatasetSample, type PoiOption, type Scenario,
-  type ScenarioStructure,
+  getScenario, getAssignment, getStats, submitSample, setTranscript,
+  listPendingTranscripts,
+  type AssignedPlace, type Assignment, type AssignmentMode, type CollectorStats,
+  type DatasetSample, type PoiOption, type Scenario, type ScenarioStructure,
 } from '@/lib/voiceDataset';
 
 type Phase = 'brief' | 'recording' | 'annotate' | 'uploading' | 'transcripts';
@@ -44,6 +56,21 @@ const MAX_RECORD_MS = 60_000;
 
 /** Speaker metadata is typed once and reused — it must not cost a tap per sample. */
 const SPEAKER_STORAGE_KEY = 'voiceDataset.speaker';
+
+/** Assigned mode is the default: it is the one that makes the gold label exact. */
+const MODE_STORAGE_KEY = 'voiceDataset.mode';
+
+/** An assigned POI, reshaped for the annotation picker. */
+function placeToOption(place: AssignedPlace): PoiOption {
+  return {
+    id: place.poiId,
+    label: place.label,
+    nameAr: place.nameAr,
+    kind: place.kind,
+    lat: place.lat,
+    lng: place.lng,
+  };
+}
 
 const STRUCTURES: ScenarioStructure[] = [
   'from_to', 'round_trip', 'pickup_only', 'destination_only', 'open_ride',
@@ -57,6 +84,8 @@ export default function DatasetCollectScreen() {
   const { t } = useTranslation();
 
   const [phase, setPhase] = useState<Phase>('brief');
+  const [mode, setMode] = useState<AssignmentMode>('assigned');
+  const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [scenario, setScenario] = useState<Scenario | null>(null);
   const [stats, setStats] = useState<CollectorStats | null>(null);
   const [loadingBrief, setLoadingBrief] = useState(true);
@@ -74,13 +103,22 @@ export default function DatasetCollectScreen() {
 
   const isOpen = structure === 'open_ride';
 
-  const loadBrief = useCallback(async () => {
+  const loadBrief = useCallback(async (forMode: AssignmentMode) => {
     setLoadingBrief(true);
     try {
-      const [next, counters] = await Promise.all([getScenario(), getStats()]);
-      setScenario(next);
-      setStructure(next.structure);
-      setStats(counters);
+      if (forMode === 'assigned') {
+        const [next, counters] = await Promise.all([getAssignment(), getStats()]);
+        setAssignment(next);
+        setScenario(next.scenario);
+        setStructure(next.scenario.structure);
+        setStats(counters);
+      } else {
+        const [next, counters] = await Promise.all([getScenario(), getStats()]);
+        setAssignment(null);
+        setScenario(next);
+        setStructure(next.structure);
+        setStats(counters);
+      }
     } catch {
       Alert.alert(t('rider.dataset.loadFailedTitle'), t('rider.dataset.loadFailedBody'));
     } finally {
@@ -88,7 +126,28 @@ export default function DatasetCollectScreen() {
     }
   }, [t]);
 
-  useEffect(() => { void loadBrief(); }, [loadBrief]);
+  // Restore the preferred mode before the first fetch, so a tester who chose
+  // free mode is not handed an assignment they did not ask for on every open.
+  useEffect(() => {
+    let cancelled = false;
+    AsyncStorage.getItem(MODE_STORAGE_KEY)
+      .then((saved) => {
+        const next: AssignmentMode = saved === 'free' ? 'free' : 'assigned';
+        if (cancelled) return;
+        setMode(next);
+        void loadBrief(next);
+      })
+      .catch(() => { if (!cancelled) void loadBrief('assigned'); });
+    return () => { cancelled = true; };
+  }, [loadBrief]);
+
+  const switchMode = useCallback((next: AssignmentMode) => {
+    setMode(next);
+    void AsyncStorage.setItem(MODE_STORAGE_KEY, next).catch(() => {
+      // Not persisting the preference only costs one tap next session.
+    });
+    void loadBrief(next);
+  }, [loadBrief]);
 
   // Restore the speaker profile so it is typed once, not once per sample.
   useEffect(() => {
@@ -113,8 +172,15 @@ export default function DatasetCollectScreen() {
     }
     setClipUri(uri);
     setClipDurationS(Math.round(durationMs / 1000));
+    // Assigned mode already knows the answer — the annotation step becomes a
+    // confirmation rather than a search. Still editable: a tester who spoke a
+    // different place than the one assigned must be able to say so.
+    if (assignment) {
+      if (assignment.pickup) setPickup(placeToOption(assignment.pickup));
+      if (assignment.destination) setDestination(placeToOption(assignment.destination));
+    }
     setPhase('annotate');
-  }, [t]);
+  }, [t, assignment]);
 
   const recorder = useVoiceRecorder({
     maxDurationMs: MAX_RECORD_MS,
@@ -142,8 +208,8 @@ export default function DatasetCollectScreen() {
   const discardClip = useCallback(() => {
     resetAnnotation();
     setPhase('brief');
-    void loadBrief();
-  }, [resetAnnotation, loadBrief]);
+    void loadBrief(mode);
+  }, [resetAnnotation, loadBrief, mode]);
 
   const submit = useCallback(async () => {
     if (!clipUri || !scenario) return;
@@ -162,6 +228,7 @@ export default function DatasetCollectScreen() {
         scenario: { ...scenario, structure },
         speakerGender: gender,
         speakerAgeBand: ageBand,
+        assignmentMode: mode,
       });
       await AsyncStorage.setItem(
         SPEAKER_STORAGE_KEY,
@@ -171,7 +238,7 @@ export default function DatasetCollectScreen() {
       });
       resetAnnotation();
       setPhase('brief');
-      void loadBrief();
+      void loadBrief(mode);
     } catch (e: unknown) {
       const err = (e as { response?: { data?: { error?: { message?: string } } } })
         .response?.data?.error;
@@ -183,7 +250,7 @@ export default function DatasetCollectScreen() {
     }
   }, [
     clipUri, clipDurationS, scenario, structure, pickup, destination, isOpen,
-    transcript, gender, ageBand, resetAnnotation, loadBrief, t,
+    transcript, gender, ageBand, resetAnnotation, loadBrief, mode, t,
   ]);
 
   // Enough ground truth to be worth storing: an open ride needs no endpoints,
@@ -203,15 +270,30 @@ export default function DatasetCollectScreen() {
       />
 
       {phase === 'brief' && (
-        <BriefView
-          scenario={scenario}
-          stats={stats}
-          loading={loadingBrief}
-          onStart={startRecording}
-          onShuffle={loadBrief}
-          onOpenTranscripts={() => setPhase('transcripts')}
-          error={recorder.error}
-        />
+        <>
+          <CollectionModeToggle mode={mode} onChange={switchMode} />
+          {mode === 'assigned' ? (
+            <AssignedBrief
+              assignment={assignment}
+              stats={stats}
+              loading={loadingBrief}
+              onStart={startRecording}
+              onShuffle={() => loadBrief('assigned')}
+              onOpenTranscripts={() => setPhase('transcripts')}
+              error={recorder.error}
+            />
+          ) : (
+            <BriefView
+              scenario={scenario}
+              stats={stats}
+              loading={loadingBrief}
+              onStart={startRecording}
+              onShuffle={() => loadBrief('free')}
+              onOpenTranscripts={() => setPhase('transcripts')}
+              error={recorder.error}
+            />
+          )}
+        </>
       )}
 
       {phase === 'recording' && (
@@ -256,7 +338,7 @@ export default function DatasetCollectScreen() {
       )}
 
       {phase === 'transcripts' && (
-        <TranscriptQueue onDone={() => { setPhase('brief'); void loadBrief(); }} />
+        <TranscriptQueue onDone={() => { setPhase('brief'); void loadBrief(mode); }} />
       )}
 
       {scenario ? (
@@ -277,7 +359,258 @@ export default function DatasetCollectScreen() {
   );
 }
 
-// ── Brief ────────────────────────────────────────────────────────────────────
+
+// ── Mode toggle ──────────────────────────────────────────────────────────────
+
+/**
+ * Named CollectionModeToggle to avoid confusion with components/ModeToggle,
+ * which switches the app between rider and captain.
+ */
+function CollectionModeToggle({ mode, onChange }: {
+  mode: AssignmentMode;
+  onChange: (m: AssignmentMode) => void;
+}) {
+  const { t } = useTranslation();
+  const options: AssignmentMode[] = ['assigned', 'free'];
+  return (
+    <View style={{ flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.base }}>
+      {options.map((option) => {
+        const active = option === mode;
+        return (
+          <Pressable
+            key={option}
+            onPress={() => onChange(option)}
+            style={{
+              flex: 1, paddingVertical: spacing.md, borderRadius: radius.md,
+              alignItems: 'center',
+              backgroundColor: active ? colors.ember : colors.surfaceAlt,
+              borderWidth: 1, borderColor: active ? colors.ember : colors.line,
+            }}
+          >
+            <AppText variant="caption" color={active ? colors.onEmber : colors.ink}>
+              {t(`rider.dataset.modes.${option}`)}
+            </AppText>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+// ── Assigned brief ───────────────────────────────────────────────────────────
+
+function AssignedBrief({
+  assignment, stats, loading, onStart, onShuffle, onOpenTranscripts, error,
+}: {
+  assignment: Assignment | null;
+  stats: CollectorStats | null;
+  loading: boolean;
+  onStart: () => void;
+  onShuffle: () => void;
+  onOpenTranscripts: () => void;
+  error: string | null;
+}) {
+  const { t } = useTranslation();
+
+  if (loading && !assignment) {
+    return <ActivityIndicator color={colors.ember} style={{ marginTop: spacing.mega }} />;
+  }
+  if (!assignment) {
+    return <Button title={t('rider.dataset.retry')} variant="secondary" icon="refresh" onPress={onShuffle} />;
+  }
+
+  const { scenario, pickup, destination } = assignment;
+  const pendingTranscripts = stats ? stats.total - stats.withTranscript : 0;
+
+  return (
+    <View style={{ gap: spacing.base }}>
+      <AssignmentMap pickup={pickup} destination={destination} />
+
+      {pickup ? (
+        <AssignedPlaceCard place={pickup} role="pickup" zone={scenario.zone} />
+      ) : null}
+      {destination ? (
+        <AssignedPlaceCard place={destination} role="destination" zone={scenario.zone} />
+      ) : null}
+      {assignment.tripDistanceM !== null ? (
+        <AppText variant="caption" color={colors.muted} align="center">
+          {t('rider.dataset.tripDistance', {
+            km: (assignment.tripDistanceM / 1000).toFixed(1),
+          })}
+        </AppText>
+      ) : null}
+
+      <Card>
+        <AppText variant="overline" color={colors.ember}>
+          {t('rider.dataset.howToSay')}
+        </AppText>
+        <AppText variant="caption" color={colors.ink2} style={{ marginTop: spacing.sm }}>
+          {t('rider.dataset.assignedHint')}
+        </AppText>
+        <View style={{ gap: spacing.sm, marginTop: spacing.md }}>
+          <BriefRow
+            icon="voice"
+            label={t('rider.dataset.axis.noise')}
+            value={t(`rider.dataset.noises.${scenario.noise}`)}
+          />
+          <BriefRow
+            icon="globe"
+            label={t('rider.dataset.axis.language')}
+            value={t(`rider.dataset.languages.${scenario.language}`)}
+          />
+          <BriefRow
+            icon="ride"
+            label={t('rider.dataset.axis.structure')}
+            value={t(`rider.dataset.structures.${scenario.structure}`)}
+          />
+        </View>
+      </Card>
+
+      {error ? <AppText variant="caption" color={colors.danger}>{error}</AppText> : null}
+
+      <Button title={t('rider.dataset.startRecording')} icon="voice" onPress={onStart} fullWidth />
+      {/* A tester who does not know the place would guess, and a guess recorded
+          against an exact gold label is noise wearing the badge of truth. */}
+      <Button
+        title={t('rider.dataset.unknownPlace')}
+        variant="ghost"
+        icon="refresh"
+        onPress={onShuffle}
+      />
+
+      {stats ? (
+        <Card>
+          <AppText variant="overline" color={colors.muted}>
+            {t('rider.dataset.yourContribution')}
+          </AppText>
+          <View style={{ flexDirection: 'row', gap: spacing.lg, marginTop: spacing.md }}>
+            <Counter label={t('rider.dataset.recorded')} value={stats.total} />
+            <Counter label={t('rider.dataset.validated')} value={stats.validated} />
+            <Counter label={t('rider.dataset.transcribed')} value={stats.withTranscript} />
+          </View>
+          {pendingTranscripts > 0 ? (
+            <Button
+              title={t('rider.dataset.fillTranscripts', { count: pendingTranscripts })}
+              variant="secondary"
+              icon="document"
+              size="sm"
+              onPress={onOpenTranscripts}
+              style={{ marginTop: spacing.base }}
+            />
+          ) : null}
+        </Card>
+      ) : null}
+    </View>
+  );
+}
+
+/**
+ * Identifies an assigned place WITHOUT writing its name: category, district and
+ * the landmarks around it. That is enough to know which physical place is meant
+ * while leaving the tester to produce the name from their own vocabulary.
+ */
+function AssignedPlaceCard({ place, role, zone }: {
+  place: AssignedPlace;
+  role: 'pickup' | 'destination';
+  zone: string;
+}) {
+  const { t } = useTranslation();
+  const ambiguous = place.nameCount > 1;
+
+  return (
+    <Card>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+        <Icon name="pin" size={18} color={role === 'pickup' ? colors.ember : colors.ink} />
+        <AppText variant="overline" color={colors.muted}>
+          {role === 'pickup'
+            ? t('rider.dataset.pickupTitle')
+            : t('rider.dataset.destinationTitle')}
+        </AppText>
+      </View>
+
+      <AppText variant="h2" style={{ marginTop: spacing.sm }}>
+        {t(`rider.dataset.kinds.${place.kind}`, { defaultValue: place.kind })}
+      </AppText>
+      <AppText variant="caption" color={colors.muted}>
+        {t(`rider.dataset.zones.${zone}`, { defaultValue: zone })}
+      </AppText>
+
+      {place.landmarks.length > 0 ? (
+        <View style={{ marginTop: spacing.md, gap: spacing.xs }}>
+          <AppText variant="caption" color={colors.muted}>
+            {t('rider.dataset.nearbyLandmarks')}
+          </AppText>
+          {place.landmarks.map((lm) => (
+            <AppText key={lm.label} variant="body">
+              · {lm.label} ({lm.distanceM} m)
+            </AppText>
+          ))}
+        </View>
+      ) : null}
+
+      {ambiguous ? (
+        // Deliberate: the homonym difficulty axis exists to test exactly this.
+        // Telling the tester makes them produce the landmark phrasing a real
+        // rider uses to be understood — which is the behaviour under test.
+        <View style={{
+          marginTop: spacing.md, padding: spacing.md,
+          backgroundColor: colors.surfaceAlt, borderRadius: radius.md,
+        }}>
+          <AppText variant="caption" color={colors.ink2}>
+            {t('rider.dataset.homonymWarning', { count: place.nameCount })}
+          </AppText>
+        </View>
+      ) : null}
+    </Card>
+  );
+}
+
+/** Both pins on one map — cheaper and clearer than a map per place. */
+function AssignmentMap({ pickup, destination }: {
+  pickup: AssignedPlace | null;
+  destination: AssignedPlace | null;
+}) {
+  const M = getMapbox();
+  const points = [pickup, destination].filter((p): p is AssignedPlace => p !== null);
+  if (points.length === 0) return null;
+
+  const centre: [number, number] = [
+    points.reduce((sum, p) => sum + p.lng, 0) / points.length,
+    points.reduce((sum, p) => sum + p.lat, 0) / points.length,
+  ];
+
+  // Coarse zoom from the pair's spread: precise framing would need the camera
+  // fitBounds API, and this is a locator, not a navigation view.
+  const spread = points.length === 2
+    ? Math.max(
+      Math.abs(points[0]!.lat - points[1]!.lat),
+      Math.abs(points[0]!.lng - points[1]!.lng),
+    )
+    : 0;
+  const zoom = spread > 0.05 ? 11 : spread > 0.02 ? 12 : 13;
+
+  return (
+    <View style={{ height: 220, borderRadius: radius.lg, overflow: 'hidden' }}>
+      <MapShell centerCoordinate={centre} zoomLevel={zoom}>
+        {M ? points.map((p, i) => (
+          <M.PointAnnotation
+            key={`pin-${p.poiId}`}
+            id={`pin-${p.poiId}`}
+            coordinate={[p.lng, p.lat]}
+          >
+            <View style={{
+              width: 22, height: 22, borderRadius: 11,
+              backgroundColor: i === 0 && pickup ? colors.ember : colors.espresso,
+              borderWidth: 3, borderColor: colors.white,
+            }} />
+          </M.PointAnnotation>
+        )) : null}
+      </MapShell>
+    </View>
+  );
+}
+
+// ── Free-mode brief ──────────────────────────────────────────────────────────
 
 function BriefView({
   scenario, stats, loading, onStart, onShuffle, onOpenTranscripts, error,

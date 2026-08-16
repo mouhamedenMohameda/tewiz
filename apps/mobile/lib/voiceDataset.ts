@@ -29,6 +29,34 @@ export interface Scenario {
   zone: string;
 }
 
+export type AssignmentMode = 'assigned' | 'free';
+
+export interface AssignedLandmark {
+  label: string;
+  kind: string;
+  distanceM: number;
+}
+
+export interface AssignedPlace {
+  poiId: number;
+  /** Deliberately NOT shown while recording — see getAssignment. */
+  label: string;
+  nameAr: string | null;
+  kind: string;
+  lat: number;
+  lng: number;
+  /** POIs in the corpus sharing this exact name. 1 = unique. */
+  nameCount: number;
+  landmarks: AssignedLandmark[];
+}
+
+export interface Assignment {
+  scenario: Scenario;
+  pickup: AssignedPlace | null;
+  destination: AssignedPlace | null;
+  tripDistanceM: number | null;
+}
+
 export interface PoiOption {
   id: number;
   label: string;
@@ -47,6 +75,7 @@ export interface DatasetSample {
   transcriptGold: string | null;
   scenario: Scenario;
   status: 'collected' | 'validated' | 'rejected';
+  assignmentMode: AssignmentMode;
   reviewNote: string | null;
   createdAt: string;
 }
@@ -77,6 +106,19 @@ const BASE = '/rider/voice-dataset';
 /** The next recording assignment, drawn from the least-covered axis values. */
 export async function getScenario(): Promise<Scenario> {
   const { data } = await api.get<Scenario>(`${BASE}/scenario`);
+  return data;
+}
+
+/**
+ * A scenario PLUS the two concrete POIs to speak.
+ *
+ * The response carries each place's written name, but the screen withholds it
+ * until after the recording: showing it would turn spontaneous speech into read
+ * speech, which is measurably easier for an ASR and would flatter every
+ * architecture measured on the corpus.
+ */
+export async function getAssignment(): Promise<Assignment> {
+  const { data } = await api.get<Assignment>(`${BASE}/assignment`);
   return data;
 }
 
@@ -124,6 +166,7 @@ export interface SubmitSampleInput {
   scenario: Scenario;
   speakerGender: string | null;
   speakerAgeBand: string | null;
+  assignmentMode: AssignmentMode;
 }
 
 export async function submitSample(input: SubmitSampleInput): Promise<DatasetSample> {
@@ -151,6 +194,7 @@ export async function submitSample(input: SubmitSampleInput): Promise<DatasetSam
   if (input.transcriptGold) form.append('transcriptGold', input.transcriptGold);
   if (input.speakerGender) form.append('speakerGender', input.speakerGender);
   if (input.speakerAgeBand) form.append('speakerAgeBand', input.speakerAgeBand);
+  form.append('assignmentMode', input.assignmentMode);
 
   const { data } = await api.post<DatasetSample>(`${BASE}/samples`, form, {
     headers: { 'Content-Type': 'multipart/form-data' },

@@ -158,6 +158,17 @@ export async function zonePois(zone: string, limit = 24): Promise<PoiOption[]> {
 
 export type SampleStatus = 'collected' | 'validated' | 'rejected';
 
+/**
+ * 'assigned' — the server named both places before the recording, so the gold
+ * label is exact but the speech is closer to read than spontaneous.
+ * 'free' — the tester chose the places, so the speech is natural but the
+ * annotation could attach the wrong homonym.
+ *
+ * Recorded per sample because pooling the two hides which distribution a given
+ * accuracy figure was measured on.
+ */
+export type AssignmentMode = 'assigned' | 'free';
+
 interface SampleRow {
   id: string;
   collector_user_id: string;
@@ -179,6 +190,7 @@ interface SampleRow {
   status: SampleStatus;
   review_note: string | null;
   split: string | null;
+  assignment_mode: AssignmentMode;
   created_at: Date;
 }
 
@@ -195,7 +207,7 @@ const SAMPLE_COLUMNS = `
   s.scenario_structure, s.scenario_noise, s.scenario_language,
   s.scenario_difficulty, s.scenario_zone,
   s.speaker_gender, s.speaker_age_band,
-  s.status, s.review_note, s.split, s.created_at
+  s.status, s.review_note, s.split, s.assignment_mode, s.created_at
 `;
 
 // Split out from SAMPLE_FROM so the review query can apply the same joins to a
@@ -232,6 +244,7 @@ function shape(r: SampleRow) {
     status: r.status,
     reviewNote: r.review_note,
     split: r.split,
+    assignmentMode: r.assignment_mode,
     createdAt: r.created_at,
   };
 }
@@ -253,6 +266,8 @@ export interface CreateSampleInput {
   zone: string;
   speakerGender: string | null;
   speakerAgeBand: string | null;
+  /** How the places were chosen — see migration 0082. */
+  assignmentMode: AssignmentMode;
 }
 
 /**
@@ -323,15 +338,15 @@ export async function createSample(input: CreateSampleInput): Promise<DatasetSam
          pickup_poi_id, destination_poi_id, is_open, transcript_gold,
          scenario_structure, scenario_noise, scenario_language,
          scenario_difficulty, scenario_zone,
-         speaker_gender, speaker_age_band
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+         speaker_gender, speaker_age_band, assignment_mode
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
        RETURNING id`,
       [
         id, input.collectorUserId, audioKey, mime, input.durationS ?? null,
         input.pickupPoiId, input.destinationPoiId, input.isOpen, input.transcriptGold,
         input.structure, input.noise, input.language,
         input.difficulty, input.zone,
-        input.speakerGender, input.speakerAgeBand,
+        input.speakerGender, input.speakerAgeBand, input.assignmentMode,
       ],
     );
     if (!rows[0]) throw new Error('Insert returned no row');
@@ -608,6 +623,7 @@ export interface ExportRow {
   destination_lng: number | null;
   is_open: boolean;
   split: string | null;
+  assignment_mode: AssignmentMode;
   scenario: Record<string, string>;
   speaker: { collector: string; gender: string | null; age_band: string | null };
   duration_s: number | null;
@@ -660,6 +676,7 @@ export async function exportRows(split?: 'dev' | 'test'): Promise<ExportRow[]> {
     destination_lng: r.destination_lng,
     is_open: r.is_open,
     split: r.split,
+    assignment_mode: r.assignment_mode,
     scenario: {
       structure: r.scenario_structure,
       noise: r.scenario_noise,
