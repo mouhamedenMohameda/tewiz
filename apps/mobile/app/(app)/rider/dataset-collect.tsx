@@ -60,6 +60,23 @@ const SPEAKER_STORAGE_KEY = 'voiceDataset.speaker';
 /** Assigned mode is the default: it is the one that makes the gold label exact. */
 const MODE_STORAGE_KEY = 'voiceDataset.mode';
 
+/**
+ * Translate a server-supplied code, tolerating a missing one.
+ *
+ * `t(key, { defaultValue })` returns the KEY when defaultValue is undefined, so
+ * a field the deployed API does not send yet renders as
+ * "rider.dataset.zones.undefined" on screen. Metro ships JS instantly while the
+ * API needs a deploy, so the client is routinely a version ahead — it has to
+ * degrade to nothing rather than to internals.
+ */
+function useCodeLabel() {
+  const { t } = useTranslation();
+  return (namespace: string, code: string | null | undefined): string | null => {
+    if (!code) return null;
+    return t(`rider.dataset.${namespace}.${code}`, { defaultValue: code });
+  };
+}
+
 /** An assigned POI, reshaped for the annotation picker. */
 function placeToOption(place: AssignedPlace): PoiOption {
   return {
@@ -435,10 +452,10 @@ function AssignedBrief({
       <AssignmentMap pickup={pickup} destination={destination} />
 
       {pickup ? (
-        <AssignedPlaceCard place={pickup} role="pickup" />
+        <AssignedPlaceCard place={pickup} role="pickup" fallbackZone={scenario.zone} />
       ) : null}
       {destination ? (
-        <AssignedPlaceCard place={destination} role="destination" />
+        <AssignedPlaceCard place={destination} role="destination" fallbackZone={scenario.zone} />
       ) : null}
       {assignment.tripDistanceM !== null ? (
         <AppText variant="caption" color={colors.muted} align="center">
@@ -527,12 +544,17 @@ function AssignedBrief({
  * the landmarks around it. That is enough to know which physical place is meant
  * while leaving the tester to produce the name from their own vocabulary.
  */
-function AssignedPlaceCard({ place, role }: {
+function AssignedPlaceCard({ place, role, fallbackZone }: {
   place: AssignedPlace;
   role: 'pickup' | 'destination';
+  /** Used when the API predates the per-POI district field. */
+  fallbackZone: string;
 }) {
   const { t } = useTranslation();
+  const label = useCodeLabel();
   const ambiguous = place.nameCount > 1;
+  const kindLabel = label('kinds', place.kind);
+  const districtLabel = label('zones', place.district ?? fallbackZone);
 
   return (
     <Card>
@@ -545,12 +567,12 @@ function AssignedPlaceCard({ place, role }: {
         </AppText>
       </View>
 
-      <AppText variant="h2" style={{ marginTop: spacing.sm }}>
-        {t(`rider.dataset.kinds.${place.kind}`, { defaultValue: place.kind })}
-      </AppText>
-      <AppText variant="caption" color={colors.muted}>
-        {t(`rider.dataset.zones.${place.district}`, { defaultValue: place.district })}
-      </AppText>
+      {kindLabel ? (
+        <AppText variant="h2" style={{ marginTop: spacing.sm }}>{kindLabel}</AppText>
+      ) : null}
+      {districtLabel ? (
+        <AppText variant="caption" color={colors.muted}>{districtLabel}</AppText>
+      ) : null}
 
       {place.landmarks.length > 0 ? (
         <View style={{ marginTop: spacing.md, gap: spacing.xs }}>

@@ -39,8 +39,13 @@ export interface AssignedLandmark {
 
 export interface AssignedPlace {
   poiId: number;
-  /** The moughataa the POI actually sits in — not the scenario's assigned zone. */
-  district: string;
+  /**
+   * The moughataa the POI actually sits in — not the scenario's assigned zone.
+   *
+   * Optional because Metro ships JS ahead of the API deploy: a client running
+   * against an older server receives assignments without this field.
+   */
+  district?: string;
   /** Deliberately NOT shown while recording — see getAssignment. */
   label: string;
   nameAr: string | null;
