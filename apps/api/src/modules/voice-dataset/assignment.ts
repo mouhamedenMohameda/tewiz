@@ -36,21 +36,27 @@ const CITY_BOX = { minLat: 17.90, maxLat: 18.25, minLng: -16.10, maxLng: -15.80 
 const ZONE_PREFILTER_KM = 8;
 
 /**
- * A POI belongs to the moughataa whose centroid is nearest — a Voronoi
- * partition of the city.
+ * Does a POI belong to the declared moughataa?
  *
- * This replaced "within 4 km of the declared zone centre", which could not
- * work: the real centroids sit as little as 2.1 km apart (Arafat to El Mina),
- * so any radius wide enough to offer a decent choice of places necessarily
- * reached into the neighbour. A tester declaring El Mina was handed Arafat
- * neighbourhoods, defeating the point of asking where they are.
+ * Answered against the real administrative polygon in nkc_districts when one
+ * has been ingested (see migration 0084 and scripts/ingest-nkc-districts.ts),
+ * and only then falls back to the nearest-centroid partition below.
  *
- * The partition has no overlap by construction and needs no radius to tune. It
- * is still an approximation — moughataas are polygons, not Voronoi cells — but
- * it errs only near boundaries, where a place is plausibly nameable from either
- * side anyway.
+ * The history matters, because two approximations were tried and both failed in
+ * the field. A RADIUS around a centre could not work: the real centroids of
+ * Arafat and El Mina sit 2.1 km apart, so any radius wide enough to offer a
+ * useful choice of places reached into the neighbour. A VORONOI partition of the
+ * same centres removed the overlap but not the error, because a moughataa is not
+ * a disc and its edge is not equidistant between two centres — places near any
+ * boundary still landed on the wrong side. Both modelled a district as a point
+ * plus a rule, when a district is an area with a surveyed edge.
+ *
+ * The centroid fallback is kept only so a district whose polygon has not been
+ * fetched still yields assignments instead of an error. It carries the same
+ * boundary error as before; the ingester reports which districts are in that
+ * state.
  */
-const ZONE_ASSIGNMENT_SQL = `
+const NEAREST_CENTROID_SQL = `
   (SELECT z.code
      FROM (VALUES ${SCENARIO_ZONES.map(
     (z) => `('${z.code}', ${z.lat}::float8, ${z.lng}::float8)`,
@@ -60,6 +66,31 @@ const ZONE_ASSIGNMENT_SQL = `
            * ((candidates.lng - z.zlng) * cos(radians(candidates.lat)))
     LIMIT 1)
 `;
+
+/**
+ * Membership test for one declared zone code.
+ *
+ * Reads as: if a polygon exists for this district, the POI must be inside it;
+ * if none does, fall back to the nearest centroid. Written as a single SQL
+ * expression so the planner can use the GiST index on nkc_districts.geom.
+ */
+function zoneMembershipSql(zone: string): string {
+  const code = zone.replace(/'/g, "''");
+  return `(
+    CASE
+      WHEN EXISTS (SELECT 1 FROM nkc_districts d WHERE d.code = '${code}')
+      THEN EXISTS (
+        SELECT 1 FROM nkc_districts d
+         WHERE d.code = '${code}'
+           AND ST_Covers(
+                 d.geom,
+                 ST_SetSRID(ST_MakePoint(candidates.lng, candidates.lat), 4326)::geography
+               )
+      )
+      ELSE ${NEAREST_CENTROID_SQL} = '${code}'
+    END
+  )`;
+}
 
 /** Shortest trip worth pricing. Below this the fare is the base fare either way. */
 const MIN_TRIP_M = 800;
@@ -291,7 +322,7 @@ async function drawPlace(opts: {
               AND lng BETWEEN $3 AND $4
               AND ($5::bigint IS NULL OR id <> $5::bigint)
               AND name_count ${homonym ? '> 1' : '= 1'}
-              ${opts.inZone ? `AND ${ZONE_ASSIGNMENT_SQL} = '${opts.inZone}'` : ''}
+              ${opts.inZone ? `AND ${zoneMembershipSql(opts.inZone)}` : ''}
               ${landmarkGrade ? `AND ${ASSIGNABLE_FILTER}` : ''}
               ${distanceSql}
             ORDER BY popularity DESC
