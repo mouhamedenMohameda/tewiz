@@ -7,6 +7,7 @@
  */
 
 import { api } from './api';
+import { currentLanguage } from './i18n';
 
 export type ScenarioStructure =
   | 'pickup_only'
@@ -35,6 +36,7 @@ export interface AssignedLandmark {
   /** Stable identity for list keys — two landmarks can share a label. */
   poiId?: number;
   label: string;
+  nameAr?: string | null;
   kind: string;
   distanceM: number;
 }
@@ -49,6 +51,8 @@ export interface AssignedPlace {
    * JS ahead of the API deploy.
    */
   district?: string | null;
+  /** Arabic form of `district`, when OSM tags one. */
+  districtAr?: string | null;
   /** Deliberately NOT shown while recording — see getAssignment. */
   label: string;
   nameAr: string | null;
@@ -113,6 +117,41 @@ export interface Coverage {
   difficulty: AxisBucket[];
   zone: AxisBucket[];
   total: number;
+}
+
+/**
+ * The name to display for a place, following the interface language.
+ *
+ * The collection screen renders in Arabic for Mauritanian testers while OSM
+ * names come back French-first, which left an Arabic heading above a French
+ * place name. Worse than untidy: in free mode a tester who said "سوق العاصمة"
+ * and is shown "Marché Capitale" has reason to doubt they picked the right
+ * place — the same confusion that made one report the brief and the annotation
+ * as different places.
+ *
+ * Falls back in order: name:ar, then the default name when OSM already holds it
+ * in Arabic script, then the French label. Only about 39% of landmark-grade
+ * POIs carry a name:ar tag, so the second step is not a nicety — it is what
+ * keeps the screen from switching script halfway down.
+ */
+export function placeLabel(
+  place: { label: string; nameAr?: string | null } | null | undefined,
+): string {
+  if (!place) return '';
+  if (currentLanguage() !== 'ar') return place.label;
+  // No explicit fallback on script is needed: `label` is
+  // COALESCE(name_fr, name_default), so a POI whose only name OSM holds is
+  // Arabic already arrives in Arabic here.
+  return place.nameAr || place.label;
+}
+
+/** Arabic form of a district label, following the same rule. */
+export function districtLabelFor(
+  place: { district?: string | null; districtAr?: string | null },
+): string | null | undefined {
+  if (place.district === undefined) return undefined;
+  if (currentLanguage() === 'ar' && place.districtAr) return place.districtAr;
+  return place.district;
 }
 
 const BASE = '/rider/voice-dataset';

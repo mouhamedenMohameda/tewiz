@@ -19,7 +19,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppText, Icon, Sheet, TextField } from '@/components/ui';
-import { searchPois, zonePois, type PoiOption } from '@/lib/voiceDataset';
+import { searchPois, zonePois, placeLabel, type PoiOption } from '@/lib/voiceDataset';
 import { colors, radius, spacing } from '@/theme';
 
 // Short enough that the list feels like it tracks typing, long enough that a
@@ -120,7 +120,7 @@ export function PoiPickerSheet({ visible, title, zone, onSelect, onClose }: PoiP
                   borderWidth: 1, borderColor: colors.line,
                 }}
               >
-                <AppText variant="caption">{poi.label}</AppText>
+                <AppText variant="caption">{placeLabel(poi)}</AppText>
               </Pressable>
             ))}
           </View>
@@ -154,9 +154,12 @@ export function PoiPickerSheet({ visible, title, zone, onSelect, onClose }: PoiP
           >
             <Icon name="pin" size={18} color={colors.muted} />
             <View style={{ flex: 1 }}>
-              <AppText variant="body" numberOfLines={1}>{poi.label}</AppText>
+              <AppText variant="body" numberOfLines={1}>{placeLabel(poi)}</AppText>
+              {/* Secondary line carries the OTHER script, so a tester can match
+                  what they said against either spelling. */}
               <AppText variant="caption" color={colors.muted} numberOfLines={1}>
-                {[poi.kind, poi.nameAr].filter(Boolean).join(' · ')}
+                {[poi.kind, placeLabel(poi) === poi.label ? poi.nameAr : poi.label]
+                  .filter(Boolean).join(' · ')}
               </AppText>
             </View>
           </Pressable>

@@ -44,7 +44,7 @@ import { AppText, Button, Card, Icon, Screen, ScreenHeader, TextField } from '@/
 import { colors, radius, spacing } from '@/theme';
 import {
   getScenario, getAssignment, getStats, submitSample, setTranscript,
-  listPendingTranscripts,
+  listPendingTranscripts, placeLabel, districtLabelFor,
   type AssignedPlace, type Assignment, type AssignmentMode, type CollectorStats,
   type DatasetSample, type PoiOption, type Scenario, type ScenarioNoise,
   type ScenarioStructure,
@@ -682,9 +682,10 @@ function AssignedPlaceCard({ place, role, fallbackZone, revealed, onReveal }: {
   // Conflating the two put "Elveloudja" (a neighbourhood) under "El Mina",
   // reintroducing on the client the very mislabelling the server had just been
   // fixed to avoid.
-  const districtLabel = place.district === undefined
+  const district = districtLabelFor(place);
+  const districtLabel = district === undefined
     ? label('zones', fallbackZone)
-    : place.district;
+    : district;
 
   return (
     <Card>
@@ -716,7 +717,7 @@ function AssignedPlaceCard({ place, role, fallbackZone, revealed, onReveal }: {
           <AppText variant="caption" color={colors.muted}>
             {t('rider.dataset.revealed')}
           </AppText>
-          <AppText variant="bodyStrong">{place.label}</AppText>
+          <AppText variant="bodyStrong">{placeLabel(place)}</AppText>
         </View>
       ) : (
         <Button
@@ -739,7 +740,7 @@ function AssignedPlaceCard({ place, role, fallbackZone, revealed, onReveal }: {
               index guards a server that predates poiId. */}
           {place.landmarks.map((lm, i) => (
             <AppText key={lm.poiId ?? `${lm.label}-${i}`} variant="body">
-              · {lm.label} ({lm.distanceM} m)
+              · {placeLabel(lm)} ({lm.distanceM} m)
             </AppText>
           ))}
         </View>
@@ -1221,7 +1222,7 @@ function PoiRow({ label, poi, onPress, onClear }: {
       <View style={{ flex: 1 }}>
         <AppText variant="caption" color={colors.muted}>{label}</AppText>
         <AppText variant="body" numberOfLines={1}>
-          {poi?.label ?? t('rider.dataset.choosePlace')}
+          {poi ? placeLabel(poi) : t('rider.dataset.choosePlace')}
         </AppText>
       </View>
       {poi ? (

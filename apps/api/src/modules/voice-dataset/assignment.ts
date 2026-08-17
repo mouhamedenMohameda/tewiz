@@ -188,6 +188,8 @@ export interface AssignedLandmark {
   /** Stable identity for list keys — two landmarks can share a label. */
   poiId: number;
   label: string;
+  /** OSM name:ar, when tagged. The client prefers it in an Arabic interface. */
+  nameAr: string | null;
   kind: string;
   distanceM: number;
 }
@@ -203,6 +205,8 @@ export interface AssignedPlace {
    * "Arafat" barely does.
    */
   district: string | null;
+  /** Arabic form of `district`, when OSM tags one. */
+  districtAr: string | null;
   /** Withheld by the client until after recording — see migration 0082. */
   label: string;
   nameAr: string | null;
@@ -399,12 +403,12 @@ async function landmarksFor(
   // the three slots. Keeping the NEAREST instance of each name is also the more
   // useful one to navigate by.
   const { rows } = await pool.query<{
-    id: string; label: string; kind: string; distance_m: number;
+    id: string; label: string; name_ar: string | null; kind: string; distance_m: number;
   }>(
     `${CANDIDATE_CTE}
-     SELECT id, label, kind, distance_m FROM (
+     SELECT id, label, name_ar, kind, distance_m FROM (
        SELECT DISTINCT ON (voiceloc_fold(label))
-              id, label, kind, popularity,
+              id, label, name_ar, kind, popularity,
               -- Equirectangular approximation: exact enough under a kilometre,
               -- and PostGIS is not available on this table (migration 0012).
               round(111000 * sqrt(
@@ -443,7 +447,8 @@ async function landmarksFor(
   }
 
   return rows.map((r) => ({
-    poiId: Number(r.id), label: r.label, kind: r.kind, distanceM: r.distance_m,
+    poiId: Number(r.id), label: r.label, nameAr: r.name_ar,
+    kind: r.kind, distanceM: r.distance_m,
   }));
 }
 
@@ -452,7 +457,8 @@ async function toPlace(row: CandidateRow): Promise<AssignedPlace> {
   const district = await districtFor(row);
   return {
     poiId: Number(row.id),
-    district,
+    district: district?.label ?? null,
+    districtAr: district?.nameAr ?? null,
     label: row.label,
     nameAr: row.name_ar,
     kind: row.kind,
@@ -461,7 +467,7 @@ async function toPlace(row: CandidateRow): Promise<AssignedPlace> {
     nameCount: row.name_count,
     descriptorCount: row.descriptor_count,
     timesUsed: row.times_used,
-    landmarks: await landmarksFor(row, district),
+    landmarks: await landmarksFor(row, district?.label ?? null),
   };
 }
 
@@ -497,15 +503,17 @@ const DISTRICT_RADIUS_M = 3000;
  * attach a neighbour's name to it. The category and the landmarks identify it
  * on their own.
  */
-async function districtFor(place: CandidateRow): Promise<string | null> {
+async function districtFor(
+  place: CandidateRow,
+): Promise<{ label: string; nameAr: string | null } | null> {
   if (PLACE_KINDS.includes(place.kind)) return null;
 
   const dLat = DISTRICT_RADIUS_M / 111_000;
   const dLng = dLat / Math.cos((place.lat * Math.PI) / 180);
 
-  const { rows } = await pool.query<{ label: string }>(
+  const { rows } = await pool.query<{ label: string; name_ar: string | null }>(
     `${CANDIDATE_CTE}
-     SELECT label FROM candidates
+     SELECT label, name_ar FROM candidates
       WHERE ${PLACE_KIND_FILTER}
         AND id <> $3::bigint
         -- Explicit casts: with every operand a bare parameter, "$1 - $4" gives
@@ -518,7 +526,8 @@ async function districtFor(place: CandidateRow): Promise<string | null> {
       LIMIT 1`,
     [place.lat, place.lng, place.id, dLat, dLng],
   );
-  return rows[0]?.label ?? null;
+  const row = rows[0];
+  return row ? { label: row.label, nameAr: row.name_ar } : null;
 }
 
 function metresBetween(a: AssignedPlace, b: AssignedPlace): number {
