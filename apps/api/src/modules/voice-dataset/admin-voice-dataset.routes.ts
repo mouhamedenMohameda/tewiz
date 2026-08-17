@@ -18,6 +18,14 @@ adminVoiceDatasetRouter.get('/coverage', async (_req, res) => {
   res.json(await getCoverage());
 });
 
+/**
+ * GET /admin/voice-dataset/place-coverage
+ * How wide the place vocabulary is — the axis counts cannot show this.
+ */
+adminVoiceDatasetRouter.get('/place-coverage', async (_req, res) => {
+  res.json(await dataset.getPlaceCoverage());
+});
+
 const listQuery = z.object({
   status: z.enum(['collected', 'validated', 'rejected']).optional(),
   split: z.enum(['dev', 'test', 'none']).optional(),

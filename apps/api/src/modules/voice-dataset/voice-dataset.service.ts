@@ -458,6 +458,50 @@ export async function getCollectorStats(collectorUserId: string): Promise<Collec
   };
 }
 
+export interface PlaceCoverage {
+  /** Distinct POIs the corpus has at least one usable recording for. */
+  distinctPlaces: number;
+  /** Times the most-recorded place appears — a flat profile is the goal. */
+  maxTimesUsed: number;
+  /** Places recorded exactly once: the thin edge of the vocabulary. */
+  singletons: number;
+  /** The ten most-recorded places, to spot a bias the axis counts miss. */
+  top: { label: string; timesUsed: number }[];
+}
+
+/**
+ * How wide the corpus's place vocabulary is.
+ *
+ * The per-axis coverage says nothing about this: a corpus can be perfectly
+ * balanced on structure, noise and language while naming the same four places
+ * throughout. Measured before least-used selection existed, one POI took 29 of
+ * 80 assignment slots — so this is the counter that catches that failure.
+ */
+export async function getPlaceCoverage(): Promise<PlaceCoverage> {
+  const { rows } = await pool.query<{ label: string; times_used: string }>(
+    `SELECT COALESCE(NULLIF(p.name_fr, ''), p.name_default) AS label,
+            COUNT(*)::text AS times_used
+       FROM (
+         SELECT pickup_poi_id AS poi_id FROM voice_dataset_samples
+          WHERE status <> 'rejected' AND pickup_poi_id IS NOT NULL
+         UNION ALL
+         SELECT destination_poi_id FROM voice_dataset_samples
+          WHERE status <> 'rejected' AND destination_poi_id IS NOT NULL
+       ) u
+       JOIN voiceloc_pois p ON p.id = u.poi_id
+      GROUP BY 1
+      ORDER BY COUNT(*) DESC`,
+  );
+
+  const counts = rows.map((r) => Number(r.times_used));
+  return {
+    distinctPlaces: rows.length,
+    maxTimesUsed: counts.length ? counts[0]! : 0,
+    singletons: counts.filter((n) => n === 1).length,
+    top: rows.slice(0, 10).map((r) => ({ label: r.label, timesUsed: Number(r.times_used) })),
+  };
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 // Admin: review, audio, export
 

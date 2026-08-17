@@ -56,6 +56,8 @@ export interface AssignedPlace {
   nameCount: number;
   /** POIs of the same category within ~2 km. 1 = the descriptor identifies it. */
   descriptorCount?: number;
+  /** Times this POI already appears in the corpus. 0 = new vocabulary. */
+  timesUsed?: number;
   landmarks: AssignedLandmark[];
 }
 
@@ -126,8 +128,16 @@ export async function getScenario(): Promise<Scenario> {
  * speech, which is measurably easier for an ASR and would flatter every
  * architecture measured on the corpus.
  */
-export async function getAssignment(): Promise<Assignment> {
-  const { data } = await api.get<Assignment>(`${BASE}/assignment`);
+export async function getAssignment(
+  declared: { zone?: string; noise?: ScenarioNoise } = {},
+): Promise<Assignment> {
+  // zone and noise describe where the tester ALREADY is. They record along
+  // ordinary journeys, so these two axes are declared rather than assigned —
+  // nobody can conjure a street, and nobody can name the landmarks of a
+  // district they have never walked through.
+  const { data } = await api.get<Assignment>(`${BASE}/assignment`, {
+    params: { zone: declared.zone, noise: declared.noise },
+  });
   return data;
 }
 

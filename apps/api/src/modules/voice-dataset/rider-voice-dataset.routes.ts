@@ -4,7 +4,9 @@ import { HttpError } from '../../middleware/error.js';
 import { perUserLimiter } from '../../middleware/rate-limit.js';
 import { uploadAudio } from '../../middleware/upload.js';
 import { requireTester } from './require-tester.js';
-import { nextScenario, getCoverage, zoneCentre } from './scenario.js';
+import {
+  nextScenario, getCoverage, zoneCentre, SCENARIO_ZONE_CODES, SCENARIO_NOISES,
+} from './scenario.js';
 import { buildAssignment } from './assignment.js';
 import * as dataset from './voice-dataset.service.js';
 
@@ -42,8 +44,33 @@ riderVoiceDatasetRouter.get('/scenario', async (_req, res) => {
  * moment the tester is waiting, and the name is not a secret: the point is
  * only that it is not on screen while they speak.
  */
-riderVoiceDatasetRouter.get('/assignment', async (_req, res) => {
-  res.json(await buildAssignment(await nextScenario()));
+riderVoiceDatasetRouter.get('/assignment', async (req, res) => {
+  const scenario = await nextScenario();
+
+  // Two axes the tester declares rather than receives, because they describe
+  // where the tester ALREADY is — they record along their ordinary journeys,
+  // not on trips made for collection.
+  //
+  //   zone  — someone standing in Arafat can name Arafat's landmarks; someone
+  //           who has never been there cannot, and an unnameable place yields
+  //           no sample at all.
+  //   noise — the server used to assign "in the street" to a tester sitting at
+  //           a desk. You cannot manufacture a street on demand; asking is the
+  //           only version of this axis that can actually be satisfied.
+  //
+  // Both stay recorded on the sample, so the analysis can see that zone
+  // correlates with collector rather than being blind to it.
+  const declaredZone = typeof req.query.zone === 'string' ? req.query.zone : '';
+  const declaredNoise = typeof req.query.noise === 'string' ? req.query.noise : '';
+
+  if (declaredZone && SCENARIO_ZONE_CODES.includes(declaredZone)) {
+    scenario.zone = declaredZone;
+  }
+  if (declaredNoise && (SCENARIO_NOISES as readonly string[]).includes(declaredNoise)) {
+    scenario.noise = declaredNoise as typeof scenario.noise;
+  }
+
+  res.json(await buildAssignment(scenario));
 });
 
 /**

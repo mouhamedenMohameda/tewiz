@@ -21,7 +21,7 @@ import clsx from 'clsx';
 import { AppShell } from '@/components/AppShell';
 import { api, fetchBlobUrl } from '@/lib/api';
 import { AXIS_LABELS, scenarioSummary } from './labels';
-import type { Coverage, DatasetSample, SampleStatus, Tester } from './types';
+import type { Coverage, DatasetSample, PlaceCoverage, SampleStatus, Tester } from './types';
 
 const BASE = '/admin/voice-dataset';
 
@@ -97,6 +97,11 @@ export default function VoiceDatasetPage() {
     },
   });
 
+  const places = useQuery({
+    queryKey: ['voice-dataset', 'place-coverage'],
+    queryFn: async () => (await api.get<PlaceCoverage>(`${BASE}/place-coverage`)).data,
+  });
+
   const testers = useQuery({
     queryKey: ['voice-dataset', 'testers'],
     queryFn: async () => (await api.get<Tester[]>(`${BASE}/testers`)).data,
@@ -140,6 +145,8 @@ export default function VoiceDatasetPage() {
         </header>
 
         <CoverageSection coverage={coverage.data} target={target} onTarget={setTarget} />
+
+        <PlaceCoverageSection places={places.data} />
 
         <ExportSection busy={busy} onSplit={runSplit} />
 
@@ -257,6 +264,66 @@ function CoverageSection({ coverage, target, onTarget }: {
           </div>
         ))}
       </div>
+    </section>
+  );
+}
+
+// ── Place vocabulary ─────────────────────────────────────────────────────────
+
+/**
+ * How many distinct places the corpus actually names.
+ *
+ * The per-axis coverage above cannot show this: a corpus can be perfectly
+ * balanced on structure, noise and language while naming the same four places
+ * throughout. Before least-used selection landed, one POI held 29 of 80
+ * assignment slots — a skew invisible in every other panel on this page.
+ */
+function PlaceCoverageSection({ places }: { places: PlaceCoverage | undefined }) {
+  if (!places) return null;
+  // A flat profile is the goal: max close to the mean means the vocabulary is
+  // being exercised evenly rather than orbiting a handful of landmarks.
+  const skewed = places.distinctPlaces > 0 && places.maxTimesUsed > 4;
+
+  return (
+    <section className="card p-4 md:p-5">
+      <h2 className="font-semibold text-slate-900 mb-1">Vocabulaire de lieux</h2>
+      <p className="text-xs text-slate-500 mb-4">
+        La couverture par axe ne dit rien de ceci : un corpus peut être
+        parfaitement équilibré tout en nommant toujours les quatre mêmes lieux.
+      </p>
+
+      <div className="flex flex-wrap gap-6 mb-4">
+        <div>
+          <p className="text-2xl font-semibold text-slate-900">{places.distinctPlaces}</p>
+          <p className="text-xs text-slate-500">lieux distincts</p>
+        </div>
+        <div>
+          <p className="text-2xl font-semibold text-slate-900">{places.singletons}</p>
+          <p className="text-xs text-slate-500">enregistrés une seule fois</p>
+        </div>
+        <div>
+          <p className={clsx(
+            'text-2xl font-semibold',
+            skewed ? 'text-amber-600' : 'text-slate-900',
+          )}>
+            {places.maxTimesUsed}
+          </p>
+          <p className="text-xs text-slate-500">max pour un même lieu</p>
+        </div>
+      </div>
+
+      {places.top.length > 0 ? (
+        <ul className="text-sm text-slate-600 space-y-1">
+          {places.top.map((p) => (
+            <li key={p.label} className="flex justify-between gap-4">
+              <span className="truncate">{p.label}</span>
+              <span className="tabular-nums text-slate-400">{p.timesUsed}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-slate-400">Aucun lieu enregistré pour l&apos;instant.</p>
+      )}
     </section>
   );
 }

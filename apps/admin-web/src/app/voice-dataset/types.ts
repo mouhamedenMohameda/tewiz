@@ -46,3 +46,10 @@ export interface Tester {
   samples: number;
   validated: number;
 }
+
+export interface PlaceCoverage {
+  distinctPlaces: number;
+  maxTimesUsed: number;
+  singletons: number;
+  top: { label: string; timesUsed: number }[];
+}

@@ -126,6 +126,8 @@ export interface AssignedPlace {
    * Ksar has twenty, so "a school · Ksar" identified nothing.
    */
   descriptorCount: number;
+  /** Times this POI already appears in the corpus. 0 = new vocabulary. */
+  timesUsed: number;
   landmarks: AssignedLandmark[];
 }
 
@@ -146,6 +148,7 @@ interface CandidateRow {
   lng: number;
   name_count: number;
   descriptor_count: number;
+  times_used: number;
 }
 
 /**
@@ -158,7 +161,19 @@ interface CandidateRow {
  * rider saying "Carrefour Madrid" is not ambiguous at all.
  */
 const CANDIDATE_CTE = `
-  WITH labelled AS (
+  WITH usage AS (
+    -- How often each POI has already been recorded, in either role. Rejected
+    -- samples are excluded: they will never reach an evaluation split, so
+    -- counting them would starve a place that has no usable recording yet.
+    SELECT poi_id, COUNT(*)::int AS times_used FROM (
+      SELECT pickup_poi_id AS poi_id FROM voice_dataset_samples
+       WHERE status <> 'rejected' AND pickup_poi_id IS NOT NULL
+      UNION ALL
+      SELECT destination_poi_id FROM voice_dataset_samples
+       WHERE status <> 'rejected' AND destination_poi_id IS NOT NULL
+    ) u GROUP BY poi_id
+  ),
+  labelled AS (
     SELECT id,
            COALESCE(NULLIF(name_fr, ''), name_default) AS label,
            name_ar,
@@ -172,8 +187,10 @@ const CANDIDATE_CTE = `
       FROM labelled GROUP BY 1
   ),
   candidates AS (
-    SELECT l.*, c.n AS name_count
-      FROM labelled l JOIN counts c ON c.fold = voiceloc_fold(l.label)
+    SELECT l.*, c.n AS name_count, COALESCE(u.times_used, 0) AS times_used
+      FROM labelled l
+      JOIN counts c ON c.fold = voiceloc_fold(l.label)
+      LEFT JOIN usage u ON u.poi_id = l.id
   )
 `;
 
@@ -222,7 +239,8 @@ async function drawPlace(opts: {
   ): Promise<CandidateRow | null> => {
     const { rows } = await pool.query<CandidateRow>(
       `${CANDIDATE_CTE}
-       SELECT id, label, name_ar, kind, lat, lng, name_count, descriptor_count FROM (
+       SELECT id, label, name_ar, kind, lat, lng, name_count, descriptor_count,
+              times_used FROM (
          SELECT p.*, (
            SELECT COUNT(*) FROM candidates c2
             WHERE c2.kind = p.kind
@@ -244,7 +262,15 @@ async function drawPlace(opts: {
          ) p
        ) pool
        ${uniqueDescriptor ? 'WHERE descriptor_count = 1' : ''}
-       ORDER BY random()
+       -- Coverage pressure on the place vocabulary: never-recorded POIs first,
+       -- then the rarest. Measured before this existed, one POI took 29 of 80
+       -- slots across 40 assignments — a small pool plus a uniform draw makes
+       -- collisions the norm, not an edge case.
+       --
+       -- random() INSIDE the tier, not after it: taking the strict minimum
+       -- would hand two testers recording at the same moment the identical
+       -- place, deterministically — worse than the uniform draw it replaces.
+       ORDER BY times_used ASC, random()
        LIMIT 1`,
       params,
     );
@@ -303,6 +329,7 @@ async function toPlace(row: CandidateRow): Promise<AssignedPlace> {
     lng: row.lng,
     nameCount: row.name_count,
     descriptorCount: row.descriptor_count,
+    timesUsed: row.times_used,
     landmarks: await landmarksFor(row),
   };
 }

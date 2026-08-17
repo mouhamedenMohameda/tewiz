@@ -46,7 +46,8 @@ import {
   getScenario, getAssignment, getStats, submitSample, setTranscript,
   listPendingTranscripts,
   type AssignedPlace, type Assignment, type AssignmentMode, type CollectorStats,
-  type DatasetSample, type PoiOption, type Scenario, type ScenarioStructure,
+  type DatasetSample, type PoiOption, type Scenario, type ScenarioNoise,
+  type ScenarioStructure,
 } from '@/lib/voiceDataset';
 
 type Phase = 'brief' | 'annotate' | 'uploading' | 'transcripts';
@@ -59,6 +60,16 @@ const SPEAKER_STORAGE_KEY = 'voiceDataset.speaker';
 
 /** Assigned mode is the default: it is the one that makes the gold label exact. */
 const MODE_STORAGE_KEY = 'voiceDataset.mode';
+
+/** Declared context, remembered so it costs one tap per outing, not per sample. */
+const CONTEXT_STORAGE_KEY = 'voiceDataset.context';
+
+const NOISES: ScenarioNoise[] = ['quiet_indoor', 'street', 'moving_car', 'wind'];
+
+const ZONES = [
+  'tevragh_zeina', 'ksar', 'sebkha', 'riyad', 'arafat',
+  'toujounine', 'dar_naim', 'el_mina', 'teyarett',
+];
 
 /**
  * Translate a server-supplied code, tolerating a missing one.
@@ -120,6 +131,8 @@ export default function DatasetCollectScreen() {
   // Set when the tester displays an assigned name before speaking. Recorded on
   // the sample: those takes carry read-speech characteristics.
   const [nameRevealed, setNameRevealed] = useState(false);
+  const [declaredZone, setDeclaredZone] = useState<string | null>(null);
+  const [declaredNoise, setDeclaredNoise] = useState<ScenarioNoise | null>(null);
 
   const isOpen = structure === 'open_ride';
 
@@ -127,7 +140,13 @@ export default function DatasetCollectScreen() {
     setLoadingBrief(true);
     try {
       if (forMode === 'assigned') {
-        const [next, counters] = await Promise.all([getAssignment(), getStats()]);
+        const [next, counters] = await Promise.all([
+          getAssignment({
+            zone: declaredZone ?? undefined,
+            noise: declaredNoise ?? undefined,
+          }),
+          getStats(),
+        ]);
         setAssignment(next);
         setScenario(next.scenario);
         setStructure(next.scenario.structure);
@@ -144,7 +163,7 @@ export default function DatasetCollectScreen() {
     } finally {
       setLoadingBrief(false);
     }
-  }, [t]);
+  }, [t, declaredZone, declaredNoise]);
 
   // Restore the preferred mode before the first fetch, so a tester who chose
   // free mode is not handed an assignment they did not ask for on every open.
@@ -182,6 +201,31 @@ export default function DatasetCollectScreen() {
         // A corrupt or missing profile just means the tester picks it again.
       });
   }, []);
+
+  // Restore the declared context alongside the speaker profile.
+  useEffect(() => {
+    AsyncStorage.getItem(CONTEXT_STORAGE_KEY)
+      .then((raw) => {
+        if (!raw) return;
+        const saved = JSON.parse(raw) as { zone?: string; noise?: ScenarioNoise };
+        if (saved.zone) setDeclaredZone(saved.zone);
+        if (saved.noise) setDeclaredNoise(saved.noise);
+      })
+      .catch(() => {
+        // Nothing saved yet, or corrupt — the tester declares it again.
+      });
+  }, []);
+
+  const declareContext = useCallback((next: { zone?: string; noise?: ScenarioNoise }) => {
+    const zone = next.zone ?? declaredZone;
+    const noise = next.noise ?? declaredNoise;
+    setDeclaredZone(zone);
+    setDeclaredNoise(noise);
+    void AsyncStorage.setItem(CONTEXT_STORAGE_KEY, JSON.stringify({ zone, noise }))
+      .catch(() => {
+        // Losing the preference costs one tap next session.
+      });
+  }, [declaredZone, declaredNoise]);
 
   const onClipReady = useCallback((uri: string | null, durationMs: number) => {
     if (!uri) return;
@@ -296,7 +340,17 @@ export default function DatasetCollectScreen() {
       {phase === 'brief' && (
         <>
           {!recorder.isRecording ? (
-            <CollectionModeToggle mode={mode} onChange={switchMode} />
+            <>
+              <CollectionModeToggle mode={mode} onChange={switchMode} />
+              {mode === 'assigned' ? (
+                <ContextDeclaration
+                  zone={declaredZone}
+                  noise={declaredNoise}
+                  onZone={(z) => declareContext({ zone: z })}
+                  onNoise={(n) => declareContext({ noise: n })}
+                />
+              ) : null}
+            </>
           ) : null}
           {mode === 'assigned' ? (
             <AssignedBrief
@@ -422,6 +476,48 @@ function CollectionModeToggle({ mode, onChange }: {
         );
       })}
     </View>
+  );
+}
+
+// ── Declared context ────────────────────────────────────────────────────────
+
+/**
+ * Where the tester is and what it sounds like around them.
+ *
+ * These two axes used to be assigned by the coverage engine, which fought
+ * reality: it would ask for "in the street" from someone at a desk, or for a
+ * district whose landmarks they could not name. Testers record along ordinary
+ * journeys, so the server takes these as given and pushes coverage on the axes
+ * that remain — structure, language, difficulty, and the place vocabulary.
+ */
+function ContextDeclaration({ zone, noise, onZone, onNoise }: {
+  zone: string | null;
+  noise: ScenarioNoise | null;
+  onZone: (z: string) => void;
+  onNoise: (n: ScenarioNoise) => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <Card style={{ marginBottom: spacing.base }}>
+      <AppText variant="overline" color={colors.muted}>
+        {t('rider.dataset.whereAreYou')}
+      </AppText>
+      <ChipRow
+        options={ZONES}
+        value={zone}
+        onChange={onZone}
+        labelFor={(v) => t(`rider.dataset.zones.${v}`, { defaultValue: v })}
+      />
+      <AppText variant="overline" color={colors.muted} style={{ marginTop: spacing.md }}>
+        {t('rider.dataset.axis.noise')}
+      </AppText>
+      <ChipRow
+        options={NOISES}
+        value={noise}
+        onChange={(v) => onNoise(v as ScenarioNoise)}
+        labelFor={(v) => t(`rider.dataset.noises.${v}`, { defaultValue: v })}
+      />
+    </Card>
   );
 }
 
