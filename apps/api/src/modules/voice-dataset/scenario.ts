@@ -63,25 +63,33 @@ export type ScenarioLanguage = (typeof SCENARIO_LANGUAGES)[number];
 export type ScenarioDifficulty = (typeof SCENARIO_DIFFICULTIES)[number];
 
 /**
- * Nouakchott's moughataas, with an approximate centre used to scope the POI
- * chip shortlist shown during annotation.
+ * Nouakchott's moughataas and their centroids.
  *
- * These coordinates are hand-set landmarks, not administrative centroids —
- * accurate to roughly a kilometre, which is all a 3 km chip radius needs. If a
- * zone's chips come back consistently irrelevant, retune the centre here
- * rather than widening the radius; a wider radius pulls in the city centre and
- * re-concentrates the corpus on the same few POIs this axis exists to avoid.
+ * The five marked "referenced" come from published coordinates supplied by the
+ * project owner. They replaced hand-set guesses of mine that were wrong by
+ * kilometres — Riyad by 4.8, Teyarett by 4.3, Arafat by 3.4 — which is how the
+ * Arafat neighbourhood Elveloudja came to be assigned under El Mina.
+ *
+ * The four marked "unverified" are still my originals; no published figure was
+ * available for them. Replace them when one is: the error they carry is
+ * invisible until a tester recognises a misplaced neighbourhood, as happened
+ * with Arafat.
+ *
+ * These centroids now partition the city rather than seed radii — see
+ * ZONE_ASSIGNMENT_SQL in assignment.ts. That matters because the real centres
+ * sit as little as 2 km apart (Arafat to El Mina), so any radius wide enough
+ * to be useful necessarily crossed into the neighbour.
  */
 export const SCENARIO_ZONES = [
-  { code: 'tevragh_zeina', lat: 18.0958, lng: -15.9785 },
-  { code: 'ksar', lat: 18.0900, lng: -15.9600 },
-  { code: 'sebkha', lat: 18.0700, lng: -15.9800 },
-  { code: 'riyad', lat: 18.0200, lng: -15.9100 },
-  { code: 'arafat', lat: 18.0500, lng: -15.9400 },
-  { code: 'toujounine', lat: 18.1050, lng: -15.9200 },
-  { code: 'dar_naim', lat: 18.1400, lng: -15.9500 },
-  { code: 'el_mina', lat: 18.0550, lng: -15.9700 },
-  { code: 'teyarett', lat: 18.1300, lng: -15.9800 },
+  { code: 'tevragh_zeina', lat: 18.0958, lng: -15.9785 }, // unverified
+  { code: 'ksar', lat: 18.0900, lng: -15.9600 },          // unverified
+  { code: 'sebkha', lat: 18.0700, lng: -15.9800 },        // unverified
+  { code: 'dar_naim', lat: 18.1400, lng: -15.9500 },      // unverified
+  { code: 'riyad', lat: 18.0107, lng: -15.9553 },         // referenced
+  { code: 'arafat', lat: 18.0464, lng: -15.9719 },        // referenced
+  { code: 'toujounine', lat: 18.0833, lng: -15.9000 },    // referenced
+  { code: 'el_mina', lat: 18.0650, lng: -15.9771 },       // referenced
+  { code: 'teyarett', lat: 18.1278, lng: -15.9392 },      // referenced
 ] as const;
 
 export type ScenarioZone = (typeof SCENARIO_ZONES)[number]['code'];

@@ -23,13 +23,43 @@
  */
 
 import { pool } from '../../db/pool.js';
-import { zoneCentre, type Scenario } from './scenario.js';
+import { SCENARIO_ZONES, zoneCentre, type Scenario } from './scenario.js';
 
 /** Generous box around Nouakchott — destinations may sit anywhere inside it. */
 const CITY_BOX = { minLat: 17.90, maxLat: 18.25, minLng: -16.10, maxLng: -15.80 };
 
-/** Radius around the assigned zone centre the pickup is drawn from. */
-const PICKUP_RADIUS_KM = 4;
+/**
+ * Bounding box around a zone centre used only to PREFILTER candidates before
+ * the exact test below. Generous on purpose — it must not exclude a POI that
+ * genuinely belongs to the zone, merely spare the planner a full scan.
+ */
+const ZONE_PREFILTER_KM = 8;
+
+/**
+ * A POI belongs to the moughataa whose centroid is nearest — a Voronoi
+ * partition of the city.
+ *
+ * This replaced "within 4 km of the declared zone centre", which could not
+ * work: the real centroids sit as little as 2.1 km apart (Arafat to El Mina),
+ * so any radius wide enough to offer a decent choice of places necessarily
+ * reached into the neighbour. A tester declaring El Mina was handed Arafat
+ * neighbourhoods, defeating the point of asking where they are.
+ *
+ * The partition has no overlap by construction and needs no radius to tune. It
+ * is still an approximation — moughataas are polygons, not Voronoi cells — but
+ * it errs only near boundaries, where a place is plausibly nameable from either
+ * side anyway.
+ */
+const ZONE_ASSIGNMENT_SQL = `
+  (SELECT z.code
+     FROM (VALUES ${SCENARIO_ZONES.map(
+    (z) => `('${z.code}', ${z.lat}::float8, ${z.lng}::float8)`,
+  ).join(', ')}) AS z(code, zlat, zlng)
+    ORDER BY (candidates.lat - z.zlat) * (candidates.lat - z.zlat)
+           + ((candidates.lng - z.zlng) * cos(radians(candidates.lat)))
+           * ((candidates.lng - z.zlng) * cos(radians(candidates.lat)))
+    LIMIT 1)
+`;
 
 /** Shortest trip worth pricing. Below this the fare is the base fare either way. */
 const MIN_TRIP_M = 800;
@@ -211,6 +241,8 @@ async function drawPlace(opts: {
   wantHomonym: boolean;
   excludeId?: number;
   awayFrom?: { lat: number; lng: number; minMetres: number };
+  /** Restrict to POIs whose nearest moughataa centroid is this one. */
+  inZone?: string;
 }): Promise<CandidateRow | null> {
   const params: unknown[] = [
     opts.box.minLat, opts.box.maxLat, opts.box.minLng, opts.box.maxLng,
@@ -259,6 +291,7 @@ async function drawPlace(opts: {
               AND lng BETWEEN $3 AND $4
               AND ($5::bigint IS NULL OR id <> $5::bigint)
               AND name_count ${homonym ? '> 1' : '= 1'}
+              ${opts.inZone ? `AND ${ZONE_ASSIGNMENT_SQL} = '${opts.inZone}'` : ''}
               ${landmarkGrade ? `AND ${ASSIGNABLE_FILTER}` : ''}
               ${distanceSql}
             ORDER BY popularity DESC
@@ -446,7 +479,7 @@ function metresBetween(a: AssignedPlace, b: AssignedPlace): number {
  */
 export async function buildAssignment(scenario: Scenario): Promise<Assignment> {
   const centre = zoneCentre(scenario.zone);
-  const dLat = PICKUP_RADIUS_KM / 111;
+  const dLat = ZONE_PREFILTER_KM / 111;
   const dLng = centre ? dLat / Math.cos((centre.lat * Math.PI) / 180) : dLat;
 
   const pickupBox = centre
@@ -463,7 +496,7 @@ export async function buildAssignment(scenario: Scenario): Promise<Assignment> {
     || scenario.structure === 'destination_only';
 
   const pickupRow = needsPickup
-    ? await drawPlace({ box: pickupBox, wantHomonym })
+    ? await drawPlace({ box: pickupBox, wantHomonym, inZone: scenario.zone })
     : null;
   const pickup = pickupRow ? await toPlace(pickupRow) : null;
 
