@@ -723,8 +723,11 @@ function AssignedPlaceCard({ place, role, fallbackZone, revealed, onReveal }: {
           <AppText variant="caption" color={colors.muted}>
             {t('rider.dataset.nearbyLandmarks')}
           </AppText>
-          {place.landmarks.map((lm) => (
-            <AppText key={lm.label} variant="body">
+          {/* Keyed on the POI id, not the label: two landmarks can legitimately
+              share a name, and a duplicate key silently drops one of them. The
+              index guards a server that predates poiId. */}
+          {place.landmarks.map((lm, i) => (
+            <AppText key={lm.poiId ?? `${lm.label}-${i}`} variant="body">
               · {lm.label} ({lm.distanceM} m)
             </AppText>
           ))}

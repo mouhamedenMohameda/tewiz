@@ -32,6 +32,8 @@ export interface Scenario {
 export type AssignmentMode = 'assigned' | 'free';
 
 export interface AssignedLandmark {
+  /** Stable identity for list keys — two landmarks can share a label. */
+  poiId?: number;
   label: string;
   kind: string;
   distanceM: number;

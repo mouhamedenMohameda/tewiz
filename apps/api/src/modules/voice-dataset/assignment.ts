@@ -93,6 +93,8 @@ const ASSIGNABLE_FILTER = `kind = ANY(ARRAY[${
 }])`;
 
 export interface AssignedLandmark {
+  /** Stable identity for list keys — two landmarks can share a label. */
+  poiId: number;
   label: string;
   kind: string;
   distanceM: number;
@@ -296,26 +298,38 @@ async function landmarksFor(place: CandidateRow): Promise<AssignedLandmark[]> {
   const dLat = LANDMARK_RADIUS_M / 111_000;
   const dLng = dLat / Math.cos((place.lat * Math.PI) / 180);
 
-  const { rows } = await pool.query<{ label: string; kind: string; distance_m: number }>(
+  // DISTINCT ON the folded label: Nouakchott has several "Las Palmas", and
+  // listing the same name twice tells the tester nothing while costing one of
+  // the three slots. Keeping the NEAREST instance of each name is also the more
+  // useful one to navigate by.
+  const { rows } = await pool.query<{
+    id: string; label: string; kind: string; distance_m: number;
+  }>(
     `${CANDIDATE_CTE}
-     SELECT label, kind,
-            -- Equirectangular approximation: exact enough under a kilometre,
-            -- and PostGIS is not available on this table (migration 0012).
-            round(111000 * sqrt(
-              (lat - $1) * (lat - $1)
-              + ((lng - $2) * cos(radians($1))) * ((lng - $2) * cos(radians($1)))
-            ))::int AS distance_m
-       FROM candidates
-      WHERE id <> $3::bigint
-        AND lat BETWEEN $1 - $4 AND $1 + $4
-        AND lng BETWEEN $2 - $5 AND $2 + $5
-        AND voiceloc_fold(label) <> voiceloc_fold($6)
-      ORDER BY popularity DESC
-      LIMIT $7`,
+     SELECT id, label, kind, distance_m FROM (
+       SELECT DISTINCT ON (voiceloc_fold(label))
+              id, label, kind, popularity,
+              -- Equirectangular approximation: exact enough under a kilometre,
+              -- and PostGIS is not available on this table (migration 0012).
+              round(111000 * sqrt(
+                (lat - $1) * (lat - $1)
+                + ((lng - $2) * cos(radians($1))) * ((lng - $2) * cos(radians($1)))
+              ))::int AS distance_m
+         FROM candidates
+        WHERE id <> $3::bigint
+          AND lat BETWEEN $1 - $4 AND $1 + $4
+          AND lng BETWEEN $2 - $5 AND $2 + $5
+          AND voiceloc_fold(label) <> voiceloc_fold($6)
+        ORDER BY voiceloc_fold(label), distance_m ASC
+     ) d
+     ORDER BY popularity DESC
+     LIMIT $7`,
     [place.lat, place.lng, place.id, dLat, dLng, place.label, LANDMARK_COUNT],
   );
 
-  return rows.map((r) => ({ label: r.label, kind: r.kind, distanceM: r.distance_m }));
+  return rows.map((r) => ({
+    poiId: Number(r.id), label: r.label, kind: r.kind, distanceM: r.distance_m,
+  }));
 }
 
 async function toPlace(row: CandidateRow): Promise<AssignedPlace> {
