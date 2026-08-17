@@ -46,6 +46,8 @@ const DESCRIPTOR_UNIQUE_RADIUS_M = 2000;
 
 /** Landmarks shown to identify the place without naming it. */
 const LANDMARK_RADIUS_M = 700;
+/** Second sweep when the first finds nothing that avoids echoing the name. */
+const LANDMARK_FALLBACK_RADIUS_M = 2500;
 const LANDMARK_COUNT = 3;
 
 /**
@@ -294,8 +296,12 @@ async function drawPlace(opts: {
 }
 
 /** Nearby POIs used to identify a place on screen without writing its name. */
-async function landmarksFor(place: CandidateRow): Promise<AssignedLandmark[]> {
-  const dLat = LANDMARK_RADIUS_M / 111_000;
+async function landmarksFor(
+  place: CandidateRow,
+  districtLabel: string | null,
+  radiusM: number = LANDMARK_RADIUS_M,
+): Promise<AssignedLandmark[]> {
+  const dLat = radiusM / 111_000;
   const dLng = dLat / Math.cos((place.lat * Math.PI) / 180);
 
   // DISTINCT ON the folded label: Nouakchott has several "Las Palmas", and
@@ -319,13 +325,32 @@ async function landmarksFor(place: CandidateRow): Promise<AssignedLandmark[]> {
         WHERE id <> $3::bigint
           AND lat BETWEEN $1 - $4 AND $1 + $4
           AND lng BETWEEN $2 - $5 AND $2 + $5
-          AND voiceloc_fold(label) <> voiceloc_fold($6)
+            -- A landmark must not SPELL OUT the name being withheld. Excluding
+          -- only exact matches was not enough: the assigned place "Sebkha"
+          -- came back flanked by "Stade Sebkha" and "Commissariat de Police de
+          -- Sebkha", printing the answer above the record button. Containment
+          -- in either direction is the real test.
+          AND voiceloc_fold(label) NOT LIKE '%' || voiceloc_fold($6) || '%'
+          AND voiceloc_fold($6) NOT LIKE '%' || voiceloc_fold(label) || '%'
+          -- Nor repeat the district already shown on the card, which would
+          -- spend one of three slots saying the same thing twice.
+          AND ($8::text IS NULL OR voiceloc_fold(label) <> voiceloc_fold($8::text))
         ORDER BY voiceloc_fold(label), distance_m ASC
      ) d
      ORDER BY popularity DESC
      LIMIT $7`,
-    [place.lat, place.lng, place.id, dLat, dLng, place.label, LANDMARK_COUNT],
+    [place.lat, place.lng, place.id, dLat, dLng, place.label, LANDMARK_COUNT,
+      districtLabel],
   );
+
+  // Filtering out every same-named neighbour can empty the list, and a card
+  // with no district and no landmarks identifies nothing at all. One wider
+  // sweep usually finds neighbours that do not echo the name; if even that
+  // comes back empty the tester still has the reveal button, which is the
+  // designed path for a place that cannot be described without naming it.
+  if (rows.length === 0 && radiusM < LANDMARK_FALLBACK_RADIUS_M) {
+    return landmarksFor(place, districtLabel, LANDMARK_FALLBACK_RADIUS_M);
+  }
 
   return rows.map((r) => ({
     poiId: Number(r.id), label: r.label, kind: r.kind, distanceM: r.distance_m,
@@ -333,9 +358,11 @@ async function landmarksFor(place: CandidateRow): Promise<AssignedLandmark[]> {
 }
 
 async function toPlace(row: CandidateRow): Promise<AssignedPlace> {
+  // Resolved before the landmarks so they can exclude it.
+  const district = await districtFor(row);
   return {
     poiId: Number(row.id),
-    district: await districtFor(row),
+    district,
     label: row.label,
     nameAr: row.name_ar,
     kind: row.kind,
@@ -344,7 +371,7 @@ async function toPlace(row: CandidateRow): Promise<AssignedPlace> {
     nameCount: row.name_count,
     descriptorCount: row.descriptor_count,
     timesUsed: row.times_used,
-    landmarks: await landmarksFor(row),
+    landmarks: await landmarksFor(row, district),
   };
 }
 
