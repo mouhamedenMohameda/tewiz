@@ -100,10 +100,39 @@ const MIN_TRIP_M = 800;
 const CANDIDATE_POOL = 40;
 
 /**
- * Radius within which a category must be UNIQUE for the descriptor to identify
- * the place. Roughly district scale, which is the granularity the card shows.
+ * Radius within which a category's local frequency is counted. Roughly district
+ * scale, which is the granularity the card shows.
  */
 const DESCRIPTOR_UNIQUE_RADIUS_M = 2000;
+
+/**
+ * How many POIs of the same category may sit within that radius and still be
+ * assignable.
+ *
+ * This was 1 — strict uniqueness — introduced to stop "a school in Ksar", which
+ * identifies nothing where Ksar has twenty. Measured against the real corpus
+ * afterwards, that rule proved far too strong: 62 assignable places in the whole
+ * city out of 838 landmark-grade ones, 3 of them in Ksar. Categories cluster in
+ * a city, so nearly everything failed.
+ *
+ *     threshold   assignable, city-wide
+ *     <= 1                62
+ *     <= 2               120
+ *     <= 3               160
+ *     <= 5               227
+ *     none               838
+ *
+ * 3 is the chosen balance. The tester tells apart at most three places of one
+ * category, which landmarks quoted to 100-800 m do comfortably, and 160 places
+ * over roughly 800 assignment slots means about five evenly spread uses each --
+ * repetition that costs nothing, since the same place in another voice and
+ * another noise is exactly what tests robustness. What had to be avoided was one
+ * place taking 29 of 80 slots, which is what uniform sampling did.
+ *
+ * Raising it to 5 buys little where the corpus is already thin (Teyarett gains
+ * nothing, Sebkha three) while making the descriptor markedly vaguer.
+ */
+const DESCRIPTOR_MAX_LOCAL = 3;
 
 /** Landmarks shown to identify the place without naming it. */
 const LANDMARK_RADIUS_M = 700;
@@ -183,12 +212,9 @@ export interface AssignedPlace {
   /** How many POIs in the corpus share this exact folded name. 1 = unique. */
   nameCount: number;
   /**
-   * How many POIs of the SAME category sit within ~2 km. 1 = the descriptor
-   * shown on screen ("a maternity · Sebkha") designates one place.
-   *
-   * This, not the category list, is what makes an assignment answerable. The
-   * previous rule kept "school" because schools are ride destinations — but
-   * Ksar has twenty, so "a school · Ksar" identified nothing.
+   * How many POIs of the SAME category sit within ~2 km. 1 means the descriptor
+   * shown on screen designates a single place; up to DESCRIPTOR_MAX_LOCAL is
+   * accepted, and the landmarks then carry the disambiguation.
    */
   descriptorCount: number;
   /** Times this POI already appears in the corpus. 0 = new vocabulary. */
@@ -329,7 +355,7 @@ async function drawPlace(opts: {
             LIMIT ${CANDIDATE_POOL}
          ) p
        ) pool
-       ${uniqueDescriptor ? 'WHERE descriptor_count = 1' : ''}
+       ${uniqueDescriptor ? `WHERE descriptor_count <= ${DESCRIPTOR_MAX_LOCAL}` : ''}
        -- Coverage pressure on the place vocabulary: never-recorded POIs first,
        -- then the rarest. Measured before this existed, one POI took 29 of 80
        -- slots across 40 assignments — a small pool plus a uniform draw makes
