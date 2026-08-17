@@ -129,13 +129,23 @@ async function search(query: string): Promise<NominatimHit[]> {
 }
 
 /**
- * Accept only area geometries. A Point or LineString result means Nominatim
- * matched a place node or a street rather than the administrative area, and
- * storing it would make every containment test fail silently.
+ * Accept ONLY an administrative boundary with an area geometry.
+ *
+ * Requiring an area is not enough, and the gap was not theoretical: querying
+ * "Tevragh Zeina, Nouakchott" returns the Bibliothèque Nationale and the Musée
+ * National as polygons BEFORE the moughataa. Tevragh-Zeina has no published
+ * reference point, so the containment check is skipped for it — an area-only
+ * filter would have stored a library's footprint as the boundary of a district
+ * of 11 km, and every POI outside that building would have been excluded from
+ * its own moughataa.
+ *
+ * category=boundary + type=administrative is the authoritative signal, and it
+ * was present for all nine moughataas when this was checked.
  */
-function isAreaGeometry(hit: NominatimHit): boolean {
+function isAdministrativeArea(hit: NominatimHit): boolean {
   const t = hit.geojson?.type;
-  return t === 'Polygon' || t === 'MultiPolygon';
+  const isArea = t === 'Polygon' || t === 'MultiPolygon';
+  return isArea && hit.category === 'boundary' && hit.type === 'administrative';
 }
 
 /**
@@ -181,7 +191,7 @@ async function ingest(district: District): Promise<Outcome> {
     }
     await sleep(REQUEST_INTERVAL_MS);
 
-    const areas = hits.filter(isAreaGeometry);
+    const areas = hits.filter(isAdministrativeArea);
     if (areas.length === 0) continue;
 
     for (const hit of areas) {
