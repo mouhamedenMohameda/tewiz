@@ -23,7 +23,7 @@
  */
 
 import { pool } from '../../db/pool.js';
-import { SCENARIO_ZONES, zoneCentre, type Scenario } from './scenario.js';
+import { zoneCentre, type Scenario } from './scenario.js';
 
 /** Generous box around Nouakchott — destinations may sit anywhere inside it. */
 const CITY_BOX = { minLat: 17.90, maxLat: 18.25, minLng: -16.10, maxLng: -15.80 };
@@ -103,14 +103,14 @@ export interface AssignedLandmark {
 export interface AssignedPlace {
   poiId: number;
   /**
-   * The moughataa this POI actually sits in, nearest-centre.
+   * Display label of the neighbourhood the POI sits in, from the nearest
+   * neighbourhood POI in the corpus. Null when the POI is itself one.
    *
-   * NOT the scenario's assigned zone: the destination is drawn from the whole
-   * city, so labelling it with the assigned zone told testers a place in Arafat
-   * was in Riyad — which is exactly what made the brief and the annotation look
-   * like two different places.
+   * A LABEL, not a zone code — the client shows it verbatim. It is deliberately
+   * finer than the scenario's moughataa: "Arafatt Secteur 1" situates a place,
+   * "Arafat" barely does.
    */
-  district: string;
+  district: string | null;
   /** Withheld by the client until after recording — see migration 0082. */
   label: string;
   nameAr: string | null;
@@ -335,7 +335,7 @@ async function landmarksFor(place: CandidateRow): Promise<AssignedLandmark[]> {
 async function toPlace(row: CandidateRow): Promise<AssignedPlace> {
   return {
     poiId: Number(row.id),
-    district: nearestZone(row.lat, row.lng),
+    district: await districtFor(row),
     label: row.label,
     nameAr: row.name_ar,
     kind: row.kind,
@@ -348,19 +348,60 @@ async function toPlace(row: CandidateRow): Promise<AssignedPlace> {
   };
 }
 
-/** Nearest moughataa centre to a coordinate — the POI's own district. */
-function nearestZone(lat: number, lng: number): string {
-  // Widened to string: SCENARIO_ZONES is `as const`, so holding an element in a
-  // mutable binding would pin it to the first entry's literal code type.
-  let bestCode: string = SCENARIO_ZONES[0]!.code;
-  let bestDist = Number.POSITIVE_INFINITY;
-  for (const zone of SCENARIO_ZONES) {
-    const dLat = lat - zone.lat;
-    const dLng = (lng - zone.lng) * Math.cos((lat * Math.PI) / 180);
-    const d = dLat * dLat + dLng * dLng;
-    if (d < bestDist) { bestDist = d; bestCode = zone.code; }
-  }
-  return bestCode;
+/** OSM categories that ARE a district rather than sit inside one. */
+const PLACE_KINDS = [
+  'suburb', 'neighbourhood', 'quarter', 'locality', 'city', 'town', 'village',
+];
+
+const PLACE_KIND_FILTER = `kind = ANY(ARRAY[${
+  PLACE_KINDS.map((k) => `'${k}'`).join(',')
+}])`;
+
+/** How far to look for the neighbourhood a POI sits in. */
+const DISTRICT_RADIUS_M = 3000;
+
+/**
+ * The district a POI sits in, taken from the nearest neighbourhood POI.
+ *
+ * This replaced a nearest-moughataa-centre computation that labelled "Arafatt
+ * Secteur 1 Extension" as El Mina. The bug was not the arithmetic: SCENARIO_ZONES
+ * holds nine hand-set centres, documented as accurate to about a kilometre and
+ * built to be a SEARCH ORIGIN — somewhere to draw candidates around. Using them
+ * to CLASSIFY a point is a different job they cannot do, because a moughataa is
+ * a wide polygon and its western edge is nearer the neighbour's centre than its
+ * own.
+ *
+ * The corpus already carries real neighbourhoods as POIs with real positions,
+ * so the nearest one is both correct and more precise than a moughataa —
+ * "Arafatt Secteur 1" rather than "Arafat".
+ *
+ * Returns null when the POI is ITSELF a neighbourhood: naming the nearest one
+ * would either echo its own name — defeating the point of withholding it — or
+ * attach a neighbour's name to it. The category and the landmarks identify it
+ * on their own.
+ */
+async function districtFor(place: CandidateRow): Promise<string | null> {
+  if (PLACE_KINDS.includes(place.kind)) return null;
+
+  const dLat = DISTRICT_RADIUS_M / 111_000;
+  const dLng = dLat / Math.cos((place.lat * Math.PI) / 180);
+
+  const { rows } = await pool.query<{ label: string }>(
+    `${CANDIDATE_CTE}
+     SELECT label FROM candidates
+      WHERE ${PLACE_KIND_FILTER}
+        AND id <> $3::bigint
+        -- Explicit casts: with every operand a bare parameter, "$1 - $4" gives
+        -- Postgres unknown minus unknown and it refuses to pick an operator.
+        AND lat BETWEEN $1::float8 - $4::float8 AND $1::float8 + $4::float8
+        AND lng BETWEEN $2::float8 - $5::float8 AND $2::float8 + $5::float8
+      ORDER BY (lat - $1::float8) * (lat - $1::float8)
+             + ((lng - $2::float8) * cos(radians($1::float8)))
+             * ((lng - $2::float8) * cos(radians($1::float8))) ASC
+      LIMIT 1`,
+    [place.lat, place.lng, place.id, dLat, dLng],
+  );
+  return rows[0]?.label ?? null;
 }
 
 function metresBetween(a: AssignedPlace, b: AssignedPlace): number {

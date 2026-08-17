@@ -42,12 +42,13 @@ export interface AssignedLandmark {
 export interface AssignedPlace {
   poiId: number;
   /**
-   * The moughataa the POI actually sits in — not the scenario's assigned zone.
+   * Neighbourhood label, already human-readable — NOT a zone code, so it is
+   * displayed verbatim rather than translated.
    *
-   * Optional because Metro ships JS ahead of the API deploy: a client running
-   * against an older server receives assignments without this field.
+   * Null when the POI is itself a neighbourhood; optional because Metro ships
+   * JS ahead of the API deploy.
    */
-  district?: string;
+  district?: string | null;
   /** Deliberately NOT shown while recording — see getAssignment. */
   label: string;
   nameAr: string | null;

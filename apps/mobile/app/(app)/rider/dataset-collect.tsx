@@ -673,7 +673,10 @@ function AssignedPlaceCard({ place, role, fallbackZone, revealed, onReveal }: {
   const label = useCodeLabel();
   const ambiguous = place.nameCount > 1;
   const kindLabel = label('kinds', place.kind);
-  const districtLabel = label('zones', place.district ?? fallbackZone);
+  // The district arrives as a display label (a real neighbourhood name), so it
+  // is shown as-is. Only the legacy fallback — the scenario's moughataa, used
+  // when the API predates the field — is a code needing translation.
+  const districtLabel = place.district ?? label('zones', fallbackZone);
 
   return (
     <Card>
