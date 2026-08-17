@@ -673,10 +673,18 @@ function AssignedPlaceCard({ place, role, fallbackZone, revealed, onReveal }: {
   const label = useCodeLabel();
   const ambiguous = place.nameCount > 1;
   const kindLabel = label('kinds', place.kind);
-  // The district arrives as a display label (a real neighbourhood name), so it
-  // is shown as-is. Only the legacy fallback — the scenario's moughataa, used
-  // when the API predates the field — is a code needing translation.
-  const districtLabel = place.district ?? label('zones', fallbackZone);
+  // null and undefined mean DIFFERENT things here, so `??` is wrong:
+  //   undefined — the API predates the field; fall back to the scenario's
+  //               moughataa, which is a code and needs translating.
+  //   null      — the server says there is no district to show, because the
+  //               POI IS a neighbourhood or none sits within 3 km. Honour it.
+  //
+  // Conflating the two put "Elveloudja" (a neighbourhood) under "El Mina",
+  // reintroducing on the client the very mislabelling the server had just been
+  // fixed to avoid.
+  const districtLabel = place.district === undefined
+    ? label('zones', fallbackZone)
+    : place.district;
 
   return (
     <Card>
