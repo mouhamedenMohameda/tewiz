@@ -154,6 +154,7 @@ riderVoiceDatasetRouter.post(
       // Defaults to 'free': an older client that does not send the field was
       // necessarily picking its own places.
       assignmentMode: str('assignmentMode') === 'assigned' ? 'assigned' : 'free',
+      nameRevealed: str('nameRevealed') === 'true',
     });
 
     res.status(201).json(sample);

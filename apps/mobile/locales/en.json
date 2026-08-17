@@ -1357,6 +1357,7 @@
       "recordingHint": "State your ride request, then tap to stop.",
       "replayHint": "Play it back if you're unsure.",
       "retry": "Try again",
+      "revealName": "I can't tell which one — show the name",
       "revealed": "The place was",
       "revealedHint": "These are the places you were asked for, named this time. Correct them if you said something else.",
       "saveTranscript": "Save",

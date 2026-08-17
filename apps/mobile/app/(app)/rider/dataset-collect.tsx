@@ -117,6 +117,9 @@ export default function DatasetCollectScreen() {
   const [gender, setGender] = useState<string | null>(null);
   const [ageBand, setAgeBand] = useState<string | null>(null);
   const [picker, setPicker] = useState<'pickup' | 'destination' | null>(null);
+  // Set when the tester displays an assigned name before speaking. Recorded on
+  // the sample: those takes carry read-speech characteristics.
+  const [nameRevealed, setNameRevealed] = useState(false);
 
   const isOpen = structure === 'open_ride';
 
@@ -222,6 +225,7 @@ export default function DatasetCollectScreen() {
     setPickup(null);
     setDestination(null);
     setTranscriptText('');
+    setNameRevealed(false);
   }, []);
 
   const discardClip = useCallback(() => {
@@ -248,6 +252,7 @@ export default function DatasetCollectScreen() {
         speakerGender: gender,
         speakerAgeBand: ageBand,
         assignmentMode: mode,
+        nameRevealed,
       });
       await AsyncStorage.setItem(
         SPEAKER_STORAGE_KEY,
@@ -269,7 +274,7 @@ export default function DatasetCollectScreen() {
     }
   }, [
     clipUri, clipDurationS, scenario, structure, pickup, destination, isOpen,
-    transcript, gender, ageBand, resetAnnotation, loadBrief, mode, t,
+    transcript, gender, ageBand, resetAnnotation, loadBrief, mode, nameRevealed, t,
   ]);
 
   // Enough ground truth to be worth storing: an open ride needs no endpoints,
@@ -302,6 +307,8 @@ export default function DatasetCollectScreen() {
               durationMs={recorder.durationMs}
               onStart={startRecording}
               onStop={stopRecording}
+              nameRevealed={nameRevealed}
+              onReveal={() => setNameRevealed(true)}
               onShuffle={() => loadBrief('assigned')}
               onOpenTranscripts={() => setPhase('transcripts')}
               error={recorder.error}
@@ -421,7 +428,7 @@ function CollectionModeToggle({ mode, onChange }: {
 // ── Assigned brief ───────────────────────────────────────────────────────────
 
 function AssignedBrief({
-  assignment, stats, loading, isRecording, durationMs,
+  assignment, stats, loading, isRecording, durationMs, nameRevealed, onReveal,
   onStart, onStop, onShuffle, onOpenTranscripts, error,
 }: {
   assignment: Assignment | null;
@@ -429,6 +436,8 @@ function AssignedBrief({
   loading: boolean;
   isRecording: boolean;
   durationMs: number;
+  nameRevealed: boolean;
+  onReveal: () => void;
   onStart: () => void;
   onStop: () => void;
   onShuffle: () => void;
@@ -452,10 +461,22 @@ function AssignedBrief({
       <AssignmentMap pickup={pickup} destination={destination} />
 
       {pickup ? (
-        <AssignedPlaceCard place={pickup} role="pickup" fallbackZone={scenario.zone} />
+        <AssignedPlaceCard
+          place={pickup}
+          role="pickup"
+          fallbackZone={scenario.zone}
+          revealed={nameRevealed}
+          onReveal={onReveal}
+        />
       ) : null}
       {destination ? (
-        <AssignedPlaceCard place={destination} role="destination" fallbackZone={scenario.zone} />
+        <AssignedPlaceCard
+          place={destination}
+          role="destination"
+          fallbackZone={scenario.zone}
+          revealed={nameRevealed}
+          onReveal={onReveal}
+        />
       ) : null}
       {assignment.tripDistanceM !== null ? (
         <AppText variant="caption" color={colors.muted} align="center">
@@ -544,11 +565,13 @@ function AssignedBrief({
  * the landmarks around it. That is enough to know which physical place is meant
  * while leaving the tester to produce the name from their own vocabulary.
  */
-function AssignedPlaceCard({ place, role, fallbackZone }: {
+function AssignedPlaceCard({ place, role, fallbackZone, revealed, onReveal }: {
   place: AssignedPlace;
   role: 'pickup' | 'destination';
   /** Used when the API predates the per-POI district field. */
   fallbackZone: string;
+  revealed: boolean;
+  onReveal: () => void;
 }) {
   const { t } = useTranslation();
   const label = useCodeLabel();
@@ -573,6 +596,31 @@ function AssignedPlaceCard({ place, role, fallbackZone }: {
       {districtLabel ? (
         <AppText variant="caption" color={colors.muted}>{districtLabel}</AppText>
       ) : null}
+
+      {/* Escape hatch. Withholding the name only works when the place's
+          identity is common knowledge: you can know where a school is without
+          knowing what it is called, and a name you cannot recall is a name you
+          cannot say. Revealing is recorded on the sample rather than forbidden. */}
+      {revealed ? (
+        <View style={{
+          marginTop: spacing.md, padding: spacing.md,
+          backgroundColor: colors.emberSoft, borderRadius: radius.md,
+        }}>
+          <AppText variant="caption" color={colors.muted}>
+            {t('rider.dataset.revealed')}
+          </AppText>
+          <AppText variant="bodyStrong">{place.label}</AppText>
+        </View>
+      ) : (
+        <Button
+          title={t('rider.dataset.revealName')}
+          variant="ghost"
+          size="sm"
+          icon="eye"
+          onPress={onReveal}
+          style={{ marginTop: spacing.sm, alignSelf: 'flex-start' }}
+        />
+      )}
 
       {place.landmarks.length > 0 ? (
         <View style={{ marginTop: spacing.md, gap: spacing.xs }}>

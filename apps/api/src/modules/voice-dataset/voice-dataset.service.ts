@@ -191,6 +191,7 @@ interface SampleRow {
   review_note: string | null;
   split: string | null;
   assignment_mode: AssignmentMode;
+  name_revealed: boolean;
   created_at: Date;
 }
 
@@ -207,7 +208,8 @@ const SAMPLE_COLUMNS = `
   s.scenario_structure, s.scenario_noise, s.scenario_language,
   s.scenario_difficulty, s.scenario_zone,
   s.speaker_gender, s.speaker_age_band,
-  s.status, s.review_note, s.split, s.assignment_mode, s.created_at
+  s.status, s.review_note, s.split, s.assignment_mode, s.name_revealed,
+  s.created_at
 `;
 
 // Split out from SAMPLE_FROM so the review query can apply the same joins to a
@@ -245,6 +247,7 @@ function shape(r: SampleRow) {
     reviewNote: r.review_note,
     split: r.split,
     assignmentMode: r.assignment_mode,
+    nameRevealed: r.name_revealed,
     createdAt: r.created_at,
   };
 }
@@ -268,6 +271,8 @@ export interface CreateSampleInput {
   speakerAgeBand: string | null;
   /** How the places were chosen — see migration 0082. */
   assignmentMode: AssignmentMode;
+  /** True when the tester displayed the assigned name — see migration 0083. */
+  nameRevealed: boolean;
 }
 
 /**
@@ -338,8 +343,8 @@ export async function createSample(input: CreateSampleInput): Promise<DatasetSam
          pickup_poi_id, destination_poi_id, is_open, transcript_gold,
          scenario_structure, scenario_noise, scenario_language,
          scenario_difficulty, scenario_zone,
-         speaker_gender, speaker_age_band, assignment_mode
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+         speaker_gender, speaker_age_band, assignment_mode, name_revealed
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
        RETURNING id`,
       [
         id, input.collectorUserId, audioKey, mime, input.durationS ?? null,
@@ -347,6 +352,7 @@ export async function createSample(input: CreateSampleInput): Promise<DatasetSam
         input.structure, input.noise, input.language,
         input.difficulty, input.zone,
         input.speakerGender, input.speakerAgeBand, input.assignmentMode,
+        input.nameRevealed,
       ],
     );
     if (!rows[0]) throw new Error('Insert returned no row');
@@ -624,6 +630,7 @@ export interface ExportRow {
   is_open: boolean;
   split: string | null;
   assignment_mode: AssignmentMode;
+  name_revealed: boolean;
   scenario: Record<string, string>;
   speaker: { collector: string; gender: string | null; age_band: string | null };
   duration_s: number | null;
@@ -677,6 +684,7 @@ export async function exportRows(split?: 'dev' | 'test'): Promise<ExportRow[]> {
     is_open: r.is_open,
     split: r.split,
     assignment_mode: r.assignment_mode,
+    name_revealed: r.name_revealed,
     scenario: {
       structure: r.scenario_structure,
       noise: r.scenario_noise,

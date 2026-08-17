@@ -38,6 +38,12 @@ const MIN_TRIP_M = 800;
  *  enough that the result is a place people have actually heard of. */
 const CANDIDATE_POOL = 40;
 
+/**
+ * Radius within which a category must be UNIQUE for the descriptor to identify
+ * the place. Roughly district scale, which is the granularity the card shows.
+ */
+const DESCRIPTOR_UNIQUE_RADIUS_M = 2000;
+
 /** Landmarks shown to identify the place without naming it. */
 const LANDMARK_RADIUS_M = 700;
 const LANDMARK_COUNT = 3;
@@ -111,6 +117,15 @@ export interface AssignedPlace {
   lng: number;
   /** How many POIs in the corpus share this exact folded name. 1 = unique. */
   nameCount: number;
+  /**
+   * How many POIs of the SAME category sit within ~2 km. 1 = the descriptor
+   * shown on screen ("a maternity · Sebkha") designates one place.
+   *
+   * This, not the category list, is what makes an assignment answerable. The
+   * previous rule kept "school" because schools are ride destinations — but
+   * Ksar has twenty, so "a school · Ksar" identified nothing.
+   */
+  descriptorCount: number;
   landmarks: AssignedLandmark[];
 }
 
@@ -130,6 +145,7 @@ interface CandidateRow {
   lat: number;
   lng: number;
   name_count: number;
+  descriptor_count: number;
 }
 
 /**
@@ -201,20 +217,33 @@ async function drawPlace(opts: {
                      > $${params.length}`;
   }
 
-  const run = async (homonym: boolean, landmarkGrade: boolean): Promise<CandidateRow | null> => {
+  const run = async (
+    homonym: boolean, landmarkGrade: boolean, uniqueDescriptor: boolean,
+  ): Promise<CandidateRow | null> => {
     const { rows } = await pool.query<CandidateRow>(
       `${CANDIDATE_CTE}
-       SELECT id, label, name_ar, kind, lat, lng, name_count FROM (
-         SELECT * FROM candidates
-          WHERE lat BETWEEN $1 AND $2
-            AND lng BETWEEN $3 AND $4
-            AND ($5::bigint IS NULL OR id <> $5::bigint)
-            AND name_count ${homonym ? '> 1' : '= 1'}
-            ${landmarkGrade ? `AND ${ASSIGNABLE_FILTER}` : ''}
-            ${distanceSql}
-          ORDER BY popularity DESC
-          LIMIT ${CANDIDATE_POOL}
+       SELECT id, label, name_ar, kind, lat, lng, name_count, descriptor_count FROM (
+         SELECT p.*, (
+           SELECT COUNT(*) FROM candidates c2
+            WHERE c2.kind = p.kind
+              AND c2.lat BETWEEN p.lat - ${DESCRIPTOR_UNIQUE_RADIUS_M / 111000}
+                             AND p.lat + ${DESCRIPTOR_UNIQUE_RADIUS_M / 111000}
+              AND c2.lng BETWEEN p.lng - ${DESCRIPTOR_UNIQUE_RADIUS_M / 111000} / cos(radians(p.lat))
+                             AND p.lng + ${DESCRIPTOR_UNIQUE_RADIUS_M / 111000} / cos(radians(p.lat))
+         )::int AS descriptor_count
+         FROM (
+           SELECT * FROM candidates
+            WHERE lat BETWEEN $1 AND $2
+              AND lng BETWEEN $3 AND $4
+              AND ($5::bigint IS NULL OR id <> $5::bigint)
+              AND name_count ${homonym ? '> 1' : '= 1'}
+              ${landmarkGrade ? `AND ${ASSIGNABLE_FILTER}` : ''}
+              ${distanceSql}
+            ORDER BY popularity DESC
+            LIMIT ${CANDIDATE_POOL}
+         ) p
        ) pool
+       ${uniqueDescriptor ? 'WHERE descriptor_count = 1' : ''}
        ORDER BY random()
        LIMIT 1`,
       params,
@@ -222,13 +251,18 @@ async function drawPlace(opts: {
     return rows[0] ?? null;
   };
 
-  // Landmark-grade first, on both sides of the ambiguity filter. Only if a zone
-  // genuinely has no such POI do we relax the category — an imperfect
-  // assignment beats an error, and the tester can always skip it.
-  return (await run(opts.wantHomonym, true))
-    ?? (await run(!opts.wantHomonym, true))
-    ?? (await run(opts.wantHomonym, false))
-    ?? (await run(!opts.wantHomonym, false));
+  // Preference order, most answerable first: a landmark-grade category whose
+  // descriptor is locally unique, then a unique descriptor of any category,
+  // then landmark-grade without uniqueness, then anything. Each relaxation
+  // makes the place harder to recognise from its description alone — which is
+  // why the screen offers to reveal the name rather than assuming the tester
+  // will manage.
+  return (await run(opts.wantHomonym, true, true))
+    ?? (await run(!opts.wantHomonym, true, true))
+    ?? (await run(opts.wantHomonym, false, true))
+    ?? (await run(opts.wantHomonym, true, false))
+    ?? (await run(!opts.wantHomonym, true, false))
+    ?? (await run(!opts.wantHomonym, false, false));
 }
 
 /** Nearby POIs used to identify a place on screen without writing its name. */
@@ -268,6 +302,7 @@ async function toPlace(row: CandidateRow): Promise<AssignedPlace> {
     lat: row.lat,
     lng: row.lng,
     nameCount: row.name_count,
+    descriptorCount: row.descriptor_count,
     landmarks: await landmarksFor(row),
   };
 }

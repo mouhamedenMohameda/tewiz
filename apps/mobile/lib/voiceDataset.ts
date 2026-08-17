@@ -54,6 +54,8 @@ export interface AssignedPlace {
   lng: number;
   /** POIs in the corpus sharing this exact name. 1 = unique. */
   nameCount: number;
+  /** POIs of the same category within ~2 km. 1 = the descriptor identifies it. */
+  descriptorCount?: number;
   landmarks: AssignedLandmark[];
 }
 
@@ -174,6 +176,8 @@ export interface SubmitSampleInput {
   speakerGender: string | null;
   speakerAgeBand: string | null;
   assignmentMode: AssignmentMode;
+  /** True when the tester displayed an assigned name before speaking. */
+  nameRevealed: boolean;
 }
 
 export async function submitSample(input: SubmitSampleInput): Promise<DatasetSample> {
@@ -202,6 +206,7 @@ export async function submitSample(input: SubmitSampleInput): Promise<DatasetSam
   if (input.speakerGender) form.append('speakerGender', input.speakerGender);
   if (input.speakerAgeBand) form.append('speakerAgeBand', input.speakerAgeBand);
   form.append('assignmentMode', input.assignmentMode);
+  form.append('nameRevealed', input.nameRevealed ? 'true' : 'false');
 
   const { data } = await api.post<DatasetSample>(`${BASE}/samples`, form, {
     headers: { 'Content-Type': 'multipart/form-data' },
