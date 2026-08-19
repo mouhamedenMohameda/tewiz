@@ -118,16 +118,45 @@ export interface RequestOutcome {
    * prompt that can no longer appear.
    */
   needsSettings: boolean;
+  /**
+   * The native request THREW — the permission can't be asked for on this build
+   * at all. In practice: an app binary whose Info.plist / manifest predates the
+   * feature (the classic being `NSLocationAlwaysAndWhenInUseUsageDescription`
+   * missing, which makes expo-location throw instead of prompting), or Expo Go,
+   * which has no background-location entitlement.
+   *
+   * This is NOT a refusal and settings won't fix it — only a new build will —
+   * so the UI says so rather than blaming the captain.
+   */
+  unavailable?: boolean;
 }
 
 /**
  * Request ONE permission, honouring the OS constraints above.
+ *
+ * NEVER throws. A native request that blows up (see `unavailable`) used to take
+ * the whole "Tout autoriser" chain down with it, so the captain got the first
+ * dialog and nothing after — the exact bug this function's try/catch prevents.
  *
  * `current` lets the caller pass the statuses it already read, so an
  * already-granted permission is never re-requested (which on iOS is a no-op but
  * on Android can consume the "don't ask again" budget).
  */
 export async function requestCaptainPermission(
+  key: CaptainPermissionKey,
+  current?: PermStatuses,
+): Promise<RequestOutcome> {
+  try {
+    return await requestOne(key, current);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn(`[permissions] request "${key}" failed`, err);
+    const status = current?.[key] ?? 'undetermined';
+    return { status, needsSettings: false, unavailable: true };
+  }
+}
+
+async function requestOne(
   key: CaptainPermissionKey,
   current?: PermStatuses,
 ): Promise<RequestOutcome> {
@@ -192,22 +221,42 @@ export async function requestCaptainPermission(
  */
 export async function requestAllCaptainPermissions(
   onProgress?: (key: CaptainPermissionKey, outcome: RequestOutcome) => void,
-): Promise<{ statuses: PermStatuses; needsSettings: CaptainPermissionKey[] }> {
+): Promise<{
+  statuses: PermStatuses;
+  needsSettings: CaptainPermissionKey[];
+  unavailable: CaptainPermissionKey[];
+}> {
   const statuses = await readCaptainPermissions();
   const needsSettings: CaptainPermissionKey[] = [];
+  const unavailable: CaptainPermissionKey[] = [];
 
   for (const item of CAPTAIN_PERMISSIONS) {
     if (statuses[item.key] === 'granted') continue;
     // No point asking for background location once foreground was refused.
     if (item.key === 'always' && statuses.location !== 'granted') continue;
 
-    const outcome = await requestCaptainPermission(item.key, statuses);
+    // One permission failing must never stop the chain: that turned "Tout
+    // autoriser" into "autorise la première puis abandonne". requestCaptain-
+    // Permission already swallows throws; the guard here also covers a
+    // misbehaving onProgress callback.
+    let outcome: RequestOutcome;
+    try {
+      outcome = await requestCaptainPermission(item.key, statuses);
+    } catch {
+      outcome = { status: statuses[item.key], needsSettings: false, unavailable: true };
+    }
+
     statuses[item.key] = outcome.status;
     if (outcome.needsSettings) needsSettings.push(item.key);
-    onProgress?.(item.key, outcome);
+    if (outcome.unavailable) unavailable.push(item.key);
+    try {
+      onProgress?.(item.key, outcome);
+    } catch {
+      // A UI callback must not abort the remaining prompts either.
+    }
   }
 
-  return { statuses, needsSettings };
+  return { statuses, needsSettings, unavailable };
 }
 
 /** True once every REQUIRED permission is granted. */

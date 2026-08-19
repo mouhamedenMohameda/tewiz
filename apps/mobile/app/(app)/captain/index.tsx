@@ -488,6 +488,43 @@ export default function CaptainHome() {
             </Card>
           </FadeInView>
 
+          {/* Captains-only WhatsApp group — a premium, on-brand invite card.
+              Only rendered once the admin has configured the link. */}
+          {captainWhatsappUrl ? (
+            <FadeInView delay={55}>
+              <Card
+                onPress={() => openWhatsAppLink(
+                  captainWhatsappUrl,
+                  t('captain.home.whatsappGroupUnavailable'),
+                )}
+                padding={spacing.lg}
+                style={{
+                  marginTop: spacing.base, flexDirection: 'row', alignItems: 'center',
+                  gap: spacing.base, borderWidth: 1, borderColor: 'rgba(37,211,102,0.35)',
+                }}
+              >
+                <View style={{
+                  width: 50, height: 50, borderRadius: radius.md,
+                  backgroundColor: 'rgba(37,211,102,0.14)', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Icon name="whatsapp" size={28} color="#25D366" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <AppText variant="bodyStrong">{t('captain.home.whatsappGroup')}</AppText>
+                  <AppText variant="caption" color={colors.ink2} style={{ marginTop: 2 }}>
+                    {t('captain.home.whatsappGroupHint')}
+                  </AppText>
+                </View>
+                <View style={{
+                  width: 34, height: 34, borderRadius: 17, backgroundColor: '#25D366',
+                  alignItems: 'center', justifyContent: 'center', ...shadow.card,
+                }}>
+                  <Icon name="chevron" size={18} color={colors.white} />
+                </View>
+              </Card>
+            </FadeInView>
+          ) : null}
+
           {/* Commission bonus — hidden when disabled and no bonus is in flight */}
           <FadeInView delay={70}>
             <BonusCard refreshKey={wallet?.updatedAt} />
@@ -555,30 +592,6 @@ export default function CaptainHome() {
                 onPress={() => router.push('/(app)/captain/recurring')} />
             </View>
           </FadeInView>
-
-          {captainWhatsappUrl ? (
-            <FadeInView delay={175}>
-              <Pressable
-                onPress={() => openWhatsAppLink(
-                  captainWhatsappUrl,
-                  t('captain.home.whatsappGroupUnavailable'),
-                )}
-                style={({ pressed }) => ({
-                  marginTop: spacing.lg,
-                  backgroundColor: pressed ? '#1DA851' : '#25D366',
-                  borderRadius: radius.lg, paddingVertical: spacing.md, paddingHorizontal: spacing.md,
-                  flexDirection: 'row', alignItems: 'center', gap: spacing.md,
-                })}
-                accessibilityRole="button"
-              >
-                <AppText style={{ fontSize: 20 }}>💬</AppText>
-                <AppText variant="label" color="#fff" style={{ flex: 1, fontWeight: '700' }}>
-                  {t('captain.home.whatsappGroup')}
-                </AppText>
-                <AppText color="#fff" style={{ fontSize: 18 }}>›</AppText>
-              </Pressable>
-            </FadeInView>
-          ) : null}
 
           <Pressable onPress={confirmReset} style={({ pressed }) => ({
             marginTop: spacing.xl, paddingVertical: spacing.md,

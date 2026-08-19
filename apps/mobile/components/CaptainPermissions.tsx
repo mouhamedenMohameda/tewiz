@@ -65,6 +65,10 @@ export function CaptainPermissions({ mode = 'onboarding', onDone }: CaptainPermi
   const [statuses, setStatuses] = useState<PermStatuses>(EMPTY);
   // Which rows can no longer be prompted and need the settings page instead.
   const [stuck, setStuck] = useState<CaptainPermissionKey[]>([]);
+  // Which rows the native layer refuses to even ask for — an app binary that
+  // predates the feature. Settings won't help; only a new build will, so the
+  // row says that instead of pretending the captain refused.
+  const [unavailable, setUnavailable] = useState<CaptainPermissionKey[]>([]);
   const [busy, setBusy] = useState<CaptainPermissionKey | 'all' | null>(null);
   // Set while WE are showing a system prompt, so the AppState listener doesn't
   // re-read (and race the in-flight request) every time a dialog steals focus.
@@ -73,8 +77,9 @@ export function CaptainPermissions({ mode = 'onboarding', onDone }: CaptainPermi
   const refresh = useCallback(async () => {
     const next = await readCaptainPermissions();
     setStatuses(next);
-    // A row that just got granted is no longer stuck.
+    // A row that just got granted is no longer stuck / unavailable.
     setStuck((prev) => prev.filter((k) => next[k] !== 'granted'));
+    setUnavailable((prev) => prev.filter((k) => next[k] !== 'granted'));
   }, []);
 
   useEffect(() => { void refresh(); }, [refresh]);
@@ -91,13 +96,14 @@ export function CaptainPermissions({ mode = 'onboarding', onDone }: CaptainPermi
     setBusy('all');
     requesting.current = true;
     try {
-      const { statuses: next, needsSettings } = await requestAllCaptainPermissions((key, out) => {
+      const res = await requestAllCaptainPermissions((key, out) => {
         // Tick each row the moment its prompt is answered, so the captain sees
         // the list filling in rather than a frozen screen behind four dialogs.
         setStatuses((prev) => ({ ...prev, [key]: out.status }));
       });
-      setStatuses(next);
-      setStuck(needsSettings);
+      setStatuses(res.statuses);
+      setStuck(res.needsSettings);
+      setUnavailable(res.unavailable);
     } finally {
       requesting.current = false;
       setBusy(null);
@@ -111,6 +117,9 @@ export function CaptainPermissions({ mode = 'onboarding', onDone }: CaptainPermi
       const out = await requestCaptainPermission(key, statuses);
       setStatuses((prev) => ({ ...prev, [key]: out.status }));
       setStuck((prev) => (out.needsSettings
+        ? (prev.includes(key) ? prev : [...prev, key])
+        : prev.filter((k) => k !== key)));
+      setUnavailable((prev) => (out.unavailable
         ? (prev.includes(key) ? prev : [...prev, key])
         : prev.filter((k) => k !== key)));
     } finally {
@@ -153,6 +162,7 @@ export function CaptainPermissions({ mode = 'onboarding', onDone }: CaptainPermi
               optional={!p.required}
               status={statuses[p.key]}
               stuck={stuck.includes(p.key)}
+              unavailable={unavailable.includes(p.key)}
               busy={busy === p.key || busy === 'all'}
               // Foreground location gates the background one: until it is
               // granted, the OS rejects the request, so we don't offer it.
@@ -221,6 +231,7 @@ interface RowProps {
   optional: boolean;
   status: PermStatuses[CaptainPermissionKey];
   stuck: boolean;
+  unavailable: boolean;
   busy: boolean;
   blocked: boolean;
   onPress: () => void;
@@ -228,15 +239,18 @@ interface RowProps {
 }
 
 function PermissionRow({
-  icon, title, why, optional, status, stuck, busy, blocked, onPress, onSettings,
+  icon, title, why, optional, status, stuck, unavailable, busy, blocked, onPress, onSettings,
 }: RowProps) {
   const { t } = useTranslation();
   const granted = status === 'granted';
   // "Needs the settings page" = the OS won't prompt again (denied for good, or
-  // Android 11+ background location).
-  const needsSettings = !granted && (stuck || status === 'denied');
+  // Android 11+ background location). `unavailable` is a different failure —
+  // the build can't ask at all — and settings would be a dead end, so it wins.
+  const needsSettings = !granted && !unavailable && (stuck || status === 'denied');
 
-  const tone = granted ? colors.success : needsSettings ? colors.warning : colors.muted;
+  const tone = granted
+    ? colors.success
+    : unavailable ? colors.danger : needsSettings ? colors.warning : colors.muted;
 
   return (
     <Card
@@ -274,6 +288,10 @@ function PermissionRow({
           {granted ? (
             <AppText variant="caption" color={colors.success} style={{ marginTop: spacing.sm }}>
               {t('captain.permissions.granted')}
+            </AppText>
+          ) : unavailable ? (
+            <AppText variant="caption" color={colors.danger} style={{ marginTop: spacing.sm }}>
+              {t('captain.permissions.unavailable')}
             </AppText>
           ) : blocked ? (
             <AppText variant="caption" color={colors.muted} style={{ marginTop: spacing.sm }}>

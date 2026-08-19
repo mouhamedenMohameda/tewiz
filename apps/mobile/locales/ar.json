@@ -291,7 +291,8 @@
       "resetTitle": "إعادة ضبط التنبيهات؟",
       "wallet": "الرصيد",
       "whatsappGroup": "مجموعة واتساب للكباتن",
-      "whatsappGroupUnavailable": "تعذّر فتح واتساب. تأكد من أنه مثبّت."
+      "whatsappGroupUnavailable": "تعذّر فتح واتساب. تأكد من أنه مثبّت.",
+      "whatsappGroupHint": "انضم إلى مجتمع الكباتن على واتساب"
     },
     "homeLocation": {
       "addressFieldLabel": "العنوان (وصف)",
@@ -359,7 +360,8 @@
           "title": "الميكروفون",
           "why": "لإملاء وجهة أو إرسال رسالة صوتية إلى الزبون."
         }
-      }
+      },
+      "unavailable": "غير متاح في هذه النسخة من التطبيق. حدّثه لتفعيل هذا الإذن."
     },
     "preferences": {
       "colis": "أقبل الطرود",

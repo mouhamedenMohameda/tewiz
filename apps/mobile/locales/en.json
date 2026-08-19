@@ -279,7 +279,8 @@
       "resetTitle": "Reset alerts?",
       "wallet": "Balance",
       "whatsappGroup": "Captains WhatsApp group",
-      "whatsappGroupUnavailable": "Couldn't open WhatsApp. Make sure it's installed."
+      "whatsappGroupUnavailable": "Couldn't open WhatsApp. Make sure it's installed.",
+      "whatsappGroupHint": "Join the Captains community on WhatsApp"
     },
     "homeLocation": {
       "addressFieldLabel": "Address (description)",
@@ -347,7 +348,8 @@
           "title": "Microphone",
           "why": "To dictate a destination or send the rider a voice message."
         }
-      }
+      },
+      "unavailable": "Not available in this version of the app. Update it to enable this permission."
     },
     "preferences": {
       "colis": "Accept parcels",

@@ -291,7 +291,8 @@
       "resetTitle": "Réinitialiser les alertes ?",
       "wallet": "Solde",
       "whatsappGroup": "Groupe WhatsApp des Captains",
-      "whatsappGroupUnavailable": "Impossible d'ouvrir WhatsApp. Vérifiez qu'il est installé."
+      "whatsappGroupUnavailable": "Impossible d'ouvrir WhatsApp. Vérifiez qu'il est installé.",
+      "whatsappGroupHint": "Rejoignez la communauté des Captains sur WhatsApp"
     },
     "homeLocation": {
       "addressFieldLabel": "Adresse (description)",
@@ -359,7 +360,8 @@
           "title": "Micro",
           "why": "Pour dicter une destination ou envoyer un message vocal au client."
         }
-      }
+      },
+      "unavailable": "Indisponible sur cette version de l'application. Mettez-la à jour pour activer cette autorisation."
     },
     "preferences": {
       "colis": "J'accepte les colis",
