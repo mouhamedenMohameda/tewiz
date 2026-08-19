@@ -145,6 +145,15 @@ export interface PricingSettings {
   // to update. NULL = the update gate is off.
   minAndroidVersion: string | null;
   minIosVersion: string | null;
+  // Migration 0085. WhatsApp entry points. The order phone backs the
+  // "Demander via WhatsApp" button on the ride-request screen (rider sends a
+  // voice note instead of filling the map form). The community link is a public
+  // group any user can join. The captain link is served ONLY through the
+  // captain-authenticated endpoint, never in the public /config payload, so a
+  // non-captain can't see it. NULL = the corresponding button/link is hidden.
+  whatsappOrderPhone: string | null;
+  whatsappCommunityUrl: string | null;
+  whatsappCaptainUrl: string | null;
   updatedAt: string;
   updatedBy: string | null;
 }
@@ -243,6 +252,9 @@ interface Row {
   latest_ios_url: string | null;
   min_android_version: string | null;
   min_ios_version: string | null;
+  whatsapp_order_phone: string | null;
+  whatsapp_community_url: string | null;
+  whatsapp_captain_url: string | null;
   updated_at: Date;
   updated_by: string | null;
 }
@@ -339,6 +351,9 @@ function toSettings(r: Row): PricingSettings {
     latestIosUrl: r.latest_ios_url,
     minAndroidVersion: r.min_android_version,
     minIosVersion: r.min_ios_version,
+    whatsappOrderPhone: r.whatsapp_order_phone,
+    whatsappCommunityUrl: r.whatsapp_community_url,
+    whatsappCaptainUrl: r.whatsapp_captain_url,
     updatedAt: r.updated_at.toISOString(),
     updatedBy: r.updated_by,
   };
@@ -403,6 +418,7 @@ export async function getPricingSettings(): Promise<PricingSettings> {
             equipment_rental_commission_bps,
             latest_android_url, latest_ios_url,
             min_android_version, min_ios_version,
+            whatsapp_order_phone, whatsapp_community_url, whatsapp_captain_url,
             updated_at, updated_by
        FROM app_settings WHERE id = 1`,
   );
@@ -507,6 +523,9 @@ export interface PricingSettingsPatch {
   latestIosUrl?: string | null;
   minAndroidVersion?: string | null;
   minIosVersion?: string | null;
+  whatsappOrderPhone?: string | null;
+  whatsappCommunityUrl?: string | null;
+  whatsappCaptainUrl?: string | null;
 }
 
 export async function updatePricingSettings(
@@ -605,6 +624,9 @@ export async function updatePricingSettings(
           latest_ios_url                     = COALESCE($84, latest_ios_url),
           min_android_version                = COALESCE($88, min_android_version),
           min_ios_version                    = COALESCE($89, min_ios_version),
+          whatsapp_order_phone               = COALESCE($92, whatsapp_order_phone),
+          whatsapp_community_url             = COALESCE($93, whatsapp_community_url),
+          whatsapp_captain_url               = COALESCE($94, whatsapp_captain_url),
             updated_at                        = now(),
           updated_by                        = $36
       WHERE id = 1
@@ -662,6 +684,7 @@ export async function updatePricingSettings(
                 equipment_rental_commission_bps,
                 latest_android_url, latest_ios_url,
                 min_android_version, min_ios_version,
+                whatsapp_order_phone, whatsapp_community_url, whatsapp_captain_url,
                 updated_at, updated_by`,
     [
       patch.baseFareMru ?? null,
@@ -755,6 +778,9 @@ export async function updatePricingSettings(
       patch.minIosVersion ?? null,       // $89
       patch.maxActiveRidesPerBooker ?? null,   // $90
       patch.maxActiveRidesPerPartner ?? null,  // $91
+      patch.whatsappOrderPhone ?? null,        // $92
+      patch.whatsappCommunityUrl ?? null,      // $93
+      patch.whatsappCaptainUrl ?? null,        // $94
     ],
   );
   cache = null;

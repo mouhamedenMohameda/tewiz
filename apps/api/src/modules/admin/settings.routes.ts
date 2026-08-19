@@ -103,6 +103,15 @@ const patchBody = z.object({
   // null clears the gate. Digits-and-dots only, matching X-App-Version.
   minAndroidVersion:                z.string().trim().regex(/^\d+(\.\d+)*$/).max(40).nullable().optional(),
   minIosVersion:                    z.string().trim().regex(/^\d+(\.\d+)*$/).max(40).nullable().optional(),
+  // Migration 0085. WhatsApp entry points shown in the mobile app.
+  //   whatsappOrderPhone   — number the rider taps "Demander via WhatsApp" to
+  //     reach on the ride-request screen (E.164-ish: +, then 6–15 digits).
+  //   whatsappCommunityUrl — public group invite link (any user).
+  //   whatsappCaptainUrl   — Captains-only group invite link (served only to
+  //     captains, never in the public /config payload).
+  whatsappOrderPhone:               z.string().trim().regex(/^\+?[0-9]{6,15}$/).max(20).nullable().optional(),
+  whatsappCommunityUrl:             z.string().trim().url().max(500).nullable().optional(),
+  whatsappCaptainUrl:               z.string().trim().url().max(500).nullable().optional(),
   gpsFraudSevereMode:               z.boolean().optional(),
   // Per-service availability + tariff knobs. These MUST be listed here: Zod
   // strips unknown keys, so any field missing from this schema is silently

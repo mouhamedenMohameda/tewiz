@@ -90,9 +90,19 @@ async function ensureAndroidChannel() {
  * login/signup during the current app session). Safe to call multiple
  * times — backend upserts on (user_id, device_id).
  *
+ * @param opts.prompt Show the OS permission dialog when the permission isn't
+ *   granted yet (default true). Captains pass `false` here: their notification
+ *   ask belongs to the single "Tout autoriser" panel
+ *   (components/CaptainPermissions.tsx), which calls this back once granted.
+ *   Registering is still attempted when the permission is already there, so a
+ *   returning captain never loses their push token.
+ *
  * Returns true if we have a valid token registered, false otherwise.
  */
-export async function registerForPushNotifications(): Promise<boolean> {
+export async function registerForPushNotifications(
+  opts: { prompt?: boolean } = {},
+): Promise<boolean> {
+  const { prompt = true } = opts;
   // Push only works on physical devices. Skip silently on simulators.
   if (!Device.isDevice) return false;
 
@@ -101,6 +111,7 @@ export async function registerForPushNotifications(): Promise<boolean> {
 
     let { status } = await Notifications.getPermissionsAsync();
     if (status !== 'granted') {
+      if (!prompt) return false;
       const ask = await Notifications.requestPermissionsAsync();
       status = ask.status;
       await AsyncStorage.setItem(PERMISSION_ASKED_KEY, '1');

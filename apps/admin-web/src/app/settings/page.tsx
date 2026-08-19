@@ -82,6 +82,9 @@ interface PricingSettings {
   gpsFraudSevereMode: boolean;
   latestAndroidUrl: string | null;
   latestIosUrl: string | null;
+  whatsappOrderPhone: string | null;
+  whatsappCommunityUrl: string | null;
+  whatsappCaptainUrl: string | null;
   updatedAt: string;
   updatedBy: string | null;
 }
@@ -155,6 +158,9 @@ interface FormState {
   gpsFraudSevereMode: boolean;
   latestAndroidUrl: string;
   latestIosUrl: string;
+  whatsappOrderPhone: string;
+  whatsappCommunityUrl: string;
+  whatsappCaptainUrl: string;
 }
 
 const EMPTY_FORM: FormState = {
@@ -226,6 +232,9 @@ const EMPTY_FORM: FormState = {
   gpsFraudSevereMode: false,
   latestAndroidUrl: '',
   latestIosUrl: '',
+  whatsappOrderPhone: '',
+  whatsappCommunityUrl: '',
+  whatsappCaptainUrl: '',
 };
 
 function settingsToForm(s: PricingSettings): FormState {
@@ -298,6 +307,9 @@ function settingsToForm(s: PricingSettings): FormState {
     gpsFraudSevereMode: s.gpsFraudSevereMode,
     latestAndroidUrl: s.latestAndroidUrl ?? '',
     latestIosUrl: s.latestIosUrl ?? '',
+    whatsappOrderPhone: s.whatsappOrderPhone ?? '',
+    whatsappCommunityUrl: s.whatsappCommunityUrl ?? '',
+    whatsappCaptainUrl: s.whatsappCaptainUrl ?? '',
   };
 }
 
@@ -397,6 +409,15 @@ export default function SettingsPage() {
         latestIosUrl: form.latestIosUrl.trim() === ''
           ? null
           : form.latestIosUrl.trim(),
+        whatsappOrderPhone: form.whatsappOrderPhone.trim() === ''
+          ? null
+          : form.whatsappOrderPhone.trim(),
+        whatsappCommunityUrl: form.whatsappCommunityUrl.trim() === ''
+          ? null
+          : form.whatsappCommunityUrl.trim(),
+        whatsappCaptainUrl: form.whatsappCaptainUrl.trim() === ''
+          ? null
+          : form.whatsappCaptainUrl.trim(),
       };
       const r = await api.put<PricingSettings>('/admin/settings', payload);
       return r.data;
@@ -1251,6 +1272,56 @@ export default function SettingsPage() {
                   placeholder="https://apps.apple.com/app/id..."
                   value={form.latestIosUrl}
                   onChange={(e) => setForm({ ...form, latestIosUrl: e.target.value })}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                />
+              </label>
+            </section>
+
+            <section className="card p-5 mb-4 border border-green-200 bg-green-50/30">
+              <h2 className="font-semibold text-slate-900 mb-1">WhatsApp</h2>
+              <p className="text-xs text-slate-600 mb-3">
+                Points d&apos;entrée WhatsApp affichés dans l&apos;app mobile. Le numéro
+                de commande et le groupe communautaire apparaissent sur l&apos;écran de
+                demande de course (visibles par tous). Le groupe Captains n&apos;est
+                visible que par les Captains. Laissez un champ vide pour masquer le
+                bouton correspondant.
+              </p>
+              <label className="block mb-3">
+                <span className="block text-xs text-slate-600 mb-1">
+                  Numéro « Demander via WhatsApp » (vocal)
+                </span>
+                <input
+                  type="tel"
+                  inputMode="tel"
+                  placeholder="+22233322777"
+                  value={form.whatsappOrderPhone}
+                  onChange={(e) => setForm({ ...form, whatsappOrderPhone: e.target.value })}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                />
+              </label>
+              <label className="block mb-3">
+                <span className="block text-xs text-slate-600 mb-1">
+                  Lien du groupe WhatsApp (tous les utilisateurs)
+                </span>
+                <input
+                  type="url"
+                  inputMode="url"
+                  placeholder="https://chat.whatsapp.com/..."
+                  value={form.whatsappCommunityUrl}
+                  onChange={(e) => setForm({ ...form, whatsappCommunityUrl: e.target.value })}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                />
+              </label>
+              <label className="block">
+                <span className="block text-xs text-slate-600 mb-1">
+                  Lien du groupe WhatsApp Captains (Captains uniquement)
+                </span>
+                <input
+                  type="url"
+                  inputMode="url"
+                  placeholder="https://chat.whatsapp.com/..."
+                  value={form.whatsappCaptainUrl}
+                  onChange={(e) => setForm({ ...form, whatsappCaptainUrl: e.target.value })}
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
                 />
               </label>

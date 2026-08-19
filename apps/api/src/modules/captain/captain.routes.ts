@@ -14,6 +14,7 @@ import { captainHeatmapRouter } from '../heatmap/heatmap.routes.js';
 import { captainPreferencesRouter } from './preferences.routes.js';
 import { captainBonusRouter } from './bonus.routes.js';
 import * as terms from './terms.service.js';
+import { getPricingSettings } from '../admin/app-settings.service.js';
 
 export const captainRouter = Router();
 captainRouter.use(requireAuth);
@@ -37,6 +38,19 @@ const requireRiderOrCaptain = requireRole('rider', 'captain');
  */
 captainRouter.get('/terms/me', requireRiderOrCaptain, async (req, res) => {
   res.json(await terms.getTermsStatus(req.user!.id));
+});
+
+/**
+ * GET /captain/whatsapp-group
+ * The Captains-only WhatsApp group invite link (migration 0085). Gated on
+ * requireRole('captain') so only an approved captain ever receives it — it is
+ * deliberately absent from the public /config payload. `url` is null when the
+ * admin hasn't configured a link, and the app hides the button.
+ */
+captainRouter.get('/whatsapp-group', requireRole('captain'), async (_req, res) => {
+  const s = await getPricingSettings();
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ url: s.whatsappCaptainUrl });
 });
 
 /**

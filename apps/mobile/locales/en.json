@@ -277,7 +277,9 @@
       "resetConfirm": "Reset",
       "resetDoneBody": "Alerts will resume on the next ride.",
       "resetTitle": "Reset alerts?",
-      "wallet": "Balance"
+      "wallet": "Balance",
+      "whatsappGroup": "Captains WhatsApp group",
+      "whatsappGroupUnavailable": "Couldn't open WhatsApp. Make sure it's installed."
     },
     "homeLocation": {
       "addressFieldLabel": "Address (description)",
@@ -314,6 +316,38 @@
       "recurringTitle": "Recurring rides",
       "ridesSubtitle": "Inbox of rides and the active ride",
       "ridesTitle": "Rides"
+    },
+    "permissions": {
+      "title": "Let's activate your account",
+      "intro": "{{app}} needs a few phone permissions to send you rides and alert you in time. Tap \"Allow all\" once: the prompts follow one another, you only have to confirm.",
+      "grantAll": "Allow all",
+      "allow": "Allow",
+      "fix": "Fix in settings",
+      "later": "Later",
+      "start": "Start driving",
+      "granted": "Allowed",
+      "optional": "Optional",
+      "needsLocationFirst": "Allow location first.",
+      "footnote": "Your phone shows one prompt per permission — that's an Android and iOS rule, we can't merge them. You can change these choices anytime in settings.",
+      "settingsEntry": "Phone permissions",
+      "items": {
+        "location": {
+          "title": "Your location",
+          "why": "To offer you the rides closest to you."
+        },
+        "always": {
+          "title": "Continuous location (\"Always\")",
+          "why": "To stay visible to dispatch even with the screen off, and let support follow your trip if something goes wrong. Only active while you are online."
+        },
+        "notifications": {
+          "title": "Notifications",
+          "why": "To receive new rides like a call, even with the phone locked."
+        },
+        "microphone": {
+          "title": "Microphone",
+          "why": "To dictate a destination or send the rider a voice message."
+        }
+      }
     },
     "preferences": {
       "colis": "Accept parcels",
@@ -1489,7 +1523,14 @@
       "thirdPartyHint": "The passenger will receive an SMS confirmation. The driver will call them directly.",
       "thirdPartyName": "Name",
       "thirdPartyPhone": "Phone",
-      "title": "New ride"
+      "title": "New ride",
+      "whatsapp": {
+        "orderButton": "Request via WhatsApp",
+        "orderHint": "Send a voice note with your pickup and destination",
+        "orderPrefill": "Hello, I would like to request a ride. Here is my pickup and destination:",
+        "communityButton": "Join the WhatsApp group",
+        "unavailable": "Couldn't open WhatsApp. Make sure it's installed."
+      }
     },
     "recurring": {
       "cancelBody": "No new ride will be generated. The history stays available.",

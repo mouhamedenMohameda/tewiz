@@ -302,6 +302,24 @@ export default function SettingsScreen() {
               </View>
             ) : null}
           </Card>
+
+          {/* Recovery path for the first-run "Tout autoriser" panel: a captain
+              who refused an authorisation (or lost it in a phone reset) fixes
+              it here instead of hunting through the OS settings. */}
+          <Card
+            onPress={() => router.push('/(app)/captain/permissions')}
+            padding={spacing.lg}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.md }}
+          >
+            <RoundIcon name="shield" tint={colors.saffronSoft} fg={colors.warning} />
+            <View style={{ flex: 1 }}>
+              <AppText variant="bodyStrong">{t('captain.permissions.settingsEntry')}</AppText>
+              <AppText variant="caption" color={colors.muted} style={{ marginTop: 2, lineHeight: 18 }}>
+                {t('captain.permissions.title')}
+              </AppText>
+            </View>
+            <Icon name="chevron" size={20} color={colors.faint} />
+          </Card>
         </Section>
       ) : null}
 

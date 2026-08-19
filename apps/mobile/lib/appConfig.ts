@@ -40,6 +40,12 @@ export interface AppConfig {
   // than this triggers the blocking update gate. null = gate off.
   minAndroidVersion: string | null;
   minIosVersion: string | null;
+  // WhatsApp entry points shown on the ride-request screen. The order phone
+  // backs the "Demander via WhatsApp" voice-order button; the community URL is
+  // a public group invite. null = the button/link is hidden. The Captains-only
+  // group link is NOT here — it is fetched from GET /captain/whatsapp-group.
+  whatsappOrderPhone: string | null;
+  whatsappCommunityUrl: string | null;
   modules: ModuleFlags;
 }
 
@@ -65,6 +71,8 @@ const DEFAULTS: AppConfig = {
   latestIosUrl: null,
   minAndroidVersion: null,
   minIosVersion: null,
+  whatsappOrderPhone: null,
+  whatsappCommunityUrl: null,
   modules: DEFAULT_MODULE_FLAGS,
 };
 

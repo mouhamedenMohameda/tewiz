@@ -39,6 +39,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 export default function RootLayout() {
   const hydrate = useAuth((s) => s.hydrate);
   const userId = useAuth((s) => s.user?.id);
+  const role = useAuth((s) => s.user?.role);
   const [crashShown, setCrashShown] = useState(false);
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const [i18nReady, setI18nReady] = useState(false);
@@ -114,12 +115,18 @@ export default function RootLayout() {
   // changes: the server upserts by (user_id, device_id).
   useEffect(() => {
     if (!userId) return;
-    void registerForPushNotifications();
+    // Captains must NOT be prompted here: their notification ask belongs to the
+    // single "Tout autoriser" panel (components/CaptainPermissions.tsx), which
+    // calls this back once granted. Prompting on login too would put a dialog
+    // in front of them before that panel ever appears — the exact scattering we
+    // set out to remove. Registration still runs when the permission is already
+    // granted, so a returning captain keeps their push token.
+    void registerForPushNotifications({ prompt: role !== 'captain' });
     // Android-only: register the headless task that pops the full-screen
     // "incoming ride" screen when a ride push lands while the app is
     // backgrounded or killed. No-op on iOS / old builds.
     void registerBackgroundRideAlertTask();
-  }, [userId]);
+  }, [userId, role]);
 
   // Second trigger for the same full-screen alert, covering every case where
   // the app process is alive (the normal state for an online captain, kept up

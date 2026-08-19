@@ -9,6 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { api } from '@/lib/api';
+import { openWhatsAppLink } from '@/lib/whatsapp';
 import { useAuth } from '@/lib/auth';
 import { balanceTooLowMessage } from '@/lib/apiError';
 import { formatMru } from '@/lib/format';
@@ -73,6 +74,9 @@ export default function CaptainHome() {
   const [cells, setCells] = useState<DemandCell[]>([]);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
+  // Captains-only WhatsApp group link (served only to captains via
+  // /captain/whatsapp-group). null = admin hasn't configured one → hide it.
+  const [captainWhatsappUrl, setCaptainWhatsappUrl] = useState<string | null>(null);
   const [togglingGoingHome, setTogglingGoingHome] = useState(false);
 
   const load = useCallback(async () => {
@@ -101,6 +105,16 @@ export default function CaptainHome() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Load the Captains-only WhatsApp group link once. Best-effort: any failure
+  // just leaves the button hidden.
+  useEffect(() => {
+    let cancelled = false;
+    api.get<{ url: string | null }>('/captain/whatsapp-group')
+      .then((r) => { if (!cancelled) setCaptainWhatsappUrl(r.data.url); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
   // Refresh balance/state/going-home periodically (battery-friendly cadence).
   usePolling(load, 30_000);
 
@@ -120,11 +134,16 @@ export default function CaptainHome() {
   usePolling(loadHeatmap, 60_000);
 
   // Centre the map on the captain on mount. Falls back silently to
-  // Nouakchott if the permission is denied.
+  // Nouakchott if the permission isn't granted.
+  //
+  // READS the permission, never requests it: a passive mount must not pop a
+  // dialog. The ask belongs to the "Tout autoriser" panel
+  // (components/CaptainPermissions.tsx) and to goOnline() below, both of which
+  // are moments the captain expects one.
   useEffect(() => {
     (async () => {
       try {
-        const perm = await Location.requestForegroundPermissionsAsync();
+        const perm = await Location.getForegroundPermissionsAsync();
         if (perm.status !== 'granted') return;
         const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
         cameraRef.current?.setCamera({
@@ -536,6 +555,30 @@ export default function CaptainHome() {
                 onPress={() => router.push('/(app)/captain/recurring')} />
             </View>
           </FadeInView>
+
+          {captainWhatsappUrl ? (
+            <FadeInView delay={175}>
+              <Pressable
+                onPress={() => openWhatsAppLink(
+                  captainWhatsappUrl,
+                  t('captain.home.whatsappGroupUnavailable'),
+                )}
+                style={({ pressed }) => ({
+                  marginTop: spacing.lg,
+                  backgroundColor: pressed ? '#1DA851' : '#25D366',
+                  borderRadius: radius.lg, paddingVertical: spacing.md, paddingHorizontal: spacing.md,
+                  flexDirection: 'row', alignItems: 'center', gap: spacing.md,
+                })}
+                accessibilityRole="button"
+              >
+                <AppText style={{ fontSize: 20 }}>💬</AppText>
+                <AppText variant="label" color="#fff" style={{ flex: 1, fontWeight: '700' }}>
+                  {t('captain.home.whatsappGroup')}
+                </AppText>
+                <AppText color="#fff" style={{ fontSize: 18 }}>›</AppText>
+              </Pressable>
+            </FadeInView>
+          ) : null}
 
           <Pressable onPress={confirmReset} style={({ pressed }) => ({
             marginTop: spacing.xl, paddingVertical: spacing.md,

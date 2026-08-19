@@ -214,18 +214,12 @@ export function CaptainRideWatcher() {
 
     void loadSeenFromStorage();
 
-    (async () => {
-      try {
-        const cur = await Notifications.getPermissionsAsync();
-        if (!cur.granted) {
-          await Notifications.requestPermissionsAsync({
-            ios: { allowAlert: true, allowBadge: false, allowSound: true },
-          });
-        }
-      } catch {
-        // Ignore — modal still shows visually.
-      }
-    })();
+    // No permission request here on purpose. This component mounts with the
+    // captain layout, so asking from it meant a notification dialog appearing
+    // the instant a captain opened any captain screen — one of the pop-ups the
+    // single "Tout autoriser" panel (components/CaptainPermissions.tsx) exists
+    // to absorb. That panel now owns the ask; without it granted, the in-app
+    // modal still shows visually, we just lose the OS-level alert.
   }, []);
 
   // Read translations off the i18n module directly because this callback is

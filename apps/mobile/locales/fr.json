@@ -289,7 +289,9 @@
       "resetConfirm": "Réinitialiser",
       "resetDoneBody": "Les alertes vont reprendre à la prochaine course.",
       "resetTitle": "Réinitialiser les alertes ?",
-      "wallet": "Solde"
+      "wallet": "Solde",
+      "whatsappGroup": "Groupe WhatsApp des Captains",
+      "whatsappGroupUnavailable": "Impossible d'ouvrir WhatsApp. Vérifiez qu'il est installé."
     },
     "homeLocation": {
       "addressFieldLabel": "Adresse (description)",
@@ -326,6 +328,38 @@
       "recurringTitle": "Courses récurrentes",
       "ridesSubtitle": "Inbox des courses et course en cours",
       "ridesTitle": "Courses"
+    },
+    "permissions": {
+      "title": "Activons votre compte",
+      "intro": "Pour que {{app}} vous envoie des courses et vous alerte à temps, votre téléphone doit autoriser quelques accès. Appuyez une fois sur « Tout autoriser » : les demandes s'enchaînent, vous n'avez qu'à confirmer.",
+      "grantAll": "Tout autoriser",
+      "allow": "Autoriser",
+      "fix": "Corriger dans les réglages",
+      "later": "Plus tard",
+      "start": "Commencer à travailler",
+      "granted": "Autorisé",
+      "optional": "Facultatif",
+      "needsLocationFirst": "Autorisez d'abord la position.",
+      "footnote": "Votre téléphone affiche une demande par autorisation : c'est une règle d'Android et d'iOS, nous ne pouvons pas les regrouper. Vous pouvez revenir sur ces choix à tout moment dans les réglages.",
+      "settingsEntry": "Autorisations du téléphone",
+      "items": {
+        "location": {
+          "title": "Votre position",
+          "why": "Pour vous proposer les courses les plus proches de vous."
+        },
+        "always": {
+          "title": "Position en continu (« Toujours »)",
+          "why": "Pour rester visible du dispatch même écran éteint, et permettre au support de suivre votre trajet en cas d'incident. Actif uniquement quand vous êtes en ligne."
+        },
+        "notifications": {
+          "title": "Notifications",
+          "why": "Pour recevoir les nouvelles courses comme un appel, même téléphone verrouillé."
+        },
+        "microphone": {
+          "title": "Micro",
+          "why": "Pour dicter une destination ou envoyer un message vocal au client."
+        }
+      }
     },
     "preferences": {
       "colis": "J'accepte les colis",
@@ -1535,7 +1569,14 @@
       "thirdPartyHint": "Le Client recevra un SMS de confirmation. Le Captain l'appellera directement.",
       "thirdPartyName": "Nom",
       "thirdPartyPhone": "Téléphone",
-      "title": "Nouvelle course"
+      "title": "Nouvelle course",
+      "whatsapp": {
+        "orderButton": "Demander via WhatsApp",
+        "orderHint": "Envoyez un vocal avec votre départ et votre destination",
+        "orderPrefill": "Bonjour, je souhaite commander une course. Voici mon départ et ma destination :",
+        "communityButton": "Rejoindre le groupe WhatsApp",
+        "unavailable": "Impossible d'ouvrir WhatsApp. Vérifiez qu'il est installé."
+      }
     },
     "recurring": {
       "cancelBody": "Plus aucune course ne sera générée. L'historique reste consultable.",

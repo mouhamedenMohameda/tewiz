@@ -76,6 +76,14 @@ publicRouter.get('/config', async (req, res) => {
     // builds that ship the gate (an older binary has no such screen).
     minAndroidVersion: s.minAndroidVersion,
     minIosVersion: s.minIosVersion,
+    // WhatsApp entry points shown to every user on the ride-request screen
+    // (migration 0085). The order phone backs the "Demander via WhatsApp"
+    // voice-order button; the community URL is a public group invite. The
+    // Captains-only group link is deliberately NOT exposed here — it is served
+    // only through the captain-authenticated GET /captain/whatsapp-group so a
+    // non-captain can't discover it. null = the button/link is hidden.
+    whatsappOrderPhone: s.whatsappOrderPhone,
+    whatsappCommunityUrl: s.whatsappCommunityUrl,
     // Per-service availability toggles managed from the admin settings screen.
     // The mobile home grid hides any module whose flag is false; the server
     // still rejects a booking for a disabled service (403 *_disabled) as a
