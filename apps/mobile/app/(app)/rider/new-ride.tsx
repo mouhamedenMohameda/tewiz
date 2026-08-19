@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert, Animated, Easing, FlatList, KeyboardAvoidingView, Linking, Modal,
+  ActivityIndicator, Alert, Animated, Easing, FlatList, KeyboardAvoidingView, Modal,
   Platform, Pressable, ScrollView, TextInput, useWindowDimensions, View,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -11,8 +11,6 @@ import { PlainText as Text } from '@/components/ui';
 import { colors, fonts, radius, statusTone } from '@/theme';
 import { currentLanguage, isRTL } from '@/lib/i18n';
 import { api } from '@/lib/api';
-import { useAppConfig } from '@/lib/appConfig';
-import { openWhatsAppChat, openWhatsAppLink } from '@/lib/whatsapp';
 import { formatMru } from '@/lib/format';
 import { getMapbox, MAPBOX_TOKEN } from '@/lib/mapbox';
 import { MapShell } from '@/components/MapShell';
@@ -22,12 +20,6 @@ import {
 // Voice-to-location (automated) removed in Phase 2 — voice ordering now lives
 // in the dedicated record→wait flow at /(app)/rider/voice-ride. This screen is
 // the manual map picker.
-
-// WhatsApp order line. The admin can repoint it via app_settings
-// (whatsappOrderPhone); until then — and even if the config fetch fails or the
-// migration hasn't run — we fall back to the launch number so the "Demander via
-// WhatsApp" button is always available.
-const DEFAULT_WHATSAPP_ORDER_PHONE = '+22233322777';
 
 // Nouakchott — Tevragh Zeina
 const DEFAULT_CENTER: [number, number] = [-15.9785, 18.0853];
@@ -69,7 +61,6 @@ function parsePoint(
 export default function NewRideScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const cfg = useAppConfig();
   const M = getMapbox();
   const cameraRef = useRef<any>(null);
   // The map lives inside a ScrollView so the pickup/dropoff fields and the
@@ -474,59 +465,6 @@ export default function NewRideScreen() {
             </View>
           ) : null}
         </View>
-
-        {(() => {
-          const orderPhone = cfg.whatsappOrderPhone ?? DEFAULT_WHATSAPP_ORDER_PHONE;
-          return (
-          <View style={{ paddingHorizontal: 16, gap: 8, marginTop: 4 }}>
-            {orderPhone ? (
-              <Pressable
-                onPress={() => openWhatsAppChat(orderPhone, {
-                  text: t('rider.newRide.whatsapp.orderPrefill'),
-                  errorMessage: t('rider.newRide.whatsapp.unavailable'),
-                })}
-                style={({ pressed }) => ({
-                  backgroundColor: pressed ? '#1DA851' : '#25D366',
-                  borderRadius: radius.lg, paddingVertical: 14, paddingHorizontal: 14,
-                  flexDirection: 'row', alignItems: 'center', gap: 10,
-                })}
-                accessibilityRole="button"
-              >
-                <Text style={{ fontSize: 20 }}>💬</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 14, fontWeight: '700', color: '#fff' }}>
-                    {t('rider.newRide.whatsapp.orderButton')}
-                  </Text>
-                  <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.9)', marginTop: 2 }}>
-                    {t('rider.newRide.whatsapp.orderHint')}
-                  </Text>
-                </View>
-              </Pressable>
-            ) : null}
-            {cfg.whatsappCommunityUrl ? (
-              <Pressable
-                onPress={() => openWhatsAppLink(
-                  cfg.whatsappCommunityUrl!,
-                  t('rider.newRide.whatsapp.unavailable'),
-                )}
-                style={({ pressed }) => ({
-                  backgroundColor: pressed ? colors.line : colors.surface,
-                  borderWidth: 1, borderColor: '#25D366',
-                  borderRadius: radius.lg, paddingVertical: 12, paddingHorizontal: 14,
-                  flexDirection: 'row', alignItems: 'center', gap: 10,
-                })}
-                accessibilityRole="button"
-              >
-                <Text style={{ fontSize: 18 }}>👥</Text>
-                <Text style={{ flex: 1, fontSize: 13, fontWeight: '600', color: colors.ink }}>
-                  {t('rider.newRide.whatsapp.communityButton')}
-                </Text>
-                <Text style={{ fontSize: 16, color: '#25D366' }}>›</Text>
-              </Pressable>
-            ) : null}
-          </View>
-          );
-        })()}
 
         <View style={{ height: mapHeight, marginTop: 4 }}>
           <MapShell
