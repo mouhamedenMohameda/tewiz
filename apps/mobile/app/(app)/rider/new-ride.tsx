@@ -23,6 +23,12 @@ import {
 // in the dedicated record→wait flow at /(app)/rider/voice-ride. This screen is
 // the manual map picker.
 
+// WhatsApp order line. The admin can repoint it via app_settings
+// (whatsappOrderPhone); until then — and even if the config fetch fails or the
+// migration hasn't run — we fall back to the launch number so the "Demander via
+// WhatsApp" button is always available.
+const DEFAULT_WHATSAPP_ORDER_PHONE = '+22233322777';
+
 // Nouakchott — Tevragh Zeina
 const DEFAULT_CENTER: [number, number] = [-15.9785, 18.0853];
 const DEFAULT_ZOOM = 12;
@@ -469,11 +475,13 @@ export default function NewRideScreen() {
           ) : null}
         </View>
 
-        {(cfg.whatsappOrderPhone || cfg.whatsappCommunityUrl) ? (
+        {(() => {
+          const orderPhone = cfg.whatsappOrderPhone ?? DEFAULT_WHATSAPP_ORDER_PHONE;
+          return (
           <View style={{ paddingHorizontal: 16, gap: 8, marginTop: 4 }}>
-            {cfg.whatsappOrderPhone ? (
+            {orderPhone ? (
               <Pressable
-                onPress={() => openWhatsAppChat(cfg.whatsappOrderPhone!, {
+                onPress={() => openWhatsAppChat(orderPhone, {
                   text: t('rider.newRide.whatsapp.orderPrefill'),
                   errorMessage: t('rider.newRide.whatsapp.unavailable'),
                 })}
@@ -517,7 +525,8 @@ export default function NewRideScreen() {
               </Pressable>
             ) : null}
           </View>
-        ) : null}
+          );
+        })()}
 
         <View style={{ height: mapHeight, marginTop: 4 }}>
           <MapShell

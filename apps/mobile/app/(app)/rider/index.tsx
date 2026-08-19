@@ -17,6 +17,7 @@ import { colors, gradients, radius, shadow, spacing } from '@/theme';
 import { APP_NAME } from '@/lib/brand';
 import { useModulePreferences } from '@/lib/modulePreferences';
 import { useAppConfig } from '@/lib/appConfig';
+import { openWhatsAppChat, openWhatsAppLink } from '@/lib/whatsapp';
 import type { AppModule } from '@/lib/modules';
 import type { ApplicationDto, ApplicationStatus } from '@/lib/kyc';
 
@@ -391,8 +392,15 @@ function LiveRideBanner({ label, onPress }: { label: string; onPress: () => void
   );
 }
 
+// Fixed WhatsApp order line. The admin can repoint it via app_settings
+// (whatsappOrderPhone); until then we fall back to the launch number so the
+// "Demander via WhatsApp" button always works.
+const DEFAULT_WHATSAPP_ORDER_PHONE = '+22233322777';
+
 function Hero({ blocked, onVoice, onMap }: { blocked: boolean; onVoice: () => void; onMap: () => void }) {
   const { t } = useTranslation();
+  const cfg = useAppConfig();
+  const orderPhone = cfg.whatsappOrderPhone ?? DEFAULT_WHATSAPP_ORDER_PHONE;
   return (
     <LinearGradient
       colors={gradients.sunrise}
@@ -442,6 +450,48 @@ function Hero({ blocked, onVoice, onMap }: { blocked: boolean; onVoice: () => vo
         <Icon name="map" size={19} color={colors.white} />
         <AppText variant="bodyStrong" color={colors.white}>{t('rider.hero.map')}</AppText>
       </PressableScale>
+
+      {/* WhatsApp: order a ride by voice note. Always available (fixed number
+          with an admin override). */}
+      {orderPhone ? (
+        <PressableScale
+          onPress={() => openWhatsAppChat(orderPhone, {
+            text: t('rider.newRide.whatsapp.orderPrefill'),
+            errorMessage: t('rider.newRide.whatsapp.unavailable'),
+          })}
+          style={{
+            marginTop: spacing.sm, backgroundColor: '#25D366',
+            borderRadius: radius.lg, paddingVertical: 13, paddingHorizontal: spacing.lg,
+            flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
+            ...shadow.card,
+          }}
+        >
+          <AppText style={{ fontSize: 18 }}>💬</AppText>
+          <AppText variant="bodyStrong" color={colors.white}>
+            {t('rider.newRide.whatsapp.orderButton')}
+          </AppText>
+        </PressableScale>
+      ) : null}
+
+      {/* Public community group invite (admin-configured). */}
+      {cfg.whatsappCommunityUrl ? (
+        <PressableScale
+          onPress={() => openWhatsAppLink(
+            cfg.whatsappCommunityUrl!,
+            t('rider.newRide.whatsapp.unavailable'),
+          )}
+          style={{
+            marginTop: spacing.sm,
+            borderRadius: radius.lg, paddingVertical: 11,
+            flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
+          }}
+        >
+          <AppText style={{ fontSize: 15 }}>👥</AppText>
+          <AppText variant="body" color={colors.white}>
+            {t('rider.newRide.whatsapp.communityButton')}
+          </AppText>
+        </PressableScale>
+      ) : null}
     </LinearGradient>
   );
 }
