@@ -17,7 +17,8 @@ import {
   notifyRiderRideAccepted,
 } from '../push/expo-push.js';
 import { applyBonusOnCompletion } from './commission-bonus.service.js';
-import { notifyCaptainBonusEarned } from '../notifications/notifications.service.js';
+import { resolveFreeDayOnCompletion } from './free-days.service.js';
+import { notifyCaptainBonusEarned, notifyCaptainFreeDays } from '../notifications/notifications.service.js';
 import type { RideStatus, RideType, PaymentMethod, RideSource } from '@tewiz/shared-types';
 import { clearLiveLocation } from '../captain/live-location.js';
 import { haversineM } from '../../lib/geo.js';
@@ -2202,11 +2203,22 @@ export async function completeRide(input: CompleteInput) {
 
     const baseCommission = commissionMru(fareFinalMru, ride.commission_rate_bps);
 
+    // Captain free day (migration 0086): the captain keeps the whole fare
+    // today. Decided server-side — old app builds get it exactly the same.
+    // Resolved before the bonus so a free ride never eats into the bonus
+    // counter: the captain paid nothing, so nothing accumulates.
+    const freeDay = await resolveFreeDayOnCompletion(client, input.captainId);
+
     // Captain bonus (migration 0028): if the captain currently has an active
     // bonus, halve the commission; otherwise accumulate towards the threshold.
     // Runs inside the same tx so the wallet debit and bonus state stay aligned.
-    const bonus = await applyBonusOnCompletion(client, input.captainId, baseCommission);
+    const bonus = freeDay.isFreeToday
+      ? { effectiveCommissionMru: 0, bonusApplied: false, bonusJustEarned: false, bonusUntil: null }
+      : await applyBonusOnCompletion(client, input.captainId, baseCommission);
     const baselineCommission = bonus.effectiveCommissionMru;
+    // A GPS penalty doubles the commission — on a free day the base is 0, so
+    // it stays 0. We still run the evaluation: the offense must be recorded
+    // and a repeat offender still gets suspended, free day or not.
     const gpsPenalty = !ride.is_open && ride.ride_type !== 'private_driver' && ride.started_at
       ? await evaluateClosedRideGpsViolation({
           client,
@@ -2218,7 +2230,9 @@ export async function completeRide(input: CompleteInput) {
           enforceCancellationContext: true,
         })
       : null;
-    const commission = gpsPenalty?.chargedCommissionMru ?? baselineCommission;
+    const commission = freeDay.isFreeToday
+      ? 0
+      : gpsPenalty?.chargedCommissionMru ?? baselineCommission;
 
     // Debit the captain wallet for the commission (atomically inside this tx).
     // When commission is 0 (e.g. admin set rate to 0%), there's nothing to debit;
@@ -2265,6 +2279,7 @@ export async function completeRide(input: CompleteInput) {
               distance_m = $3,
               duration_s = $4,
               commission_bonus_applied = $5,
+              commission_free_day = $10,
               -- For open rides we write the last GPS point as the dropoff so
               -- the post-trip map / history still has a clean from→to to
               -- render. CASE-guarded so closed rides are untouched.
@@ -2286,6 +2301,7 @@ export async function completeRide(input: CompleteInput) {
         finalDropoff?.lng ?? null,
         finalDropoff?.lat ?? null,
         finalDropoff ? 'Fin de course' : null,
+        freeDay.isFreeToday,
       ],
     );
 
@@ -2317,6 +2333,12 @@ export async function completeRide(input: CompleteInput) {
     // the ride completion.
     if (bonus.bonusJustEarned && bonus.bonusUntil) {
       void notifyCaptainBonusEarned(input.captainId, bonus.bonusUntil);
+    }
+
+    // Same treatment when this completion happened to draw the captain's free
+    // days for the week (the daily job hadn't run yet): tell them right away.
+    if (freeDay.newlyDrawn.length > 0) {
+      void notifyCaptainFreeDays(input.captainId, freeDay.newlyDrawn);
     }
 
     return {

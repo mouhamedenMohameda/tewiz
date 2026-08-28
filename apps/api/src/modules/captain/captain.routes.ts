@@ -13,6 +13,7 @@ import { captainRecurringRouter } from '../recurring/captain.routes.js';
 import { captainHeatmapRouter } from '../heatmap/heatmap.routes.js';
 import { captainPreferencesRouter } from './preferences.routes.js';
 import { captainBonusRouter } from './bonus.routes.js';
+import { captainFreeDaysRouter } from './free-days.routes.js';
 import * as terms from './terms.service.js';
 import { getPricingSettings } from '../admin/app-settings.service.js';
 
@@ -28,6 +29,7 @@ captainRouter.use('/recurring-rides', requireRole('captain'), captainRecurringRo
 captainRouter.use('/heatmap', requireRole('captain'), captainHeatmapRouter);
 captainRouter.use('/preferences', requireRole('captain'), captainPreferencesRouter);
 captainRouter.use('/bonus', requireRole('captain'), captainBonusRouter);
+captainRouter.use('/free-days', requireRole('captain'), captainFreeDaysRouter);
 
 // /applications/* is accessible to rider OR captain — any signed-in user can apply.
 const requireRiderOrCaptain = requireRole('rider', 'captain');

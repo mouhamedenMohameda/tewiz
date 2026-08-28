@@ -7,6 +7,7 @@ import * as recurring from '../recurring/recurring.service.js';
 import * as goingHome from '../home/going-home.service.js';
 import { scanPartnerEarnings } from '../partners/fraud.service.js';
 import { reapTrackPartitions } from '../captain/track.service.js';
+import { drawFreeDaysForAllCaptains } from '../rides/free-days.service.js';
 
 // Parent: adminRouter (auth + role=admin)
 export const adminJobsRouter = Router();
@@ -22,6 +23,7 @@ export const adminJobsRouter = Router();
  *   - expire-documents   every  1 day at 03:00 Africa/Nouakchott
  *   - partner-fraud-scan every 30 min
  *   - reap-captain-track every  1 day at 03:30 Africa/Nouakchott
+ *   - draw-free-days     every  1 day at 00:05 Africa/Nouakchott
  */
 adminJobsRouter.post('/process-recurring', async (_req, res) => {
   res.json(await recurring.processOccurrences());
@@ -62,4 +64,13 @@ const expiringQuery = z.object({ days: z.coerce.number().int().min(1).max(90).de
 adminJobsRouter.get('/expiring-documents', async (req, res) => {
   const q = expiringQuery.parse(req.query);
   res.json(await docExpiry.listExpiringSoon(q.days));
+});
+
+// Draw each active captain's commission-free days for the current ISO week
+// (migration 0086) and push them the list. Idempotent — a week already drawn
+// is never re-rolled — so a daily run is both safe and desirable: it also
+// covers captains activated mid-week. Ride completion draws lazily as a
+// fallback if this never runs.
+adminJobsRouter.post('/draw-free-days', async (_req, res) => {
+  res.json(await drawFreeDaysForAllCaptains());
 });

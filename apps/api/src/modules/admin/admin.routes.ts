@@ -34,6 +34,13 @@ import { adminListingsRouter } from '../listings/admin-listings.routes.js';
 import { attachCaptainToAgency } from '../partners/partners.service.js';
 import * as roadReports from '../reports/road-reports.service.js';
 import { readTrack } from '../captain/track.service.js';
+import {
+  FreeDayGrantError,
+  grantFreeDay,
+  listCaptainFreeDaysForAdmin,
+  revokeFreeDay,
+} from '../rides/free-days.service.js';
+import { notifyCaptainFreeDays } from '../notifications/notifications.service.js';
 import type { ApplicationStatus } from '@tewiz/shared-types';
 
 export const adminRouter = Router();
@@ -266,6 +273,85 @@ adminRouter.get('/captains/:id/track', requireAdminRole(
   const points = await readTrack(captainId, from, to);
   res.json({ captainId, from: from.toISOString(), to: to.toISOString(), points });
 });
+
+/**
+ * Manual commission-free days (migration 0086).
+ *
+ * The weekly draw is automatic, but ops needs a way to compensate a captain by
+ * hand — a bad day on the road, a support gesture, a contest prize. A gift is
+ * EXTRA: it does not consume the captain's weekly quota, so it never silently
+ * cancels the day they were going to be drawn anyway.
+ *
+ * Reading is open to the same viewer roles as the captains map. Granting and
+ * revoking cost real commission, so they are restricted to ops_manager and
+ * finance, and every one of them is written to the audit log.
+ */
+const FREE_DAY_VIEWERS = [
+  'ops_manager', 'dispatcher', 'kyc_reviewer', 'finance', 'support',
+] as const;
+
+adminRouter.get('/captains/:id/free-days', requireAdminRole(...FREE_DAY_VIEWERS),
+  async (req, res) => {
+    res.json(await listCaptainFreeDaysForAdmin(String(req.params.id)));
+  });
+
+const freeDayBody = z.object({
+  // Plain calendar day. Mauritania is UTC+0, so this is unambiguous.
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format attendu: AAAA-MM-JJ'),
+});
+
+adminRouter.post('/captains/:id/free-days', requireAdminRole('ops_manager', 'finance'),
+  async (req, res) => {
+    const captainId = String(req.params.id);
+    const { date } = freeDayBody.parse(req.body);
+    let result;
+    try {
+      result = await grantFreeDay(captainId, date);
+    } catch (err) {
+      // A rejected date is the admin mistyping, not a server fault.
+      if (err instanceof FreeDayGrantError) throw new HttpError(400, 'invalid_free_day', err.message);
+      throw err;
+    }
+
+    if (result.granted) {
+      await audit({
+        adminId: req.user!.id,
+        action: 'captain.free_day.grant',
+        targetType: 'captain',
+        targetId: captainId,
+        before: null,
+        after: { date },
+      });
+      // Tell the captain — this is the whole point of the gesture, and it
+      // reaches captains running an old build too. Best-effort.
+      void notifyCaptainFreeDays(captainId, [date]);
+    }
+    res.json(result);
+  });
+
+adminRouter.delete('/captains/:id/free-days/:date', requireAdminRole('ops_manager', 'finance'),
+  async (req, res) => {
+    const captainId = String(req.params.id);
+    const { date } = freeDayBody.parse({ date: String(req.params.date) });
+    let result;
+    try {
+      result = await revokeFreeDay(captainId, date);
+    } catch (err) {
+      if (err instanceof FreeDayGrantError) throw new HttpError(400, 'invalid_free_day', err.message);
+      throw err;
+    }
+    if (result.revoked) {
+      await audit({
+        adminId: req.user!.id,
+        action: 'captain.free_day.revoke',
+        targetType: 'captain',
+        targetId: captainId,
+        before: { date },
+        after: null,
+      });
+    }
+    res.json(result);
+  });
 
 // ─── Applications queue ──────────────────────────────────────────────────────
 // KYC reviewers act, ops + dispatcher + support can look.

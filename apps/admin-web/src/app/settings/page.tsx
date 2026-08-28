@@ -30,6 +30,8 @@ interface PricingSettings {
   commissionBonusThresholdMru: number;
   commissionBonusWindowDays: number;
   commissionBonusRewardDays: number;
+  freeDaysEnabled: boolean;
+  freeDaysPerWeek: number;
   allowOpenRides: boolean;
   openBaseFareMru: number;
   openPerKmMru: number;
@@ -106,6 +108,8 @@ interface FormState {
   commissionBonusThresholdMru: string;
   commissionBonusWindowDays: string;
   commissionBonusRewardDays: string;
+  freeDaysEnabled: boolean;
+  freeDaysPerWeek: string;
   allowOpenRides: boolean;
   openBaseFareMru: string;
   openPerKmMru: string;
@@ -180,6 +184,8 @@ const EMPTY_FORM: FormState = {
   commissionBonusThresholdMru: '',
   commissionBonusWindowDays: '',
   commissionBonusRewardDays: '',
+  freeDaysEnabled: false,
+  freeDaysPerWeek: '',
   allowOpenRides: true,
   openBaseFareMru: '',
   openPerKmMru: '',
@@ -255,6 +261,8 @@ function settingsToForm(s: PricingSettings): FormState {
     commissionBonusThresholdMru: String(s.commissionBonusThresholdMru),
     commissionBonusWindowDays: String(s.commissionBonusWindowDays),
     commissionBonusRewardDays: String(s.commissionBonusRewardDays),
+    freeDaysEnabled: s.freeDaysEnabled,
+    freeDaysPerWeek: String(s.freeDaysPerWeek),
     allowOpenRides: s.allowOpenRides,
     openBaseFareMru: String(s.openBaseFareMru),
     openPerKmMru: String(s.openPerKmMru),
@@ -351,6 +359,8 @@ export default function SettingsPage() {
         commissionBonusThresholdMru: parseInt(form.commissionBonusThresholdMru, 10),
         commissionBonusWindowDays: parseInt(form.commissionBonusWindowDays, 10),
         commissionBonusRewardDays: parseInt(form.commissionBonusRewardDays, 10),
+        freeDaysEnabled: form.freeDaysEnabled,
+        freeDaysPerWeek: parseInt(form.freeDaysPerWeek, 10),
         allowOpenRides: form.allowOpenRides,
         openBaseFareMru: parseInt(form.openBaseFareMru, 10),
         openPerKmMru: parseInt(form.openPerKmMru, 10),
@@ -1036,6 +1046,44 @@ export default function SettingsPage() {
             </section>
 
             <section className="card p-5 mb-4">
+              <div className="flex items-start justify-between mb-1">
+                <h2 className="font-semibold text-slate-900">Journées sans commission</h2>
+                <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.freeDaysEnabled}
+                    onChange={(e) => setForm({ ...form, freeDaysEnabled: e.target.checked })}
+                    className="w-4 h-4 accent-emerald-600"
+                  />
+                  <span className={form.freeDaysEnabled ? 'text-emerald-700 font-medium' : 'text-slate-500'}>
+                    {form.freeDaysEnabled ? 'Activé' : 'Désactivé'}
+                  </span>
+                </label>
+              </div>
+              <p className="text-xs text-slate-500 mb-4">
+                Chaque Captain reçoit <strong>{form.freeDaysPerWeek || 'N'} jour(s)</strong> tirés au
+                hasard par semaine où il ne paie <strong>aucune commission</strong> sur ses courses —
+                il garde 100% du prix. Le tirage est fait par le serveur : les Captains qui n'ont pas
+                mis à jour l'application en profitent aussi, et sont prévenus par notification.
+                Deux garanties dans le tirage : un Captain ne retombe jamais sur le même jour que la
+                semaine précédente, et les Captains sont répartis sur les 7 jours pour qu'ils ne
+                soient jamais tous gratuits le même jour. Mettre 0 met le tirage en pause sans
+                désactiver la fonctionnalité. Désactiver coupe la gratuité immédiatement, même pour
+                les jours déjà tirés.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <Field
+                  label="Jours gratuits par semaine"
+                  suffix="jours"
+                  value={form.freeDaysPerWeek}
+                  onChange={(v) => setForm({ ...form, freeDaysPerWeek: v })}
+                  step="1"
+                />
+              </div>
+            </section>
+
+            <section className="card p-5 mb-4">
               <h2 className="font-semibold text-slate-900 mb-1">Expiration des courses</h2>
               <p className="text-xs text-slate-500 mb-4">
                 Une course qui reste en « Recherche » plus longtemps que ce délai
@@ -1432,6 +1480,9 @@ function isFormValid(f: FormState): boolean {
   if (bonusInts.some((n) => Number.isNaN(n) || n < 1)) return false;
   if (bonusInts[0]! > 1_000_000) return false;
   if (bonusInts[1]! > 365 || bonusInts[2]! > 365) return false;
+  // Free days: 0 is legal (pauses the draw), 7 is the whole week.
+  const freeDays = parseInt(f.freeDaysPerWeek, 10);
+  if (Number.isNaN(freeDays) || freeDays < 0 || freeDays > 7) return false;
   // Open ride tariff: base / per-km / minimum capped like the classic
   // passenger tariff; per-minute is small (0..1000) by design.
   const openInts = [

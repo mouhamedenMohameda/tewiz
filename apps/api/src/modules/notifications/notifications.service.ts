@@ -28,7 +28,7 @@ export type NotificationTarget =
   | { type: 'group'; group: 'active_captains' | 'bonus_active' }
   | { type: 'user'; userId: string };
 
-export type NotificationType = 'info' | 'bonus_config' | 'bonus_earned' | 'system';
+export type NotificationType = 'info' | 'bonus_config' | 'bonus_earned' | 'free_days' | 'system';
 
 export interface SendInput {
   target: NotificationTarget;
@@ -269,6 +269,39 @@ export async function notifyCaptainBonusEarned(
   } catch (err) {
     // eslint-disable-next-line no-console
     console.warn('[notifications] bonus-earned send failed', err);
+  }
+}
+
+/**
+ * Tell a captain which days of the current week are commission-free
+ * (migration 0086). Sent as a push so captains on an old build — who have no
+ * screen for this — still find out. Best-effort: a push failure must never
+ * affect the draw or the ride that triggered it.
+ */
+export async function notifyCaptainFreeDays(
+  captainId: string,
+  days: string[],
+): Promise<void> {
+  if (days.length === 0) return;
+  const labels = days
+    .map((d) =>
+      new Date(`${d}T00:00:00Z`).toLocaleDateString('fr-FR', {
+        weekday: 'long', day: '2-digit', month: '2-digit', timeZone: 'UTC',
+      }),
+    )
+    .join(', ');
+  try {
+    await sendNotification({
+      target: { type: 'user', userId: captainId },
+      title: days.length > 1 ? '🎁 Tes journées sans commission' : '🎁 Ta journée sans commission',
+      body: `${labels} — 0% de commission, tu gardes 100% de tes courses. Bonne route !`,
+      type: 'free_days',
+      data: { freeDays: days },
+      sentBy: null,
+    });
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn('[notifications] free-days send failed', err);
   }
 }
 

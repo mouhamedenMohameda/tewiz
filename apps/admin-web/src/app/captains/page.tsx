@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dynamic from 'next/dynamic';
 import clsx from 'clsx';
 import { AppShell } from '@/components/AppShell';
@@ -435,7 +435,7 @@ function CaptainDetailCard({
         </div>
       </div>
 
-      <div className="px-4 py-3 space-y-3">
+      <div className="px-4 py-3 space-y-3 max-h-[55vh] overflow-y-auto">
         <div className="flex items-center gap-2">
           <StatusBadge status={c.status} />
           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-100 text-xs text-slate-700">
@@ -455,6 +455,9 @@ function CaptainDetailCard({
             mono
           />
         )}
+
+        {/* Only approved captains have a captains row to hang a free day on. */}
+        {c.status !== 'pending' && <FreeDaysPanel captainId={c.id} />}
       </div>
 
       <div className="px-4 py-3 bg-slate-50 border-t border-slate-100 flex gap-2">
@@ -511,6 +514,168 @@ function CaptainDetailPill({
       </button>
     </div>
   );
+}
+
+type FreeDaySource = 'auto' | 'admin';
+
+type FreeDaysPayload = {
+  captainId: string;
+  enabled: boolean;
+  perWeek: number;
+  today: string;
+  days: { date: string; source: FreeDaySource; createdAt: string; upcoming: boolean }[];
+};
+
+/**
+ * Commission-free days of one captain: what's coming, plus a manual gift.
+ *
+ * A gift is EXTRA — it does not consume the captain's weekly quota, so ops can
+ * compensate someone without cancelling the day the draw was going to give
+ * them anyway. Only days strictly after today can be taken back: today is
+ * already running, and rides completed under the waiver were charged 0, which
+ * deleting the row would not claw back.
+ */
+function FreeDaysPanel({ captainId }: { captainId: string }) {
+  const qc = useQueryClient();
+  const [date, setDate] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['admin-captain-free-days', captainId],
+    queryFn: async () => {
+      const r = await api.get(`/admin/captains/${captainId}/free-days`);
+      return r.data as FreeDaysPayload;
+    },
+  });
+
+  const invalidate = () =>
+    qc.invalidateQueries({ queryKey: ['admin-captain-free-days', captainId] });
+
+  const grant = useMutation({
+    mutationFn: async (d: string) => {
+      const r = await api.post(`/admin/captains/${captainId}/free-days`, { date: d });
+      return r.data as { granted: boolean; alreadyHeld: FreeDaySource | null };
+    },
+    onSuccess: (res) => {
+      setError(
+        res.granted
+          ? null
+          : res.alreadyHeld === 'auto'
+          ? 'Ce jour est déjà tiré au sort pour ce Captain.'
+          : 'Ce jour lui a déjà été offert.',
+      );
+      if (res.granted) setDate('');
+      void invalidate();
+    },
+    onError: (e: any) => setError(apiMessage(e)),
+  });
+
+  const revoke = useMutation({
+    mutationFn: async (d: string) => {
+      await api.delete(`/admin/captains/${captainId}/free-days/${d}`);
+    },
+    onSuccess: () => { setError(null); void invalidate(); },
+    onError: (e: any) => setError(apiMessage(e)),
+  });
+
+  const busy = grant.isPending || revoke.isPending;
+  const today = data?.today ?? new Date().toISOString().slice(0, 10);
+  const maxDate = new Date(Date.now() + 90 * 86_400_000).toISOString().slice(0, 10);
+
+  return (
+    <div className="pt-3 border-t border-slate-100">
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <span className="text-xs font-medium text-slate-700">Journées sans commission</span>
+        {data && !data.enabled && (
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">
+            Fonction désactivée
+          </span>
+        )}
+      </div>
+
+      {isLoading ? (
+        <div className="text-xs text-slate-400">Chargement…</div>
+      ) : data && data.days.length === 0 ? (
+        <div className="text-xs text-slate-400 mb-2">Aucune journée à venir.</div>
+      ) : (
+        <ul className="space-y-1 mb-2">
+          {data?.days.map((d) => (
+            <li
+              key={d.date}
+              className="flex items-center justify-between gap-2 px-2 py-1 rounded-md bg-slate-50 text-xs"
+            >
+              <span className="text-slate-800">{formatFreeDay(d.date, today)}</span>
+              <div className="flex items-center gap-1 shrink-0">
+                <span
+                  className={clsx(
+                    'px-1.5 py-0.5 rounded text-[10px]',
+                    d.source === 'admin'
+                      ? 'bg-brand-100 text-brand-700'
+                      : 'bg-slate-200 text-slate-600',
+                  )}
+                >
+                  {d.source === 'admin' ? 'Offert' : 'Tirage'}
+                </span>
+                {d.date > today ? (
+                  <button
+                    onClick={() => revoke.mutate(d.date)}
+                    disabled={busy}
+                    className="w-5 h-5 grid place-items-center rounded text-slate-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-40"
+                    title="Retirer cette journée"
+                    aria-label={`Retirer la journée du ${d.date}`}
+                  >
+                    ×
+                  </button>
+                ) : (
+                  // Today is already running — the waiver has been applied to
+                  // rides, so there is nothing left to take back.
+                  <span className="w-5 h-5 grid place-items-center text-slate-300" title="En cours">
+                    •
+                  </span>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="flex items-center gap-1.5">
+        <input
+          type="date"
+          value={date}
+          min={today}
+          max={maxDate}
+          onChange={(e) => { setDate(e.target.value); setError(null); }}
+          className="flex-1 min-w-0 px-2 py-1 text-xs border border-slate-300 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-500"
+        />
+        <button
+          onClick={() => date && grant.mutate(date)}
+          disabled={!date || busy}
+          className="px-2.5 py-1 text-xs font-medium bg-brand-600 hover:bg-brand-700 disabled:opacity-40 text-white rounded-md shrink-0"
+        >
+          {grant.isPending ? '…' : 'Offrir'}
+        </button>
+      </div>
+      <p className="text-[10px] text-slate-400 mt-1">
+        Une journée offerte s’ajoute au{' '}
+        {data ? `${data.perWeek} jour(s) tirés au sort` : 'tirage automatique'} — elle ne
+        les remplace pas. Le Captain reçoit une notification.
+      </p>
+      {error && <p className="text-[10px] text-red-600 mt-1">{error}</p>}
+    </div>
+  );
+}
+
+/** "lundi 31/08" — with today called out, since it can no longer be revoked. */
+function formatFreeDay(date: string, today: string): string {
+  const label = new Date(`${date}T00:00:00Z`).toLocaleDateString('fr-FR', {
+    weekday: 'long', day: '2-digit', month: '2-digit', timeZone: 'UTC',
+  });
+  return date === today ? `${label} · aujourd’hui` : label;
+}
+
+function apiMessage(e: any): string {
+  return e?.response?.data?.error?.message ?? 'Action impossible. Réessayez.';
 }
 
 function DetailRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {

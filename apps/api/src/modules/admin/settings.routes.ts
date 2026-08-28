@@ -67,6 +67,11 @@ const patchBody = z.object({
   commissionBonusThresholdMru:      z.number().int().min(1).max(1_000_000).optional(),
   commissionBonusWindowDays:        z.number().int().min(1).max(365).optional(),
   commissionBonusRewardDays:        z.number().int().min(1).max(365).optional(),
+  // Migration 0086. Free days: 0..7 days per ISO week with no commission at
+  // all. 0 pauses the automatic draw without turning the feature off (already
+  // drawn days and manual admin grants keep applying).
+  freeDaysEnabled:                  z.boolean().optional(),
+  freeDaysPerWeek:                  z.number().int().min(0).max(7).optional(),
   // Open rides ("course ouverte") — metered fare knobs (migration 0030).
   allowOpenRides:                   z.boolean().optional(),
   openBaseFareMru:                  z.number().int().min(0).max(10_000).optional(),

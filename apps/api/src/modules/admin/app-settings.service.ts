@@ -59,6 +59,12 @@ export interface PricingSettings {
   commissionBonusThresholdMru: number;
   commissionBonusWindowDays: number;
   commissionBonusRewardDays: number;
+  // Migration 0086. Captain free days: N randomly-drawn days per ISO week on
+  // which the captain pays no commission at all. Drawn and enforced entirely
+  // server-side, so old app builds get them too. 0 per week pauses the
+  // automatic draw while manual admin grants keep working.
+  freeDaysEnabled: boolean;
+  freeDaysPerWeek: number;
   // Migration 0030. Open rides ("course ouverte") — no upfront destination,
   // metered fare = open_base + km × open_per_km + min × open_per_minute,
   // floored at open_min_fare.
@@ -190,6 +196,8 @@ interface Row {
   commission_bonus_threshold_mru: number;
   commission_bonus_window_days: number;
   commission_bonus_reward_days: number;
+  free_days_enabled: boolean;
+  free_days_per_week: number;
   allow_open_rides: boolean;
   open_base_fare_mru: number;
   open_per_km_mru: number;
@@ -289,6 +297,8 @@ function toSettings(r: Row): PricingSettings {
     commissionBonusThresholdMru: r.commission_bonus_threshold_mru,
     commissionBonusWindowDays: r.commission_bonus_window_days,
     commissionBonusRewardDays: r.commission_bonus_reward_days,
+    freeDaysEnabled: r.free_days_enabled,
+    freeDaysPerWeek: r.free_days_per_week,
     allowOpenRides: r.allow_open_rides,
     openBaseFareMru: r.open_base_fare_mru,
     openPerKmMru: r.open_per_km_mru,
@@ -383,6 +393,7 @@ export async function getPricingSettings(): Promise<PricingSettings> {
             max_active_rides_per_booker, max_active_rides_per_partner,
             commission_bonus_enabled, commission_bonus_threshold_mru,
             commission_bonus_window_days, commission_bonus_reward_days,
+            free_days_enabled, free_days_per_week,
             allow_open_rides, open_base_fare_mru, open_per_km_mru,
             open_per_minute_mru, open_min_fare_mru,
             night_pricing_enabled, night_price_multiplier,
@@ -461,6 +472,8 @@ export interface PricingSettingsPatch {
   commissionBonusThresholdMru?: number;
   commissionBonusWindowDays?: number;
   commissionBonusRewardDays?: number;
+  freeDaysEnabled?: boolean;
+  freeDaysPerWeek?: number;
   allowOpenRides?: boolean;
   openBaseFareMru?: number;
   openPerKmMru?: number;
@@ -562,6 +575,8 @@ export async function updatePricingSettings(
           commission_bonus_threshold_mru    = COALESCE($24, commission_bonus_threshold_mru),
           commission_bonus_window_days      = COALESCE($25, commission_bonus_window_days),
           commission_bonus_reward_days      = COALESCE($26, commission_bonus_reward_days),
+          free_days_enabled                 = COALESCE($95, free_days_enabled),
+          free_days_per_week                = COALESCE($96, free_days_per_week),
           allow_open_rides                  = COALESCE($27, allow_open_rides),
           open_base_fare_mru                = COALESCE($28, open_base_fare_mru),
           open_per_km_mru                   = COALESCE($29, open_per_km_mru),
@@ -649,6 +664,7 @@ export async function updatePricingSettings(
                 max_active_rides_per_booker, max_active_rides_per_partner,
                 commission_bonus_enabled, commission_bonus_threshold_mru,
                 commission_bonus_window_days, commission_bonus_reward_days,
+                free_days_enabled, free_days_per_week,
                 allow_open_rides, open_base_fare_mru, open_per_km_mru,
                 open_per_minute_mru, open_min_fare_mru,
                 night_pricing_enabled, night_price_multiplier,
@@ -781,6 +797,8 @@ export async function updatePricingSettings(
       patch.whatsappOrderPhone ?? null,        // $92
       patch.whatsappCommunityUrl ?? null,      // $93
       patch.whatsappCaptainUrl ?? null,        // $94
+      patch.freeDaysEnabled ?? null,           // $95
+      patch.freeDaysPerWeek ?? null,           // $96
     ],
   );
   cache = null;
