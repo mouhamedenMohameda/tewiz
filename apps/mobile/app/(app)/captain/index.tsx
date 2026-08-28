@@ -171,12 +171,12 @@ export default function CaptainHome() {
 
     (async () => {
       // Same rule as going online: try to start tracking (prompts for the
-      // permission if needed). If it runs, stay online. If the native service
-      // merely fails to start (e.g. an old build), stay online too. Only an
-      // actual REFUSAL of the permission takes the captain back offline.
-      const started = await startOfflineTracking();
-      reportTrackPermission(started);
-      if (started) return;
+      // permission if needed). If it runs, stay online. If the native side
+      // merely can't do it on this build ('unavailable'), stay online too. Only
+      // an actual REFUSAL takes the captain back offline.
+      const res = await startOfflineTracking();
+      reportTrackPermission(res === 'started');
+      if (res === 'started' || res === 'unavailable') return;
 
       const bg = await Location.getBackgroundPermissionsAsync().catch(() => null);
       if (bg?.status === 'granted') return; // start failed on this build — keep online
@@ -203,9 +203,13 @@ export default function CaptainHome() {
   async function goOnline() {
     setToggling(true);
     try {
-      // 1. Foreground location — required for any GPS fix at all.
-      const perm = await Location.requestForegroundPermissionsAsync();
-      if (perm.status !== 'granted') {
+      // 1. Foreground location — required for any GPS fix at all. The request
+      //    itself can throw on an under-configured build, and that exception
+      //    used to reach the captain as a raw English native message ("One of
+      //    the NSLocation*UsageDescription keys must be present…"). Treat it as
+      //    "can't ask here" and fall through: step 2 decides what to do.
+      const perm = await Location.requestForegroundPermissionsAsync().catch(() => null);
+      if (perm && perm.status !== 'granted') {
         Alert.alert(t('captain.state.locationRequiredTitle'),
           t('captain.state.locationRequiredBody', { app: APP_NAME }));
         return;
@@ -214,22 +218,19 @@ export default function CaptainHome() {
       // 2. Continuous tracking is what keeps the captain's stored position
       //    fresh so dispatch stays relevant. The PERMISSION is the only part
       //    that's the captain's to give, so that's what we enforce:
-      //      - startOfflineTracking() returns false when they DECLINE → block
-      //        and send them to settings (this is the "mandatory" part).
-      //      - it THROWS when the permission is granted but the OS service
-      //        can't start (e.g. an old build whose Info.plist/manifest lacks
-      //        the background-location config). We must NOT lock a captain out
-      //        over a build issue, so we let them go online without live
-      //        tracking this session and just log it.
-      const trackingStarted = await startOfflineTracking();
-      reportTrackPermission(trackingStarted);
-      if (!trackingStarted) {
-        // Distinguish a real refusal (→ enforce it, tracking is mandatory) from
-        // "permission granted but the native service couldn't start" (a build
-        // that lacks the background-location config — don't lock the captain
-        // out over that; let them go online without live tracking this session).
-        const bg = await Location.getBackgroundPermissionsAsync();
-        if (bg.status !== 'granted') {
+      //      - 'denied'      → they refused. Block and send them to settings
+      //        (this is the "mandatory" part).
+      //      - 'unavailable' → the native side can't ask or can't start on this
+      //        build (an old binary whose Info.plist/manifest lacks the
+      //        background-location config). We must NOT lock a captain out of
+      //        work over OUR build issue, so they go online without live
+      //        tracking this session and it's just logged.
+      const tracking = await startOfflineTracking();
+      reportTrackPermission(tracking === 'started');
+      if (tracking === 'denied') {
+        // Guard the read too — same build issue would throw here otherwise.
+        const bg = await Location.getBackgroundPermissionsAsync().catch(() => null);
+        if (bg?.status !== 'granted') {
           Alert.alert(
             t('captain.state.bgRequiredTitle'),
             t('captain.state.bgRequiredBody', { app: APP_NAME }),

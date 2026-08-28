@@ -99,17 +99,45 @@ TaskManager.defineTask(OFFLINE_LOCATION_TASK, async ({ data, error }) => {
 });
 
 /**
+ * Outcome of `startOfflineTracking`. The three cases are NOT interchangeable —
+ * callers must treat them differently:
+ *  - `started`     : tracking is running.
+ *  - `denied`      : the captain refused. Tracking is mandatory, so this is the
+ *                    only case that should take them back offline.
+ *  - `unavailable` : we couldn't even ask — the native side threw, or the
+ *                    location service refused to start. Practically always an
+ *                    app binary whose Info.plist / manifest predates the
+ *                    background-location config (the classic being a missing
+ *                    `NSLocationAlwaysAndWhenInUseUsageDescription`, which makes
+ *                    expo-location throw instead of prompting). Locking a
+ *                    captain out of work over OUR build problem would be wrong,
+ *                    so callers let them go online without live tracking.
+ */
+export type TrackingStart = 'started' | 'denied' | 'unavailable';
+
+/**
  * Begin background tracking. Requires foreground + background location
  * permission; if the user declines "Always"/background, we bail quietly and
  * the feature simply stays off for this captain.
+ *
+ * NEVER throws: every native call is guarded, because the permission requests
+ * themselves can throw on an under-configured build and that exception used to
+ * surface to the captain as a raw English alert while trying to go online.
  *
  * Cadence targets ~50 m / 30 s (see the agreed Level B profile). The OS batches
  * fixes and wakes the task with `deferredUpdatesInterval`, which is far more
  * battery-friendly than a foreground timer.
  */
-export async function startOfflineTracking(): Promise<boolean> {
-  const fg = await Location.requestForegroundPermissionsAsync();
-  if (fg.status !== 'granted') return false;
+export async function startOfflineTracking(): Promise<TrackingStart> {
+  let fg: Location.LocationPermissionResponse;
+  try {
+    fg = await Location.requestForegroundPermissionsAsync();
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn('[track] foreground permission request threw', err);
+    return 'unavailable';
+  }
+  if (fg.status !== 'granted') return 'denied';
 
   // Google Play requires our own disclosure BEFORE the OS background-location
   // dialog (see backgroundLocationDisclosure.ts). Skipped once the permission
@@ -121,14 +149,22 @@ export async function startOfflineTracking(): Promise<boolean> {
   const current = await Location.getBackgroundPermissionsAsync().catch(() => null);
   if (current?.status !== 'granted') {
     const { showBackgroundLocationDisclosure } = await import('./backgroundLocationDisclosure');
-    if (!(await showBackgroundLocationDisclosure())) return false;
+    if (!(await showBackgroundLocationDisclosure())) return 'denied';
   }
 
-  const bg = await Location.requestBackgroundPermissionsAsync();
-  if (bg.status !== 'granted') return false;
+  let bg: Location.LocationPermissionResponse;
+  try {
+    bg = await Location.requestBackgroundPermissionsAsync();
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn('[track] background permission request threw', err);
+    return 'unavailable';
+  }
+  if (bg.status !== 'granted') return 'denied';
 
-  const already = await Location.hasStartedLocationUpdatesAsync(OFFLINE_LOCATION_TASK);
-  if (already) return true;
+  const already = await Location.hasStartedLocationUpdatesAsync(OFFLINE_LOCATION_TASK)
+    .catch(() => false);
+  if (already) return 'started';
 
   try {
     await Location.startLocationUpdatesAsync(OFFLINE_LOCATION_TASK, {
@@ -159,15 +195,16 @@ export async function startOfflineTracking(): Promise<boolean> {
       killServiceOnDestroy: false,
     } : undefined,
     });
-    return true;
+    return 'started';
   } catch (err) {
     // The native location service couldn't start — most often a build whose
     // Info.plist (iOS) / manifest (Android) lacks the background-location
-    // config. Never throw: callers treat `false` as "tracking unavailable" and
-    // degrade gracefully instead of crashing with an unhandled rejection.
+    // config. Never throw: callers treat 'unavailable' as "tracking off this
+    // session" and degrade gracefully instead of crashing with an unhandled
+    // rejection or locking the captain out of work.
     // eslint-disable-next-line no-console
     console.warn('[track] startLocationUpdatesAsync failed', err);
-    return false;
+    return 'unavailable';
   }
 }
 
@@ -177,9 +214,13 @@ export async function startOfflineTracking(): Promise<boolean> {
  * so a passive screen mount never triggers a permission dialog.
  */
 export async function resumeOfflineTracking(): Promise<void> {
-  const bg = await Location.getBackgroundPermissionsAsync();
-  if (bg.status !== 'granted') return;
-  const already = await Location.hasStartedLocationUpdatesAsync(OFFLINE_LOCATION_TASK);
+  // Guarded: callers fire this with `void`, so a throwing native call (an
+  // under-configured build) would become an unhandled rejection and pop the
+  // red-box / a raw English alert on a screen the captain didn't ask anything on.
+  const bg = await Location.getBackgroundPermissionsAsync().catch(() => null);
+  if (bg?.status !== 'granted') return;
+  const already = await Location.hasStartedLocationUpdatesAsync(OFFLINE_LOCATION_TASK)
+    .catch(() => false);
   if (already) return;
   await startOfflineTracking();
 }
