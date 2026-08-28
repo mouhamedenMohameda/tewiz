@@ -1,0 +1,707 @@
+{
+  "_lisez_moi": "Le seul fichier à éditer pour changer les textes. Voir README.md.",
+  "contact": {
+    "telephone": "33322777",
+    "indicatif": "222",
+    "lien_ios": "https://apps.apple.com/app/aloo/id6782893228",
+    "lien_android": "https://play.google.com/store/apps/details?id=mr.tewiz.app"
+  },
+  "affiches": [
+    {
+      "fichier": "01-securite",
+      "surtitre": "كل رحلة مع كابتن موثّق…",
+      "titre": "أمان *لعائلتك*",
+      "ecran": "accueil",
+      "puces": [
+        {
+          "icone": "bouclier",
+          "titre": "كابتن موثّق",
+          "sous": "هوية مؤكَّدة",
+          "place": "haut-droite"
+        },
+        {
+          "icone": "epingle",
+          "titre": "تتبّع رحلتك",
+          "sous": "لحظة بلحظة",
+          "place": "bas-gauche"
+        }
+      ]
+    },
+    {
+      "fichier": "02-voix",
+      "surtitre": "لا تعرف العنوان؟ قل وجهتك فقط…",
+      "titre": "ونحن *نوصلك*",
+      "ecran": "accueil",
+      "incline": true,
+      "puces": [
+        {
+          "icone": "micro",
+          "titre": "اطلب بالصوت",
+          "sous": "بلغتك",
+          "place": "haut-gauche"
+        }
+      ]
+    },
+    {
+      "fichier": "03-whatsapp",
+      "surtitre": "لا تحتاج إلى تثبيت التطبيق…",
+      "titre": "اطلب عبر *واتساب*",
+      "ecran": "accueil",
+      "puces": [
+        {
+          "icone": "whatsapp",
+          "titre": "اطلب عبر واتساب",
+          "sous": "دون تسجيل",
+          "place": "haut-droite",
+          "vert": true
+        },
+        {
+          "icone": "personnes",
+          "titre": "مجموعة واتساب",
+          "sous": "انضم إلينا",
+          "place": "bas-gauche"
+        }
+      ]
+    },
+    {
+      "fichier": "04-chauffeurs",
+      "surtitre": "سيارتك تعمل معك…",
+      "titre": "اربح *كل يوم*",
+      "ecran": "chauffeur",
+      "puces": [
+        {
+          "icone": "portefeuille",
+          "titre": "رصيدك",
+          "sous": "داخل التطبيق",
+          "place": "haut-droite",
+          "or": true
+        },
+        {
+          "icone": "whatsapp",
+          "titre": "مجموعة الكباتن",
+          "sous": "مجتمع على واتساب",
+          "place": "bas-gauche",
+          "vert": true
+        }
+      ]
+    },
+    {
+      "fichier": "05-restaurants",
+      "surtitre": "مطاعم نواكشوط في هاتفك…",
+      "titre": "الطعام *يصل إلى بابك*",
+      "ecran": "restaurants",
+      "puces": [
+        {
+          "icone": "restaurant",
+          "titre": "مطاعم نواكشوط",
+          "sous": "موريتانية، بيتزا، وغيرها",
+          "place": "haut-droite"
+        }
+      ]
+    },
+    {
+      "fichier": "06-recharge",
+      "surtitre": "بنكيلي، مصرفي، سداد…",
+      "titre": "اشحن رصيدك *من هاتفك*",
+      "titre_long": true,
+      "ecran": "recharge",
+      "puces": [
+        {
+          "icone": "portefeuille",
+          "titre": "شحن سهل",
+          "sous": "من مزوّدك المعتاد",
+          "place": "haut-gauche",
+          "or": true
+        }
+      ]
+    },
+    {
+      "fichier": "08-gabarit-liste",
+      "gabarit": "liste",
+      "surtitre": "كابتن موثّق، وصول سريع، دفع سهل…",
+      "titre": "رحلتك *كما تشاء*",
+      "ecran": "accueil",
+      "puces": [
+        {
+          "icone": "bouclier",
+          "titre": "كابتن موثّق",
+          "sous": "هوية مؤكَّدة"
+        },
+        {
+          "icone": "horloge",
+          "titre": "وصول سريع",
+          "sous": "في كل الأحياء"
+        },
+        {
+          "icone": "portefeuille",
+          "titre": "دفع سهل",
+          "sous": "بنكيلي، مصرفي، سداد",
+          "or": true
+        }
+      ]
+    },
+    {
+      "fichier": "09-gabarit-bande",
+      "gabarit": "bande",
+      "surtitre": "لا تعرف العنوان؟ قل وجهتك فقط…",
+      "titre": "ونحن *نوصلك*",
+      "ecran": "accueil",
+      "cta": "حمّل التطبيق الآن"
+    },
+    {
+      "fichier": "10-gabarit-large",
+      "gabarit": "large",
+      "surtitre": "اطلب من مكانك…",
+      "titre": "سيارتك تصل في *دقائق*",
+      "ecran": "accueil",
+      "cta": "اطلب الآن",
+      "puces": [
+        {
+          "icone": "micro",
+          "titre": "اطلب بالصوت",
+          "sous": "بلغتك"
+        },
+        {
+          "icone": "whatsapp",
+          "titre": "أو عبر واتساب",
+          "sous": "دون تسجيل",
+          "vert": true
+        }
+      ]
+    },
+    {
+      "fichier": "11-nuit-route",
+      "gabarit": "bande",
+      "decor": "route",
+      "surtitre": "من أي حيّ، في أي وقت…",
+      "titre": "الطريق *يبدأ من هنا*",
+      "ecran": "accueil",
+      "cta": "اطلب الآن"
+    },
+    {
+      "fichier": "12-nuit-grille",
+      "gabarit": "liste",
+      "decor": "grille",
+      "surtitre": "كابتن موثّق، وصول سريع، دفع سهل…",
+      "titre": "رحلتك *كما تشاء*",
+      "ecran": "accueil",
+      "puces": [
+        {
+          "icone": "bouclier",
+          "titre": "كابتن موثّق",
+          "sous": "هوية مؤكَّدة"
+        },
+        {
+          "icone": "horloge",
+          "titre": "وصول سريع",
+          "sous": "في كل الأحياء"
+        },
+        {
+          "icone": "portefeuille",
+          "titre": "دفع سهل",
+          "sous": "بنكيلي، مصرفي، سداد",
+          "or": true
+        }
+      ]
+    },
+    {
+      "fichier": "13-jour-route",
+      "gabarit": "large",
+      "decor": "route",
+      "surtitre": "اطلب من مكانك…",
+      "titre": "سيارتك تصل في *دقائق*",
+      "ecran": "accueil",
+      "cta": "اطلب الآن",
+      "puces": [
+        {
+          "icone": "micro",
+          "titre": "اطلب بالصوت",
+          "sous": "بلغتك"
+        },
+        {
+          "icone": "whatsapp",
+          "titre": "أو عبر واتساب",
+          "sous": "دون تسجيل",
+          "vert": true
+        }
+      ]
+    },
+    {
+      "fichier": "14-whatsapp-sans-app",
+      "surtitre": "لا تطبيق، ولا تسجيل…",
+      "titre": "رسالة واحدة *وتصلك السيارة*",
+      "titre_long": true,
+      "ecran": "accueil",
+      "puces": [
+        {
+          "icone": "whatsapp",
+          "titre": "اطلب عبر واتساب",
+          "sous": "من دون تثبيت",
+          "place": "haut-droite",
+          "vert": true
+        },
+        {
+          "icone": "voiture",
+          "titre": "رحلات وطرود",
+          "sous": "من الرقم نفسه",
+          "place": "bas-gauche"
+        }
+      ]
+    },
+    {
+      "fichier": "07-arabe",
+      "surtitre": "واجهة وصوت وإشعارات…",
+      "titre": "التطبيق *يتحدّث لغتك*",
+      "ecran": "profil",
+      "puces": [
+        {
+          "icone": "globe",
+          "titre": "بالعربية",
+          "sous": "واختر لغتك",
+          "place": "haut-droite"
+        }
+      ]
+    },
+    {
+      "fichier": "20-scene-nuit",
+      "gabarit": "scene",
+      "scene": "horizon",
+      "surtitre": "من نواكشوط، في أي وقت…",
+      "titre": "الطريق *لا يتوقف*",
+      "cta": "اطلب رحلتك الآن"
+    },
+    {
+      "fichier": "21-scene-jour",
+      "gabarit": "scene",
+      "scene": "horizon",
+      "surtitre": "كل يوم، من حيّك إلى عملك…",
+      "titre": "نوصلك *بأمان*",
+      "cta": "حمّل التطبيق"
+    },
+    {
+      "fichier": "30-nouakchott",
+      "gabarit": "bande",
+      "fond": "nouakchott",
+      "surtitre": "من نواكشوط، في أي وقت…",
+      "titre": "الطريق *لا يتوقف*",
+      "ecran": "accueil",
+      "cta": "اطلب رحلتك الآن"
+    },
+    {
+      "fichier": "31-voiture",
+      "gabarit": "bande",
+      "decor": "route",
+      "visuel": "voiture-blanche",
+      "sans_telephone": true,
+      "surtitre": "كابتن قريب منك…",
+      "titre": "سيارتك تصل في *دقائق*",
+      "cta": "اطلب الآن"
+    },
+    {
+      "fichier": "40-corolla-plage",
+      "gabarit": "affiche",
+      "fond": "corolla-plage",
+      "sans_telephone": true,
+      "surtitre": "من الحيّ إلى البحر…",
+      "titre": "أينما كنت *نصل إليك*",
+      "cta": "اطلب رحلتك الآن"
+    },
+    {
+      "fichier": "41-corolla-rivage",
+      "gabarit": "affiche",
+      "fond": "corolla-rivage",
+      "sans_telephone": true,
+      "surtitre": "سيارتك تعمل معك…",
+      "titre": "اربح *كل يوم*",
+      "cta": "سجّل ككابتن"
+    },
+    {
+      "fichier": "42-nouakchott-affiche",
+      "gabarit": "affiche",
+      "fond": "nouakchott",
+      "sans_telephone": true,
+      "surtitre": "نواكشوط كلها، في هاتفك…",
+      "titre": "الطريق *لا يتوقف*",
+      "cta": "حمّل التطبيق"
+    },
+    {
+      "fichier": "43-livraison-repas",
+      "gabarit": "affiche",
+      "fond": "plat-riz-poisson",
+      "sans_telephone": true,
+      "surtitre": "من مطاعم نواكشوط…",
+      "titre": "طعامك يصل ساخنًا",
+      "cta": "اطلب طعامك الآن"
+    },
+    {
+      "fichier": "50-offre-commission",
+      "gabarit": "affiche",
+      "fond": "echangeur",
+      "sans_telephone": true,
+      "surtitre": "عرض خاص لكباتن Aloo",
+      "titre": "نصف *العمولة*",
+      "badge": "÷2",
+      "badge_note": "",
+      "detail": "استهلك 500 أوقية خلال 8 أيام في Aloo، وتنخفض عمولتك إلى النصف.",
+      "cta": "سجّل ككابتن"
+    },
+    {
+      "fichier": "60-arfadni",
+      "gabarit": "affiche",
+      "fond": "sieges",
+      "sans_telephone": true,
+      "surtitre": "مقعد فارغ في سيارتك؟",
+      "titre": "شارك رحلتك *ووفّر*",
+      "badge": "ارفدني",
+      "badge_note": "سعر لكل مقعد",
+      "detail": "انشر رحلتك قبل انطلاقك، واختر من يرافقك. الدفع لكل مقعد، والتأكيد برمز تعطيه للكابتن.",
+      "cta": "انشر رحلتك"
+    },
+    {
+      "fichier": "61-assistance",
+      "gabarit": "affiche",
+      "fond": "assistance",
+      "sans_telephone": true,
+      "surtitre": "تعطّلت سيارتك في الطريق؟",
+      "titre": "المساعدة *تصل إليك*",
+      "detail": "اطلب فنيا من التطبيق، وسيصلك مغيث إلى موقعك. تعرف الرسم قبل أن تؤكّد.",
+      "cta": "اطلب المساعدة"
+    },
+    {
+      "fichier": "62-appel",
+      "gabarit": "affiche",
+      "fond": "route-nuit",
+      "sans_telephone": true,
+      "surtitre": "لا تملك التطبيق؟ لا يهم…",
+      "titre": "اتصل، *ونأتي إليك*",
+      "badge": "33322777",
+      "badge_note": "",
+      "detail": "اطلب رحلتك بمكالمة واحدة عبر مركز الاتصال، دون تطبيق ودون تسجيل.",
+      "cta": "اتصل الآن"
+    },
+    {
+      "fichier": "63-arfadni-mocaad",
+      "gabarit": "affiche",
+      "fond": "sieges-libres",
+      "sans_telephone": true,
+      "surtitre": "مدينة الانطلاق، مدينة الوصول…",
+      "titre": "الرحلات *المتاحة*",
+      "badge": "ارفدني",
+      "badge_note": "أوقية/مقعد",
+      "detail": "استلم الكابتن طلبك. سيتم إشعارك بمجرد قبوله.",
+      "cta": "طلب مقعد"
+    },
+    {
+      "fichier": "64-assistance-tarif",
+      "gabarit": "affiche",
+      "fond": "triangle-detresse",
+      "sans_telephone": true,
+      "surtitre": "استدع فنيا للمساعدة على الطريق…",
+      "titre": "تعرف الرسم قبل أن تؤكّد",
+      "titre_long": true,
+      "badge": "الرسم الأساسي",
+      "badge_note": "",
+      "detail": "يظهر «الرسم الأساسي» في التطبيق قبل الطلب، ويُكرَّر على زرّ الطلب.",
+      "cta": "طلب المساعدة"
+    },
+    {
+      "fichier": "70-sommaire-clair",
+      "gabarit": "sommaire",
+      "surtitre": "من الرحلة إلى الشحن…",
+      "titre": "كل خدماتك في *تطبيق واحد*",
+      "colonnes": 3,
+      "services": [
+        {
+          "icone": "voiture",
+          "nom": "طلب رحلة"
+        },
+        {
+          "icone": "micro",
+          "nom": "اطلب بالصوت"
+        },
+        {
+          "icone": "whatsapp",
+          "nom": "اطلب عبر واتساب"
+        },
+        {
+          "icone": "personnes",
+          "nom": "ارفدني"
+        },
+        {
+          "icone": "restaurant",
+          "nom": "مطاعم"
+        },
+        {
+          "icone": "colis",
+          "nom": "الطرود"
+        },
+        {
+          "icone": "outils",
+          "nom": "المساعدة على الطريق"
+        },
+        {
+          "icone": "cle",
+          "nom": "تأجير سيارات"
+        },
+        {
+          "icone": "camion",
+          "nom": "شحن بين المدن"
+        },
+        {
+          "icone": "remorque",
+          "nom": "نقل السيارات"
+        },
+        {
+          "icone": "volant",
+          "nom": "كابتن خاص"
+        },
+        {
+          "icone": "carton",
+          "nom": "نقل خفيف"
+        }
+      ]
+    },
+    {
+      "fichier": "71-sommaire-nuit",
+      "gabarit": "sommaire",
+      "fond": "nouakchott",
+      "surtitre": "نواكشوط كلها في تطبيق واحد…",
+      "titre": "اطلب *ما تحتاج*",
+      "colonnes": 3,
+      "services": [
+        {
+          "icone": "voiture",
+          "nom": "طلب رحلة"
+        },
+        {
+          "icone": "micro",
+          "nom": "اطلب بالصوت"
+        },
+        {
+          "icone": "whatsapp",
+          "nom": "اطلب عبر واتساب"
+        },
+        {
+          "icone": "personnes",
+          "nom": "ارفدني"
+        },
+        {
+          "icone": "restaurant",
+          "nom": "مطاعم"
+        },
+        {
+          "icone": "colis",
+          "nom": "الطرود"
+        },
+        {
+          "icone": "outils",
+          "nom": "المساعدة على الطريق"
+        },
+        {
+          "icone": "cle",
+          "nom": "تأجير سيارات"
+        },
+        {
+          "icone": "camion",
+          "nom": "شحن بين المدن"
+        },
+        {
+          "icone": "remorque",
+          "nom": "نقل السيارات"
+        },
+        {
+          "icone": "volant",
+          "nom": "كابتن خاص"
+        },
+        {
+          "icone": "carton",
+          "nom": "نقل خفيف"
+        }
+      ]
+    },
+    {
+      "fichier": "72-sommaire-essentiel",
+      "gabarit": "sommaire",
+      "fond": "route-nuit",
+      "surtitre": "ستة أسباب لتحميل Aloo…",
+      "titre": "كل شيء *بضغطة واحدة*",
+      "colonnes": 3,
+      "services": [
+        {
+          "icone": "voiture",
+          "nom": "طلب رحلة"
+        },
+        {
+          "icone": "micro",
+          "nom": "اطلب بالصوت"
+        },
+        {
+          "icone": "whatsapp",
+          "nom": "اطلب عبر واتساب"
+        },
+        {
+          "icone": "personnes",
+          "nom": "ارفدني"
+        },
+        {
+          "icone": "restaurant",
+          "nom": "مطاعم"
+        },
+        {
+          "icone": "outils",
+          "nom": "المساعدة على الطريق"
+        }
+      ],
+      "cta": "حمّل التطبيق"
+    },
+    {
+      "fichier": "81-dune-famille",
+      "gabarit": "affiche",
+      "fond": "dune-famille",
+      "sans_telephone": true,
+      "surtitre": "آخر النهار، والطريق طويل…",
+      "titre": "نوصل عائلتك *بأمان*",
+      "cta": "حمّل التطبيق"
+    },
+    {
+      "fichier": "82-volant",
+      "gabarit": "editorial",
+      "fond": "volant",
+      "surtitre": "سيارتك، وقتك، وأرباحك…",
+      "titre": "كن *كابتن Aloo*",
+      "cta": "سجّل ككابتن"
+    },
+    {
+      "fichier": "83-recrutement-berline",
+      "gabarit": "editorial",
+      "fond": "berline-blanche",
+      "surtitre": "سيارتك جاهزة، والركّاب في انتظارك…",
+      "titre": "دخلك *بين يديك*",
+      "cta": "سجّل ككابتن"
+    },
+    {
+      "fichier": "90-fret",
+      "gabarit": "affiche",
+      "fond": "fret",
+      "sans_telephone": true,
+      "surtitre": "من نواكشوط إلى كل المدن…",
+      "titre": "شحنتك *تصل بأمان*",
+      "detail": "انشر شحنتك بوزنها ووجهتها، واختر الناقل. السعر محدَّد لكل كيلوغرام قبل الإرسال.",
+      "cta": "أرسل شحنتك"
+    },
+    {
+      "fichier": "91-convoyage",
+      "gabarit": "editorial",
+      "fond": "convoyage",
+      "surtitre": "سيارتك في مدينة، وأنت في أخرى…",
+      "titre": "ناقل يقودها *إليك*",
+      "cta": "انشر طلب النقل"
+    },
+    {
+      "fichier": "92-kabten-khass",
+      "gabarit": "affiche",
+      "fond": "kabten-khass",
+      "sans_telephone": true,
+      "surtitre": "اجتماعات، مشاوير، مطار…",
+      "titre": "كابتن خاص *ليومك كاملاً*",
+      "detail": "احجز كابتنك ليوم كامل، ولا تفكر في الركن ولا في الانتظار.",
+      "cta": "احجز كابتنك"
+    },
+    {
+      "fichier": "93-location",
+      "gabarit": "editorial",
+      "fond": "cles",
+      "surtitre": "بالسعر اليومي، ومع كفالة واضحة…",
+      "titre": "استأجر سيارة *بثقة*",
+      "cta": "تصفّح السيارات"
+    },
+    {
+      "fichier": "S1-story-voix",
+      "format": "story",
+      "surtitre": "لا تعرف العنوان؟ قل وجهتك فقط…",
+      "titre": "ونحن *نوصلك*",
+      "ecran": "accueil",
+      "cta": "حمّل التطبيق"
+    },
+    {
+      "fichier": "S2-story-dune",
+      "format": "story",
+      "gabarit": "affiche",
+      "fond": "dune-famille",
+      "sans_telephone": true,
+      "surtitre": "آخر النهار، والطريق طويل…",
+      "titre": "نوصل عائلتك *بأمان*",
+      "cta": "حمّل التطبيق"
+    },
+    {
+      "fichier": "S3-story-volant",
+      "format": "story",
+      "gabarit": "editorial",
+      "fond": "volant",
+      "surtitre": "سيارتك، وقتك، وأرباحك…",
+      "titre": "كن *كابتن Aloo*",
+      "cta": "سجّل ككابتن"
+    },
+    {
+      "fichier": "F1-fenetre-aman",
+      "gabarit": "fenetre",
+      "fond": "dune-famille",
+      "surtitre": "كل رحلة، وكل عائلة…",
+      "mot": "أمان",
+      "taille_mot": 300,
+      "detail": "كابتن موثّق، وتتبّع لحظة بلحظة، في كل رحلة.",
+      "cta": "حمّل التطبيق"
+    },
+    {
+      "fichier": "F2-fenetre-tariq",
+      "gabarit": "fenetre",
+      "fond": "fret",
+      "surtitre": "من نواكشوط إلى كل المدن…",
+      "mot": "الطريق",
+      "taille_mot": 225,
+      "detail": "رحلات، طرود، وشحن بين المدن.",
+      "cta": "اطلب رحلتك الآن"
+    },
+    {
+      "fichier": "F3-fenetre-story",
+      "gabarit": "fenetre",
+      "format": "story",
+      "fond": "echangeur",
+      "surtitre": "من نواكشوط إلى كل المدن…",
+      "mot": "ألو",
+      "taille_mot": 420,
+      "detail": "رحلات، طرود، شحن، ومساعدة على الطريق.",
+      "cta": "حمّل التطبيق"
+    },
+    {
+      "fichier": "C1-carrousel",
+      "gabarit": "carrousel",
+      "fond": "pano-avenue",
+      "cartes": [
+        {
+          "surtitre": "من شارع إلى شارع…",
+          "titre": "مدينتك *كلها*"
+        },
+        {
+          "surtitre": "رحلات، طرود، مطاعم، ومساعدة…",
+          "titre": "تطبيق *واحد*"
+        },
+        {
+          "surtitre": "اطلب من مكانك…",
+          "titre": "Aloo *يوصلك*",
+          "cta": "حمّل التطبيق"
+        }
+      ]
+    },
+    {
+      "fichier": "J1-taxis",
+      "gabarit": "affiche",
+      "fond": "taxis",
+      "sans_telephone": true,
+      "surtitre": "في كل شارع، كابتن جاهز…",
+      "titre": "نصل *إليك*",
+      "detail": "كابتن موثّق، وسعر تعرفه قبل أن تنطلق.",
+      "cta": "اطلب الآن"
+    }
+  ]
+}

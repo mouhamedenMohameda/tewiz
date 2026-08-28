@@ -1,0 +1,74 @@
+<meta charset="utf-8"><link rel="stylesheet" href="brand.css">
+<style>
+html,body,.scene{width:1080px;height:1350px;}
+body{background:var(--creme);}
+.scene{display:flex;background:linear-gradient(155deg,#FCF7EF,#F1E4D2 62%,#E9D7C1);}
+
+.col-txt{flex:1;padding:78px 66px 60px 46px;display:flex;flex-direction:column;}
+.marque{display:flex;align-items:center;gap:18px;}
+.marque img{width:82px;height:82px;box-shadow:0 8px 22px rgba(43,29,18,.22);}
+.marque b{font-size:32px;font-weight:900;color:var(--encre);letter-spacing:.02em;}
+.marque i{display:block;font-style:normal;font-size:21px;font-weight:700;color:rgba(43,29,18,.5);}
+
+h1{margin-top:44px;font-size:74px;font-weight:900;line-height:1.15;color:var(--encre);}
+h1 em{font-style:normal;color:#A8791F;}
+.kicker{margin-top:16px;font-size:28px;font-weight:700;color:rgba(43,29,18,.56);line-height:1.5;}
+
+ol{margin-top:38px;list-style:none;display:flex;flex-direction:column;gap:20px;}
+li{display:flex;align-items:center;gap:20px;}
+.dot{width:62px;height:62px;border-radius:50%;flex:none;position:relative;
+     box-shadow:inset 0 -8px 16px rgba(0,0,0,.22),0 8px 18px rgba(43,29,18,.18);}
+.dot span{position:absolute;inset:0;display:grid;place-items:center;font-size:26px;font-weight:900;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.5);}
+.nom{font-size:34px;font-weight:900;color:var(--encre);line-height:1.2;}
+.ben{font-size:25px;font-weight:400;color:rgba(43,29,18,.58);}
+
+.bas{margin-top:auto;padding-top:46px;display:flex;align-items:center;gap:26px;flex-wrap:wrap;}
+.prix2{display:flex;flex-direction:column;}
+.prix2 b{font-size:66px;font-weight:900;color:#A8791F;line-height:1;}
+.prix2 s{text-decoration:none;font-size:24px;font-weight:700;color:rgba(43,29,18,.5);}
+.cta{padding:20px 40px;border-radius:999px;background:var(--encre);color:var(--or-clair);font-size:30px;font-weight:900;}
+
+.col-img{width:41%;position:relative;}
+.col-img img{width:100%;height:100%;object-fit:cover;object-position:56% 62%;}
+.col-img::after{content:'';position:absolute;inset:0;
+  background:linear-gradient(270deg,rgba(241,228,210,.92),rgba(241,228,210,.10) 26%,transparent 52%);}
+.tampon{position:absolute;left:44px;bottom:52px;z-index:2;width:214px;height:214px;border-radius:50%;
+  background:linear-gradient(135deg,#F0DCA6,#C79E3F 60%,#EBD79E);display:grid;place-items:center;text-align:center;
+  box-shadow:0 20px 46px rgba(43,29,18,.34);transform:rotate(-9deg);}
+.tampon b{font-size:34px;font-weight:900;color:#2A1B07;line-height:1.15;}
+.tampon i{font-style:normal;display:block;font-size:22px;font-weight:700;color:rgba(42,27,7,.66);}
+</style>
+<div class="scene">
+  <div class="col-txt">
+    <div class="marque">
+      <img class="logo" src="assets/logo.jpg">
+      <div><b>لمسة عطر</b><i>العناية بالجسم</i></div>
+    </div>
+
+    <h1>خمس خطوات<br><em>وبشرتك تتبدّل</em></h1>
+    <p class="kicker">روتين كامل من التقشير حتى الترطيب والعطر — كلّه في حقيبة واحدة.</p>
+
+    <ol>
+      <li><div class="dot" style="background:#5D1226"><span>١</span></div>
+          <div><div class="nom">مقشر الكركديه</div><div class="ben">نعومة وإشراقة</div></div></li>
+      <li><div class="dot" style="background:#3E2617"><span>٢</span></div>
+          <div><div class="nom">مقشر القهوة</div><div class="ben">تنظيف وانتعاش</div></div></li>
+      <li><div class="dot" style="background:#EE8B45"><span>٣</span></div>
+          <div><div class="nom">صابونية الجسم</div><div class="ben">نظافة ونعومة</div></div></li>
+      <li><div class="dot" style="background:#CDB49B"><span>٤</span></div>
+          <div><div class="nom">مخمرية</div><div class="ben">رائحة تدوم طول اليوم</div></div></li>
+      <li><div class="dot" style="background:#EBD79B"><span>٥</span></div>
+          <div><div class="nom">كريم الجسم</div><div class="ben">ترطيب ولمسة ناعمة</div></div></li>
+    </ol>
+
+    <div class="bas">
+      <div class="prix2"><b>11 ألف</b><s>المجموعة كاملة · أوقية</s></div>
+      <div class="cta">واتساب · <span dir="ltr" style="unicode-bidi:isolate">33 65 45 23</span></div>
+    </div>
+  </div>
+
+  <div class="col-img">
+    <img src="assets/p1.jpg">
+    <div class="tampon"><div><b>٥ منتجات</b><i>في مجموعة واحدة</i></div></div>
+  </div>
+</div>

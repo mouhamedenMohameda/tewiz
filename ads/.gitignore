@@ -1,0 +1,10 @@
+# Environnement Python local (154 Mo) — recréable via requirements
+.venv/
+__pycache__/
+*.pyc
+
+# Rendus générés par build.py / render.sh (~230 Mo).
+# Régénérables à partir des .html + assets/ : on ne les versionne pas.
+# NB: la règle est ancrée à la racine de ads/ pour NE PAS attraper les
+# images sources de assets/ (logo, captures store, screens).
+/*.png

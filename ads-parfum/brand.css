@@ -1,0 +1,55 @@
+@font-face { font-family:'Cairo'; font-weight:400; src:url('assets/Cairo_400Regular.ttf') format('truetype'); font-display:block; }
+@font-face { font-family:'Cairo'; font-weight:700; src:url('assets/Cairo_700Bold.ttf') format('truetype'); font-display:block; }
+@font-face { font-family:'Cairo'; font-weight:900; src:url('assets/Cairo_900Black.ttf') format('truetype'); font-display:block; }
+@font-face { font-family:'Sora'; font-weight:700; src:url('assets/Sora_700Bold.ttf') format('truetype'); font-display:block; }
+
+:root{
+  --noir:#0C0806;
+  --noir-2:#171009;
+  --or:#D8B45F;
+  --or-clair:#F0DCA6;
+  --or-fonce:#9A7526;
+  --creme:#F8F1E6;
+  --sable:#EFE2CE;
+  --rose:#E3B7AC;
+  --encre:#2B1D12;
+  --vert:#25D366;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;}
+body{
+  font-family:'Cairo',system-ui,sans-serif;
+  direction:rtl;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:geometricPrecision;
+}
+.scene{position:relative;width:100%;height:100%;overflow:hidden;}
+
+/* --- filet doré double --- */
+.cadre{position:absolute;inset:30px;border:2px solid rgba(216,180,95,.55);pointer-events:none;}
+.cadre::after{content:'';position:absolute;inset:9px;border:1px solid rgba(216,180,95,.28);}
+
+.or-txt{
+  background:linear-gradient(100deg,#9A7526 0%,#F0DCA6 32%,#D8B45F 55%,#F6E9C4 78%,#A87F2B 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+
+.logo{border-radius:50%;object-fit:cover;display:block;}
+
+.pastille-prix{
+  display:inline-flex;align-items:baseline;gap:14px;
+  padding:18px 46px;border-radius:999px;
+  background:linear-gradient(135deg,#F0DCA6,#C79E3F 55%,#EBD79E);
+  color:#231708;box-shadow:0 18px 46px rgba(0,0,0,.35);
+}
+.pastille-prix .n{font-weight:900;font-size:64px;line-height:1;}
+.pastille-prix .u{font-weight:700;font-size:30px;}
+.pastille-prix .l{font-weight:700;font-size:28px;opacity:.72;}
+
+.wa{
+  display:inline-flex;align-items:center;gap:16px;
+  padding:20px 44px;border-radius:999px;background:var(--vert);color:#04220F;
+  font-weight:900;font-size:34px;box-shadow:0 16px 40px rgba(37,211,102,.32);
+}
+.wa svg{width:44px;height:44px;flex:none;}

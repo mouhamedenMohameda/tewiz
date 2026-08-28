@@ -1,0 +1,187 @@
+/* ============================================================
+   Aloo — social ad system, 1080 × 1080
+   Palette + type taken verbatim from the app design system
+   (apps/mobile/theme/palette.ts "Sahara Solaire", light scheme)
+   and docs/brand/carte-visite (Sora + Cairo).
+   ============================================================ */
+
+@font-face { font-family:'Cairo'; font-weight:400; src:url('assets/Cairo_400Regular.ttf') format('truetype'); font-display:block; }
+@font-face { font-family:'Cairo'; font-weight:700; src:url('assets/Cairo_700Bold.ttf') format('truetype'); font-display:block; }
+@font-face { font-family:'Cairo'; font-weight:900; src:url('assets/Cairo_900Black.ttf') format('truetype'); font-display:block; }
+@font-face { font-family:'Sora'; font-weight:700; src:url('assets/Sora_700Bold.ttf') format('truetype'); font-display:block; }
+@font-face { font-family:'Sora'; font-weight:800; src:url('assets/Sora_800ExtraBold.ttf') format('truetype'); font-display:block; }
+
+:root {
+  /* Sahara Solaire — light */
+  --canvas:      #FBF3E7;
+  --canvas-deep: #F4E7D2;
+  --surface:     #FFFCF6;
+  --ember:       #F2682C;
+  --ember-deep:  #D9531B;
+  --ember-soft:  #FDEAD9;
+  --sun:         #F6A623;
+  --saffron:     #FBC65A;
+  --ink:         #2C1D10;
+  --ink2:        #6B5740;
+  --muted:       #9C886E;
+  --saffron-soft:#FCEFC9;
+  --line:        #ECDFCB;
+  --espresso:    #2A1A0E;
+  --on-espresso: #FBEFDD;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+/* Le cadre est variable : 1080 × 1080 par défaut, 1080 × 1920 en story.
+   Tout ce qui doit couvrir l'affiche lit --w et --h plutôt qu'un nombre. */
+:root { --w: 1080px; --h: 1080px; }
+html, body { width:var(--w); height:var(--h); overflow:hidden; background:var(--canvas); }
+
+/* ---------- Poster shell ---------- */
+.poster {
+  position:relative;
+  width:var(--w); height:var(--h);
+  direction:rtl;
+  font-family:'Cairo', sans-serif;
+  overflow:hidden;
+  /* warm sand ground, lit from the upper-left like the rest of the identity */
+  background:
+    radial-gradient(72% 55% at 18% 4%,  rgba(251,198, 90,0.30) 0%, rgba(251,198,90,0) 60%),
+    radial-gradient(85% 65% at 96% 12%, rgba(242,104,44,0.13) 0%, rgba(242,104,44,0) 62%),
+    radial-gradient(90% 70% at 50% 108%,rgba(244,231,210,0.95) 0%, rgba(244,231,210,0) 60%),
+    linear-gradient(168deg, #FDF7EE 0%, var(--canvas) 46%, var(--canvas-deep) 100%);
+}
+
+/* very faint paper tooth so large flats don't band */
+.poster::after {
+  content:""; position:absolute; inset:0; pointer-events:none; z-index:20;
+  opacity:0.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ---------- Brand lockup ---------- */
+.brand {
+  position:absolute; top:56px; left:0; right:0;
+  display:flex; flex-direction:column; align-items:center; gap:14px;
+  z-index:6;
+}
+.brand img {
+  width:96px; height:96px; display:block;
+  border-radius:24px;
+  box-shadow:0 14px 32px rgba(217,83,27,0.26), 0 3px 8px rgba(44,29,16,0.10);
+}
+.brand .wordmark {
+  font-family:'Sora', sans-serif; font-weight:800;
+  font-size:40px; letter-spacing:-0.5px; color:var(--ink);
+  line-height:1;
+}
+
+/* ---------- Headline ---------- */
+.headline {
+  position:absolute; top:236px; left:80px; right:80px;
+  text-align:center; z-index:6;
+}
+.headline .l1 {
+  font-weight:400; font-size:60px; line-height:1.34;
+  color:var(--ink2);
+}
+.headline .l2 {
+  font-weight:900; font-size:80px; line-height:1.28;
+  color:var(--ink); margin-top:2px;
+}
+.headline .l2 em { font-style:normal; color:var(--ember); }
+
+/* for kickers that enumerate — they run long and would otherwise kiss the edge */
+.headline.tight .l1 { font-size:50px; line-height:1.36; }
+
+/* a title that needs three lines has to give some size back, or it walks down
+   into the device */
+.headline.tight2 .l2 { font-size:64px; line-height:1.24; }
+
+/* ---------- Stage (artwork area) ---------- */
+/* 442 → 878 : le bas dégage les 24 px qu'il faut au-dessus du bloc QR (902). */
+.stage {
+  position:absolute; left:0; right:0; top:442px; height:436px;
+  display:flex; align-items:center; justify-content:center;
+  z-index:4;
+}
+
+/* contact-shadow puck used under every hero object */
+.puck {
+  position:absolute; bottom:14px; left:50%; transform:translateX(-50%);
+  width:520px; height:56px; border-radius:50%;
+  background:radial-gradient(ellipse at center, rgba(120,78,42,0.28) 0%, rgba(120,78,42,0) 70%);
+  z-index:-1;
+}
+
+/* real app screenshot inside a device frame */
+.phone {
+  position:relative;
+  width:212px; height:436px;
+  border-radius:38px;
+  background:linear-gradient(155deg, #4A3524 0%, var(--espresso) 42%, #1B1008 100%);
+  padding:9px;
+  box-shadow:
+    0 40px 70px -22px rgba(44,29,16,0.42),
+    0 10px 22px -8px rgba(44,29,16,0.24),
+    inset 0 1px 1px rgba(255,252,246,0.30);
+}
+.phone .screen {
+  width:100%; height:100%; border-radius:30px; overflow:hidden;
+  background:var(--surface); position:relative;
+}
+.phone .screen img { width:100%; display:block; }
+.phone .notch {
+  position:absolute; top:15px; left:50%; transform:translateX(-50%);
+  width:66px; height:13px; border-radius:8px; background:#140C05; z-index:3;
+}
+/* glass sheen across the device */
+.phone .sheen {
+  position:absolute; inset:0; border-radius:38px; pointer-events:none; z-index:4;
+  background:linear-gradient(118deg, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0.05) 22%, rgba(255,255,255,0) 46%);
+}
+
+/* ---------- Footer ---------- */
+.footer-left {
+  position:absolute; bottom:66px; left:76px;
+  display:flex; align-items:center; gap:18px; z-index:8;
+}
+.qr {
+  width:112px; height:112px; padding:9px;
+  background:var(--surface); border-radius:14px;
+  box-shadow:0 8px 20px rgba(44,29,16,0.13);
+}
+.qr svg { display:block; width:100%; height:100%; }
+.dl { text-align:right; }
+.dl .lbl {
+  font-weight:700; font-size:21px; color:var(--ink2);
+  margin-bottom:11px; line-height:1;
+}
+.stores { display:flex; gap:11px; }
+.stores img {
+  width:44px; height:44px; border-radius:11px; display:block;
+  box-shadow:0 4px 12px rgba(217,83,27,0.24);
+}
+
+.footer-right {
+  position:absolute; bottom:70px; right:76px;
+  text-align:left; z-index:8;
+}
+.footer-right .call {
+  font-weight:700; font-size:22px; color:var(--ink2);
+  margin-bottom:9px; text-align:right; line-height:1;
+}
+.phone-row { display:flex; align-items:center; gap:12px; direction:ltr; }
+.phone-row .ic {
+  width:42px; height:42px; border-radius:50%;
+  background:linear-gradient(150deg, var(--ember) 0%, var(--ember-deep) 100%);
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 6px 15px rgba(217,83,27,0.34);
+}
+.phone-row .ic svg { width:22px; height:22px; fill:#fff; }
+.phone-row .num {
+  font-family:'Sora', sans-serif; font-weight:800;
+  font-size:42px; color:var(--ink); line-height:1; letter-spacing:-0.5px;
+}
+.phone-row .num .pref {
+  font-size:22px; color:var(--muted); margin-right:5px; vertical-align:2px;
+}

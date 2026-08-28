@@ -1,0 +1,64 @@
+<meta charset="utf-8"><link rel="stylesheet" href="brand.css">
+<style>
+html,body,.scene{width:1080px;height:1350px;}
+body{background:var(--noir);}
+.scene{
+  background:
+    radial-gradient(120% 70% at 50% -8%, rgba(216,180,95,.20), transparent 58%),
+    radial-gradient(90% 55% at 50% 108%, rgba(216,180,95,.14), transparent 60%),
+    linear-gradient(180deg,#100A06,#0A0705 55%,#140D07);
+  display:flex;flex-direction:column;align-items:center;
+  padding:86px 74px 62px;
+}
+.entete{display:flex;flex-direction:column;align-items:center;gap:16px;}
+.entete img{width:132px;height:132px;box-shadow:0 0 0 1px rgba(216,180,95,.45),0 0 60px rgba(216,180,95,.18);}
+.sur{font-size:27px;font-weight:700;letter-spacing:.14em;color:rgba(240,220,166,.78);}
+
+.titre{margin-top:26px;text-align:center;font-weight:900;font-size:82px;line-height:1.18;color:var(--creme);}
+.titre .g{display:block;}
+.sous{margin-top:16px;text-align:center;font-size:31px;font-weight:400;color:rgba(248,241,230,.62);line-height:1.5;}
+
+.photo{
+  margin-top:34px;width:100%;height:472px;border-radius:26px;overflow:hidden;position:relative;
+  box-shadow:0 0 0 2px rgba(216,180,95,.55),0 0 0 12px rgba(216,180,95,.07),0 34px 70px rgba(0,0,0,.6);
+}
+.photo img{width:100%;height:100%;object-fit:cover;object-position:50% 50%;}
+.photo::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(12,8,6,.16),transparent 34%,rgba(12,8,6,.30));}
+
+.pastilles{margin-top:30px;display:flex;flex-wrap:wrap;justify-content:center;gap:12px;}
+.pastilles span{
+  font-size:26px;font-weight:700;color:var(--or-clair);
+  padding:11px 24px;border-radius:999px;border:1px solid rgba(216,180,95,.42);
+  background:rgba(216,180,95,.07);
+}
+.bas{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:16px;}
+.livraison{font-size:27px;font-weight:700;color:rgba(248,241,230,.55);}
+.numero{margin-top:-6px;font-size:44px;font-weight:900;letter-spacing:.04em;color:var(--or-clair);}
+</style>
+<div class="scene">
+  <div class="cadre"></div>
+
+  <div class="entete">
+    <img class="logo" src="assets/logo.jpg">
+    <div class="sur">لمسة عطر · العناية بالجسم</div>
+  </div>
+
+  <h1 class="titre">
+    <span class="g">روتينك للجمال</span>
+    <span class="g or-txt">في مجموعة واحدة</span>
+  </h1>
+  <p class="sous">خمس منتجات تشتغل مع بعض:<br>بشرة ناعمة، إشراقة، وريحة تدوم اليوم كامل.</p>
+
+  <div class="photo"><img src="assets/lineup_ccw.jpg"></div>
+
+  <div class="pastilles">
+    <span>مقشر الكركديه</span><span>مقشر القهوة</span><span>صابونية الجسم</span>
+    <span>مخمرية</span><span>كريم الجسم</span>
+  </div>
+
+  <div class="bas">
+    <div class="pastille-prix"><span class="l">المجموعة كاملة</span><span class="n">11</span><span class="u">ألف أوقية</span></div>
+    <div class="livraison">التوصيل داخل نواكشوط · اطلبي عبر واتساب</div>
+    <div class="numero"><span dir="ltr" style="unicode-bidi:isolate">33 65 45 23</span></div>
+  </div>
+</div>

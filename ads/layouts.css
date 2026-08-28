@@ -1,0 +1,717 @@
+/* ============================================================
+   Aloo — gabarits (layout templates)
+
+   Chaque gabarit est une mise en page complète : on choisit avec
+   "gabarit": "liste" dans posters.json. Le gabarit par défaut, `centre`,
+   vit dans brand.css.
+
+   Tout est écrit en propriétés logiques (inset-inline-start, text-align:start)
+   : la page est en RTL, donc « start » = droite. Les gabarits se retournent
+   d'eux-mêmes si un jour une affiche part en français.
+   ============================================================ */
+
+/* ------------------------------------------------------------------ commun */
+
+/* Marque en haut de côté, en ligne — la variante des gabarits non centrés. */
+/* Les remises à zéro physiques doivent précéder les propriétés logiques :
+   déclarées après, `left/right: auto` écraseraient l'ancrage logique. */
+.brand.inline {
+  top: 60px;
+  left: auto; right: auto;
+  inset-inline-start: 76px;
+  flex-direction: row;
+  align-items: center;
+  gap: 18px;
+  width: max-content;
+}
+.brand.inline img { width: 76px; height: 76px; border-radius: 20px; }
+.brand.inline .wordmark { font-size: 38px; }
+
+/* Titre aligné sur le bord de lecture. */
+.headline.start {
+  left: auto; right: auto;
+  inset-inline-start: 76px;
+  text-align: start;
+  width: 540px;
+}
+
+/* Bande basse espresso — reprend le verso de la carte de visite. */
+.band {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 168px;
+  background: linear-gradient(100deg, var(--espresso) 0%, #3A2615 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 76px;
+  z-index: 9;
+}
+.band .qr-row { display: flex; align-items: center; gap: 18px; }
+.band .qr { background: var(--surface); box-shadow: none; }
+.band .dl .lbl { color: var(--on-espresso); }
+.band .stores img { box-shadow: none; }
+.band .contact { text-align: end; }
+.band .contact .call {
+  font-weight: 700; font-size: 21px; color: var(--on-espresso-muted, #C9B49A);
+  margin-bottom: 8px;
+}
+.band .contact .num {
+  font-family: 'Sora', sans-serif; font-weight: 800;
+  font-size: 40px; color: var(--on-espresso); line-height: 1; direction: ltr;
+}
+.band .contact .num .pref { font-size: 21px; color: var(--ember); margin-right: 5px; }
+
+/* Visuel détouré (rendu 3D, photo découpée…).
+
+   Ancré en BAS et CENTRÉ, jamais sur un côté : en RTL `inset-inline-end` tombe
+   à gauche, exactement là où les gabarits posent le téléphone — le visuel
+   disparaissait derrière lui. Bas-centré, il porte la composition comme sur les
+   affiches de référence : objet large en pied, titre au-dessus. */
+.hero {
+  position: absolute;
+  bottom: 150px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 900px;
+  max-height: 520px;
+  object-fit: contain;
+  object-position: bottom center;
+  z-index: 3;
+  filter:
+    drop-shadow(0 30px 26px rgba(60, 34, 12, 0.34))
+    drop-shadow(0 8px 8px rgba(60, 34, 12, 0.20));
+}
+/* Quand un visuel porte l'affiche, le téléphone s'efface pour lui. */
+.poster.avec-hero .stage { display: none; }
+
+/* Photo plein cadre + voile dégradé : sans le voile, aucun texte ne tient sur
+   une photo. Le voile part du bord de lecture, là où le titre se pose. */
+.fond {
+  position: absolute;
+  inset: 0;
+  width: var(--w); height: var(--h);
+  object-fit: cover;
+  z-index: 0;
+}
+.voile {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    linear-gradient(to left, rgba(20, 12, 6, 0.82) 0%, rgba(20, 12, 6, 0.52) 46%, rgba(20, 12, 6, 0.10) 78%),
+    linear-gradient(to top,  rgba(20, 12, 6, 0.76) 0%, rgba(20, 12, 6, 0) 42%);
+}
+.poster:not(.nuit) .voile {
+  background:
+    linear-gradient(to left, rgba(251, 243, 231, 0.92) 0%, rgba(251, 243, 231, 0.62) 46%, rgba(251, 243, 231, 0.10) 80%),
+    linear-gradient(to top,  rgba(244, 231, 210, 0.70) 0%, rgba(244, 231, 210, 0) 40%);
+}
+
+/* Liste d'atouts — la variante « posée » des puces, sans ombre ni carte. */
+.features {
+  position: absolute;
+  inset-inline-start: 76px;
+  display: flex; flex-direction: column; gap: 30px;
+  width: 520px;
+  z-index: 6;
+}
+.feature { display: flex; align-items: center; gap: 18px; }
+.feature .ic {
+  width: 58px; height: 58px; flex: 0 0 58px;
+  border-radius: 17px;
+  background: var(--ember-soft); color: var(--ember);
+  display: flex; align-items: center; justify-content: center;
+}
+.feature .ic svg { width: 32px; height: 32px; display: block; }
+.feature .ic.money { background: var(--saffron-soft); color: #C9820A; }
+.feature .ic.green { background: #E4F7EA; color: #1EBE5D; }
+.feature .tx { display: flex; flex-direction: column; line-height: 1.2; }
+.feature .tx b    { font-weight: 700; font-size: 30px; color: var(--ink); }
+.feature .tx span { font-weight: 400; font-size: 21px; color: var(--muted); }
+
+/* Pastille d'appel à l'action. */
+.cta {
+  position: absolute;
+  inset-inline-start: 76px;
+  display: inline-flex; align-items: center; gap: 14px;
+  padding: 22px 40px;
+  border-radius: 999px;
+  background: linear-gradient(150deg, var(--ember) 0%, var(--ember-deep) 100%);
+  color: #fff; font-weight: 700; font-size: 30px;
+  box-shadow: 0 16px 30px -10px rgba(217, 83, 27, 0.55);
+  z-index: 8;
+}
+
+/* Décors SVG plein cadre — route en perspective, grille isométrique.
+   Ils vivent tout au fond, sous le téléphone et sous le texte. */
+.decor {
+  position: absolute;
+  inset: 0;
+  width: var(--w); height: var(--h);
+  z-index: 0;
+  pointer-events: none;
+}
+.decor-route { opacity: 0.92; }
+
+/* Arc de route en fond — le seul élément « décor » que le CSS fait bien. */
+.road {
+  position: absolute;
+  inset-inline-end: -180px;
+  top: 120px;
+  width: 900px; height: 900px;
+  border-radius: 50%;
+  border: 92px solid rgba(242, 104, 44, 0.07);
+  z-index: 1;
+}
+.road::after {
+  content: "";
+  position: absolute; inset: -46px;
+  border-radius: 50%;
+  border: 2px dashed rgba(242, 104, 44, 0.22);
+}
+
+
+/* ------------------------------------------------------- gabarit « liste » */
+/* Logo en haut, titre puis trois atouts à gauche, téléphone à droite,
+   bande de téléchargement en bas. C'est le gabarit le plus « fiche produit ». */
+
+.g-liste .headline.start { top: 178px; }
+.g-liste .headline .l1 { font-size: 44px; line-height: 1.3; }
+.g-liste .headline .l2 { font-size: 62px; line-height: 1.24; }
+.g-liste .features { top: 404px; }
+.g-liste .stage {
+  top: 176px; height: 690px;
+  left: auto; right: auto;
+  inset-inline-start: auto; inset-inline-end: 76px;
+  width: 320px;
+}
+.g-liste .phone { width: 300px; height: 617px; }
+.g-liste .puck { width: 340px; bottom: -6px; }
+
+
+/* ------------------------------------------------------- gabarit « bande » */
+/* Titre large en haut, téléphone incliné à l'opposé, bande basse.
+   Moins d'information que « liste » — pour un message unique. */
+
+.g-bande .headline.start { top: 198px; width: 600px; }
+.g-bande .headline .l1 { font-size: 50px; }
+.g-bande .headline .l2 { font-size: 76px; }
+.g-bande .stage {
+  top: 150px; height: 720px;
+  left: auto; right: auto;
+  inset-inline-start: auto; inset-inline-end: 62px;
+  width: 380px;
+}
+.g-bande .phone {
+  width: 336px; height: 690px;
+  transform: rotate(-8deg);
+  box-shadow:
+    0 54px 84px -24px rgba(44, 29, 16, 0.46),
+    0 14px 26px -8px rgba(44, 29, 16, 0.24),
+    inset 0 1px 1px rgba(255, 252, 246, 0.30);
+}
+.g-bande .puck { width: 400px; bottom: -14px; }
+.g-bande .cta { bottom: 232px; }
+
+
+/* -------------------------------------------------------- gabarit « large » */
+/* Beaucoup de vide, titre en haut, téléphone bas de l'autre côté, pastille
+   d'appel à l'action. Pas de bande : le pied reste celui du gabarit centré. */
+
+/* Le pied de ce gabarit est celui du gabarit centré : le bloc QR occupe le bas
+   du côté « fin de lecture », exactement là où tombe le téléphone. Toute la
+   hauteur se calcule donc pour que l'appareil s'arrête au-dessus (< 890 px). */
+.g-large .headline.start { top: 196px; width: 620px; }
+.g-large .headline .l1 { font-size: 46px; }
+.g-large .headline .l2 { font-size: 72px; line-height: 1.22; }
+.g-large .stage {
+  top: 232px; height: 618px;
+  left: auto; right: auto;
+  inset-inline-start: auto; inset-inline-end: 44px;
+  width: 340px;
+}
+.g-large .phone {
+  width: 300px; height: 616px;
+  transform: rotate(-9deg);
+  box-shadow:
+    0 54px 84px -26px rgba(44, 29, 16, 0.46),
+    0 14px 26px -8px rgba(44, 29, 16, 0.24),
+    inset 0 1px 1px rgba(255, 252, 246, 0.30);
+}
+.g-large .puck { display: none; }
+.g-large .features { top: 476px; width: 440px; }
+.g-large .cta { bottom: 268px; }
+
+/* ============================================================
+   Gabarit « scene » — l'image porte l'affiche
+
+   La scène occupe tout le cadre et pose son propre horizon à 520 px. Le titre
+   vit AU-DESSUS de cette ligne, sur le ciel, où il a du contraste ; tout ce
+   qui descendrait plus bas se poserait sur le bitume et deviendrait illisible.
+   ============================================================ */
+.scene {
+  position: absolute;
+  inset: 0;
+  width: var(--w); height: var(--h);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.g-scene .brand { top: 52px; right: 72px; left: auto; }
+
+.g-scene .headline {
+  position: absolute;
+  top: 150px; right: 72px; left: auto;
+  width: 620px;
+  text-align: right;
+  z-index: 6;
+  /* le ciel est dégradé : une ombre portée garde le titre lisible partout */
+  text-shadow: 0 2px 22px rgba(0, 0, 0, 0.30);
+}
+.g-scene .headline .l1 { font-size: 46px; }
+.g-scene .headline .l2 { font-size: 82px; line-height: 1.18; }
+
+/* Sur la scène de jour le ciel est clair : on repasse en encre sombre. */
+.poster.g-scene:not(.nuit) .headline { text-shadow: 0 2px 18px rgba(255, 252, 246, 0.55); }
+.poster.g-scene.nuit .headline .l1 { color: #E4CDB2; }
+.poster.g-scene.nuit .headline .l2 { color: #FFF6EA; }
+
+/* Le CTA se pose sur la route, SOUS le véhicule : posé dessus il le masque,
+   et c'est la voiture qui fait comprendre l'affiche en une demi-seconde. */
+.g-scene .cta {
+  position: absolute;
+  top: 792px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 7;
+}
+
+/* Pas de téléphone ni de puces dans ce gabarit : la scène suffit. */
+.g-scene .stage,
+.g-scene .features { display: none; }
+
+/* ============================================================
+   Gabarit « affiche » — la photo porte tout
+
+   Pas de téléphone, pas de puces, pas de décor : une image plein cadre, un
+   titre géant en bas, une pastille. C'est la mise en page la plus frontale du
+   jeu — celle qui se lit en une demi-seconde dans un fil Facebook.
+
+   Le titre descend en bas parce qu'une photo a presque toujours son sujet au
+   centre : posé en haut il lutterait avec le ciel, posé en bas il s'appuie sur
+   le voile le plus dense.
+   ============================================================ */
+
+.g-affiche .brand { top: 56px; right: 72px; left: auto; }
+
+/* Dans la pile, le titre ne se positionne plus : il coule. */
+.g-affiche .pile {
+  position: absolute;
+  inset-inline-start: 76px;
+  bottom: 196px;
+  width: 760px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 26px;
+  z-index: 8;
+}
+.g-affiche .pile > * { position: static; inset: auto; transform: none; width: auto; }
+.g-affiche .pile .headline { width: 100%; }
+.g-affiche .pile .detail   { width: 100%; }
+.g-affiche .headline .l1 {
+  font-size: 44px; line-height: 1.3;
+  letter-spacing: 0.5px;
+}
+.g-affiche .headline .l2 {
+  font-size: 116px; line-height: 1.06;
+  letter-spacing: -1px;
+}
+.g-affiche .cta { bottom: 244px; }
+
+/* Sur photo, l'ombre portée fait tout le travail de lisibilité. */
+.g-affiche .headline { text-shadow: 0 4px 30px rgba(0, 0, 0, 0.55); }
+.poster.g-affiche:not(.nuit) .headline { text-shadow: 0 4px 24px rgba(255, 252, 246, 0.7); }
+
+/* Voile plus dense en bas : c'est là que vit le titre géant. */
+.g-affiche .voile {
+  background:
+    linear-gradient(to bottom, rgba(14, 8, 4, 0.90) 0%, rgba(14, 8, 4, 0.62) 34%, rgba(14, 8, 4, 0.18) 52%, rgba(14, 8, 4, 0) 66%),
+    linear-gradient(to top,    rgba(14, 8, 4, 0.72) 0%, rgba(14, 8, 4, 0) 26%);
+}
+/* La pile du gabarit « affiche » est ancrée en bas mais grandit vers le haut :
+   un titre de deux lignes atteint la mi-hauteur. Le voile jour s'arrêtait à
+   24 % et laissait le titre en encre espresso sur la partie sombre d'une photo
+   à contre-jour — 2,8:1 mesuré. Le bas garde sa densité, la portée monte. */
+.poster.g-affiche:not(.nuit) .voile {
+  background:
+    linear-gradient(to bottom, rgba(251, 243, 231, 0.92) 0%, rgba(251, 243, 231, 0.48) 38%, rgba(251, 243, 231, 0) 62%),
+    linear-gradient(to top,    rgba(251, 243, 231, 0.62) 0%, rgba(251, 243, 231, 0.52) 14%, rgba(251, 243, 231, 0.28) 30%, rgba(251, 243, 231, 0) 48%);
+}
+
+/* Pas de téléphone dans ce gabarit. */
+.g-affiche .stage { display: none; }
+
+/* ---------------------------------------------- badge chiffré et conditions */
+/* Une offre se lit en deux temps : le chiffre qu'on retient, et la condition
+   qui le rend vrai. Les séparer évite le titre-fleuve que personne ne lit. */
+
+.badge {
+  position: absolute;
+  inset-inline-start: 76px;
+  display: flex; align-items: baseline; gap: 16px;
+  z-index: 8;
+}
+.badge b {
+  font-family: 'Sora', sans-serif; font-weight: 800;
+  font-size: 124px; line-height: 0.9; color: var(--ember);
+  letter-spacing: -4px;
+  text-shadow: 0 6px 34px rgba(0, 0, 0, 0.45);
+  /* « ÷2 » est une expression mathématique : en contexte RTL ses deux
+     caractères s'inversent et on lit « 2÷ ». On la force en LTR. */
+  direction: ltr; unicode-bidi: isolate;
+}
+.badge span {
+  font-weight: 700; font-size: 34px; color: var(--ink);
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.5);
+}
+
+/* Les conditions d'une offre sont du texte long sur une photo chargée : une
+   ombre portée n'y suffit pas. Elles reçoivent leur propre plaque, comme le
+   ferait n'importe quel maquettiste. */
+.detail {
+  position: absolute;
+  inset-inline-start: 76px;
+  width: 700px;
+  padding: 24px 30px;
+  border-radius: 22px;
+  background: rgba(12, 7, 3, 0.72);
+  border: 1px solid rgba(247, 234, 218, 0.14);
+  font-weight: 400; font-size: 27px; line-height: 1.55;
+  color: #E8D6BF;
+  z-index: 8;
+}
+.poster:not(.nuit) .detail {
+  background: rgba(255, 252, 246, 0.86);
+  border-color: var(--line);
+  color: var(--ink2);
+}
+
+/* Placement dans le gabarit « affiche » : titre, puis badge, puis conditions,
+   puis pastille — de haut en bas, dans l'ordre où on les lit. */
+
+.poster.g-affiche.nuit .badge span { color: #F7EADA; }
+
+
+/* Badge en mot : une étiquette, pas un chiffre géant. */
+.badge.mot {
+  align-items: center;
+  gap: 14px;
+  padding: 14px 26px;
+  border-radius: 999px;
+  background: rgba(242, 104, 44, 0.16);
+  border: 1px solid rgba(242, 104, 44, 0.45);
+}
+.badge.mot b {
+  font-family: 'Cairo', sans-serif; font-weight: 900;
+  font-size: 46px; letter-spacing: 0; line-height: 1.1;
+  text-shadow: none;
+}
+.badge.mot span { font-size: 27px; font-weight: 400; }
+
+/* ============================================================
+   Gabarit « sommaire » — tout ce que fait l'application
+
+   Une grille de services. Le nombre de colonnes se règle depuis posters.json
+   (`colonnes`) parce qu'il dépend du nombre de cases : douze services en trois
+   colonnes respirent, six en trois colonnes flottent.
+   ============================================================ */
+
+/* Hauteurs comptées, pas approchées : logo 56→132, titre 150→272,
+   grille 292→868, bande 912. Douze cases en trois colonnes font quatre
+   rangées : 4 × 132 + 3 × 16 = 576, ce qui tombe juste. */
+.g-sommaire .headline.start { top: 150px; width: 840px; }
+.g-sommaire .headline .l1 { font-size: 34px; line-height: 1.28; }
+.g-sommaire .headline .l2 { font-size: 58px; line-height: 1.16; }
+
+.grille {
+  position: absolute;
+  inset-inline: 72px;
+  top: 292px;
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 3), 1fr);
+  gap: 16px;
+  z-index: 7;
+}
+.grille .case {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 12px;
+  padding: 18px 10px;
+  min-height: 132px;
+  border-radius: 22px;
+  background: rgba(255, 252, 246, 0.90);
+  border: 1px solid var(--line);
+  box-shadow: 0 10px 22px -12px rgba(44, 29, 16, 0.24);
+  text-align: center;
+}
+.grille .case .ic {
+  width: 50px; height: 50px;
+  border-radius: 15px;
+  background: var(--ember-soft); color: var(--ember);
+  display: flex; align-items: center; justify-content: center;
+}
+.grille .case .ic svg { width: 28px; height: 28px; display: block; }
+.grille .case b {
+  font-weight: 700; font-size: 21px; line-height: 1.24; color: var(--ink);
+}
+
+/* Sur fond sombre, la case s'éclaircit au lieu de projeter une ombre. */
+.poster.nuit .grille .case {
+  background: rgba(33, 20, 8, 0.88);
+  border-color: var(--line);
+  box-shadow: 0 14px 26px -14px rgba(0, 0, 0, 0.6),
+              inset 0 1px 0 rgba(247, 234, 218, 0.06);
+}
+.poster.nuit .grille .case b { color: #F7EADA; }
+
+/* La pastille du sommaire se pose sous la grille, au-dessus de la bande. */
+.g-sommaire .cta { bottom: 232px; }
+
+/* ============================================================
+   Gabarit « editorial » — la photo en haut, le message en bas
+
+   Aucun texte ne se pose sur l'image : elle occupe le haut, pleine largeur,
+   et le message vit sur un aplat espresso en dessous. C'est la mise en page
+   qui rend la photo la plus nette de tout le jeu, puisqu'elle n'a aucun voile
+   à porter. Le prix : moins de place pour le texte, donc un message court.
+   ============================================================ */
+
+.g-editorial .fond {
+  inset: 0 0 auto 0;
+  height: 596px;
+  width: 1080px;
+  object-fit: cover;
+}
+.g-editorial .voile { display: none; }
+
+/* Le bandeau de message, entre la photo et la bande de téléchargement. */
+.g-editorial::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 596px; bottom: 168px;
+  background: linear-gradient(120deg, var(--espresso) 0%, #45301C 100%);
+  z-index: 1;
+}
+/* un liseré ember sur la couture : c'est lui qui fait « imprimé », pas collé */
+.g-editorial::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0; top: 596px; height: 6px;
+  background: linear-gradient(90deg, var(--ember) 0%, var(--sun) 100%);
+  z-index: 3;
+}
+
+.g-editorial .brand { top: 44px; right: 60px; left: auto; z-index: 6; }
+.g-editorial .brand img { box-shadow: 0 10px 26px rgba(0,0,0,0.4); }
+.g-editorial .brand .wordmark { color: #FFF6EA; text-shadow: 0 2px 14px rgba(0,0,0,0.6); }
+
+/* Le bandeau ne fait que 316 px : titre et pastille s'y empilent, ils ne s'y
+   positionnent pas. */
+.g-editorial .pile {
+  position: absolute;
+  inset-inline-start: 76px;
+  bottom: 196px;
+  width: 880px;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 22px;
+  z-index: 5;
+}
+.g-editorial .pile > * { position: static; inset: auto; transform: none; width: auto; }
+.g-editorial .pile .headline { width: 100%; }
+.g-editorial .headline .l1 { font-size: 34px; color: #C9B49A; line-height: 1.3; }
+.g-editorial .headline .l2 { font-size: 62px; color: #FFF6EA; line-height: 1.16; }
+.g-editorial .headline .l2 em { color: var(--sun); }
+
+
+.g-editorial .stage { display: none; }
+
+/* ---------------------------------------------------- deux QR, un par store */
+/* Chaque QR porte son badge : sans lui, deux carrés identiques côte à côte
+   n'indiquent pas lequel scanner. */
+.qr-duo { display: flex; gap: 14px; align-items: flex-start; }
+.qr-item { display: flex; flex-direction: column; align-items: center; gap: 7px; }
+.qr-item .qr { width: 96px; height: 96px; padding: 7px; }
+.qr-item img { width: 30px; height: 30px; border-radius: 8px; display: block; }
+
+.footer-left .dl { text-align: start; }
+.footer-left .dl .lbl { margin-bottom: 10px; }
+.band .qr-row .dl .lbl { margin-bottom: 9px; }
+.band .qr-item .qr { width: 88px; height: 88px; padding: 6px; }
+.band .qr-item img { width: 26px; height: 26px; }
+
+/* ============================================================
+   Gabarit « fenetre » — la photo à l'intérieur des lettres
+
+   `background-clip: text` remplit les contours du glyphe avec l'image et rend
+   le reste transparent. C'est le procédé le plus spectaculaire du jeu et le
+   moins coûteux : aucun détourage, aucun montage.
+
+   Deux conditions, non négociables :
+   — un mot COURT. Trois à cinq lettres. Au-delà, le corps tombe sous 200 px
+     et l'image ne se lit plus dans les contours.
+   — la police la plus grasse dont on dispose. Cairo 900. À travers un jambage
+     fin, une photo devient une bouillie grise.
+   — une photo PLUS CLAIRE que l'aplat. Une image de nuit dans des lettres
+     posées sur de l'espresso donne des lettres invisibles : il n'y a pas de
+     contraste entre l'intérieur et l'extérieur du glyphe. Sur thème nuit,
+     prendre une photo de plein jour ou de coucher de soleil.
+   ============================================================ */
+
+.g-fenetre .mot {
+  position: absolute;
+  inset-inline: 0;
+  /* Découpage compté : surtitre 280, mot 380→700, ligne de sens 730,
+     pastille 810→890, bande 912. Les glyphes arabes débordent de leur boîte,
+     d'où la marge de 30 px sous le mot. */
+  top: 380px;
+  text-align: center;
+  font-family: 'Cairo', sans-serif;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -6px;
+
+  /* l'image remplit le glyphe, le reste du bloc devient transparent */
+  background-size: cover;
+  background-position: center;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+
+  /* sans ombre, les lettres flottent sans se poser sur l'aplat */
+  filter: drop-shadow(0 14px 38px rgba(0, 0, 0, 0.45));
+  z-index: 5;
+}
+
+/* En nuit l'aplat est espresso : la photo devait être plus claire que lui.
+   En jour la règle s'inverse — l'aplat est sable, donc c'est la photo qui doit
+   faire la partie sombre du glyphe. Un ciel pâle en haut des lettres tombait à
+   1,5:1 contre l'aplat, c'est-à-dire invisible. On assombrit le remplissage
+   plutôt que d'exiger une photo différente par mot. `filter` ne se cumule pas :
+   l'ombre portée doit être réécrite ici. */
+.poster.g-fenetre:not(.nuit) .mot {
+  filter: brightness(0.58) saturate(1.25)
+          drop-shadow(0 14px 38px rgba(0, 0, 0, 0.28));
+}
+
+.g-fenetre .headline.start {
+  inset-inline-start: auto;
+  left: 72px; right: 72px;
+  width: auto;
+  top: 280px;
+  text-align: center;
+}
+.g-fenetre .headline .l1 { font-size: 40px; }
+.g-fenetre .headline .l2 { display: none; }   /* le mot EST le titre */
+
+/* la ligne de sens, sous le mot */
+.g-fenetre .detail {
+  inset-inline-start: auto;
+  left: 140px; right: 140px;
+  width: auto;
+  top: 730px;
+  text-align: center;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 32px;
+}
+
+.g-fenetre .cta {
+  inset-inline-start: auto;
+  left: 50%; right: auto;
+  transform: translateX(-50%);
+  bottom: 190px;
+}
+
+/* En story, le mot descend au centre et grandit encore. */
+.poster.story.g-fenetre .mot { top: 700px; }
+.poster.story.g-fenetre .headline.start { top: 520px; }
+.poster.story.g-fenetre .detail { top: 1250px; }
+
+/* ============================================================
+   Gabarit « carrousel » — N cartes, une seule image
+
+   Chaque carte montre sa tranche de 1080 px d'un panorama de N × 1080. Mises
+   bout à bout dans le fil, elles se rejoignent au pixel : le lecteur fait
+   glisser et l'image continue.
+
+   Le décalage vient de `left: -index × 1080` posé en style inline par
+   build.py — pas d'un `background-position`, qui aurait obligé à répéter la
+   taille du panorama à deux endroits.
+   ============================================================ */
+
+.pano {
+  position: absolute;
+  top: 0;
+  height: var(--h);
+  z-index: 0;
+  overflow: hidden;
+}
+.pano img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Voile léger, et c'est voulu : la photo passe par `teinte.py`, donc elle est
+   déjà ramenée aux couleurs de la marque et à une luminance basse. Empiler un
+   voile épais par-dessus ne ferait qu'éteindre la matière de l'image sans rien
+   gagner en lisibilité — le contraste est déjà tenu à la source. */
+.g-carrousel.nuit .voile {
+  background:
+    linear-gradient(to top,
+      rgba(16, 10, 4, 0.72) 0%,
+      rgba(16, 10, 4, 0.42) 26%,
+      rgba(16, 10, 4, 0.10) 52%,
+      rgba(16, 10, 4, 0.00) 72%);
+}
+/* En thème jour le voile éclaircit au lieu d'assombrir : le texte y est en
+   encre espresso, il lui faut du clair sous lui, pas du sombre. */
+.g-carrousel:not(.nuit) .voile {
+  background:
+    linear-gradient(to top,
+      rgba(251, 243, 231, 0.92) 0%,
+      rgba(251, 243, 231, 0.68) 26%,
+      rgba(251, 243, 231, 0.20) 52%,
+      rgba(251, 243, 231, 0.00) 72%);
+}
+
+/* Titre et pastille sont ancrés séparément, à hauteur fixe, identique sur
+   toutes les cartes. Une pile ancrée en bas aurait fait remonter le titre de
+   la carte qui porte une pastille — et la ligne de base aurait sauté d'une
+   carte à l'autre, ce qui casse la lecture d'un trait.
+   Découpage : titre jusqu'à 780, pastille 800→880, bande 912. */
+.g-carrousel .headline.start {
+  inset-inline-start: 76px;
+  top: auto;
+  bottom: 300px;
+  width: 900px;
+}
+.g-carrousel .cta { bottom: 200px; }
+
+/* Numérotation discrète : elle dit au lecteur qu'il y a une suite.
+   Positionnée en `left` physique et non en `inset-inline-end` : sur un élément
+   absolument positionné qui porte lui-même `direction: ltr`, l'axe logique se
+   résout depuis l'élément et non depuis le poster — le compteur repartait donc
+   du même côté que la marque, et se posait dessus. */
+.compteur {
+  position: absolute;
+  top: 60px;
+  left: 76px; right: auto;
+  font-family: 'Sora', sans-serif; font-weight: 700;
+  font-size: 30px; color: rgba(247, 234, 218, 0.55);
+  letter-spacing: 1px;
+  direction: ltr;
+  z-index: 8;
+}
