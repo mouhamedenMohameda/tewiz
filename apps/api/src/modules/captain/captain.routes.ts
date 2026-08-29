@@ -15,6 +15,7 @@ import { captainPreferencesRouter } from './preferences.routes.js';
 import { captainBonusRouter } from './bonus.routes.js';
 import { captainFreeDaysRouter } from './free-days.routes.js';
 import * as terms from './terms.service.js';
+import * as onboarding from './onboarding.service.js';
 import { getPricingSettings } from '../admin/app-settings.service.js';
 
 export const captainRouter = Router();
@@ -181,6 +182,44 @@ captainRouter.delete('/applications/me/documents/:docId', requireRiderOrCaptain,
 captainRouter.post('/applications/me/submit', requireRiderOrCaptain, async (req, res) => {
   const userId = req.user!.id;
   res.json(await svc.submitApplication(userId));
+});
+
+/**
+ * GET /captain/onboarding
+ * Ce qu'il reste à fournir après acceptation : véhicule déclaré + vérifié,
+ * documents 'online' (pour rouler) et 'payout' (pour retirer). L'app captain
+ * s'en sert pour afficher la carte de complétion et griser l'interrupteur
+ * « en ligne » avec la bonne raison.
+ */
+captainRouter.get('/onboarding', requireRole('captain'), async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(await onboarding.getOnboardingStatus(req.user!.id));
+});
+
+/**
+ * POST /captain/profile
+ * Le captain déclare son nom et son véhicule (onboarding v3 : ce n'est plus
+ * saisi avant l'acceptation, ni recopié par un opérateur). Repasse le véhicule
+ * en « à vérifier » — un opérateur confronte la saisie à la carte grise du
+ * dossier avant d'autoriser la mise en ligne.
+ */
+const profileBody = z.object({
+  fullName: z.string().min(2).max(100),
+  plate: z.string().min(2).max(20),
+  brand: z.string().min(1).max(50),
+  model: z.string().min(1).max(50),
+  year: z.coerce.number().int().min(1980).max(new Date().getFullYear() + 1),
+  color: z.string().min(2).max(30),
+  seats: z.coerce.number().int().min(1).max(8),
+  vehicleType: z.enum(['car', 'moto']),
+});
+
+captainRouter.post('/profile', requireRole('captain'), async (req, res) => {
+  const body = profileBody.parse(req.body);
+  if (body.vehicleType === 'moto' && body.seats > 2) {
+    throw new HttpError(400, 'seats_invalid', 'Une moto ne peut pas avoir plus de 2 places.');
+  }
+  res.json(await onboarding.declareProfile(req.user!.id, body));
 });
 
 /**

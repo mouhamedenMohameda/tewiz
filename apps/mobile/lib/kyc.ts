@@ -77,47 +77,52 @@ export interface ApplicationDto {
   rejectReason?: string | null;
   correctionNotes?: string | null;
   documents: AppDoc[];
-  documentRequirements?: { type: DocumentType; isRequired: boolean }[];
+  documentRequirements?: { type: DocumentType; stage?: DocumentStage }[];
 }
 
-/** Types currently marked as required by the admin. Defaults to "all required"
- *  when the server doesn't (yet) return the requirement list. */
-export function requiredDocTypes(a: ApplicationDto): Set<DocumentType> {
-  if (!a.documentRequirements) return new Set(DOCUMENT_ORDER);
-  return new Set(
-    a.documentRequirements.filter((r) => r.isRequired).map((r) => r.type),
-  );
+/**
+ * Ce que chaque document bloque tant qu'il manque (migration 0087).
+ *
+ *   application — la candidature ne part pas sans lui.
+ *   online      — le captain est accepté, mais ne peut pas rouler.
+ *   payout      — il roule, mais ne peut pas retirer son argent.
+ *   off         — déposable, ne bloque rien.
+ */
+export type DocumentStage = 'application' | 'online' | 'payout' | 'off';
+
+/**
+ * Les types bloquants à une étape.
+ *
+ * Repli quand le serveur ne renvoie pas encore la liste (ancienne API) : on
+ * réclame le permis et la carte grise à la candidature et rien ailleurs —
+ * la politique par défaut de la 0087, plutôt que « tout est obligatoire »
+ * qui rendrait la candidature impossible à envoyer.
+ */
+const FALLBACK_STAGES: Record<DocumentStage, DocumentType[]> = {
+  application: ['license_front', 'carte_grise'],
+  online: ['assurance', 'car_front'],
+  payout: ['nni_front'],
+  off: [],
+};
+
+export function docTypesForStage(
+  a: ApplicationDto,
+  stage: DocumentStage,
+): DocumentType[] {
+  const reqs = a.documentRequirements;
+  // Une API antérieure à la 0087 renvoie `{ type, isRequired }` : la liste est
+  // bien là, mais `stage` est absent de CHAQUE entrée. Ne tester que la
+  // présence de la liste laissait alors le filtre ne rien matcher — aucune
+  // pièce affichée, `docsComplete` vrai par vacuité, et le bouton « Envoyer »
+  // partait se faire refuser par le serveur. Tant qu'aucune entrée ne porte de
+  // `stage`, on retombe sur la politique par défaut.
+  if (!reqs?.length || !reqs.some((r) => r.stage)) return FALLBACK_STAGES[stage];
+  return DOCUMENT_ORDER.filter((type) =>
+    reqs.find((r) => r.type === type)?.stage === stage);
 }
 
-export function isDocRequired(a: ApplicationDto, type: DocumentType): boolean {
-  if (!a.documentRequirements) return true;
-  return a.documentRequirements.find((r) => r.type === type)?.isRequired ?? true;
-}
-
-/** A WhatsApp number is the only field the captain now types by hand. */
-export function whatsappComplete(a: ApplicationDto): boolean {
-  return !!(a.whatsapp && /^\+?\d{8,15}$/.test(a.whatsapp));
-}
-
-export function personalFieldsComplete(a: ApplicationDto): boolean {
-  return !!(
-    a.fullName && a.nni && a.dateOfBirth &&
-    a.addressLabel && a.emergencyContactPhone
-  );
-}
-
-export function vehicleFieldsComplete(a: ApplicationDto): boolean {
-  return !!(
-    a.vehiclePlate && a.vehicleBrand && a.vehicleModel &&
-    a.vehicleYear && a.vehicleColor && a.vehicleSeats && a.vehicleType
-  );
-}
-
+/** Les documents qui bloquent l'envoi de la candidature sont-ils tous là ? */
 export function docsComplete(a: ApplicationDto): boolean {
   const have = new Set(a.documents.map((d) => d.type));
-  const required = requiredDocTypes(a);
-  for (const t of required) {
-    if (!have.has(t)) return false;
-  }
-  return true;
+  return docTypesForStage(a, 'application').every((t) => have.has(t));
 }

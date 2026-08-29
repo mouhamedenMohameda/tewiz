@@ -30,7 +30,7 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
   const { data: requirements } = useQuery({
     queryKey: ['document-requirements'],
     queryFn: async () => {
-      const r = await api.get<{ type: DocumentType; isRequired: boolean }[]>(
+      const r = await api.get<{ type: DocumentType; stage: string }[]>(
         '/admin/document-requirements',
       );
       return r.data;
@@ -99,77 +99,17 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [appRejectReason, setAppRejectReason] = useState('');
 
-  // Onboarding v2: the captain only sends photos + a WhatsApp number, so the
-  // reviewer transcribes the identity / vehicle fields off the papers here
-  // before approving. The form is synced from the loaded application and
-  // re-synced only when a different application id loads, so a refetch after a
-  // save doesn't clobber edits in progress.
-  const patchApp = useMutation({
-    mutationFn: (patch: Record<string, unknown>) =>
-      api.patch(`/admin/applications/${id}`, patch),
-    onSuccess: () => {
-      setActionError(null);
-      qc.invalidateQueries({ queryKey: ['application', id] });
-    },
-    onError: (e) => setActionError(parseApiError(e)),
-  });
-
-  const [form, setForm] = useState({
-    fullName: '', nni: '', dateOfBirth: '',
-    vehiclePlate: '', vehicleBrand: '', vehicleModel: '',
-    vehicleYear: '', vehicleColor: '', vehicleSeats: '',
-    vehicleType: 'car' as 'car' | 'moto',
-    acceptsColis: false, acceptsLongDistance: false,
-  });
-  useEffect(() => {
-    const a = data?.application;
-    if (!a) return;
-    setForm({
-      fullName: a.full_name ?? '',
-      nni: a.nni ?? '',
-      dateOfBirth: a.date_of_birth ? a.date_of_birth.slice(0, 10) : '',
-      vehiclePlate: a.vehicle_plate ?? '',
-      vehicleBrand: a.vehicle_brand ?? '',
-      vehicleModel: a.vehicle_model ?? '',
-      vehicleYear: a.vehicle_year != null ? String(a.vehicle_year) : '',
-      vehicleColor: a.vehicle_color ?? '',
-      vehicleSeats: a.vehicle_seats != null ? String(a.vehicle_seats) : '',
-      vehicleType: a.vehicle_type ?? 'car',
-      acceptsColis: a.accepts_colis,
-      acceptsLongDistance: a.accepts_long_distance,
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data?.application?.id]);
-
-  function setField<K extends keyof typeof form>(k: K, v: (typeof form)[K]) {
-    setForm((prev) => ({ ...prev, [k]: v }));
-  }
-  function saveInfo() {
-    patchApp.mutate({
-      fullName: form.fullName.trim() || null,
-      nni: form.nni.trim() || null,
-      dateOfBirth: form.dateOfBirth || null,
-      vehiclePlate: form.vehiclePlate.trim().toUpperCase() || null,
-      vehicleBrand: form.vehicleBrand.trim() || null,
-      vehicleModel: form.vehicleModel.trim() || null,
-      vehicleYear: form.vehicleYear ? Number(form.vehicleYear) : null,
-      vehicleColor: form.vehicleColor.trim() || null,
-      vehicleSeats: form.vehicleSeats ? Number(form.vehicleSeats) : null,
-      vehicleType: form.vehicleType,
-      acceptsColis: form.acceptsColis,
-      acceptsLongDistance: form.acceptsLongDistance,
-    });
-  }
-
   if (isLoading) return <AppShell><div className="p-6 text-slate-500">Chargement...</div></AppShell>;
   if (error || !data) return <AppShell><div className="p-6 text-red-600">Erreur</div></AppShell>;
 
   const app = data.application;
-  // Default to "all required" until the requirements query returns, so we
-  // never let admins approve before the gate config has loaded.
+  // Seuls les documents `stage = 'application'` conditionnent la validation.
+  // Ceux marqués 'online' / 'payout' sont réclamés après le "oui" et ne
+  // doivent pas retenir la décision. Repli sur « tout est requis » tant que la
+  // configuration n'est pas chargée, pour ne jamais valider à l'aveugle.
   const requiredTypes = new Set<DocumentType>(
     requirements
-      ? requirements.filter((r) => r.isRequired).map((r) => r.type)
+      ? requirements.filter((r) => r.stage === 'application').map((r) => r.type)
       : DOCUMENT_TYPES,
   );
   const byType = new Map(data.documents.map((d) => [d.type, d] as const));
@@ -213,112 +153,33 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
           </div>
         </div>
 
-        {/* Identity + Vehicle — transcribed by the reviewer from the papers.
-            Onboarding v2: the captain no longer types these; they are read off
-            the CNI / carte grise / car photo and must be filled before approval
-            (they feed the NOT NULL vehicles row). */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-2">
-          <div className="card p-5">
-            <h2 className="font-semibold text-slate-900 mb-3">Identité</h2>
-            <div className="space-y-3">
-              <Labeled label="Nom complet">
-                <input className="input" disabled={!editable} value={form.fullName}
-                  onChange={(e) => setField('fullName', e.target.value)} placeholder="Depuis la CNI" />
-              </Labeled>
-              <Labeled label="NNI">
-                <input className="input" disabled={!editable} value={form.nni} inputMode="numeric"
-                  onChange={(e) => setField('nni', e.target.value.replace(/\D/g, ''))} placeholder="Depuis la CNI" />
-              </Labeled>
-              <Labeled label="Date de naissance">
-                <input type="date" className="input" disabled={!editable} value={form.dateOfBirth}
-                  onChange={(e) => setField('dateOfBirth', e.target.value)} />
-              </Labeled>
-              <div className="grid grid-cols-2 gap-3 pt-1">
-                <div>
-                  <span className="block text-xs text-slate-500 mb-1">WhatsApp</span>
-                  <div className="text-sm text-slate-900">
-                    {app.whatsapp || <span className="text-slate-400">—</span>}
-                  </div>
-                </div>
-                <div>
-                  <span className="block text-xs text-slate-500 mb-1">Téléphone (connexion)</span>
-                  <div className="text-sm text-slate-900">
-                    {app.phone || <span className="text-slate-400">—</span>}
-                  </div>
-                </div>
+        {/* Onboarding v3 : plus rien à transcrire ici. Le candidat n'envoie que
+            son permis et sa carte grise, et il déclare lui-même son nom et son
+            véhicule une fois accepté — un opérateur confronte alors sa saisie à
+            la carte grise dans la file « Mise en ligne ». La décision à prendre
+            sur cette page est la seule qui compte à ce stade : cette personne
+            peut-elle conduire ? */}
+        <div className="card p-5 mb-4">
+          <h2 className="font-semibold text-slate-900 mb-3">Contact</h2>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <span className="block text-xs text-slate-500 mb-1">WhatsApp</span>
+              <div className="text-sm text-slate-900">
+                {app.whatsapp || <span className="text-slate-400">—</span>}
+              </div>
+            </div>
+            <div>
+              <span className="block text-xs text-slate-500 mb-1">Téléphone (connexion)</span>
+              <div className="text-sm text-slate-900">
+                {app.phone || <span className="text-slate-400">—</span>}
               </div>
             </div>
           </div>
-          <div className="card p-5">
-            <h2 className="font-semibold text-slate-900 mb-3">Véhicule</h2>
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <Labeled label="Plaque">
-                  <input className="input" disabled={!editable} value={form.vehiclePlate}
-                    onChange={(e) => setField('vehiclePlate', e.target.value.toUpperCase())}
-                    placeholder="Depuis la carte grise" />
-                </Labeled>
-                <Labeled label="Type">
-                  <select className="input" disabled={!editable} value={form.vehicleType}
-                    onChange={(e) => setField('vehicleType', e.target.value as 'car' | 'moto')}>
-                    <option value="car">Voiture</option>
-                    <option value="moto">Moto</option>
-                  </select>
-                </Labeled>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <Labeled label="Marque">
-                  <input className="input" disabled={!editable} value={form.vehicleBrand}
-                    onChange={(e) => setField('vehicleBrand', e.target.value)} />
-                </Labeled>
-                <Labeled label="Modèle">
-                  <input className="input" disabled={!editable} value={form.vehicleModel}
-                    onChange={(e) => setField('vehicleModel', e.target.value)} />
-                </Labeled>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <Labeled label="Année">
-                  <input className="input" disabled={!editable} value={form.vehicleYear} inputMode="numeric"
-                    onChange={(e) => setField('vehicleYear', e.target.value.replace(/\D/g, ''))} />
-                </Labeled>
-                <Labeled label="Couleur">
-                  <input className="input" disabled={!editable} value={form.vehicleColor}
-                    onChange={(e) => setField('vehicleColor', e.target.value)} />
-                </Labeled>
-                <Labeled label="Places">
-                  <input className="input" disabled={!editable} value={form.vehicleSeats} inputMode="numeric"
-                    onChange={(e) => setField('vehicleSeats', e.target.value.replace(/\D/g, ''))} />
-                </Labeled>
-              </div>
-              <div className="flex flex-wrap gap-4 pt-1">
-                <label className="flex items-center gap-2 text-sm text-slate-700">
-                  <input type="checkbox" disabled={!editable} checked={form.acceptsColis}
-                    onChange={(e) => setField('acceptsColis', e.target.checked)} />
-                  Accepte colis
-                </label>
-                <label className="flex items-center gap-2 text-sm text-slate-700">
-                  <input type="checkbox" disabled={!editable} checked={form.acceptsLongDistance}
-                    onChange={(e) => setField('acceptsLongDistance', e.target.checked)} />
-                  Longue distance
-                </label>
-              </div>
-            </div>
-          </div>
+          <p className="text-xs text-slate-500 mt-3">
+            Nom et véhicule sont déclarés par le Captain après validation, puis
+            vérifiés dans <span className="font-medium">Mise en ligne</span>.
+          </p>
         </div>
-
-        {editable && (
-          <div className="flex items-center justify-end gap-3 mb-6">
-            {patchApp.isError && (
-              <span className="text-xs text-red-600">Échec de l&apos;enregistrement</span>
-            )}
-            {patchApp.isSuccess && !patchApp.isPending && (
-              <span className="text-xs text-green-600">Enregistré ✓</span>
-            )}
-            <button onClick={saveInfo} disabled={patchApp.isPending} className="btn-secondary">
-              {patchApp.isPending ? 'Enregistrement…' : 'Enregistrer les infos'}
-            </button>
-          </div>
-        )}
 
         {/* Documents */}
         <div className="card p-5 mb-6">

@@ -52,7 +52,7 @@
         "label": "Approuvé"
       },
       "draft": {
-        "desc": "Complétez les 3 étapes ci-dessous puis soumettez.",
+        "desc": "Envoyez les deux photos ci-dessous, puis soumettez.",
         "label": "Brouillon"
       },
       "needs_correction": {
@@ -125,7 +125,10 @@
       "tapToAdd": "Touchez pour ajouter",
       "tapToAddOptional": "Facultatif · Touchez pour ajouter",
       "title": "Documents",
-      "uploadFail": "Impossible d'envoyer le document."
+      "uploadFail": "Impossible d'envoyer le document.",
+      "tapToShoot": "Touchez pour photographier",
+      "retakeHint": "Touchez pour reprendre la photo",
+      "laterHint": "L'assurance, la photo du véhicule et le NNI vous seront demandés après l'acceptation de votre dossier."
     },
     "documents": {
       "assurance": "Assurance",
@@ -258,7 +261,10 @@
       "yearInvalidTitle": "Année invalide",
       "yearPlaceholder": "2018",
       "yearTapToPick": "Touchez pour choisir l'année"
-    }
+    },
+    "introV3": "Deux photos suffisent : votre permis et la carte grise du véhicule. Vous déclarerez le véhicule et enverrez l'assurance une fois votre dossier accepté.",
+    "completeDocsFirst": "Envoyez les deux photos",
+    "consentPrefix": "En envoyant votre demande, vous acceptez les"
   },
   "captain": {
     "heatmap": {
@@ -1932,5 +1938,37 @@
     "body": "Une nouvelle version de {{app}} est disponible. Veuillez mettre à jour pour continuer.",
     "cta": "Mettre à jour",
     "noLink": "Veuillez mettre à jour l'application depuis le store pour continuer."
+  },
+  "captainOnboarding": {
+    "title": "Complétez votre profil",
+    "subtitle_one": "Il vous reste {{count}} élément avant de pouvoir passer en ligne.",
+    "subtitle_other": "Il vous reste {{count}} éléments avant de pouvoir passer en ligne.",
+    "ready": "Votre profil est complet. Bonne route !",
+    "cta": "Compléter",
+    "blockedTitle": "Profil incomplet",
+    "blockedBody": "Complétez votre profil Captain avant de passer en ligne.",
+    "vehicle": {
+      "title": "Votre véhicule",
+      "intro": "Recopiez ces informations depuis votre carte grise. Un opérateur les vérifiera avant votre première course.",
+      "missing": "Véhicule non déclaré",
+      "pending": "Véhicule en cours de vérification",
+      "verified": "Véhicule vérifié",
+      "save": "Enregistrer mon véhicule",
+      "saved": "Véhicule enregistré. Un opérateur le vérifie sous peu.",
+      "saveError": "Impossible d'enregistrer votre véhicule.",
+      "incomplete": "Remplissez tous les champs du véhicule."
+    },
+    "docs": {
+      "title": "Documents",
+      "intro": "Ces documents conditionnent votre passage en ligne.",
+      "payoutTitle": "Pour retirer votre argent",
+      "payoutIntro": "Ce document est demandé avant votre premier retrait, pas pour rouler."
+    },
+    "reason": {
+      "missing": "À envoyer",
+      "pending": "En cours de validation",
+      "rejected": "Refusé — à refaire",
+      "expired": "Expiré — à renouveler"
+    }
   }
 }

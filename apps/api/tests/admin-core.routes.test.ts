@@ -30,7 +30,7 @@ vi.mock('../src/modules/storage/local-disk.js', () => ({
   defaultStorage: { get: storageGetMock },
 }));
 vi.mock('../src/modules/admin/document-requirements.service.js', () => ({
-  getRequiredDocumentTypes: requiredDocsMock,
+  getDocumentTypesForStage: requiredDocsMock,
 }));
 vi.mock('../src/modules/partners/partners.service.js', () => ({
   attachCaptainToAgency: attachAgencyMock,
@@ -280,6 +280,11 @@ describe('application transitions', () => {
 });
 
 describe('POST /admin/applications/:id/approve', () => {
+  /**
+   * Une candidature « v2 » : elle porte encore les champs véhicule saisis
+   * avant l'onboarding v3. Ces dossiers existent dans la file le jour du
+   * déploiement, et la validation doit continuer de créer leur véhicule.
+   */
   const appRow = {
     id: 'app-1',
     status: 'submitted',
@@ -296,6 +301,18 @@ describe('POST /admin/applications/:id/approve', () => {
     vehicle_color: 'Blanc',
     vehicle_seats: 4,
     agency_code: null,
+  };
+
+  /** Une candidature « v3 » : deux photos, aucun champ saisi. */
+  const v3AppRow = {
+    ...appRow,
+    full_name: null,
+    vehicle_plate: null,
+    vehicle_brand: null,
+    vehicle_model: null,
+    vehicle_year: null,
+    vehicle_color: null,
+    vehicle_seats: null,
   };
 
   it('approves a complete application and issues one-shot credentials', async () => {
@@ -350,6 +367,51 @@ describe('POST /admin/applications/:id/approve', () => {
     const res = await api(baseUrl, 'POST', '/admin/applications/app-1/approve', undefined, bearer());
     expect(res.status).toBe(409);
     expect(res.body.error.code).toBe('plate_taken');
+  });
+
+  it('approves a v3 application that carries no vehicle fields', async () => {
+    // Onboarding v3 : le captain déclare son véhicule APRÈS son acceptation
+    // (POST /captain/profile), donc la validation ne doit plus l'exiger ni
+    // tenter d'insérer une ligne `vehicles` incomplète.
+    requiredDocsMock.mockResolvedValue(['license_front', 'carte_grise']);
+    dispatchSql(txQueryMock, [
+      [/FROM captain_applications WHERE id .* FOR UPDATE/s, rows([v3AppRow])],
+      [/SELECT type, status FROM application_documents/, rows([
+        { type: 'license_front', status: 'approved' },
+        { type: 'carte_grise', status: 'approved' },
+      ])],
+      [/SELECT phone, password_hash FROM users/, rows([{ phone: '+22245123456', password_hash: 'hash' }])],
+      [/UPDATE captain_applications/, rows([{ id: 'app-1', status: 'approved' }])],
+    ]);
+    const { baseUrl } = await start();
+
+    const res = await api(baseUrl, 'POST', '/admin/applications/app-1/approve', undefined, bearer());
+    expect(res.status).toBe(200);
+
+    const sqls = txQueryMock.mock.calls.map((c) => String(c[0]));
+    expect(sqls.some((q) => q.includes('INSERT INTO captains'))).toBe(true);
+    expect(sqls.some((q) => q.includes('INSERT INTO vehicles'))).toBe(false);
+  });
+
+  it('gates approval on the "application" stage only', async () => {
+    // L'assurance et la photo du véhicule sont réclamées après le "oui" : les
+    // faire remonter ici bloquerait la décision sur des pièces que le candidat
+    // n'a aucune raison d'avoir encore fournies.
+    requiredDocsMock.mockResolvedValue(['license_front', 'carte_grise']);
+    dispatchSql(txQueryMock, [
+      [/FROM captain_applications WHERE id .* FOR UPDATE/s, rows([v3AppRow])],
+      [/SELECT type, status FROM application_documents/, rows([
+        { type: 'license_front', status: 'approved' },
+        { type: 'carte_grise', status: 'approved' },
+      ])],
+      [/SELECT phone, password_hash FROM users/, rows([{ phone: '+22245123456', password_hash: 'hash' }])],
+      [/UPDATE captain_applications/, rows([{ id: 'app-1', status: 'approved' }])],
+    ]);
+    const { baseUrl } = await start();
+
+    await api(baseUrl, 'POST', '/admin/applications/app-1/approve', undefined, bearer());
+
+    expect(requiredDocsMock).toHaveBeenCalledWith('application');
   });
 
   it('returns 404 for an unknown application', async () => {

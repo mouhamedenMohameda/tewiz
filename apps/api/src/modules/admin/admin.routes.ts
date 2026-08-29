@@ -21,7 +21,7 @@ import { adminSettingsRouter } from './settings.routes.js';
 import { adminTranslationsRouter } from './translations.routes.js';
 import { adminReleasesRouter } from '../releases/admin-releases.routes.js';
 import { adminDocumentRequirementsRouter } from './document-requirements.routes.js';
-import { getRequiredDocumentTypes } from './document-requirements.service.js';
+import { getDocumentTypesForStage } from './document-requirements.service.js';
 import { adminStatsRouter } from './stats.routes.js';
 import { adminVoiceRidesRouter } from '../voice-rides/admin-voice-rides.routes.js';
 import { adminVoiceDatasetRouter } from '../voice-dataset/admin-voice-dataset.routes.js';
@@ -567,6 +567,107 @@ adminRouter.post('/applications/:id/claim', async (req, res) => {
 });
 
 /**
+ * GET /admin/captains/pending-online
+ *
+ * La file de la seconde revue. L'onboarding v3 coupe la validation en deux :
+ * on accepte quelqu'un sur son permis et sa carte grise, puis on vérifie —
+ * après coup, et seulement pour ceux qui ont continué — le véhicule qu'il
+ * déclare et les documents qui conditionnent la mise en ligne.
+ *
+ * Le travail total baisse : les documents 'online' d'un candidat recalé sur
+ * son permis ne sont jamais examinés, alors qu'ils l'étaient tous d'un bloc
+ * avant.
+ *
+ * `carteGriseDocId` accompagne chaque ligne pour que l'opérateur confronte la
+ * plaque saisie au document du dossier sans avoir à le chercher : c'est le
+ * contrôle qui remplace la recopie manuelle d'avant.
+ */
+adminRouter.get('/captains/pending-online', async (_req, res) => {
+  const onlineTypes = [...await getDocumentTypesForStage('online')];
+
+  const r = await pool.query(
+    `SELECT c.user_id                       AS captain_id,
+            u.full_name,
+            u.phone,
+            v.id                            AS vehicle_id,
+            v.plate, v.brand, v.model, v.year, v.color, v.seats,
+            v.vehicle_type, v.verified_at, v.created_at AS vehicle_created_at,
+            a.id                            AS application_id,
+            cg.id                           AS carte_grise_doc_id,
+            COALESCE(
+              (SELECT json_agg(json_build_object(
+                        'id', d.id, 'type', d.type, 'status', d.status,
+                        'expiresAt', d.expires_at, 'rejectReason', d.reject_reason)
+                      ORDER BY d.type)
+                 FROM application_documents d
+                WHERE d.application_id = a.id
+                  AND d.type = ANY($1::document_type[])),
+              '[]'::json)                   AS online_docs
+       FROM captains c
+       JOIN users u                ON u.id = c.user_id
+       LEFT JOIN vehicles v        ON v.captain_id = c.user_id AND v.is_active = true
+       LEFT JOIN captain_applications a ON a.id = c.application_id
+       LEFT JOIN application_documents cg
+              ON cg.application_id = a.id AND cg.type = 'carte_grise'
+      WHERE c.status = 'active'
+        AND (
+          v.id IS NULL
+          OR v.verified_at IS NULL
+          OR EXISTS (
+            SELECT 1 FROM application_documents d
+             WHERE d.application_id = a.id
+               AND d.type = ANY($1::document_type[])
+               AND d.status <> 'approved'
+          )
+          OR EXISTS (
+            SELECT 1 FROM application_documents d
+             WHERE d.application_id = a.id
+               AND d.type = ANY($1::document_type[])
+               AND d.expires_at IS NOT NULL
+               AND d.expires_at < now()
+          )
+          OR (
+            SELECT count(*) FROM application_documents d
+             WHERE d.application_id = a.id
+               AND d.type = ANY($1::document_type[])
+          ) < $2::int
+        )
+      ORDER BY v.created_at NULLS FIRST, u.full_name`,
+    [onlineTypes, onlineTypes.length],
+  );
+
+  res.json(r.rows);
+});
+
+/**
+ * POST /admin/vehicles/:id/verify
+ * L'opérateur confirme que le véhicule déclaré correspond à la carte grise du
+ * dossier. Dernier verrou avant la mise en ligne — toute modification
+ * ultérieure de la saisie par le captain remet le véhicule dans cette file.
+ */
+adminRouter.post('/vehicles/:id/verify', async (req, res) => {
+  const adminId = req.user!.id;
+  const r = await pool.query(
+    `UPDATE vehicles
+        SET verified_at = now(), verified_by = $2
+      WHERE id = $1 AND is_active = true
+   RETURNING id, captain_id, plate, verified_at`,
+    [req.params.id, adminId],
+  );
+  if (!r.rows[0]) {
+    throw new HttpError(404, 'not_found', 'Véhicule actif introuvable');
+  }
+  await audit({
+    adminId,
+    action: 'vehicle.verify',
+    targetType: 'vehicle',
+    targetId: String(req.params.id),
+    after: { verifiedAt: r.rows[0].verified_at, plate: r.rows[0].plate },
+  });
+  res.json(r.rows[0]);
+});
+
+/**
  * Approve the whole application. Requires all docs approved.
  * Creates: captain row, vehicle, wallet, captain_state.
  */
@@ -588,10 +689,12 @@ adminRouter.post('/applications/:id/approve', async (req, res) => {
       throw new HttpError(500, 'no_user_id', 'Application has no linked user');
     }
 
-    // Only required document types gate the approval. Optional types can be
-    // missing or pending and the application still goes through. Required
-    // types must (a) be uploaded and (b) be in status 'approved'.
-    const requiredTypes = await getRequiredDocumentTypes();
+    // Seuls les documents `stage = 'application'` conditionnent la validation :
+    // ceux qui servent à décider si cette personne peut conduire. Ceux marqués
+    // 'online' / 'payout' sont réclamés plus tard dans le parcours et ne
+    // doivent pas retenir la décision. Les types requis ici doivent être
+    // (a) déposés et (b) en statut 'approved'.
+    const requiredTypes = await getDocumentTypesForStage('application');
     const docsRes = await client.query<{ type: string; status: string }>(
       `SELECT type, status FROM application_documents WHERE application_id = $1`,
       [req.params.id],
@@ -612,27 +715,17 @@ adminRouter.post('/applications/:id/approve', async (req, res) => {
         });
     }
 
-    // Onboarding v2: the captain no longer types the vehicle details — the
-    // reviewer transcribes them from the carte grise / car photo (PATCH above).
-    // They feed the (NOT NULL) vehicles row created below, so refuse approval
-    // with a clear message rather than letting the INSERT blow up on a
-    // constraint violation.
-    const vehicleFields: [string, string][] = [
-      ['vehicle_plate', 'Plaque'],
-      ['vehicle_brand', 'Marque'],
-      ['vehicle_model', 'Modèle'],
-      ['vehicle_year', 'Année'],
-      ['vehicle_color', 'Couleur'],
-      ['vehicle_seats', 'Nombre de places'],
-    ];
-    const missingVehicle = vehicleFields
-      .filter(([col]) => app[col] === null || app[col] === undefined || app[col] === '')
-      .map(([, label]) => label);
-    if (missingVehicle.length > 0) {
-      throw new HttpError(400, 'vehicle_info_incomplete',
-        `Complétez les infos véhicule avant de valider : ${missingVehicle.join(', ')}`,
-        { missing: missingVehicle });
-    }
+    // Onboarding v3 : plus de saisie véhicule à la validation. La v2 la faisait
+    // recopier par l'opérateur depuis la carte grise ; c'était déplacer la
+    // corvée sur les ops, pas la supprimer. Le captain déclare son véhicule
+    // lui-même une fois accepté (POST /captain/profile) — un opérateur
+    // confronte alors sa saisie à la carte grise déjà au dossier avant de
+    // l'autoriser à rouler (file /captains/pending-online).
+    //
+    // Les candidatures envoyées AVANT ce changement portent encore leurs
+    // champs véhicule : on continue de créer leur véhicule ici (bloc plus bas,
+    // conditionné à la présence de la plaque) pour ne pas laisser la file
+    // d'attente du jour du déploiement à mi-chemin entre les deux parcours.
 
     // Fetch the linked user's current identity so we can backfill name/phone
     // (a guest-originated applicant may have neither on the users row yet) and
@@ -708,62 +801,68 @@ adminRouter.post('/applications/:id/approve', async (req, res) => {
       [app.user_id, app.whatsapp ?? null],
     );
 
-    // Vehicle (one active per captain). `plate` is globally UNIQUE, so a naive
-    // INSERT explodes on re-approval (when the previous approval left a row)
-    // or when the same plate was already attached to this captain (or worse,
-    // someone else's). Reconcile:
-    //   - If a row exists with this plate AND belongs to the same captain,
-    //     reactivate it and refresh the other fields.
-    //   - If it belongs to a DIFFERENT captain, refuse with a clear 409 so
-    //     the operator knows there's a real plate collision.
-    //   - Otherwise, deactivate all the captain's vehicles and insert a fresh
-    //     row.
-    const existingPlate = await client.query<{ captain_id: string }>(
-      `SELECT captain_id FROM vehicles WHERE plate = $1 FOR UPDATE`,
-      [app.vehicle_plate],
-    );
-    if (existingPlate.rows[0] && existingPlate.rows[0].captain_id !== app.user_id) {
-      throw new HttpError(409, 'plate_taken',
-        `La plaque ${app.vehicle_plate} est déjà associée à un autre Captain.`);
-    }
-    await client.query(
-      `UPDATE vehicles SET is_active = false WHERE captain_id = $1`,
-      [app.user_id],
-    );
-    if (existingPlate.rows[0]) {
-      await client.query(
-        `UPDATE vehicles
-            SET brand = $2, model = $3, year = $4, color = $5, seats = $6,
-                vehicle_type = $7,
-                is_active = true
-          WHERE plate = $1 AND captain_id = $8`,
-        [
-          app.vehicle_plate,
-          app.vehicle_brand,
-          app.vehicle_model,
-          app.vehicle_year,
-          app.vehicle_color,
-          app.vehicle_seats,
-          vehicleType,
-          app.user_id,
-        ],
+    // Véhicule — uniquement pour les candidatures « v2 » qui portent encore une
+    // plaque (voir la note à la validation). Les nouvelles arrivent sans, et
+    // leur véhicule sera créé par le captain après acceptation ; il n'y a donc
+    // rien à réconcilier ici.
+    //
+    // `plate` est UNIQUE globalement, donc un INSERT naïf explose à la
+    // re-validation (quand la validation précédente a laissé une ligne) ou
+    // quand la plaque est déjà rattachée à ce captain — ou pire, à un autre.
+    // Réconciliation :
+    //   - ligne existante avec cette plaque ET même captain → réactiver et
+    //     rafraîchir les autres champs.
+    //   - elle appartient à un AUTRE captain → 409 explicite, c'est une vraie
+    //     collision de plaque.
+    //   - sinon → désactiver les véhicules du captain et insérer une ligne.
+    if (app.vehicle_plate) {
+      const existingPlate = await client.query<{ captain_id: string }>(
+        `SELECT captain_id FROM vehicles WHERE plate = $1 FOR UPDATE`,
+        [app.vehicle_plate],
       );
-    } else {
+      if (existingPlate.rows[0] && existingPlate.rows[0].captain_id !== app.user_id) {
+        throw new HttpError(409, 'plate_taken',
+          `La plaque ${app.vehicle_plate} est déjà associée à un autre Captain.`);
+      }
       await client.query(
-        `INSERT INTO vehicles
-           (captain_id, plate, brand, model, year, color, seats, vehicle_type)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [
-          app.user_id,
-          app.vehicle_plate,
-          app.vehicle_brand,
-          app.vehicle_model,
-          app.vehicle_year,
-          app.vehicle_color,
-          app.vehicle_seats,
-          vehicleType,
-        ],
+        `UPDATE vehicles SET is_active = false WHERE captain_id = $1`,
+        [app.user_id],
       );
+      if (existingPlate.rows[0]) {
+        await client.query(
+          `UPDATE vehicles
+              SET brand = $2, model = $3, year = $4, color = $5, seats = $6,
+                  vehicle_type = $7,
+                  is_active = true
+            WHERE plate = $1 AND captain_id = $8`,
+          [
+            app.vehicle_plate,
+            app.vehicle_brand,
+            app.vehicle_model,
+            app.vehicle_year,
+            app.vehicle_color,
+            app.vehicle_seats,
+            vehicleType,
+            app.user_id,
+          ],
+        );
+      } else {
+        await client.query(
+          `INSERT INTO vehicles
+             (captain_id, plate, brand, model, year, color, seats, vehicle_type)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [
+            app.user_id,
+            app.vehicle_plate,
+            app.vehicle_brand,
+            app.vehicle_model,
+            app.vehicle_year,
+            app.vehicle_color,
+            app.vehicle_seats,
+            vehicleType,
+          ],
+        );
+      }
     }
 
     // Partner program: open the courier's one-per-life agency earning window

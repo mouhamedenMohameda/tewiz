@@ -7,7 +7,7 @@ import { env } from '../../config/env.js';
 import { defaultStorage } from '../storage/local-disk.js';
 import {
   getDocumentRequirements,
-  getRequiredDocumentTypes,
+  getDocumentTypesForStage,
 } from '../admin/document-requirements.service.js';
 import type { DocumentType, ApplicationStatus } from '@tewiz/shared-types';
 import {
@@ -204,7 +204,7 @@ export async function uploadDocument(
     mimeType: string;
   },
 ) {
-  const app = await getEditableApplication(userId);
+  const app = await getEditableApplication(userId, input.type);
 
   if (DOCS_WITH_EXPIRY.includes(input.type) && !input.expiresAt) {
     throw new HttpError(400, 'expires_at_required',
@@ -320,32 +320,22 @@ export async function submitApplication(userId: string) {
       app.whatsapp = app.phone;
     }
 
-    // The captain fills the minimum the app actually needs (their name + the
-    // vehicle the riders see). Redundant/legal-only fields that already appear
-    // on the uploaded papers — NNI, date of birth, address, emergency contact —
-    // are NOT asked for or gated here.
+    // Onboarding v3 : plus AUCUN champ saisi n'est exigé ici. La plaque, la
+    // marque, le modèle, l'année, la couleur, le nombre de places et le nom du
+    // propriétaire figurent sur la carte grise que le candidat vient de
+    // photographier — les lui faire recopier avant même de savoir s'il est
+    // accepté, c'était ~34 taps pour un « peut-être ». Il les déclarera après
+    // son acceptation (POST /captain/profile), avant sa première course.
+    //
+    // Ne bloquent l'envoi que les documents marqués `stage = 'application'` :
+    // ceux qui servent à décider maintenant si cette personne peut conduire.
     const missing: string[] = [];
-    const requiredFields: [keyof ApplicationRow, string][] = [
-      ['full_name', 'Nom complet'],
-      ['vehicle_type', 'Type de véhicule'],
-      ['vehicle_plate', 'Plaque'],
-      ['vehicle_brand', 'Marque'],
-      ['vehicle_model', 'Modèle'],
-      ['vehicle_year', 'Année'],
-      ['vehicle_color', 'Couleur'],
-      ['vehicle_seats', 'Nombre de places'],
-    ];
-    for (const [col, label] of requiredFields) {
-      const v = app[col];
-      if (v === null || v === '' || v === undefined) missing.push(label);
-    }
-
     const docs = await client.query<{ type: DocumentType }>(
       `SELECT type FROM application_documents WHERE application_id = $1`,
       [app.id],
     );
     const have = new Set(docs.rows.map((d) => d.type));
-    const requiredDocs = await getRequiredDocumentTypes();
+    const requiredDocs = await getDocumentTypesForStage('application');
     for (const t of requiredDocs) {
       if (!have.has(t)) missing.push(`Document manquant: ${t}`);
     }
@@ -366,21 +356,41 @@ export async function submitApplication(userId: string) {
 
 // --- helpers ---
 
-async function getEditableApplication(userId: string): Promise<ApplicationRow> {
+/**
+ * La candidature sur laquelle écrire.
+ *
+ * Tant qu'elle est en `draft`/`needs_correction`, tout est modifiable. Une
+ * fois APPROUVÉE elle reste ouverte en écriture, mais aux seuls documents que
+ * l'onboarding v3 réclame après le "oui" (assurance, photo du véhicule, NNI —
+ * tout ce qui n'est pas `stage = 'application'`). Le captain les dépose donc
+ * au même endroit, revus par la même file admin : pas de second système de
+ * stockage pour les mêmes photos.
+ *
+ * `docType` non fourni = écriture sur la candidature elle-même (PATCH,
+ * suppression) : réservée aux statuts éditables.
+ */
+async function getEditableApplication(
+  userId: string,
+  docType?: DocumentType,
+): Promise<ApplicationRow> {
   const r = await pool.query<ApplicationRow>(
     `SELECT * FROM captain_applications
       WHERE user_id = $1
-        AND status IN ('draft','submitted','under_review','needs_correction')
+        AND status IN ('draft','submitted','under_review','needs_correction','approved')
       ORDER BY created_at DESC LIMIT 1`,
     [userId],
   );
   const app = r.rows[0];
   if (!app) throw new HttpError(404, 'no_application', 'No application');
-  if (!EDITABLE_STATUSES.includes(app.status)) {
-    throw new HttpError(409, 'not_editable',
-      `Application is ${app.status} and cannot be edited`);
+  if (EDITABLE_STATUSES.includes(app.status)) return app;
+
+  if (app.status === 'approved' && docType) {
+    const blockingAtApplication = await getDocumentTypesForStage('application');
+    if (!blockingAtApplication.has(docType)) return app;
   }
-  return app;
+
+  throw new HttpError(409, 'not_editable',
+    `Application is ${app.status} and cannot be edited`);
 }
 
 async function withDocuments(app: ApplicationRow, client?: pg.PoolClient) {
@@ -420,6 +430,6 @@ async function withDocuments(app: ApplicationRow, client?: pg.PoolClient) {
     createdAt: app.created_at,
     updatedAt: app.updated_at,
     documents: docs.rows,
-    documentRequirements: reqs.map((r) => ({ type: r.type, isRequired: r.isRequired })),
+    documentRequirements: reqs.map((r) => ({ type: r.type, stage: r.stage })),
   };
 }

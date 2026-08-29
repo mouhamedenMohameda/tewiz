@@ -52,7 +52,7 @@
         "label": "Approved"
       },
       "draft": {
-        "desc": "Complete the 3 steps below then submit.",
+        "desc": "Send the two photos below, then submit.",
         "label": "Draft"
       },
       "needs_correction": {
@@ -115,7 +115,10 @@
       "tapToAdd": "Tap to add",
       "tapToAddOptional": "Optional · Tap to add",
       "title": "Documents",
-      "uploadFail": "Could not send the document."
+      "uploadFail": "Could not send the document.",
+      "tapToShoot": "Tap to take a photo",
+      "retakeHint": "Tap to retake the photo",
+      "laterHint": "Insurance, vehicle photo and national ID will be requested after your application is accepted."
     },
     "documents": {
       "assurance": "Insurance",
@@ -246,7 +249,10 @@
       "yearInvalidTitle": "Invalid year",
       "yearPlaceholder": "2018",
       "yearTapToPick": "Tap to pick the year"
-    }
+    },
+    "introV3": "Two photos are enough: your licence and the vehicle registration. You'll declare the vehicle and send the insurance once your application is accepted.",
+    "completeDocsFirst": "Send both photos",
+    "consentPrefix": "By sending your application, you accept the"
   },
   "captain": {
     "heatmap": {
@@ -1802,5 +1808,37 @@
     "October",
     "November",
     "December"
-  ]
+  ],
+  "captainOnboarding": {
+    "title": "Complete your profile",
+    "subtitle_one": "{{count}} item left before you can go online.",
+    "subtitle_other": "{{count}} items left before you can go online.",
+    "ready": "Your profile is complete. Safe driving!",
+    "cta": "Complete",
+    "blockedTitle": "Incomplete profile",
+    "blockedBody": "Complete your Captain profile before going online.",
+    "vehicle": {
+      "title": "Your vehicle",
+      "intro": "Copy this from your vehicle registration. An operator will check it before your first ride.",
+      "missing": "Vehicle not declared",
+      "pending": "Vehicle being verified",
+      "verified": "Vehicle verified",
+      "save": "Save my vehicle",
+      "saved": "Vehicle saved. An operator will verify it shortly.",
+      "saveError": "Could not save your vehicle.",
+      "incomplete": "Fill in every vehicle field."
+    },
+    "docs": {
+      "title": "Documents",
+      "intro": "These documents gate your going online.",
+      "payoutTitle": "To withdraw your money",
+      "payoutIntro": "This document is required before your first withdrawal, not to drive."
+    },
+    "reason": {
+      "missing": "To send",
+      "pending": "Being reviewed",
+      "rejected": "Rejected — redo it",
+      "expired": "Expired — renew it"
+    }
+  }
 }

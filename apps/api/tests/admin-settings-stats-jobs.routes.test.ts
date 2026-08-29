@@ -20,7 +20,7 @@ const {
   docReqSvcMock: {
     getDocumentRequirements: vi.fn(),
     updateDocumentRequirement: vi.fn(),
-    getRequiredDocumentTypes: vi.fn(),
+    getDocumentTypesForStage: vi.fn(),
   },
   jobsMocks: {
     processOccurrences: vi.fn(),
@@ -42,7 +42,13 @@ vi.mock('../src/modules/admin/app-settings.service.js', () => settingsSvcMock);
 vi.mock('../src/modules/notifications/notifications.service.js', () => ({
   notifyCaptainsBonusConfigChanged: notifyBonusMock,
 }));
-vi.mock('../src/modules/admin/document-requirements.service.js', () => docReqSvcMock);
+// DOCUMENT_STAGES est une constante, pas un mock : la garder hors de
+// `docReqSvcMock` évite que le mockReset global du beforeEach ne la traite
+// comme une fonction espionne.
+vi.mock('../src/modules/admin/document-requirements.service.js', () => ({
+  DOCUMENT_STAGES: ['application', 'online', 'payout', 'off'],
+  ...docReqSvcMock,
+}));
 vi.mock('../src/modules/recurring/recurring.service.js', () => ({
   processOccurrences: jobsMocks.processOccurrences,
 }));
@@ -205,30 +211,30 @@ describe('admin document requirements', () => {
     return handle;
   }
 
-  it('GET / lists every type with its flag', async () => {
+  it('GET / lists every type with its stage', async () => {
     docReqSvcMock.getDocumentRequirements.mockResolvedValue([
-      { type: 'selfie', isRequired: true },
+      { type: 'carte_grise', stage: 'application' },
     ]);
     const { baseUrl } = await start();
     const res = await api(baseUrl, 'GET', '/admin/document-requirements');
     expect(res.status).toBe(200);
-    expect(res.body).toEqual([{ type: 'selfie', isRequired: true }]);
+    expect(res.body).toEqual([{ type: 'carte_grise', stage: 'application' }]);
   });
 
-  it('PUT /:type toggles the flag and audits it', async () => {
+  it('PUT /:type moves a document to another stage and audits it', async () => {
     docReqSvcMock.updateDocumentRequirement.mockResolvedValue({
-      type: 'vignette',
-      isRequired: false,
+      type: 'assurance',
+      stage: 'online',
     });
     const { baseUrl } = await start();
-    const res = await api(baseUrl, 'PUT', '/admin/document-requirements/vignette', {
-      isRequired: false,
+    const res = await api(baseUrl, 'PUT', '/admin/document-requirements/assurance', {
+      stage: 'online',
     });
     expect(res.status).toBe(200);
     expect(docReqSvcMock.updateDocumentRequirement).toHaveBeenCalledWith(
       'admin-1',
-      'vignette',
-      false,
+      'assurance',
+      'online',
     );
     expect(auditMock).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'document_requirement.update' }),
@@ -238,10 +244,18 @@ describe('admin document requirements', () => {
   it('PUT /:type rejects an unknown type (400 invalid_type)', async () => {
     const { baseUrl } = await start();
     const res = await api(baseUrl, 'PUT', '/admin/document-requirements/passport', {
-      isRequired: true,
+      stage: 'application',
     });
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('invalid_type');
+  });
+
+  it('PUT /:type rejects an unknown stage', async () => {
+    const { baseUrl } = await start();
+    const res = await api(baseUrl, 'PUT', '/admin/document-requirements/assurance', {
+      stage: 'whenever',
+    });
+    expect(res.status).toBe(400);
   });
 });
 

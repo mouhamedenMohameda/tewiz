@@ -2,7 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { api, startTestApp, type TestAppHandle } from './helpers/app.js';
 import { dispatchSql, rows } from './helpers/db.js';
 
-const { queryMock, getBalanceMock, goingHomeMock, liveLocationMock, trackMock } = vi.hoisted(() => ({
+const {
+  queryMock, getBalanceMock, goingHomeMock, liveLocationMock, trackMock, onboardingMock,
+} = vi.hoisted(() => ({
+  onboardingMock: vi.fn(),
   queryMock: vi.fn(),
   getBalanceMock: vi.fn(),
   goingHomeMock: {
@@ -33,6 +36,11 @@ vi.mock('../src/modules/wallet/wallet.service.js', () => ({ getBalance: getBalan
 vi.mock('../src/modules/home/going-home.service.js', () => goingHomeMock);
 vi.mock('../src/modules/captain/live-location.js', () => liveLocationMock);
 vi.mock('../src/modules/captain/track.service.js', () => trackMock);
+// Onboarding v3 : /online exige un profil complet. Ces tests portent sur la
+// présence et le miroir Redis — on part d'un profil complet.
+vi.mock('../src/modules/captain/onboarding.service.js', () => ({
+  getOnboardingStatus: onboardingMock,
+}));
 
 import { captainStateRouter } from '../src/modules/captain/state.routes.js';
 
@@ -45,6 +53,10 @@ async function start() {
 }
 
 beforeEach(() => {
+  onboardingMock.mockResolvedValue({
+    fullName: 'Sidi Ould Ahmed', vehicle: { verifiedAt: new Date().toISOString() },
+    onlineGaps: [], payoutGaps: [], canGoOnline: true, canWithdraw: true,
+  });
   queryMock.mockReset();
   queryMock.mockResolvedValue({ rows: [], rowCount: 0 });
   getBalanceMock.mockReset();

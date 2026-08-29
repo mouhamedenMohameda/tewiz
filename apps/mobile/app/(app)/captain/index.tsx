@@ -12,6 +12,7 @@ import { api } from '@/lib/api';
 import { openWhatsAppLink } from '@/lib/whatsapp';
 import { useAuth } from '@/lib/auth';
 import { balanceTooLowMessage } from '@/lib/apiError';
+import { remainingForOnline, useOnboarding } from '@/lib/onboarding';
 import { formatMru } from '@/lib/format';
 import { usePolling } from '@/lib/usePolling';
 import { getMapbox, NKC_CENTER } from '@/lib/mapbox';
@@ -79,6 +80,12 @@ export default function CaptainHome() {
   const [captainWhatsappUrl, setCaptainWhatsappUrl] = useState<string | null>(null);
   const [togglingGoingHome, setTogglingGoingHome] = useState(false);
 
+  // Onboarding v3 : le captain est accepté sur deux papiers, puis complète son
+  // profil (véhicule déclaré + vérifié, assurance, photo). Tant que ce n'est
+  // pas fait, le serveur refuse la mise en ligne — on l'annonce ici plutôt que
+  // de le laisser buter sur l'interrupteur.
+  const { status: onboarding, reload: reloadOnboarding } = useOnboarding();
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -99,10 +106,11 @@ export default function CaptainHome() {
       } else {
         setGoingHome(null);
       }
+      await reloadOnboarding();
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [reloadOnboarding]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -201,6 +209,24 @@ export default function CaptainHome() {
   }, [state?.presence]);
 
   async function goOnline() {
+    // Profil incomplet : le serveur refuserait de toute façon (403
+    // onboarding_incomplete). On coupe court avant de demander la position et
+    // la permission de suivi, et on emmène le captain là où il peut agir.
+    if (onboarding && !onboarding.canGoOnline) {
+      Alert.alert(
+        t('captainOnboarding.blockedTitle'),
+        t('captainOnboarding.blockedBody'),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          {
+            text: t('captainOnboarding.cta'),
+            onPress: () => router.push('/(app)/captain/complete-profile'),
+          },
+        ],
+      );
+      return;
+    }
+
     setToggling(true);
     try {
       // 1. Foreground location — required for any GPS fix at all. The request
@@ -457,6 +483,15 @@ export default function CaptainHome() {
             />
           }
         >
+          {/* Complétion du profil — au-dessus de l'interrupteur, parce que
+              c'est ce qui l'empêche de fonctionner. */}
+          {onboarding && !onboarding.canGoOnline ? (
+            <CompleteProfileCard
+              remaining={remainingForOnline(onboarding)}
+              onPress={() => router.push('/(app)/captain/complete-profile')}
+            />
+          ) : null}
+
           {/* Online / offline state — the primary control */}
           <StateCard
             presence={presence}
@@ -738,4 +773,43 @@ function PulseDot({ color }: { color: string }) {
     return () => loop.stop();
   }, [o]);
   return <Animated.View style={{ width: 9, height: 9, borderRadius: 4.5, backgroundColor: color, opacity: o }} />;
+}
+
+/**
+ * Ce qui manque au captain pour rouler, en tête de la feuille de contrôles.
+ * Volontairement au-dessus de l'interrupteur « en ligne » : c'est la réponse à
+ * la question qu'il se pose en le voyant refuser.
+ */
+function CompleteProfileCard({ remaining, onPress }: { remaining: number; onPress: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <FadeInView>
+      <Card
+        onPress={onPress}
+        padding={spacing.lg}
+        style={{
+          marginBottom: spacing.base,
+          borderWidth: 1, borderColor: statusTone.pending.bg,
+          backgroundColor: statusTone.pending.bg,
+          flexDirection: 'row', alignItems: 'center', gap: spacing.base,
+        }}
+      >
+        <View style={{
+          width: 44, height: 44, borderRadius: radius.md,
+          backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Icon name="captain" size={24} color={statusTone.pending.fg} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <AppText style={{ fontSize: 15, fontWeight: '700', color: statusTone.pending.fg }}>
+            {t('captainOnboarding.title')}
+          </AppText>
+          <AppText style={{ fontSize: 13, color: statusTone.pending.fg, marginTop: 2 }}>
+            {t('captainOnboarding.subtitle', { count: remaining })}
+          </AppText>
+        </View>
+        <Icon name="chevron" size={20} color={statusTone.pending.fg} />
+      </Card>
+    </FadeInView>
+  );
 }

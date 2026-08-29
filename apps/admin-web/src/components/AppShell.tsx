@@ -22,6 +22,7 @@ const NAV = [
   { href: '/topups',         label: 'Recharges',   icon: '💰' },
   { href: '/users',          label: 'Utilisateurs', icon: '👥' },
   { href: '/captains',       label: 'Captains',  icon: '🚕' },
+  { href: '/captains/pending-online', label: 'Mise en ligne', icon: '🟢' },
   { href: '/voice-requests', label: 'Demandes vocales', icon: '🎙️' },
   { href: '/voice-dataset',  label: 'Jeu de données', icon: '🧪' },
   { href: '/rides',          label: 'Courses',     icon: '🛣️' },

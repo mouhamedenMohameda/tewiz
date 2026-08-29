@@ -1,7 +1,14 @@
 /**
- * /settings/documents — admin toggles which document types are required
- * before a captain application can be approved. Optional types can still be
- * uploaded by the captain; they are simply ignored by the approval gate.
+ * /settings/documents — à quel moment du parcours chaque document devient
+ * bloquant.
+ *
+ * L'interrupteur « obligatoire / facultatif » d'avant ne savait pas dire
+ * « obligatoire, mais après l'acceptation ». C'est pourtant ce dont dépend
+ * l'onboarding v3 : ne demander avant le "oui" que ce qui sert à dire oui, et
+ * réclamer le reste au captain une fois qu'il est accepté et motivé.
+ *
+ * Déplacer un document vers « Candidature » rallonge d'autant le parcours
+ * d'inscription — c'est le seul réglage de cette page qui coûte des candidats.
  */
 
 'use client';
@@ -11,12 +18,21 @@ import { AppShell } from '@/components/AppShell';
 import { api } from '@/lib/api';
 import { DOCUMENT_LABELS, DOCUMENT_TYPES, type DocumentType } from '@/lib/types';
 
+type DocumentStage = 'application' | 'online' | 'payout' | 'off';
+
 interface DocumentRequirement {
   type: DocumentType;
-  isRequired: boolean;
+  stage: DocumentStage;
   updatedAt: string;
   updatedBy: string | null;
 }
+
+const STAGES: { value: DocumentStage; label: string; hint: string }[] = [
+  { value: 'application', label: 'Candidature', hint: 'Bloque l’envoi du dossier et sa validation' },
+  { value: 'online', label: 'Mise en ligne', hint: 'Le Captain est validé, mais ne peut pas rouler' },
+  { value: 'payout', label: 'Retrait', hint: 'Il roule, mais ne peut pas retirer son argent' },
+  { value: 'off', label: 'Non requis', hint: 'Envoyable, ne bloque rien' },
+];
 
 export default function DocumentRequirementsPage() {
   const qc = useQueryClient();
@@ -29,11 +45,11 @@ export default function DocumentRequirementsPage() {
     },
   });
 
-  const toggle = useMutation({
-    mutationFn: async (input: { type: DocumentType; isRequired: boolean }) => {
+  const setStage = useMutation({
+    mutationFn: async (input: { type: DocumentType; stage: DocumentStage }) => {
       const r = await api.put<DocumentRequirement>(
         `/admin/document-requirements/${input.type}`,
-        { isRequired: input.isRequired },
+        { stage: input.stage },
       );
       return r.data;
     },
@@ -52,10 +68,19 @@ export default function DocumentRequirementsPage() {
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-slate-900">Documents requis</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Choisissez quels documents sont obligatoires pour valider un dossier
-            Captain. Les documents non requis peuvent toujours être envoyés,
-            mais ne bloquent pas l&apos;approbation.
+            Choisissez à quel moment chaque document devient bloquant. Ce qui est
+            exigé dès la candidature allonge l&apos;inscription et fait perdre des
+            candidats&nbsp;: n&apos;y laissez que ce qui sert à décider si la
+            personne peut conduire.
           </p>
+        </div>
+
+        <div className="card p-4 mb-5 bg-slate-50 text-xs text-slate-600 space-y-1">
+          {STAGES.map((s) => (
+            <div key={s.value}>
+              <span className="font-medium text-slate-800">{s.label}</span> — {s.hint}
+            </div>
+          ))}
         </div>
 
         {isLoading && <div className="card p-5 text-slate-500">Chargement…</div>}
@@ -65,40 +90,29 @@ export default function DocumentRequirementsPage() {
           <div className="card divide-y divide-slate-200">
             {DOCUMENT_TYPES.map((type) => {
               const row = byType.get(type);
-              const isRequired = row?.isRequired ?? true;
-              const pending = toggle.isPending && toggle.variables?.type === type;
+              const stage = row?.stage ?? 'off';
+              const pending = setStage.isPending && setStage.variables?.type === type;
               return (
-                <label
+                <div
                   key={type}
-                  className="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-slate-50"
+                  className="flex items-center justify-between gap-4 px-5 py-4"
                 >
-                  <div>
-                    <div className="text-sm font-medium text-slate-900">
-                      {DOCUMENT_LABELS[type]}
-                    </div>
-                    <div className="text-xs text-slate-500 mt-0.5">
-                      {isRequired ? 'Obligatoire' : 'Facultatif'}
-                    </div>
+                  <div className="text-sm font-medium text-slate-900">
+                    {DOCUMENT_LABELS[type]}
                   </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={isRequired}
+                  <select
+                    className="input w-48"
+                    value={stage}
                     disabled={pending}
-                    onClick={() =>
-                      toggle.mutate({ type, isRequired: !isRequired })
+                    onChange={(e) =>
+                      setStage.mutate({ type, stage: e.target.value as DocumentStage })
                     }
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
-                      isRequired ? 'bg-brand-600' : 'bg-slate-300'
-                    } ${pending ? 'opacity-50' : ''}`}
                   >
-                    <span
-                      className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
-                        isRequired ? 'translate-x-5' : 'translate-x-1'
-                      }`}
-                    />
-                  </button>
-                </label>
+                    {STAGES.map((s) => (
+                      <option key={s.value} value={s.value}>{s.label}</option>
+                    ))}
+                  </select>
+                </div>
               );
             })}
           </div>

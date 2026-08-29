@@ -1,19 +1,28 @@
 /**
- * Per-document-type "required" flag. Used to decide whether a captain
- * application can be approved with a missing/unapproved document of that
- * type. Backed by the `document_requirements` table (migration 0026).
+ * À quel moment du parcours chaque type de document devient bloquant.
+ * Adossé à `document_requirements` (migrations 0026, 0087).
  *
- * Reads are cached for `CACHE_TTL_MS` because every application detail page
- * load and every approve check hits this; writes bust the cache so the next
- * call sees the change immediately.
+ * Un booléen `is_required` ne savait dire que « obligatoire ou pas » — jamais
+ * « obligatoire, mais après l'acceptation ». C'est pourtant ce dont dépend
+ * tout l'onboarding v3 : ne demander avant le "oui" que ce qui sert à dire
+ * oui, et réclamer le reste au captain une fois qu'il est accepté.
+ *
+ * Les lectures sont mises en cache `CACHE_TTL_MS` (chaque chargement de fiche
+ * candidature et chaque contrôle de validation passent ici) ; les écritures
+ * invalident le cache pour que l'appel suivant voie le changement.
  */
 
 import { pool } from '../../db/pool.js';
 import type { DocumentType } from '@tewiz/shared-types';
 
+/** Ce que le document bloque tant qu'il manque. */
+export type DocumentStage = 'application' | 'online' | 'payout' | 'off';
+
+export const DOCUMENT_STAGES: DocumentStage[] = ['application', 'online', 'payout', 'off'];
+
 export interface DocumentRequirement {
   type: DocumentType;
-  isRequired: boolean;
+  stage: DocumentStage;
   updatedAt: string;
   updatedBy: string | null;
 }
@@ -23,7 +32,7 @@ let cache: { value: DocumentRequirement[]; loadedAt: number } | null = null;
 
 interface Row {
   type: DocumentType;
-  is_required: boolean;
+  stage: DocumentStage;
   updated_at: Date;
   updated_by: string | null;
 }
@@ -31,7 +40,7 @@ interface Row {
 function toRequirement(r: Row): DocumentRequirement {
   return {
     type: r.type,
-    isRequired: r.is_required,
+    stage: r.stage,
     updatedAt: r.updated_at.toISOString(),
     updatedBy: r.updated_by,
   };
@@ -42,7 +51,7 @@ export async function getDocumentRequirements(): Promise<DocumentRequirement[]> 
     return cache.value;
   }
   const { rows } = await pool.query<Row>(
-    `SELECT type, is_required, updated_at, updated_by
+    `SELECT type, stage, updated_at, updated_by
        FROM document_requirements
       ORDER BY type`,
   );
@@ -51,25 +60,27 @@ export async function getDocumentRequirements(): Promise<DocumentRequirement[]> 
   return value;
 }
 
-/** Set of required document types — convenient for the approve endpoint. */
-export async function getRequiredDocumentTypes(): Promise<Set<DocumentType>> {
+/** Les types bloquants à une étape donnée. */
+export async function getDocumentTypesForStage(
+  stage: Exclude<DocumentStage, 'off'>,
+): Promise<Set<DocumentType>> {
   const all = await getDocumentRequirements();
-  return new Set(all.filter((r) => r.isRequired).map((r) => r.type));
+  return new Set(all.filter((r) => r.stage === stage).map((r) => r.type));
 }
 
 export async function updateDocumentRequirement(
   adminId: string,
   type: DocumentType,
-  isRequired: boolean,
+  stage: DocumentStage,
 ): Promise<DocumentRequirement> {
   const { rows } = await pool.query<Row>(
     `UPDATE document_requirements
-        SET is_required = $1,
-            updated_at  = now(),
-            updated_by  = $2
+        SET stage      = $1,
+            updated_at = now(),
+            updated_by = $2
       WHERE type = $3
-      RETURNING type, is_required, updated_at, updated_by`,
-    [isRequired, adminId, type],
+      RETURNING type, stage, updated_at, updated_by`,
+    [stage, adminId, type],
   );
   cache = null;
   if (!rows[0]) {

@@ -1,8 +1,10 @@
 /**
- * Admin endpoints to read and update the per-document-type "required" flag.
+ * Admin endpoints to read and update the per-document-type stage — i.e. what
+ * each document blocks while it is missing (candidature, mise en ligne,
+ * retrait, ou rien).
  *
- *   GET  /admin/document-requirements        — list every type + isRequired
- *   PUT  /admin/document-requirements/:type  — { isRequired: boolean }
+ *   GET  /admin/document-requirements        — list every type + stage
+ *   PUT  /admin/document-requirements/:type  — { stage: DocumentStage }
  *
  * Mounted under the admin router (admin role already enforced).
  */
@@ -12,6 +14,8 @@ import { z } from 'zod';
 import { HttpError } from '../../middleware/error.js';
 import { audit } from './audit.js';
 import {
+  DOCUMENT_STAGES,
+  type DocumentStage,
   getDocumentRequirements,
   updateDocumentRequirement,
 } from './document-requirements.service.js';
@@ -28,7 +32,9 @@ const ALL_TYPES = [
 ] as const satisfies readonly DocumentType[];
 
 const typeParam = z.enum(ALL_TYPES);
-const patchBody = z.object({ isRequired: z.boolean() });
+const patchBody = z.object({
+  stage: z.enum(DOCUMENT_STAGES as [DocumentStage, ...DocumentStage[]]),
+});
 
 adminDocumentRequirementsRouter.get('/', async (_req, res) => {
   res.json(await getDocumentRequirements());
@@ -41,13 +47,13 @@ adminDocumentRequirementsRouter.put('/:type', async (req, res) => {
     throw new HttpError(400, 'invalid_type', 'Unknown document type');
   }
   const body = patchBody.parse(req.body);
-  const after = await updateDocumentRequirement(adminId, parsed.data, body.isRequired);
+  const after = await updateDocumentRequirement(adminId, parsed.data, body.stage);
   await audit({
     adminId,
     action: 'document_requirement.update',
     targetType: 'document_requirement',
     targetId: parsed.data,
-    after: { isRequired: after.isRequired },
+    after: { stage: after.stage },
   });
   res.json(after);
 });

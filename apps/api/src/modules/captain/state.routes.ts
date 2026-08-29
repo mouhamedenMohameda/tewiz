@@ -7,6 +7,7 @@ import { HttpError } from '../../middleware/error.js';
 import { getBalance } from '../wallet/wallet.service.js';
 import * as goingHome from '../home/going-home.service.js';
 import { ingestTrackBatch, isTrackingEnabled } from './track.service.js';
+import { getOnboardingStatus } from './onboarding.service.js';
 import { setLiveLocation, clearLiveLocation } from './live-location.js';
 
 // Parent enforces auth + role=captain.
@@ -39,7 +40,22 @@ captainStateRouter.post('/online', async (req, res) => {
       `Captain account is ${captain.rows[0].status}`);
   }
 
-  // 2. Balance gate.
+  // 2. Onboarding v3 : le captain est accepté sur son permis et sa carte grise,
+  //    le reste (véhicule déclaré + vérifié, assurance, photo du véhicule) est
+  //    exigé ici, avant la première course. C'est aussi ce qui fait revalider
+  //    l'assurance à chaque échéance, au lieu d'un contrôle unique le jour de
+  //    l'inscription.
+  const onboarding = await getOnboardingStatus(userId);
+  if (!onboarding.canGoOnline) {
+    throw new HttpError(403, 'onboarding_incomplete',
+      "Complétez votre profil Captain avant de passer en ligne.", {
+        vehicleMissing: !onboarding.vehicle,
+        vehicleUnverified: !!onboarding.vehicle && !onboarding.vehicle.verifiedAt,
+        docs: onboarding.onlineGaps,
+      });
+  }
+
+  // 3. Balance gate.
   const balance = await getBalance(userId);
   if (balance < env.MIN_BALANCE_TO_GO_ONLINE_MRU) {
     throw new HttpError(402, 'balance_too_low',
@@ -47,7 +63,7 @@ captainStateRouter.post('/online', async (req, res) => {
       { balance, minRequired: env.MIN_BALANCE_TO_GO_ONLINE_MRU });
   }
 
-  // 3. Already on a ride? Don't downgrade.
+  // 4. Already on a ride? Don't downgrade.
   const current = await pool.query<{ presence: string }>(
     `SELECT presence FROM captain_state WHERE captain_id = $1`,
     [userId],
@@ -56,7 +72,7 @@ captainStateRouter.post('/online', async (req, res) => {
     throw new HttpError(409, 'on_ride', 'Vous êtes en course, ne peut pas changer manuellement');
   }
 
-  // 4. Update state. When a fresh location is supplied we also stamp
+  // 5. Update state. When a fresh location is supplied we also stamp
   //    location_updated_at — the freshness signal dispatch trusts (see
   //    migration 0071). When it isn't, we keep the previous position and its
   //    freshness stamp untouched.

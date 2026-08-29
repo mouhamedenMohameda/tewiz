@@ -14,10 +14,10 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { poolQueryMock, withTxMock, requiredDocsMock, requirementsMock } = vi.hoisted(() => ({
+const { poolQueryMock, withTxMock, stageDocsMock, requirementsMock } = vi.hoisted(() => ({
   poolQueryMock: vi.fn(),
   withTxMock: vi.fn(),
-  requiredDocsMock: vi.fn(),
+  stageDocsMock: vi.fn(),
   requirementsMock: vi.fn(),
 }));
 
@@ -26,7 +26,7 @@ vi.mock('../../src/db/pool.js', () => ({
   withTx: withTxMock,
 }));
 vi.mock('../../src/modules/admin/document-requirements.service.js', () => ({
-  getRequiredDocumentTypes: requiredDocsMock,
+  getDocumentTypesForStage: stageDocsMock,
   getDocumentRequirements: requirementsMock,
 }));
 vi.mock('../../src/modules/storage/local-disk.js', () => ({
@@ -39,26 +39,31 @@ vi.mock('../../src/modules/partners/partners.service.js', () => ({
 import { submitApplication } from '../../src/modules/captain/application.service.js';
 import { TERMS_VERSION } from '../../src/modules/captain/terms.service.js';
 
-/** A dossier with every field the submission gate demands. */
+/**
+ * Un dossier « v3 » : le candidat n'a saisi aucun champ. Depuis la 0087 le
+ * nom et le véhicule sont déclarés APRÈS l'acceptation — laisser ces colonnes
+ * remplies dans la fixture masquerait une régression où le gate les
+ * réclamerait de nouveau.
+ */
 function completeApp(overrides: Record<string, unknown> = {}) {
   return {
     id: 'app-1',
     phone: '+22246000000',
     user_id: 'user-1',
     status: 'draft',
-    full_name: 'Sidi Ould Ahmed',
+    full_name: null,
     nni: null,
     date_of_birth: null,
     address_label: null,
     emergency_contact_name: null,
     emergency_contact_phone: null,
     whatsapp: '+22246000000',
-    vehicle_plate: 'AA-1234-BB',
-    vehicle_brand: 'Toyota',
-    vehicle_model: 'Corolla',
-    vehicle_year: 2015,
-    vehicle_color: 'blanche',
-    vehicle_seats: 4,
+    vehicle_plate: null,
+    vehicle_brand: null,
+    vehicle_model: null,
+    vehicle_year: null,
+    vehicle_color: null,
+    vehicle_seats: null,
     vehicle_type: 'car',
     accepts_colis: false,
     accepts_long_distance: false,
@@ -93,7 +98,7 @@ function scenario(s: Setup = {}) {
         return { rows: s.consented === false ? [] : [{ '?column?': 1 }], rowCount: s.consented === false ? 0 : 1 };
       }
       if (/SELECT type FROM application_documents/i.test(text)) {
-        const docs = s.docs ?? ['permis', 'carte_grise', 'assurance'];
+        const docs = s.docs ?? ['license_front', 'carte_grise'];
         return { rows: docs.map((type) => ({ type })), rowCount: docs.length };
       }
       if (/UPDATE captain_applications\s+SET status = 'submitted'/i.test(text)) {
@@ -114,7 +119,7 @@ function scenario(s: Setup = {}) {
 beforeEach(() => {
   vi.clearAllMocks();
   poolQueryMock.mockResolvedValue({ rows: [], rowCount: 0 });
-  requiredDocsMock.mockResolvedValue(['permis', 'carte_grise', 'assurance']);
+  stageDocsMock.mockResolvedValue(['license_front', 'carte_grise']);
   requirementsMock.mockResolvedValue([]);
 });
 
@@ -180,47 +185,56 @@ describe('the consent gate', () => {
 });
 
 describe('completeness gates', () => {
-  it.each([
-    ['full_name', 'Nom complet'],
-    ['vehicle_plate', 'Plaque'],
-    ['vehicle_brand', 'Marque'],
-    ['vehicle_model', 'Modèle'],
-    ['vehicle_year', 'Année'],
-    ['vehicle_color', 'Couleur'],
-    ['vehicle_seats', 'Nombre de places'],
-  ])('refuses a dossier missing %s', async (col, label) => {
-    scenario({ app: { [col]: null } });
+  it('demands no typed field at all', async () => {
+    // Onboarding v3 : la plaque, la marque, le modèle, l'année, la couleur, le
+    // nombre de places et le nom du propriétaire figurent tous sur la carte
+    // grise que le candidat vient de photographier. Les lui faire recopier
+    // avant même de savoir s'il est accepté coûtait ~34 taps pour un
+    // « peut-être ». Épinglé pour qu'un futur « resserrons le formulaire »
+    // soit une décision consciente, pas une régression.
+    scenario();
+
+    const app = await submitApplication('user-1');
+
+    expect(app.status).toBe('submitted');
+  });
+
+  it('refuses a dossier missing a document required at the application stage', async () => {
+    scenario({ docs: ['license_front'] });
 
     const err = await submitApplication('user-1').catch((e) => e);
 
     expect(err).toMatchObject({ status: 400, code: 'incomplete' });
-    expect(err.details.missing).toContain(label);
+    expect(err.details.missing).toContain('Document manquant: carte_grise');
   });
 
-  it('reports every missing field at once, not one per round trip', async () => {
-    scenario({ app: { full_name: null, vehicle_plate: null, vehicle_color: null } });
+  it('reports every missing document at once, not one per round trip', async () => {
+    scenario({ docs: [] });
 
     const err = await submitApplication('user-1').catch((e) => e);
 
-    // A captain on a 2G connection should not have to submit seven times to
-    // discover seven problems.
-    expect(err.details.missing).toEqual(
-      expect.arrayContaining(['Nom complet', 'Plaque', 'Couleur']),
-    );
+    // Un candidat en 2G ne doit pas soumettre deux fois pour découvrir deux
+    // problèmes.
+    expect(err.details.missing).toEqual(expect.arrayContaining([
+      'Document manquant: license_front',
+      'Document manquant: carte_grise',
+    ]));
   });
 
-  it('refuses a dossier missing a required document', async () => {
-    scenario({ docs: ['permis', 'carte_grise'] });
+  it('only gates on the "application" stage, not on documents due later', async () => {
+    // L'assurance et la photo du véhicule sont réclamées après l'acceptation
+    // (stage 'online'). Les faire remonter ici remettrait dans la candidature
+    // ce que la 0087 en a sorti.
+    scenario();
 
-    const err = await submitApplication('user-1').catch((e) => e);
+    await submitApplication('user-1');
 
-    expect(err).toMatchObject({ code: 'incomplete' });
-    expect(err.details.missing).toContain('Document manquant: assurance');
+    expect(stageDocsMock).toHaveBeenCalledWith('application');
   });
 
-  it('follows the admin-configured document list, not a hardcoded one', async () => {
-    requiredDocsMock.mockResolvedValue(['permis', 'carte_grise', 'assurance', 'visite_technique']);
-    scenario({ docs: ['permis', 'carte_grise', 'assurance'] });
+  it('follows the admin-configured stage list, not a hardcoded one', async () => {
+    stageDocsMock.mockResolvedValue(['license_front', 'carte_grise', 'visite_technique']);
+    scenario({ docs: ['license_front', 'carte_grise'] });
 
     const err = await submitApplication('user-1').catch((e) => e);
 
@@ -228,23 +242,11 @@ describe('completeness gates', () => {
   });
 
   it('never marks an incomplete dossier as submitted', async () => {
-    const client = scenario({ app: { full_name: null } });
+    const client = scenario({ docs: [] });
 
     await submitApplication('user-1').catch(() => {});
 
     expect(client.didQuery(/SET status = 'submitted'/i)).toBe(false);
-  });
-
-  it('does not demand the legal-only fields that appear on the papers', async () => {
-    // NNI, date of birth, address and emergency contact are deliberately NOT
-    // gated: they are already on the uploaded documents, and asking for them
-    // twice was costing completions. Pinned so a future "tighten the form"
-    // change is a conscious decision.
-    scenario({ app: { nni: null, date_of_birth: null, address_label: null, emergency_contact_phone: null } });
-
-    const app = await submitApplication('user-1');
-
-    expect(app.status).toBe('submitted');
   });
 });
 

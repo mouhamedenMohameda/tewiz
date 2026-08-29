@@ -19,14 +19,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { api, startTestApp, type TestAppHandle } from '../helpers/app.js';
 
-const { poolQueryMock, getBalanceMock, setLiveMock, clearLiveMock, trackingEnabledMock, ingestMock } =
-  vi.hoisted(() => ({
+const {
+  poolQueryMock, getBalanceMock, setLiveMock, clearLiveMock,
+  trackingEnabledMock, ingestMock, onboardingMock,
+} = vi.hoisted(() => ({
     poolQueryMock: vi.fn(),
     getBalanceMock: vi.fn(),
     setLiveMock: vi.fn(),
     clearLiveMock: vi.fn(),
     trackingEnabledMock: vi.fn(),
     ingestMock: vi.fn(),
+    onboardingMock: vi.fn(),
   }));
 
 vi.mock('../../src/db/pool.js', () => ({
@@ -41,6 +44,13 @@ vi.mock('../../src/modules/captain/live-location.js', () => ({
 }));
 vi.mock('../../src/modules/captain/track.service.js', () => ({
   isTrackingEnabled: trackingEnabledMock, ingestTrackBatch: ingestMock,
+}));
+// Onboarding v3 : /online exige désormais un profil complet (véhicule déclaré
+// et vérifié, documents « pour rouler »). Ces tests portent sur la présence et
+// la fraîcheur de position — on part d'un profil complet, et le refus a ses
+// propres tests.
+vi.mock('../../src/modules/captain/onboarding.service.js', () => ({
+  getOnboardingStatus: onboardingMock,
 }));
 vi.mock('../../src/modules/home/going-home.service.js', () => ({
   startSession: vi.fn(), endSession: vi.fn(), getActiveSession: vi.fn(async () => null),
@@ -92,6 +102,10 @@ function db(s: State = {}) {
 }
 
 beforeEach(() => {
+  onboardingMock.mockResolvedValue({
+    fullName: 'Sidi Ould Ahmed', vehicle: { verifiedAt: new Date().toISOString() },
+    onlineGaps: [], payoutGaps: [], canGoOnline: true, canWithdraw: true,
+  });
   vi.clearAllMocks();
   getBalanceMock.mockResolvedValue(500);
   trackingEnabledMock.mockResolvedValue(true);
