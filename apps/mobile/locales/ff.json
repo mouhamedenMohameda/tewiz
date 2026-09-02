@@ -228,7 +228,6 @@
       "save": "Reenu",
       "saveError": "Ronkii reende.",
       "seats": "Limoore sieges naatooɓe",
-      "seatsCount": "{{count}} jooɗorgal",
       "seatsInvalidBody": "Hakkunde 1 e {{max}}.",
       "seatsInvalidTitle": "Sieges juumɗi",
       "title": "Otoo",
@@ -337,6 +336,7 @@
       "accept": "Jaɓo",
       "actionImArrived": "Mi yettiima",
       "amountToCollect": "Njëg on yidi ɗaɓɓude",
+      "bubbleHint": "Ɓuɓɓu ngam uddita",
       "callBtn": "Noddu",
       "cancelBody": "Ɗum heewa juuɓi e score maa.",
       "cancelRide": "Haaytu course",
@@ -374,6 +374,8 @@
       "lastCompletedOpenRide": "Kourse nde ɓolli e nde sotti ka puɗɗi",
       "meterShort": "Compteur",
       "meterTariffLabel": "Tarif compteur",
+      "navigateToDropoff": "Yah to jipporde",
+      "navigateToPickup": "Yah to kiliyaa",
       "nearbyHint": "Hoɗo e ligne tawi position maa hollirtee.",
       "nearbyTitle": "Course ɓadiiɗe",
       "netEarning": "Ko jom ngam jawdi",
@@ -395,10 +397,7 @@
         "in_progress": "Course wonndo"
       },
       "title": "Course-ɗe",
-      "wallet": "Wallet",
-      "bubbleHint": "Ɓuɓɓu ngam uddita",
-      "navigateToPickup": "Yah to kiliyaa",
-      "navigateToDropoff": "Yah to jipporde"
+      "wallet": "Wallet"
     },
     "state": {
       "errorGoingHome": "Juumre e \"Ko mi ruttoo galle\".",
@@ -419,6 +418,39 @@
       "onlineBody": "Aɗa heɓa course-ɗe ɓadiiɗe.",
       "openRide": "Uddit course jooni",
       "youAre": "Ko aɗa"
+    },
+    "subscription": {
+      "activeLabel": "Jokkondiral ina golla",
+      "balanceNote": "Yoɓetee e kaalis maa. Kaalis jooni: {{balance}}.",
+      "buyAction": "Soodu",
+      "chooseHeading": "Suɓo laawol maa",
+      "confirmAction": "Teeŋtin",
+      "confirmBody": "{{plan}} e {{price}}, ittetee e kaalis maa. A yoɓataa komisiyon nder ñalɗi {{days}}.",
+      "confirmTitle": "Teeŋtin jokkondiral",
+      "daysLeft": "Ina heddii ñalɗi {{days}}",
+      "disabled": "Jokkondiral ngal alaa jooni.",
+      "extendHeading": "Ɓeydu",
+      "failTitle": "Soodgol waawaa",
+      "homeActive": "Alaa komisiyon — ina heddii ñalɗi {{days}}.",
+      "homeInactive": "Yoɓ laawol gootol, heɓ 100% e dogle maa.",
+      "inactiveLabel": "Alaa jokkondiral",
+      "lowBalanceBody": "Laawol ngol ko {{price}}, kaalis maa ko {{balance}}. Ɓeydu kaalis maa, ruttoɗaa.",
+      "lowBalanceTitle": "Kaalis yonaa",
+      "perkCommission": "Alaa komisiyon e dogle maa — a heɓat 100%.",
+      "perkOnline": "A naatan e golle hay so kaalis maa alaa.",
+      "perkRides": "A yiyat dogle ɗe wonɗe takko maa, a jaɓa ɗe no woowiri.",
+      "pitch": "Yoɓ laawol gootol, heɓ fof",
+      "pitchDetail": "So a jogii jokkondiral, komisiyon woo ittetaake e dogle maa. A heɓat 100% e ko kiliyaan on yoɓi.",
+      "planDays": "Ñalɗi {{days}} ko aldaa e komisiyon",
+      "plans": {
+        "month": "Lewru wootere",
+        "week": "Yontere gootere"
+      },
+      "successBody": "Gasii. Komisiyon woo ittetaake e dogle maa haa jokkondiral maa gasa.",
+      "successTitle": "Jokkondiral ina golla",
+      "title": "Jokkondiral",
+      "topupAction": "Ɓeydu kaalis am",
+      "until": "Haa {{date}}"
     },
     "wallet": {
       "balance": "Solde wallet",
@@ -464,6 +496,7 @@
         "commission": "Commission",
         "commission_refund": "Yiltu",
         "manual_adjustment": "Ajustement",
+        "subscription": "Jokkondiral",
         "topup": "Recharge"
       },
       "uploadReceipt": "Neldu capture recharge"

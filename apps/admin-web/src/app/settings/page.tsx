@@ -32,6 +32,9 @@ interface PricingSettings {
   commissionBonusRewardDays: number;
   freeDaysEnabled: boolean;
   freeDaysPerWeek: number;
+  subscriptionEnabled: boolean;
+  subscriptionWeekPriceMru: number;
+  subscriptionMonthPriceMru: number;
   allowOpenRides: boolean;
   openBaseFareMru: number;
   openPerKmMru: number;
@@ -110,6 +113,9 @@ interface FormState {
   commissionBonusRewardDays: string;
   freeDaysEnabled: boolean;
   freeDaysPerWeek: string;
+  subscriptionEnabled: boolean;
+  subscriptionWeekPriceMru: string;
+  subscriptionMonthPriceMru: string;
   allowOpenRides: boolean;
   openBaseFareMru: string;
   openPerKmMru: string;
@@ -186,6 +192,9 @@ const EMPTY_FORM: FormState = {
   commissionBonusRewardDays: '',
   freeDaysEnabled: false,
   freeDaysPerWeek: '',
+  subscriptionEnabled: false,
+  subscriptionWeekPriceMru: '',
+  subscriptionMonthPriceMru: '',
   allowOpenRides: true,
   openBaseFareMru: '',
   openPerKmMru: '',
@@ -263,6 +272,9 @@ function settingsToForm(s: PricingSettings): FormState {
     commissionBonusRewardDays: String(s.commissionBonusRewardDays),
     freeDaysEnabled: s.freeDaysEnabled,
     freeDaysPerWeek: String(s.freeDaysPerWeek),
+    subscriptionEnabled: s.subscriptionEnabled,
+    subscriptionWeekPriceMru: String(s.subscriptionWeekPriceMru),
+    subscriptionMonthPriceMru: String(s.subscriptionMonthPriceMru),
     allowOpenRides: s.allowOpenRides,
     openBaseFareMru: String(s.openBaseFareMru),
     openPerKmMru: String(s.openPerKmMru),
@@ -361,6 +373,9 @@ export default function SettingsPage() {
         commissionBonusRewardDays: parseInt(form.commissionBonusRewardDays, 10),
         freeDaysEnabled: form.freeDaysEnabled,
         freeDaysPerWeek: parseInt(form.freeDaysPerWeek, 10),
+        subscriptionEnabled: form.subscriptionEnabled,
+        subscriptionWeekPriceMru: parseInt(form.subscriptionWeekPriceMru, 10),
+        subscriptionMonthPriceMru: parseInt(form.subscriptionMonthPriceMru, 10),
         allowOpenRides: form.allowOpenRides,
         openBaseFareMru: parseInt(form.openBaseFareMru, 10),
         openPerKmMru: parseInt(form.openPerKmMru, 10),
@@ -1084,6 +1099,51 @@ export default function SettingsPage() {
             </section>
 
             <section className="card p-5 mb-4">
+              <div className="flex items-start justify-between mb-1">
+                <h2 className="font-semibold text-slate-900">Abonnement Captain</h2>
+                <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.subscriptionEnabled}
+                    onChange={(e) => setForm({ ...form, subscriptionEnabled: e.target.checked })}
+                    className="w-4 h-4 accent-emerald-600"
+                  />
+                  <span className={form.subscriptionEnabled ? 'text-emerald-700 font-medium' : 'text-slate-500'}>
+                    {form.subscriptionEnabled ? 'Activé' : 'Désactivé'}
+                  </span>
+                </label>
+              </div>
+              <p className="text-xs text-slate-500 mb-4">
+                Le Captain paie <strong>une fois</strong> et ne paie plus <strong>aucune
+                commission</strong> pendant toute la durée de sa formule — il garde 100% de chaque
+                course. Il paie depuis son wallet : il recharge comme d'habitude, puis achète en un
+                tap. Tant que son abonnement court, le <strong>solde minimum ne lui est plus
+                exigé</strong> pour passer en ligne : il a déjà payé, il n'y a plus rien à prélever.
+                Acheter pendant un abonnement en cours <strong>prolonge</strong> la durée, ça ne la
+                remplace pas. Mettre un prix à <strong>0</strong> retire cette formule de la vente.
+                Désactiver coupe la dispense immédiatement, sans effacer les abonnements payés — ils
+                repartent si vous réactivez.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <Field
+                  label="Prix 1 semaine (7 jours)"
+                  suffix="MRU"
+                  value={form.subscriptionWeekPriceMru}
+                  onChange={(v) => setForm({ ...form, subscriptionWeekPriceMru: v })}
+                  step="1"
+                />
+                <Field
+                  label="Prix 1 mois (30 jours)"
+                  suffix="MRU"
+                  value={form.subscriptionMonthPriceMru}
+                  onChange={(v) => setForm({ ...form, subscriptionMonthPriceMru: v })}
+                  step="1"
+                />
+              </div>
+            </section>
+
+            <section className="card p-5 mb-4">
               <h2 className="font-semibold text-slate-900 mb-1">Expiration des courses</h2>
               <p className="text-xs text-slate-500 mb-4">
                 Une course qui reste en « Recherche » plus longtemps que ce délai
@@ -1483,6 +1543,13 @@ function isFormValid(f: FormState): boolean {
   // Free days: 0 is legal (pauses the draw), 7 is the whole week.
   const freeDays = parseInt(f.freeDaysPerWeek, 10);
   if (Number.isNaN(freeDays) || freeDays < 0 || freeDays > 7) return false;
+
+  // Abonnement : deux prix entiers positifs. 0 est valide — c'est ainsi qu'on
+  // retire une formule de la vente.
+  for (const v of [f.subscriptionWeekPriceMru, f.subscriptionMonthPriceMru]) {
+    const n = parseInt(v, 10);
+    if (Number.isNaN(n) || n < 0) return false;
+  }
   // Open ride tariff: base / per-km / minimum capped like the classic
   // passenger tariff; per-minute is small (0..1000) by design.
   const openInts = [

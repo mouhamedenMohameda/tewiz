@@ -246,9 +246,6 @@
       "save": "Enregistrer",
       "saveError": "Impossible d'enregistrer.",
       "seats": "Nombre de places Clients",
-      "seatsCount": "{{count}} places",
-      "seatsCount_one": "{{count}} place",
-      "seatsCount_other": "{{count}} places",
       "seatsInvalidBody": "Entre 1 et {{max}}.",
       "seatsInvalidTitle": "Places invalides",
       "title": "Véhicule",
@@ -297,8 +294,8 @@
       "resetTitle": "Réinitialiser les alertes ?",
       "wallet": "Solde",
       "whatsappGroup": "Groupe WhatsApp des Captains",
-      "whatsappGroupUnavailable": "Impossible d'ouvrir WhatsApp. Vérifiez qu'il est installé.",
-      "whatsappGroupHint": "Rejoignez la communauté des Captains sur WhatsApp"
+      "whatsappGroupHint": "Rejoignez la communauté des Captains sur WhatsApp",
+      "whatsappGroupUnavailable": "Impossible d'ouvrir WhatsApp. Vérifiez qu'il est installé."
     },
     "homeLocation": {
       "addressFieldLabel": "Adresse (description)",
@@ -337,36 +334,36 @@
       "ridesTitle": "Courses"
     },
     "permissions": {
-      "title": "Activons votre compte",
-      "intro": "Pour que {{app}} vous envoie des courses et vous alerte à temps, votre téléphone doit autoriser quelques accès. Appuyez une fois sur « Tout autoriser » : les demandes s'enchaînent, vous n'avez qu'à confirmer.",
-      "grantAll": "Tout autoriser",
       "allow": "Autoriser",
       "fix": "Corriger dans les réglages",
-      "later": "Plus tard",
-      "start": "Commencer à travailler",
-      "granted": "Autorisé",
-      "optional": "Facultatif",
-      "needsLocationFirst": "Autorisez d'abord la position.",
       "footnote": "Votre téléphone affiche une demande par autorisation : c'est une règle d'Android et d'iOS, nous ne pouvons pas les regrouper. Vous pouvez revenir sur ces choix à tout moment dans les réglages.",
-      "settingsEntry": "Autorisations du téléphone",
+      "grantAll": "Tout autoriser",
+      "granted": "Autorisé",
+      "intro": "Pour que {{app}} vous envoie des courses et vous alerte à temps, votre téléphone doit autoriser quelques accès. Appuyez une fois sur « Tout autoriser » : les demandes s'enchaînent, vous n'avez qu'à confirmer.",
       "items": {
-        "location": {
-          "title": "Votre position",
-          "why": "Pour vous proposer les courses les plus proches de vous."
-        },
         "always": {
           "title": "Position en continu (« Toujours »)",
           "why": "Pour rester visible du dispatch même écran éteint, et permettre au support de suivre votre trajet en cas d'incident. Actif uniquement quand vous êtes en ligne."
         },
-        "notifications": {
-          "title": "Notifications",
-          "why": "Pour recevoir les nouvelles courses comme un appel, même téléphone verrouillé."
+        "location": {
+          "title": "Votre position",
+          "why": "Pour vous proposer les courses les plus proches de vous."
         },
         "microphone": {
           "title": "Micro",
           "why": "Pour dicter une destination ou envoyer un message vocal au client."
+        },
+        "notifications": {
+          "title": "Notifications",
+          "why": "Pour recevoir les nouvelles courses comme un appel, même téléphone verrouillé."
         }
       },
+      "later": "Plus tard",
+      "needsLocationFirst": "Autorisez d'abord la position.",
+      "optional": "Facultatif",
+      "settingsEntry": "Autorisations du téléphone",
+      "start": "Commencer à travailler",
+      "title": "Activons votre compte",
       "unavailable": "Indisponible sur cette version de l'application. Mettez-la à jour pour activer cette autorisation."
     },
     "preferences": {
@@ -396,6 +393,7 @@
       "accept": "Accepter",
       "actionImArrived": "Je suis arrivé",
       "amountToCollect": "Montant à demander",
+      "bubbleHint": "Touchez pour ouvrir",
       "callBtn": "Appeler",
       "cancelBody": "Cela impacte votre score.",
       "cancelRide": "Annuler la course",
@@ -433,6 +431,8 @@
       "lastCompletedOpenRide": "Dernière course ouverte terminée",
       "meterShort": "Au compteur",
       "meterTariffLabel": "Tarif au compteur",
+      "navigateToDropoff": "Naviguer vers la destination",
+      "navigateToPickup": "Naviguer vers le client",
       "nearbyHint": "Vous devez être en ligne avec votre position partagée.",
       "nearbyTitle": "Courses proches",
       "netEarning": "Gain Captain",
@@ -454,10 +454,7 @@
         "in_progress": "Course en cours"
       },
       "title": "Courses",
-      "wallet": "Wallet",
-      "bubbleHint": "Touchez pour ouvrir",
-      "navigateToPickup": "Naviguer vers le client",
-      "navigateToDropoff": "Naviguer vers la destination"
+      "wallet": "Wallet"
     },
     "state": {
       "batteryBody": "Pour ne jamais rater une course, autorisez {{app}} à fonctionner sans restriction de batterie. Sans cela, Android peut mettre l'application en veille et retarder — voire supprimer — l'alerte de nouvelle course.",
@@ -497,6 +494,39 @@
       "overlayEnable": "Autoriser",
       "overlayTitle": "Affichage par-dessus les applis",
       "youAre": "Vous êtes"
+    },
+    "subscription": {
+      "activeLabel": "Abonnement actif",
+      "balanceNote": "Payé depuis votre wallet. Solde actuel : {{balance}}.",
+      "buyAction": "Acheter",
+      "chooseHeading": "Choisissez votre formule",
+      "confirmAction": "Confirmer",
+      "confirmBody": "{{plan}} pour {{price}}, débité de votre wallet. Vous ne paierez aucune commission pendant {{days}} jours.",
+      "confirmTitle": "Confirmer l'abonnement",
+      "daysLeft": "Encore {{days}} jour(s)",
+      "disabled": "L'abonnement n'est pas disponible pour le moment.",
+      "extendHeading": "Prolonger",
+      "failTitle": "Achat impossible",
+      "homeActive": "Aucune commission — encore {{days}} jour(s).",
+      "homeInactive": "Payez une fois, gardez 100% de vos courses.",
+      "inactiveLabel": "Sans abonnement",
+      "lowBalanceBody": "Cette formule coûte {{price}} et votre solde est de {{balance}}. Rechargez votre wallet, puis revenez.",
+      "lowBalanceTitle": "Solde insuffisant",
+      "perkCommission": "Aucune commission sur vos courses — vous gardez 100%.",
+      "perkOnline": "Vous passez en ligne même avec un solde vide.",
+      "perkRides": "Vous voyez les courses autour de vous et vous les acceptez normalement.",
+      "pitch": "Payez une fois, gardez tout",
+      "pitchDetail": "Avec un abonnement, aucune commission n'est prélevée sur vos courses. Vous gardez 100% du prix payé par le client.",
+      "planDays": "{{days}} jours sans commission",
+      "plans": {
+        "month": "1 mois",
+        "week": "1 semaine"
+      },
+      "successBody": "C'est fait. Aucune commission ne sera prélevée sur vos courses jusqu'à la fin de votre abonnement.",
+      "successTitle": "Abonnement activé",
+      "title": "Abonnement",
+      "topupAction": "Recharger mon wallet",
+      "until": "Jusqu'au {{date}}"
     },
     "wallet": {
       "balance": "Solde wallet",
@@ -542,6 +572,7 @@
         "commission": "Commission",
         "commission_refund": "Remboursement",
         "manual_adjustment": "Ajustement",
+        "subscription": "Abonnement",
         "topup": "Recharge"
       },
       "uploadReceipt": "Envoyer une capture de recharge"

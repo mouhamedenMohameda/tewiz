@@ -72,6 +72,12 @@ const patchBody = z.object({
   // drawn days and manual admin grants keep applying).
   freeDaysEnabled:                  z.boolean().optional(),
   freeDaysPerWeek:                  z.number().int().min(0).max(7).optional(),
+  // Migration 0089 — abonnement Captain. Un prix à 0 retire la formule de la
+  // vente ; le plafond est là pour arrêter une faute de frappe (un zéro de
+  // trop transformerait 5 000 MRU en 50 000).
+  subscriptionEnabled:              z.boolean().optional(),
+  subscriptionWeekPriceMru:         z.number().int().min(0).max(1_000_000).optional(),
+  subscriptionMonthPriceMru:        z.number().int().min(0).max(1_000_000).optional(),
   // Open rides ("course ouverte") — metered fare knobs (migration 0030).
   allowOpenRides:                   z.boolean().optional(),
   openBaseFareMru:                  z.number().int().min(0).max(10_000).optional(),

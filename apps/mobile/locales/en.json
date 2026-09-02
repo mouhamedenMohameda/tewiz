@@ -234,9 +234,6 @@
       "save": "Save",
       "saveError": "Could not save.",
       "seats": "Passenger seats",
-      "seatsCount": "{{count}} places",
-      "seatsCount_one": "{{count}} seat",
-      "seatsCount_other": "{{count}} seats",
       "seatsInvalidBody": "Between 1 and {{max}}.",
       "seatsInvalidTitle": "Invalid seats",
       "title": "Vehicle",
@@ -285,8 +282,8 @@
       "resetTitle": "Reset alerts?",
       "wallet": "Balance",
       "whatsappGroup": "Captains WhatsApp group",
-      "whatsappGroupUnavailable": "Couldn't open WhatsApp. Make sure it's installed.",
-      "whatsappGroupHint": "Join the Captains community on WhatsApp"
+      "whatsappGroupHint": "Join the Captains community on WhatsApp",
+      "whatsappGroupUnavailable": "Couldn't open WhatsApp. Make sure it's installed."
     },
     "homeLocation": {
       "addressFieldLabel": "Address (description)",
@@ -325,36 +322,36 @@
       "ridesTitle": "Rides"
     },
     "permissions": {
-      "title": "Let's activate your account",
-      "intro": "{{app}} needs a few phone permissions to send you rides and alert you in time. Tap \"Allow all\" once: the prompts follow one another, you only have to confirm.",
-      "grantAll": "Allow all",
       "allow": "Allow",
       "fix": "Fix in settings",
-      "later": "Later",
-      "start": "Start driving",
-      "granted": "Allowed",
-      "optional": "Optional",
-      "needsLocationFirst": "Allow location first.",
       "footnote": "Your phone shows one prompt per permission — that's an Android and iOS rule, we can't merge them. You can change these choices anytime in settings.",
-      "settingsEntry": "Phone permissions",
+      "grantAll": "Allow all",
+      "granted": "Allowed",
+      "intro": "{{app}} needs a few phone permissions to send you rides and alert you in time. Tap \"Allow all\" once: the prompts follow one another, you only have to confirm.",
       "items": {
-        "location": {
-          "title": "Your location",
-          "why": "To offer you the rides closest to you."
-        },
         "always": {
           "title": "Continuous location (\"Always\")",
           "why": "To stay visible to dispatch even with the screen off, and let support follow your trip if something goes wrong. Only active while you are online."
         },
-        "notifications": {
-          "title": "Notifications",
-          "why": "To receive new rides like a call, even with the phone locked."
+        "location": {
+          "title": "Your location",
+          "why": "To offer you the rides closest to you."
         },
         "microphone": {
           "title": "Microphone",
           "why": "To dictate a destination or send the rider a voice message."
+        },
+        "notifications": {
+          "title": "Notifications",
+          "why": "To receive new rides like a call, even with the phone locked."
         }
       },
+      "later": "Later",
+      "needsLocationFirst": "Allow location first.",
+      "optional": "Optional",
+      "settingsEntry": "Phone permissions",
+      "start": "Start driving",
+      "title": "Let's activate your account",
       "unavailable": "Not available in this version of the app. Update it to enable this permission."
     },
     "preferences": {
@@ -384,6 +381,7 @@
       "accept": "Accept",
       "actionImArrived": "I have arrived",
       "amountToCollect": "Amount to collect",
+      "bubbleHint": "Tap to open",
       "callBtn": "Call",
       "cancelBody": "This affects your score.",
       "cancelRide": "Cancel ride",
@@ -421,6 +419,8 @@
       "lastCompletedOpenRide": "Last completed open ride",
       "meterShort": "Au compteur",
       "meterTariffLabel": "Tarif au compteur",
+      "navigateToDropoff": "Navigate to destination",
+      "navigateToPickup": "Navigate to pickup",
       "nearbyHint": "You must be online with your location shared.",
       "nearbyTitle": "Nearby rides",
       "netEarning": "Driver earnings",
@@ -442,10 +442,7 @@
         "in_progress": "Ride in progress"
       },
       "title": "Rides",
-      "wallet": "Wallet",
-      "bubbleHint": "Tap to open",
-      "navigateToPickup": "Navigate to pickup",
-      "navigateToDropoff": "Navigate to destination"
+      "wallet": "Wallet"
     },
     "state": {
       "batteryBody": "So you never miss a ride, allow {{app}} to run without battery restrictions. Otherwise Android may doze the app and delay — or drop — the new-ride alert.",
@@ -485,6 +482,39 @@
       "overlayEnable": "Allow",
       "overlayTitle": "Display over other apps",
       "youAre": "You are"
+    },
+    "subscription": {
+      "activeLabel": "Subscription active",
+      "balanceNote": "Paid from your wallet. Current balance: {{balance}}.",
+      "buyAction": "Buy",
+      "chooseHeading": "Choose your plan",
+      "confirmAction": "Confirm",
+      "confirmBody": "{{plan}} for {{price}}, charged to your wallet. You will pay no commission for {{days}} days.",
+      "confirmTitle": "Confirm subscription",
+      "daysLeft": "{{days}} day(s) left",
+      "disabled": "Subscriptions are not available right now.",
+      "extendHeading": "Extend",
+      "failTitle": "Purchase failed",
+      "homeActive": "No commission — {{days}} day(s) left.",
+      "homeInactive": "Pay once, keep 100% of your rides.",
+      "inactiveLabel": "No subscription",
+      "lowBalanceBody": "This plan costs {{price}} and your balance is {{balance}}. Top up your wallet, then come back.",
+      "lowBalanceTitle": "Balance too low",
+      "perkCommission": "No commission on your rides — you keep 100%.",
+      "perkOnline": "You can go online even with an empty balance.",
+      "perkRides": "You see the rides around you and accept them as usual.",
+      "pitch": "Pay once, keep it all",
+      "pitchDetail": "With a subscription, no commission is taken from your rides. You keep 100% of what the customer pays.",
+      "planDays": "{{days}} days with no commission",
+      "plans": {
+        "month": "1 month",
+        "week": "1 week"
+      },
+      "successBody": "Done. No commission will be taken from your rides until your subscription ends.",
+      "successTitle": "Subscription active",
+      "title": "Subscription",
+      "topupAction": "Top up my wallet",
+      "until": "Until {{date}}"
     },
     "wallet": {
       "balance": "Wallet balance",
@@ -530,6 +560,7 @@
         "commission": "Commission",
         "commission_refund": "Refund",
         "manual_adjustment": "Adjustment",
+        "subscription": "Subscription",
         "topup": "Top-up"
       },
       "uploadReceipt": "Send a top-up screenshot"

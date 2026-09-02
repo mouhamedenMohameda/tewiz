@@ -99,7 +99,13 @@ export type WalletTxType =
   | 'carpooling_publication'
   | 'carpooling_commission'
   | 'car_rental_commission'
-  | 'listing_publication';
+  | 'listing_publication'
+  // Migration 0089. Achat d'un abonnement Captain (débit du wallet).
+  | 'subscription';
+
+// --- Abonnement Captain (migration 0089) ---
+/** Les deux formules vendues. La durée réelle est figée à l'achat. */
+export type SubscriptionPlan = 'week' | 'month';
 
 // --- Captain state ---
 export type CaptainPresence = 'offline' | 'online' | 'on_ride' | 'paused';

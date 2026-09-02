@@ -228,7 +228,6 @@
       "save": "Denc",
       "saveError": "Mënul denc.",
       "seats": "Limu places Clients",
-      "seatsCount": "{{count}} toogukaay",
       "seatsInvalidBody": "Hakkunde 1 ak {{max}}.",
       "seatsInvalidTitle": "Places baaxul",
       "title": "Oto",
@@ -337,6 +336,7 @@
       "accept": "Nangu",
       "actionImArrived": "Agsi naa",
       "amountToCollect": "Njëg bi nga war laaj",
+      "bubbleHint": "Bësal ngir ubbi",
       "callBtn": "Woo",
       "cancelBody": "Mooy laal sa score.",
       "cancelRide": "Bañ course",
@@ -374,6 +374,8 @@
       "lastCompletedOpenRide": "Bi mujj sotti ci course bu ñu ubbi",
       "meterShort": "Compteur",
       "meterTariffLabel": "Tarif compteur",
+      "navigateToDropoff": "Dem ci dexug bi",
+      "navigateToPickup": "Dem ci kiliyaan bi",
       "nearbyHint": "Da nga war doon en ligne ak sa position partagé.",
       "nearbyTitle": "Course yu jegeel",
       "netEarning": "Lii Captain bi jariñ",
@@ -395,10 +397,7 @@
         "in_progress": "Course bu jëkk"
       },
       "title": "Course-yi",
-      "wallet": "Wallet",
-      "bubbleHint": "Bësal ngir ubbi",
-      "navigateToPickup": "Dem ci kiliyaan bi",
-      "navigateToDropoff": "Dem ci dexug bi"
+      "wallet": "Wallet"
     },
     "state": {
       "errorGoingHome": "Njumte ci mode \"Dama dem sama kër\".",
@@ -419,6 +418,39 @@
       "onlineBody": "Yow ngi jot course yu jegeel.",
       "openRide": "Ubbi course bi",
       "youAre": "Yow"
+    },
+    "subscription": {
+      "activeLabel": "Abonman bi dafa dox",
+      "balanceNote": "Ñu koy fay ci sa portmone. Xaalis bi léegi: {{balance}}.",
+      "buyAction": "Jënd",
+      "chooseHeading": "Tannal sa formil",
+      "confirmAction": "Dëggal",
+      "confirmBody": "{{plan}} ci {{price}}, ñu koy jële ci sa portmone. Doo fay benn komisiyon diirub {{days}} fan.",
+      "confirmTitle": "Dëggal abonman bi",
+      "daysLeft": "Des na {{days}} fan",
+      "disabled": "Abonman bi amul léegi.",
+      "extendHeading": "Yokk",
+      "failTitle": "Jënd bi antuwul",
+      "homeActive": "Amul komisiyon — des na {{days}} fan.",
+      "homeInactive": "Fay benn yoon, jël 100% ci say tukki.",
+      "inactiveLabel": "Amuloo abonman",
+      "lowBalanceBody": "Formil bi day {{price}}, sa xaalis mooy {{balance}}. Yokkal sa portmone, ba noppi dellusi.",
+      "lowBalanceTitle": "Xaalis bi doyul",
+      "perkCommission": "Amul komisiyon ci say tukki — yaa jël 100%.",
+      "perkOnline": "Dinga mën a dugg ci liggéey bi doonte sa xaalis dafa neex.",
+      "perkRides": "Dinga gis tukki yi nekk ci sa wet te nanga leen nangu ni mu deme.",
+      "pitch": "Fay benn yoon, jël lépp",
+      "pitchDetail": "Su amee abonman, danuy jëlati benn komisiyon ci say tukki. Yaw yaa jël 100% ci li kiliyaan bi fay.",
+      "planDays": "{{days}} fan te amul komisiyon",
+      "plans": {
+        "month": "Benn weer",
+        "week": "Benn ayubés"
+      },
+      "successBody": "Baax na. Duñu jëlati benn komisiyon ci say tukki ba sa abonman jeex.",
+      "successTitle": "Abonman bi dafa dox",
+      "title": "Abonman",
+      "topupAction": "Yokk sama portmone",
+      "until": "Ba {{date}}"
     },
     "wallet": {
       "balance": "Solde wallet",
@@ -464,6 +496,7 @@
         "commission": "Commission",
         "commission_refund": "Delloo",
         "manual_adjustment": "Ajustement",
+        "subscription": "Abonman",
         "topup": "Recharge"
       },
       "uploadReceipt": "Yonnee capture recharge"

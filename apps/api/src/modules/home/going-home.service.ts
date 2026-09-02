@@ -2,6 +2,7 @@ import { pool, withTx } from '../../db/pool.js';
 import { env } from '../../config/env.js';
 import { HttpError } from '../../middleware/error.js';
 import { getBalance } from '../wallet/wallet.service.js';
+import { isSubscriptionActive } from '../captain/subscription.service.js';
 import type { GoingHomeStatus } from '@tewiz/shared-types';
 
 interface SessionRow {
@@ -77,8 +78,11 @@ export async function startSession(captainId: string) {
         'Must be online (and not on a ride) to start going-home mode');
     }
 
-    const balance = await getBalance(captainId);
-    if (balance < env.MIN_BALANCE_TO_GO_ONLINE_MRU) {
+    // Même dispense qu'au passage en ligne (migration 0089) : un Captain
+    // abonné ne paie pas de commission, donc aucun solde ne lui est opposé.
+    const subscribed = await isSubscriptionActive(captainId, client);
+    const balance = await getBalance(captainId, client);
+    if (!subscribed && balance < env.MIN_BALANCE_TO_GO_ONLINE_MRU) {
       throw new HttpError(402, 'balance_too_low', 'Insufficient balance');
     }
 

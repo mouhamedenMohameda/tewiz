@@ -36,6 +36,12 @@ vi.mock('../../src/db/pool.js', () => ({
   pool: { query: poolQueryMock, connect: vi.fn(), on: vi.fn() },
   withTx: vi.fn(),
 }));
+// Abonnement Captain (migration 0089) : un abonné saute le contrôle de solde.
+// Ces suites portent sur le contrôle lui-même, donc on part d'un Captain non
+// abonné — le comportement de l'abonnement a ses propres tests.
+vi.mock('../../src/modules/captain/subscription.service.js', () => ({
+  isSubscriptionActive: vi.fn().mockResolvedValue(false),
+}));
 vi.mock('../../src/modules/wallet/wallet.service.js', () => ({
   getBalance: getBalanceMock, debitWallet: vi.fn(), creditWallet: vi.fn(),
 }));

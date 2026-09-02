@@ -246,9 +246,6 @@
       "save": "حفظ",
       "saveError": "تعذر الحفظ.",
       "seats": "عدد مقاعد الركاب",
-      "seatsCount": "{{count}} مقاعد",
-      "seatsCount_one": "{{count}} مقعد",
-      "seatsCount_other": "{{count}} مقاعد",
       "seatsInvalidBody": "بين 1 و {{max}}.",
       "seatsInvalidTitle": "عدد مقاعد غير صحيح",
       "title": "المركبة",
@@ -297,8 +294,8 @@
       "resetTitle": "إعادة ضبط التنبيهات؟",
       "wallet": "الرصيد",
       "whatsappGroup": "مجموعة واتساب للكباتن",
-      "whatsappGroupUnavailable": "تعذّر فتح واتساب. تأكد من أنه مثبّت.",
-      "whatsappGroupHint": "انضم إلى مجتمع الكباتن على واتساب"
+      "whatsappGroupHint": "انضم إلى مجتمع الكباتن على واتساب",
+      "whatsappGroupUnavailable": "تعذّر فتح واتساب. تأكد من أنه مثبّت."
     },
     "homeLocation": {
       "addressFieldLabel": "العنوان (وصف)",
@@ -337,36 +334,36 @@
       "ridesTitle": "الرحلات"
     },
     "permissions": {
-      "title": "لنُفعّل حسابك",
-      "intro": "لكي يرسل لك {{app}} الرحلات وينبّهك في الوقت المناسب، يحتاج هاتفك إلى منح بعض الأذونات. اضغط مرة واحدة على «السماح بالكل»: تظهر الطلبات تباعًا، ولا يتبقى لك سوى التأكيد.",
-      "grantAll": "السماح بالكل",
       "allow": "السماح",
       "fix": "التصحيح في الإعدادات",
-      "later": "لاحقًا",
-      "start": "بدء العمل",
-      "granted": "مسموح",
-      "optional": "اختياري",
-      "needsLocationFirst": "اسمح بالموقع أولًا.",
       "footnote": "يعرض هاتفك طلبًا لكل إذن على حدة: هذه قاعدة من أندرويد و iOS ولا يمكننا دمجها. يمكنك تعديل هذه الخيارات في أي وقت من الإعدادات.",
-      "settingsEntry": "أذونات الهاتف",
+      "grantAll": "السماح بالكل",
+      "granted": "مسموح",
+      "intro": "لكي يرسل لك {{app}} الرحلات وينبّهك في الوقت المناسب، يحتاج هاتفك إلى منح بعض الأذونات. اضغط مرة واحدة على «السماح بالكل»: تظهر الطلبات تباعًا، ولا يتبقى لك سوى التأكيد.",
       "items": {
-        "location": {
-          "title": "موقعك",
-          "why": "لعرض الرحلات الأقرب إليك."
-        },
         "always": {
           "title": "الموقع بشكل مستمر («دائمًا»)",
           "why": "لتبقى ظاهرًا للتوزيع حتى والشاشة مطفأة، ولتمكين الدعم من متابعة مسارك عند وقوع حادث. يعمل فقط عندما تكون متصلًا."
         },
-        "notifications": {
-          "title": "الإشعارات",
-          "why": "لاستقبال الرحلات الجديدة كمكالمة، حتى والهاتف مقفل."
+        "location": {
+          "title": "موقعك",
+          "why": "لعرض الرحلات الأقرب إليك."
         },
         "microphone": {
           "title": "الميكروفون",
           "why": "لإملاء وجهة أو إرسال رسالة صوتية إلى الزبون."
+        },
+        "notifications": {
+          "title": "الإشعارات",
+          "why": "لاستقبال الرحلات الجديدة كمكالمة، حتى والهاتف مقفل."
         }
       },
+      "later": "لاحقًا",
+      "needsLocationFirst": "اسمح بالموقع أولًا.",
+      "optional": "اختياري",
+      "settingsEntry": "أذونات الهاتف",
+      "start": "بدء العمل",
+      "title": "لنُفعّل حسابك",
       "unavailable": "غير متاح في هذه النسخة من التطبيق. حدّثه لتفعيل هذا الإذن."
     },
     "preferences": {
@@ -396,6 +393,7 @@
       "accept": "قبول",
       "actionImArrived": "لقد وصلتُ",
       "amountToCollect": "المبلغ المطلوب",
+      "bubbleHint": "اضغط للفتح",
       "callBtn": "اتصال",
       "cancelBody": "هذا يؤثر على تقييمك.",
       "cancelRide": "إلغاء الرحلة",
@@ -433,6 +431,8 @@
       "lastCompletedOpenRide": "آخر رحلة مفتوحة مكتملة",
       "meterShort": "بالعداد",
       "meterTariffLabel": "تعرفة العداد",
+      "navigateToDropoff": "التوجه إلى الوجهة",
+      "navigateToPickup": "التوجه إلى الزبون",
       "nearbyHint": "يجب أن تكون متصلاً وموقعك مشترَك.",
       "nearbyTitle": "الرحلات القريبة",
       "netEarning": "ربح الكابتن",
@@ -454,10 +454,7 @@
         "in_progress": "الرحلة جارية"
       },
       "title": "الرحلات",
-      "wallet": "المحفظة",
-      "bubbleHint": "اضغط للفتح",
-      "navigateToPickup": "التوجه إلى الزبون",
-      "navigateToDropoff": "التوجه إلى الوجهة"
+      "wallet": "المحفظة"
     },
     "state": {
       "batteryBody": "حتى لا تفوتك أي رحلة، اسمح لتطبيق {{app}} بالعمل دون قيود البطارية. بدون ذلك قد يوقف أندرويد التطبيق ويؤخّر تنبيه الرحلة الجديدة أو يلغيه.",
@@ -497,6 +494,39 @@
       "overlayEnable": "تفعيل",
       "overlayTitle": "العرض فوق التطبيقات الأخرى",
       "youAre": "أنت"
+    },
+    "subscription": {
+      "activeLabel": "اشتراك نشط",
+      "balanceNote": "يُدفع من محفظتك. الرصيد الحالي: {{balance}}.",
+      "buyAction": "شراء",
+      "chooseHeading": "اختر صيغتك",
+      "confirmAction": "تأكيد",
+      "confirmBody": "{{plan}} مقابل {{price}}، تُخصم من محفظتك. لن تدفع أي عمولة لمدة {{days}} يومًا.",
+      "confirmTitle": "تأكيد الاشتراك",
+      "daysLeft": "تبقى {{days}} يوم",
+      "disabled": "الاشتراك غير متاح حاليًا.",
+      "extendHeading": "تمديد",
+      "failTitle": "تعذر الشراء",
+      "homeActive": "لا عمولة — تبقى {{days}} يوم.",
+      "homeInactive": "ادفع مرة واحدة، واحتفظ بـ 100% من رحلاتك.",
+      "inactiveLabel": "بدون اشتراك",
+      "lowBalanceBody": "هذه الصيغة تكلف {{price}} ورصيدك {{balance}}. اشحن محفظتك ثم عد.",
+      "lowBalanceTitle": "الرصيد غير كافٍ",
+      "perkCommission": "لا عمولة على رحلاتك — تحتفظ بـ 100%.",
+      "perkOnline": "تدخل الخدمة حتى ولو كان رصيدك صفرًا.",
+      "perkRides": "ترى الرحلات القريبة منك وتقبلها كالمعتاد.",
+      "pitch": "ادفع مرة واحدة، واحتفظ بالكل",
+      "pitchDetail": "مع الاشتراك، لا تُخصم أي عمولة من رحلاتك. تحتفظ بـ 100% مما يدفعه الزبون.",
+      "planDays": "{{days}} يومًا بدون عمولة",
+      "plans": {
+        "month": "شهر واحد",
+        "week": "أسبوع واحد"
+      },
+      "successBody": "تم. لن تُخصم أي عمولة من رحلاتك حتى نهاية اشتراكك.",
+      "successTitle": "تم تفعيل الاشتراك",
+      "title": "الاشتراك",
+      "topupAction": "شحن محفظتي",
+      "until": "حتى {{date}}"
     },
     "wallet": {
       "balance": "رصيد المحفظة",
@@ -542,6 +572,7 @@
         "commission": "عمولة",
         "commission_refund": "رد عمولة",
         "manual_adjustment": "تعديل",
+        "subscription": "اشتراك",
         "topup": "شحن"
       },
       "uploadReceipt": "إرسال لقطة شاشة للشحن"
@@ -1636,8 +1667,12 @@
       "notFound": "المطعم غير موجود",
       "phoneLabel": "الهاتف",
       "resetFilters": "إعادة ضبط الفلاتر",
-      "resultCount_one": "{{count}} عنوان",
-      "resultCount_other": "{{count}} عناوين",
+      "resultCount_zero": "لا توجد عناوين",
+      "resultCount_one": "عنوان واحد",
+      "resultCount_two": "عنوانان",
+      "resultCount_few": "{{count}} عناوين",
+      "resultCount_many": "{{count}} عنوانًا",
+      "resultCount_other": "{{count}} عنوان",
       "searchPlaceholder": "ابحث عن مطعم أو طبق…",
       "sortedBy": "مرتبة حسب الشعبية",
       "subtitle": "نواكشوط",
@@ -1941,8 +1976,12 @@
   },
   "captainOnboarding": {
     "title": "أكمل ملفك",
-    "subtitle_one": "بقي {{count}} عنصر قبل أن تتمكن من الاتصال.",
-    "subtitle_other": "بقيت {{count}} عناصر قبل أن تتمكن من الاتصال.",
+    "subtitle_zero": "لم يبق أي عنصر قبل أن تتمكن من الاتصال.",
+    "subtitle_one": "بقي عنصر واحد قبل أن تتمكن من الاتصال.",
+    "subtitle_two": "بقي عنصران قبل أن تتمكن من الاتصال.",
+    "subtitle_few": "بقيت {{count}} عناصر قبل أن تتمكن من الاتصال.",
+    "subtitle_many": "بقي {{count}} عنصرًا قبل أن تتمكن من الاتصال.",
+    "subtitle_other": "بقي {{count}} عنصر قبل أن تتمكن من الاتصال.",
     "ready": "ملفك مكتمل. رحلة موفقة!",
     "cta": "إكمال",
     "blockedTitle": "ملف غير مكتمل",

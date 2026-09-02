@@ -9,6 +9,7 @@ import * as goingHome from '../home/going-home.service.js';
 import { ingestTrackBatch, isTrackingEnabled } from './track.service.js';
 import { getOnboardingStatus } from './onboarding.service.js';
 import { setLiveLocation, clearLiveLocation } from './live-location.js';
+import { isSubscriptionActive } from './subscription.service.js';
 
 // Parent enforces auth + role=captain.
 export const captainStateRouter = Router();
@@ -22,6 +23,11 @@ const onlineBody = z.object({
  * POST /captain/state/online
  * Goes online iff wallet balance >= MIN_BALANCE_TO_GO_ONLINE_MRU and not
  * already on a ride.
+ *
+ * Migration 0089 — un Captain abonné saute le contrôle de solde. Le seuil
+ * n'existe que pour garantir qu'il pourra payer sa commission ; abonné, il n'en
+ * paie aucune, donc il n'y a plus rien à garantir. Le faire payer d'avance puis
+ * le bloquer pour solde vide serait exactement l'inverse de ce qu'il a acheté.
  */
 captainStateRouter.post('/online', async (req, res) => {
   const userId = req.user!.id;
@@ -55,9 +61,10 @@ captainStateRouter.post('/online', async (req, res) => {
       });
   }
 
-  // 3. Balance gate.
+  // 3. Balance gate — levé pour un Captain abonné (voir l'en-tête).
+  const subscribed = await isSubscriptionActive(userId);
   const balance = await getBalance(userId);
-  if (balance < env.MIN_BALANCE_TO_GO_ONLINE_MRU) {
+  if (!subscribed && balance < env.MIN_BALANCE_TO_GO_ONLINE_MRU) {
     throw new HttpError(402, 'balance_too_low',
       `Solde insuffisant pour aller en ligne (min ${env.MIN_BALANCE_TO_GO_ONLINE_MRU} MRU, actuel ${balance} MRU)`,
       { balance, minRequired: env.MIN_BALANCE_TO_GO_ONLINE_MRU });

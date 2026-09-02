@@ -20,7 +20,10 @@ import { wrapRow } from '@/components/ui';
 
 type Provider = 'bankily' | 'masrvi' | 'sedad' | 'cash_office';
 type TopupStatus = 'pending' | 'approved' | 'partial' | 'rejected' | 'duplicate';
-type TxType = 'topup' | 'commission' | 'commission_refund' | 'manual_adjustment' | 'bonus';
+type TxType = 'topup' | 'commission' | 'commission_refund' | 'manual_adjustment' | 'bonus'
+  // Achat d'un abonnement (migration 0089) — un débit, mais qui n'est pas une
+  // commission : il a son propre libellé dans l'historique.
+  | 'subscription';
 
 interface WalletSummary {
   balanceMru: number;
@@ -115,6 +118,15 @@ export default function WalletScreen() {
         icon="document"
         onPress={() => setTopupModal(true)}
         style={{ marginTop: spacing.base }}
+      />
+
+      {/* L'abonnement se paie depuis ce solde : sa porte d'entrée est ici. */}
+      <Button
+        title={t('captain.subscription.title')}
+        variant="secondary"
+        icon="sparkle"
+        onPress={() => router.push('/(app)/captain/subscription')}
+        style={{ marginTop: spacing.sm }}
       />
 
       <AppText variant="overline" color={colors.muted} style={{ marginTop: spacing.xxl, marginBottom: spacing.sm }}>

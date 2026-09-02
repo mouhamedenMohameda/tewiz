@@ -40,6 +40,11 @@ import {
   listCaptainFreeDaysForAdmin,
   revokeFreeDay,
 } from '../rides/free-days.service.js';
+import {
+  getActiveSubscription,
+  grantSubscription,
+  listSubscriptions,
+} from '../captain/subscription.service.js';
 import { notifyCaptainFreeDays } from '../notifications/notifications.service.js';
 import type { ApplicationStatus } from '@tewiz/shared-types';
 
@@ -326,6 +331,45 @@ adminRouter.post('/captains/:id/free-days', requireAdminRole('ops_manager', 'fin
       // reaches captains running an old build too. Best-effort.
       void notifyCaptainFreeDays(captainId, [date]);
     }
+    res.json(result);
+  });
+
+/**
+ * Abonnement Captain (migration 0089).
+ *
+ * Lecture ouverte aux mêmes rôles que les jours gratuits. Offrir des jours
+ * revient à renoncer à de la commission réelle, donc c'est réservé à
+ * ops_manager / finance et tracé dans le journal d'audit.
+ */
+adminRouter.get('/captains/:id/subscription', requireAdminRole(...FREE_DAY_VIEWERS),
+  async (req, res) => {
+    const captainId = String(req.params.id);
+    const [current, history] = await Promise.all([
+      getActiveSubscription(captainId),
+      listSubscriptions(captainId),
+    ]);
+    res.json({ current, history });
+  });
+
+const grantSubscriptionBody = z.object({
+  // Des jours, pas une formule : offrir doit pouvoir être plus souple que
+  // vendre (3 jours de dédommagement, 15 jours d'essai…).
+  days: z.number().int().min(1).max(365),
+});
+
+adminRouter.post('/captains/:id/subscription', requireAdminRole('ops_manager', 'finance'),
+  async (req, res) => {
+    const captainId = String(req.params.id);
+    const { days } = grantSubscriptionBody.parse(req.body);
+    const result = await grantSubscription(captainId, days, req.user!.id);
+    await audit({
+      adminId: req.user!.id,
+      action: 'captain.subscription.grant',
+      targetType: 'captain',
+      targetId: captainId,
+      before: null,
+      after: { days, endsAt: result.endsAt },
+    });
     res.json(result);
   });
 

@@ -65,6 +65,12 @@ export interface PricingSettings {
   // automatic draw while manual admin grants keep working.
   freeDaysEnabled: boolean;
   freeDaysPerWeek: number;
+  // Migration 0089. Abonnement Captain : le Captain paie un forfait à l'avance
+  // (semaine ou mois) et ne paie plus AUCUNE commission tant qu'il court. Un
+  // prix à 0 retire la formule correspondante de la vente sans toucher au code.
+  subscriptionEnabled: boolean;
+  subscriptionWeekPriceMru: number;
+  subscriptionMonthPriceMru: number;
   // Migration 0030. Open rides ("course ouverte") — no upfront destination,
   // metered fare = open_base + km × open_per_km + min × open_per_minute,
   // floored at open_min_fare.
@@ -198,6 +204,9 @@ interface Row {
   commission_bonus_reward_days: number;
   free_days_enabled: boolean;
   free_days_per_week: number;
+  subscription_enabled: boolean;
+  subscription_week_price_mru: number;
+  subscription_month_price_mru: number;
   allow_open_rides: boolean;
   open_base_fare_mru: number;
   open_per_km_mru: number;
@@ -299,6 +308,9 @@ function toSettings(r: Row): PricingSettings {
     commissionBonusRewardDays: r.commission_bonus_reward_days,
     freeDaysEnabled: r.free_days_enabled,
     freeDaysPerWeek: r.free_days_per_week,
+    subscriptionEnabled: r.subscription_enabled,
+    subscriptionWeekPriceMru: r.subscription_week_price_mru,
+    subscriptionMonthPriceMru: r.subscription_month_price_mru,
     allowOpenRides: r.allow_open_rides,
     openBaseFareMru: r.open_base_fare_mru,
     openPerKmMru: r.open_per_km_mru,
@@ -394,6 +406,8 @@ export async function getPricingSettings(): Promise<PricingSettings> {
             commission_bonus_enabled, commission_bonus_threshold_mru,
             commission_bonus_window_days, commission_bonus_reward_days,
             free_days_enabled, free_days_per_week,
+            subscription_enabled,
+            subscription_week_price_mru, subscription_month_price_mru,
             allow_open_rides, open_base_fare_mru, open_per_km_mru,
             open_per_minute_mru, open_min_fare_mru,
             night_pricing_enabled, night_price_multiplier,
@@ -474,6 +488,9 @@ export interface PricingSettingsPatch {
   commissionBonusRewardDays?: number;
   freeDaysEnabled?: boolean;
   freeDaysPerWeek?: number;
+  subscriptionEnabled?: boolean;
+  subscriptionWeekPriceMru?: number;
+  subscriptionMonthPriceMru?: number;
   allowOpenRides?: boolean;
   openBaseFareMru?: number;
   openPerKmMru?: number;
@@ -577,6 +594,9 @@ export async function updatePricingSettings(
           commission_bonus_reward_days      = COALESCE($26, commission_bonus_reward_days),
           free_days_enabled                 = COALESCE($95, free_days_enabled),
           free_days_per_week                = COALESCE($96, free_days_per_week),
+          subscription_enabled              = COALESCE($97, subscription_enabled),
+          subscription_week_price_mru       = COALESCE($98, subscription_week_price_mru),
+          subscription_month_price_mru      = COALESCE($99, subscription_month_price_mru),
           allow_open_rides                  = COALESCE($27, allow_open_rides),
           open_base_fare_mru                = COALESCE($28, open_base_fare_mru),
           open_per_km_mru                   = COALESCE($29, open_per_km_mru),
@@ -665,6 +685,8 @@ export async function updatePricingSettings(
                 commission_bonus_enabled, commission_bonus_threshold_mru,
                 commission_bonus_window_days, commission_bonus_reward_days,
                 free_days_enabled, free_days_per_week,
+                subscription_enabled,
+                subscription_week_price_mru, subscription_month_price_mru,
                 allow_open_rides, open_base_fare_mru, open_per_km_mru,
                 open_per_minute_mru, open_min_fare_mru,
                 night_pricing_enabled, night_price_multiplier,
@@ -799,6 +821,9 @@ export async function updatePricingSettings(
       patch.whatsappCaptainUrl ?? null,        // $94
       patch.freeDaysEnabled ?? null,           // $95
       patch.freeDaysPerWeek ?? null,           // $96
+      patch.subscriptionEnabled ?? null,       // $97
+      patch.subscriptionWeekPriceMru ?? null,  // $98
+      patch.subscriptionMonthPriceMru ?? null, // $99
     ],
   );
   cache = null;

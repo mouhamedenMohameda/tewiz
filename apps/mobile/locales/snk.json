@@ -228,7 +228,6 @@
       "save": "Maxa",
       "saveError": "A nta maxa.",
       "seats": "Places yaagu nimero",
-      "seatsCount": "{{count}} sigira",
       "seatsInvalidBody": "1 da {{max}}.",
       "seatsInvalidTitle": "Places a koxu",
       "title": "Oto",
@@ -337,6 +336,7 @@
       "accept": "Kanu",
       "actionImArrived": "N kaada",
       "amountToCollect": "N'i bɔrɔ ka sɔrɔ",
+      "bubbleHint": "Niini ka wuti",
       "callBtn": "Salla",
       "cancelBody": "A score yindini.",
       "cancelRide": "Course faatu",
@@ -374,6 +374,8 @@
       "lastCompletedOpenRide": "Kourse dɔn kɛlen ka sɔrɔ",
       "meterShort": "Compteur",
       "meterTariffLabel": "Tarif compteur",
+      "navigateToDropoff": "Da nafa do",
+      "navigateToPickup": "Da kiliyen do",
       "nearbyHint": "Ligne do don, position partagé.",
       "nearbyTitle": "Course a kasa",
       "netEarning": "Captain ka sɔrɔ",
@@ -395,10 +397,7 @@
         "in_progress": "Course saxu"
       },
       "title": "Course",
-      "wallet": "Wallet",
-      "bubbleHint": "Niini ka wuti",
-      "navigateToPickup": "Da kiliyen do",
-      "navigateToDropoff": "Da nafa do"
+      "wallet": "Wallet"
     },
     "state": {
       "errorGoingHome": "Doome mode \"N ga ka da\".",
@@ -419,6 +418,39 @@
       "onlineBody": "An course kasa kanu.",
       "openRide": "Course saxu kini",
       "youAre": "An"
+    },
+    "subscription": {
+      "activeLabel": "Abonemaan da golli",
+      "balanceNote": "A sarana i xaalisi di. Xaalisi ya: {{balance}}.",
+      "buyAction": "Xobe",
+      "chooseHeading": "Suge i laawo",
+      "confirmAction": "Tirindi",
+      "confirmBody": "{{plan}} {{price}} di, a bogu i xaalisi di. I nta komisiyon sara xarisi {{days}} di.",
+      "confirmTitle": "Abonemaan tirindi",
+      "daysLeft": "Xarisi {{days}} do na",
+      "disabled": "Abonemaan nta yiga ya.",
+      "extendHeading": "A jaŋu",
+      "failTitle": "Xobe nta ñi",
+      "homeActive": "Komisiyon nta — xarisi {{days}} do na.",
+      "homeInactive": "Sara kille, ke ti 100% i sirankunu di.",
+      "inactiveLabel": "Abonemaan nta",
+      "lowBalanceBody": "Laawo ke ya {{price}}, i xaalisi ya {{balance}}. I xaalisi jaŋu, i ga xa ri.",
+      "lowBalanceTitle": "Xaalisi nta wuju",
+      "perkCommission": "Komisiyon nta i sirankunu di — i ti 100%.",
+      "perkOnline": "I na golli ren hari i xaalisi nta.",
+      "perkRides": "I na sirankunu wari i kanma, i n'a jaabi ko sahaan.",
+      "pitch": "Sara kille, ke ti fo",
+      "pitchDetail": "Abonemaan da na n'a, komisiyon nta bogu i sirankunu di. I ti 100% ke kiliyaan sara.",
+      "planDays": "Xarisi {{days}} komisiyon nta",
+      "plans": {
+        "month": "Kiide baane",
+        "week": "Lemine baane"
+      },
+      "successBody": "A ñi. Komisiyon nta bogu i sirankunu di ha i abonemaan xotu.",
+      "successTitle": "Abonemaan da golli",
+      "title": "Abonemaan",
+      "topupAction": "N xaalisi jaŋu",
+      "until": "Ha {{date}}"
     },
     "wallet": {
       "balance": "Solde wallet",
@@ -464,6 +496,7 @@
         "commission": "Commission",
         "commission_refund": "Yille",
         "manual_adjustment": "Ajustement",
+        "subscription": "Abonemaan",
         "topup": "Recharge"
       },
       "uploadReceipt": "Capture recharge faabu"

@@ -60,6 +60,13 @@ interface GoingHomeSession {
   expiresAt: string;
 }
 
+/** Le strict nécessaire pour la carte d'accroche — le détail vit sur son écran. */
+interface SubscriptionStatus {
+  enabled: boolean;
+  active: boolean;
+  current: { endsAt: string; daysLeft: number } | null;
+}
+
 export default function CaptainHome() {
   const router = useRouter();
   const { t, i18n } = useTranslation();
@@ -79,6 +86,9 @@ export default function CaptainHome() {
   // /captain/whatsapp-group). null = admin hasn't configured one → hide it.
   const [captainWhatsappUrl, setCaptainWhatsappUrl] = useState<string | null>(null);
   const [togglingGoingHome, setTogglingGoingHome] = useState(false);
+  // Abonnement Captain (migration 0089). null tant qu'on ne sait pas — la carte
+  // reste alors masquée plutôt que d'annoncer un état faux.
+  const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
 
   // Onboarding v3 : le captain est accepté sur deux papiers, puis complète son
   // profil (véhicule déclaré + vérifié, assurance, photo). Tant que ce n'est
@@ -89,11 +99,13 @@ export default function CaptainHome() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [walletRes, stateRes, ghRes] = await Promise.allSettled([
+      const [walletRes, stateRes, ghRes, subRes] = await Promise.allSettled([
         api.get<WalletSummary>('/captain/wallet'),
         api.get<StateRow>('/captain/state'),
         api.get<GoingHomeSession>('/captain/state/going-home'),
+        api.get<SubscriptionStatus>('/captain/subscription'),
       ]);
+      if (subRes.status === 'fulfilled') setSubscription(subRes.value.data);
       if (walletRes.status === 'fulfilled') setWallet(walletRes.value.data);
       if (stateRes.status === 'fulfilled') {
         setState(stateRes.value.data);
@@ -523,6 +535,47 @@ export default function CaptainHome() {
               <Icon name="chevron" size={22} color={colors.faint} />
             </Card>
           </FadeInView>
+
+          {/* Abonnement Captain (migration 0089). Masquée tant que l'admin ne
+              vend pas d'abonnement, ou tant qu'on n'a pas encore la réponse —
+              mieux vaut ne rien dire que d'annoncer un état faux. Une fois
+              abonné, la carte devient le rappel du temps restant. */}
+          {subscription?.enabled ? (
+            <FadeInView delay={48}>
+              <Card
+                onPress={() => router.push('/(app)/captain/subscription')}
+                padding={spacing.lg}
+                style={{
+                  marginTop: spacing.base, flexDirection: 'row', alignItems: 'center',
+                  gap: spacing.base,
+                  ...(subscription.active
+                    ? { borderWidth: 1, borderColor: colors.success }
+                    : null),
+                }}
+              >
+                <View style={{
+                  width: 50, height: 50, borderRadius: radius.md,
+                  backgroundColor: subscription.active ? colors.successSoft : colors.saffronSoft,
+                  alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Icon
+                    name={subscription.active ? 'check' : 'sparkle'}
+                    size={26}
+                    color={subscription.active ? colors.success : colors.warning}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <AppText variant="bodyStrong">{t('captain.subscription.title')}</AppText>
+                  <AppText variant="caption" color={colors.ink2} style={{ marginTop: 2 }}>
+                    {subscription.active && subscription.current
+                      ? t('captain.subscription.homeActive', { days: subscription.current.daysLeft })
+                      : t('captain.subscription.homeInactive')}
+                  </AppText>
+                </View>
+                <Icon name="chevron" size={22} color={colors.faint} />
+              </Card>
+            </FadeInView>
+          ) : null}
 
           {/* Captains-only WhatsApp group — a premium, on-brand invite card.
               Only rendered once the admin has configured the link. */}

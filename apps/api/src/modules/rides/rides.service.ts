@@ -17,7 +17,8 @@ import {
   notifyRiderRideAccepted,
 } from '../push/expo-push.js';
 import { applyBonusOnCompletion } from './commission-bonus.service.js';
-import { resolveFreeDayOnCompletion } from './free-days.service.js';
+import { isSubscriptionActive } from '../captain/subscription.service.js';
+import { resolveFreeDayOnCompletion, type FreeDayResolution } from './free-days.service.js';
 import { notifyCaptainBonusEarned, notifyCaptainFreeDays } from '../notifications/notifications.service.js';
 import type { RideStatus, RideType, PaymentMethod, RideSource } from '@tewiz/shared-types';
 import { clearLiveLocation } from '../captain/live-location.js';
@@ -1718,8 +1719,11 @@ export async function acceptRide(rideId: string, captainId: string) {
       }
 
       // Balance gate: captain cannot accept rides below the minimum threshold.
-      const balance = await getBalance(captainId);
-      if (balance < env.MIN_BALANCE_TO_GO_ONLINE_MRU) {
+      // Migration 0089 — sauf s'il est abonné : aucune commission ne sera
+      // prélevée sur cette course, il n'y a donc aucun solde à garantir.
+      const subscribed = await isSubscriptionActive(captainId, client);
+      const balance = await getBalance(captainId, client);
+      if (!subscribed && balance < env.MIN_BALANCE_TO_GO_ONLINE_MRU) {
         throw new HttpError(402, 'balance_too_low',
           `Solde insuffisant pour accepter une course (min ${env.MIN_BALANCE_TO_GO_ONLINE_MRU} MRU, actuel ${balance} MRU)`,
           { balance, minRequired: env.MIN_BALANCE_TO_GO_ONLINE_MRU });
@@ -2203,16 +2207,30 @@ export async function completeRide(input: CompleteInput) {
 
     const baseCommission = commissionMru(fareFinalMru, ride.commission_rate_bps);
 
+    // Abonnement Captain (migration 0089) : il a payé son forfait d'avance, il
+    // garde 100% de la course. C'est la dispense la plus forte des trois — elle
+    // passe avant le jour gratuit et avant le bonus, et elle rend les deux
+    // autres sans objet sur cette course.
+    const subscribed = await isSubscriptionActive(input.captainId, client);
+
     // Captain free day (migration 0086): the captain keeps the whole fare
     // today. Decided server-side — old app builds get it exactly the same.
     // Resolved before the bonus so a free ride never eats into the bonus
     // counter: the captain paid nothing, so nothing accumulates.
-    const freeDay = await resolveFreeDayOnCompletion(client, input.captainId);
+    //
+    // Sauté pour un abonné : le tirage sert à offrir des jours sans commission,
+    // or il n'en paie déjà aucune. Consommer un jour gratuit ici le gaspillerait
+    // — il le retrouvera intact quand son abonnement sera terminé.
+    const freeDay: FreeDayResolution = subscribed
+      ? { isFreeToday: false, newlyDrawn: [] }
+      : await resolveFreeDayOnCompletion(client, input.captainId);
 
     // Captain bonus (migration 0028): if the captain currently has an active
     // bonus, halve the commission; otherwise accumulate towards the threshold.
     // Runs inside the same tx so the wallet debit and bonus state stay aligned.
-    const bonus = freeDay.isFreeToday
+    // Même raison que pour le jour gratuit : un abonné ne paie rien, donc rien
+    // ne s'accumule vers son bonus. Son compteur l'attend, intact.
+    const bonus = subscribed || freeDay.isFreeToday
       ? { effectiveCommissionMru: 0, bonusApplied: false, bonusJustEarned: false, bonusUntil: null }
       : await applyBonusOnCompletion(client, input.captainId, baseCommission);
     const baselineCommission = bonus.effectiveCommissionMru;
@@ -2230,7 +2248,7 @@ export async function completeRide(input: CompleteInput) {
           enforceCancellationContext: true,
         })
       : null;
-    const commission = freeDay.isFreeToday
+    const commission = subscribed || freeDay.isFreeToday
       ? 0
       : gpsPenalty?.chargedCommissionMru ?? baselineCommission;
 
@@ -2280,6 +2298,7 @@ export async function completeRide(input: CompleteInput) {
               duration_s = $4,
               commission_bonus_applied = $5,
               commission_free_day = $10,
+              commission_subscription = $11,
               -- For open rides we write the last GPS point as the dropoff so
               -- the post-trip map / history still has a clean from→to to
               -- render. CASE-guarded so closed rides are untouched.
@@ -2302,6 +2321,7 @@ export async function completeRide(input: CompleteInput) {
         finalDropoff?.lat ?? null,
         finalDropoff ? 'Fin de course' : null,
         freeDay.isFreeToday,
+        subscribed,
       ],
     );
 

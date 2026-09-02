@@ -19,7 +19,7 @@ export interface CreditOptions {
 export interface DebitOptions {
   captainId: string;
   amountMru: number;             // POSITIVE integer; will be stored as negative
-  type: 'commission' | 'manual_adjustment' | 'carpooling_publication' | 'carpooling_commission' | 'car_rental_commission' | 'listing_publication';
+  type: 'commission' | 'manual_adjustment' | 'carpooling_publication' | 'carpooling_commission' | 'car_rental_commission' | 'listing_publication' | 'subscription';
   rideId?: string | null;
   reason?: string | null;
   createdBy?: string | null;
@@ -174,8 +174,14 @@ export async function getWalletSummary(captainId: string, limit = 20) {
 /**
  * Read-only: balance only (cheap).
  */
-export async function getBalance(captainId: string): Promise<number> {
-  const r = await pool.query<{ balance_mru: string }>(
+export async function getBalance(
+  captainId: string,
+  client?: pg.PoolClient,
+): Promise<number> {
+  // Passing `client` matters when the caller is already in a transaction that
+  // will debit this wallet (subscription purchase): the pool would hand back a
+  // second connection that cannot see the in-flight changes.
+  const r = await (client ?? pool).query<{ balance_mru: string }>(
     `SELECT balance_mru FROM wallets WHERE captain_id = $1`,
     [captainId],
   );
