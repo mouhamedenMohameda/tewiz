@@ -21,3 +21,6 @@ packages/shared-types/src/*.js
 # Signing keystores — never commit (losing one is unrecoverable, leaking one is worse)
 *.jks
 *.keystore
+
+# Visuels pub (sources + rendus) : local uniquement
+ads/
