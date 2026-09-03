@@ -45,6 +45,8 @@ interface Status {
   enabled: boolean;
   active: boolean;
   current: Current | null;
+  /** Le serveur dit si l'achat est ouvert ; l'écran ne recalcule pas la règle. */
+  canPurchase: boolean;
   plans: PlanOffer[];
   balanceMru: number;
 }
@@ -152,12 +154,33 @@ export default function SubscriptionScreen() {
         <AppText variant="body" color={colors.muted} style={{ marginTop: spacing.xxl }}>
           {t('captain.subscription.disabled')}
         </AppText>
+      ) : s && !s.canPurchase ? (
+        // Un abonnement à la fois : tant que celui-ci court, rien n'est en
+        // vente. Le serveur refuse de toute façon (409 subscription_active) ;
+        // on ne montre pas un bouton qui ne peut mener qu'à une erreur.
+        <AppText variant="body" color={colors.muted} style={{ marginTop: spacing.xxl }}>
+          {t('captain.subscription.alreadyActive', {
+            date: s.current
+              ? new Date(s.current.endsAt).toLocaleString(i18n.language, {
+                  dateStyle: 'long', timeStyle: 'short',
+                })
+              : '',
+          })}
+        </AppText>
       ) : (
         <>
+          {/* Dernières 24 h : les formules reviennent, mais on dit que la
+              période achetée se colle au reliquat — sinon « acheter alors que
+              je suis encore abonné » ressemble à des jours perdus. */}
           <AppText variant="overline" color={colors.muted}
             style={{ marginTop: spacing.xxl, marginBottom: spacing.sm }}>
-            {s?.active ? t('captain.subscription.extendHeading') : t('captain.subscription.chooseHeading')}
+            {s?.active ? t('captain.subscription.renewHeading') : t('captain.subscription.chooseHeading')}
           </AppText>
+          {s?.active ? (
+            <AppText variant="caption" color={colors.muted} style={{ marginBottom: spacing.sm }}>
+              {t('captain.subscription.renewNote')}
+            </AppText>
+          ) : null}
 
           <View style={{ gap: spacing.sm }}>
             {(s?.plans ?? []).map((p) => (

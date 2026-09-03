@@ -421,6 +421,7 @@
     },
     "subscription": {
       "activeLabel": "Abonemaan da golli",
+      "alreadyActive": "An da abonemaan yigan wure. An ga ñi kille an ga a kutte 24 waati ni a ga ban, {{date}}.",
       "balanceNote": "A sarana i xaalisi di. Xaalisi ya: {{balance}}.",
       "buyAction": "Xobe",
       "chooseHeading": "Suge i laawo",
@@ -429,7 +430,6 @@
       "confirmTitle": "Abonemaan tirindi",
       "daysLeft": "Xarisi {{days}} do na",
       "disabled": "Abonemaan nta yiga ya.",
-      "extendHeading": "A jaŋu",
       "failTitle": "Xobe nta ñi",
       "homeActive": "Komisiyon nta — xarisi {{days}} do na.",
       "homeInactive": "Sara kille, ke ti 100% i sirankunu di.",
@@ -446,6 +446,8 @@
         "month": "Kiide baane",
         "week": "Lemine baane"
       },
+      "renewHeading": "A kutte",
+      "renewNote": "An abonemaan ga ban kanma. Kille ke an ga soodi ya, i ga ɲemene kille ke ga toxo an ma.",
       "successBody": "A ñi. Komisiyon nta bogu i sirankunu di ha i abonemaan xotu.",
       "successTitle": "Abonemaan da golli",
       "title": "Abonemaan",

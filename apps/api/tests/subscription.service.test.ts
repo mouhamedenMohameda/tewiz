@@ -57,32 +57,38 @@ function settings(over: Record<string, unknown> = {}) {
 
 /**
  * Un faux `captain_subscriptions` qui n'implémente que ce dont le service se
- * sert : la lecture de l'abonnement en cours, et l'INSERT qui repart de la
- * date de fin la plus lointaine. `existingEnd` est ce que la table contient
- * avant l'achat.
+ * sert : le verrou sur la ligne `captains`, la lecture de l'abonnement en
+ * cours, et l'INSERT. `existingEnd` est ce que la table contient avant l'achat.
  */
 function fakeClient(existingEnd: Date | null) {
   const inserted: Array<{ plan: string; days: number; price: number; startsAt: Date; endsAt: Date }> = [];
+  const active = existingEnd && existingEnd > new Date() ? existingEnd : null;
   const client = {
     inserted,
     query: vi.fn(async (sql: unknown, p: any[] = []) => {
       const text = String(sql);
 
-      if (/^\s*SELECT id FROM captain_subscriptions/i.test(text)) {
-        return { rows: existingEnd ? [{ id: 'sub-old' }] : [], rowCount: existingEnd ? 1 : 0 };
+      if (/FROM captains WHERE user_id/i.test(text)) {
+        return { rows: [{ '?column?': 1 }], rowCount: 1 };
+      }
+
+      if (/SELECT ends_at FROM captain_subscriptions/i.test(text)) {
+        return active
+          ? { rows: [{ ends_at: active }], rowCount: 1 }
+          : { rows: [], rowCount: 0 };
       }
 
       if (/SELECT id, plan, starts_at, ends_at/i.test(text)) {
-        return existingEnd
-          ? { rows: [{ id: 'sub-old', plan: 'week', starts_at: new Date(0), ends_at: existingEnd }], rowCount: 1 }
+        return active
+          ? { rows: [{ id: 'sub-old', plan: 'week', starts_at: new Date(0), ends_at: active }], rowCount: 1 }
           : { rows: [], rowCount: 0 };
       }
 
       if (/INSERT INTO captain_subscriptions/i.test(text)) {
-        const [, plan, days, price] = p;
-        // C'est ici que se joue la prolongation : on démarre à la fin de
-        // l'abonnement en cours quand il y en a un, sinon maintenant.
-        const startsAt = existingEnd && existingEnd > new Date() ? existingEnd : new Date();
+        const [, plan, days, price, , startParam] = p;
+        // GREATEST(now(), $6) : un renouvellement de dernière minute se colle
+        // au reliquat, un premier achat part de maintenant.
+        const startsAt = startParam && startParam > new Date() ? startParam : new Date();
         const endsAt = new Date(startsAt.getTime() + days * DAY_MS);
         inserted.push({ plan, days, price: Number(price), startsAt, endsAt });
         return { rows: [{ id: 'sub-new', plan, starts_at: startsAt, ends_at: endsAt }], rowCount: 1 };
@@ -154,13 +160,32 @@ describe('l\'achat', () => {
     expect(client.inserted[0]).toMatchObject({ plan: 'month', days: 30, price: 5000 });
   });
 
-  it('prolonge un abonnement en cours au lieu de le remplacer', async () => {
-    // Il reste 3 jours ; acheter une semaine doit mener à 3 + 7 jours, pas à 7.
-    const inThreeDays = new Date(Date.now() + 3 * DAY_MS);
-    const { result } = await buy('week', inThreeDays, 10_000);
+  it('refuse un second abonnement tant qu\'il reste plus de 24 h', async () => {
+    // Il reste 3 jours : rien n'est en vente, et le wallet n'est pas touché.
+    const client = fakeClient(new Date(Date.now() + 3 * DAY_MS));
+    withTxMock.mockImplementation((fn: any) => fn(client));
+    balanceMock.mockResolvedValue(10_000);
+    await expect(purchaseSubscription(CAPTAIN, 'week'))
+      .rejects.toMatchObject({ code: 'subscription_active' });
+    expect(debitMock).not.toHaveBeenCalled();
+    expect(client.inserted).toHaveLength(0);
+  });
+
+  it('laisse renouveler dans les dernières 24 h, en gardant le reliquat', async () => {
+    // Il reste 6 heures ; acheter une semaine doit mener à 6 h + 7 jours.
+    const inSixHours = new Date(Date.now() + DAY_MS / 4);
+    const { result } = await buy('week', inSixHours, 10_000);
     const daysFromNow = (new Date(result.endsAt).getTime() - Date.now()) / DAY_MS;
-    expect(daysFromNow).toBeGreaterThan(9.9);
-    expect(daysFromNow).toBeLessThan(10.1);
+    expect(daysFromNow).toBeGreaterThan(7.2);
+    expect(daysFromNow).toBeLessThan(7.3);
+  });
+
+  it('laisse racheter une fois l\'abonnement précédent expiré', async () => {
+    const yesterday = new Date(Date.now() - DAY_MS);
+    const { result } = await buy('week', yesterday, 10_000);
+    const daysFromNow = (new Date(result.endsAt).getTime() - Date.now()) / DAY_MS;
+    expect(daysFromNow).toBeGreaterThan(6.9);
+    expect(daysFromNow).toBeLessThan(7.1);
   });
 
   it('refuse et ne touche pas au wallet quand le solde ne suffit pas', async () => {

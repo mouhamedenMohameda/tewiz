@@ -497,6 +497,7 @@
     },
     "subscription": {
       "activeLabel": "Abonnement actif",
+      "alreadyActive": "Vous avez déjà un abonnement en cours. Vous pourrez le renouveler dans les 24 heures qui précèdent sa fin, le {{date}}.",
       "balanceNote": "Payé depuis votre wallet. Solde actuel : {{balance}}.",
       "buyAction": "Acheter",
       "chooseHeading": "Choisissez votre formule",
@@ -505,7 +506,6 @@
       "confirmTitle": "Confirmer l'abonnement",
       "daysLeft": "Encore {{days}} jour(s)",
       "disabled": "L'abonnement n'est pas disponible pour le moment.",
-      "extendHeading": "Prolonger",
       "failTitle": "Achat impossible",
       "homeActive": "Aucune commission — encore {{days}} jour(s).",
       "homeInactive": "Payez une fois, gardez 100% de vos courses.",
@@ -522,6 +522,8 @@
         "month": "1 mois",
         "week": "1 semaine"
       },
+      "renewHeading": "Renouveler",
+      "renewNote": "Votre abonnement se termine bientôt. Les jours achetés maintenant s'ajoutent à ceux qui vous restent.",
       "successBody": "C'est fait. Aucune commission ne sera prélevée sur vos courses jusqu'à la fin de votre abonnement.",
       "successTitle": "Abonnement activé",
       "title": "Abonnement",

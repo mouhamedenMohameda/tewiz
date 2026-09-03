@@ -421,6 +421,7 @@
     },
     "subscription": {
       "activeLabel": "Jokkondiral ina golla",
+      "alreadyActive": "A jogii jokkondiral ngal woni jooni. A waawi hesɗitinde ngal e nder waktuuji 24 adotooɗi gasgol maggal, {{date}}.",
       "balanceNote": "Yoɓetee e kaalis maa. Kaalis jooni: {{balance}}.",
       "buyAction": "Soodu",
       "chooseHeading": "Suɓo laawol maa",
@@ -429,7 +430,6 @@
       "confirmTitle": "Teeŋtin jokkondiral",
       "daysLeft": "Ina heddii ñalɗi {{days}}",
       "disabled": "Jokkondiral ngal alaa jooni.",
-      "extendHeading": "Ɓeydu",
       "failTitle": "Soodgol waawaa",
       "homeActive": "Alaa komisiyon — ina heddii ñalɗi {{days}}.",
       "homeInactive": "Yoɓ laawol gootol, heɓ 100% e dogle maa.",
@@ -446,6 +446,8 @@
         "month": "Lewru wootere",
         "week": "Yontere gootere"
       },
+      "renewHeading": "Hesɗitin",
+      "renewNote": "Jokkondiral maa maaya ko juuti. Ñalɗi ɗi soodɗaa jooni ɓeydete e ɗi keddiiɗi maa.",
       "successBody": "Gasii. Komisiyon woo ittetaake e dogle maa haa jokkondiral maa gasa.",
       "successTitle": "Jokkondiral ina golla",
       "title": "Jokkondiral",

@@ -485,6 +485,7 @@
     },
     "subscription": {
       "activeLabel": "Subscription active",
+      "alreadyActive": "You already have an active subscription. You can renew it during the 24 hours before it ends, on {{date}}.",
       "balanceNote": "Paid from your wallet. Current balance: {{balance}}.",
       "buyAction": "Buy",
       "chooseHeading": "Choose your plan",
@@ -493,7 +494,6 @@
       "confirmTitle": "Confirm subscription",
       "daysLeft": "{{days}} day(s) left",
       "disabled": "Subscriptions are not available right now.",
-      "extendHeading": "Extend",
       "failTitle": "Purchase failed",
       "homeActive": "No commission — {{days}} day(s) left.",
       "homeInactive": "Pay once, keep 100% of your rides.",
@@ -510,6 +510,8 @@
         "month": "1 month",
         "week": "1 week"
       },
+      "renewHeading": "Renew",
+      "renewNote": "Your subscription ends soon. Days bought now are added to the days you have left.",
       "successBody": "Done. No commission will be taken from your rides until your subscription ends.",
       "successTitle": "Subscription active",
       "title": "Subscription",

@@ -421,6 +421,7 @@
     },
     "subscription": {
       "activeLabel": "Abonman bi dafa dox",
+      "alreadyActive": "Am nga abonman bu doxe. Man nga koy yeesal ci 24 waxtu yi jiitu jeexit gi, {{date}}.",
       "balanceNote": "Ñu koy fay ci sa portmone. Xaalis bi léegi: {{balance}}.",
       "buyAction": "Jënd",
       "chooseHeading": "Tannal sa formil",
@@ -429,7 +430,6 @@
       "confirmTitle": "Dëggal abonman bi",
       "daysLeft": "Des na {{days}} fan",
       "disabled": "Abonman bi amul léegi.",
-      "extendHeading": "Yokk",
       "failTitle": "Jënd bi antuwul",
       "homeActive": "Amul komisiyon — des na {{days}} fan.",
       "homeInactive": "Fay benn yoon, jël 100% ci say tukki.",
@@ -446,6 +446,8 @@
         "month": "Benn weer",
         "week": "Benn ayubés"
       },
+      "renewHeading": "Yeesal",
+      "renewNote": "Sa abonman dina jeex léegi. Fan yi nga jënd léegi dañu yokku ci yi la des.",
       "successBody": "Baax na. Duñu jëlati benn komisiyon ci say tukki ba sa abonman jeex.",
       "successTitle": "Abonman bi dafa dox",
       "title": "Abonman",

@@ -18,9 +18,19 @@
  *   déjà. Débit et reçu sont écrits dans la même transaction : soit les deux,
  *   soit aucun.
  *
- * PROLONGER PLUTÔT QUE REMPLACER
- *   Acheter pendant qu'un abonnement court fait démarrer le nouveau à la fin
- *   de l'actuel. Un Captain ne perd jamais des jours qu'il a payés.
+ * UN SEUL ABONNEMENT À LA FOIS, SAUF LE DERNIER JOUR
+ *   Tant qu'un abonnement court, le Captain ne peut pas en acheter un autre :
+ *   l'achat est refusé (409 `subscription_active`). Il ne peut donc pas
+ *   empiler des périodes ni immobiliser son solde dans des jours qu'il
+ *   n'utilisera que bien plus tard.
+ *
+ *   L'exception est la dernière journée : dans les 24 h qui précèdent la fin,
+ *   le renouvellement est ouvert, et la nouvelle période démarre à la fin de
+ *   l'actuelle. Le Captain garde ainsi ses derniers jours payés ET ne subit
+ *   aucune coupure de commission entre les deux.
+ *
+ *   Le cadeau admin (`grantSubscription`) reste, lui, une prolongation sans
+ *   condition : c'est un geste commercial, pas un achat.
  *
  * PRIX FIGÉS À L'ACHAT
  *   `days` et `price_mru` sont copiés dans la ligne au moment de l'achat. Si
@@ -45,6 +55,13 @@ const PLAN_DAYS: Record<SubscriptionPlan, number> = {
 };
 
 const DAY_MS = 86_400_000;
+
+/**
+ * Fenêtre de renouvellement : le rachat rouvre quand il reste moins que ça.
+ * Une journée, parce qu'un Captain qui voit « encore 1 jour » doit pouvoir
+ * agir tout de suite plutôt que d'attendre l'expiration pour se réabonner.
+ */
+const RENEW_WINDOW_MS = DAY_MS;
 
 /** Une formule telle qu'elle est proposée à la vente, prix admin compris. */
 export interface SubscriptionPlanOffer {
@@ -74,9 +91,24 @@ export interface SubscriptionStatus {
   /** LA question : la commission est-elle désactivée pour ce Captain ? */
   active: boolean;
   current: ActiveSubscription | null;
+  /**
+   * Le Captain peut-il acheter en ce moment ? Faux quand un abonnement court
+   * encore et qu'on est à plus de 24 h de sa fin — le mobile n'affiche alors
+   * aucune formule plutôt qu'un bouton qui ne peut mener qu'à une erreur.
+   */
+  canPurchase: boolean;
   /** Les formules en vente. Une formule à prix 0 n'y figure pas. */
   plans: SubscriptionPlanOffer[];
   balanceMru: number;
+}
+
+/**
+ * Le rachat est-il ouvert ? Oui sans abonnement en cours, oui dans les
+ * dernières 24 h, non le reste du temps. C'est la seule règle, et les deux
+ * endroits qui s'en servent (statut mobile, achat) lisent la même fonction.
+ */
+function canPurchaseNow(endsAt: Date | null): boolean {
+  return endsAt === null || endsAt.getTime() - Date.now() <= RENEW_WINDOW_MS;
 }
 
 /** Jours entiers restants avant `endsAt`, au moins 1 tant qu'il reste du temps. */
@@ -175,6 +207,8 @@ export async function getSubscriptionStatus(captainId: string): Promise<Subscrip
     enabled: settings.subscriptionEnabled,
     active: settings.subscriptionEnabled && current !== null,
     current,
+    canPurchase: settings.subscriptionEnabled
+      && canPurchaseNow(current ? new Date(current.endsAt) : null),
     plans,
     balanceMru,
   };
@@ -185,13 +219,15 @@ export async function getSubscriptionStatus(captainId: string): Promise<Subscrip
  * transaction.
  *
  * L'ordre compte :
- *   1. On verrouille les lignes d'abonnement du Captain, pour que deux taps
- *      simultanés sur « Acheter » ne puissent pas lui vendre deux abonnements.
+ *   1. On verrouille le Captain, puis on refuse s'il a un abonnement qui court
+ *      encore à plus de 24 h de sa fin. Le verrou fait que deux taps
+ *      simultanés ne peuvent pas passer tous les deux : le second lit la ligne
+ *      écrite par le premier et repart avec `subscription_active`.
  *   2. On relit le prix depuis les réglages — jamais depuis le corps de la
  *      requête. Le mobile propose, le serveur facture.
  *   3. On débite (le débit refuse tout seul si le solde ne suffit pas).
- *   4. On écrit le reçu, en partant de la fin de l'abonnement en cours quand
- *      il y en a un.
+ *   4. On écrit le reçu. Il démarre à la fin de l'abonnement en cours quand
+ *      c'est un renouvellement de dernière minute, sinon maintenant.
  */
 export async function purchaseSubscription(
   captainId: string,
@@ -209,15 +245,28 @@ export async function purchaseSubscription(
   }
 
   return withTx(async (client) => {
-    // 1. Sérialise les achats du même Captain. Le verrou porte sur ses lignes
-    //    d'abonnement : un second tap attend ici, puis repart de l'état écrit
-    //    par le premier — donc il prolonge au lieu de dupliquer.
-    await client.query(
-      `SELECT id FROM captain_subscriptions
+    // 1. Sérialise les achats du même Captain, puis refuse s'il est déjà
+    //    abonné. Le verrou porte sur la ligne `captains` et non sur les
+    //    abonnements : un Captain qui n'en a encore aucun n'a aucune ligne à
+    //    verrouiller, et deux taps simultanés passeraient tous les deux. Ici
+    //    le second attend, puis relit et voit ce que le premier a inséré.
+    await client.query(`SELECT 1 FROM captains WHERE user_id = $1 FOR UPDATE`, [captainId]);
+
+    const { rows: active } = await client.query<{ ends_at: Date }>(
+      `SELECT ends_at FROM captain_subscriptions
         WHERE captain_id = $1 AND ends_at > now()
-        FOR UPDATE`,
+        ORDER BY ends_at DESC
+        LIMIT 1`,
       [captainId],
     );
+    const currentEnd = active[0]?.ends_at ?? null;
+    if (!canPurchaseNow(currentEnd)) {
+      const endsAt = currentEnd!;
+      throw new HttpError(409, 'subscription_active',
+        `Vous avez déjà un abonnement en cours (${daysLeft(endsAt)} jour(s) restants). `
+        + "Vous pourrez le renouveler dans les 24 heures qui précèdent sa fin.",
+        { endsAt: endsAt.toISOString(), daysLeft: daysLeft(endsAt) });
+    }
 
     // 2. Solde. On vérifie avant de débiter pour renvoyer une erreur que le
     //    mobile sait transformer en « Rechargez d'abord votre wallet ».
@@ -237,20 +286,15 @@ export async function purchaseSubscription(
     }, client);
 
     // 4. Reçu. `GREATEST(now(), fin de l'abonnement en cours)` est ce qui fait
-    //    que la nouvelle période se colle à l'ancienne au lieu de l'écraser.
+    //    qu'un renouvellement de dernière minute se colle au reliquat au lieu
+    //    de l'effacer. Sans abonnement en cours, la période part de maintenant.
     const { rows } = await client.query<SubscriptionRow>(
       `INSERT INTO captain_subscriptions
          (captain_id, plan, days, price_mru, starts_at, ends_at, source, wallet_tx_id)
        SELECT $1, $2, $3, $4, start_at, start_at + make_interval(days => $3), 'captain', $5
-         FROM (
-           SELECT COALESCE(
-             (SELECT MAX(ends_at) FROM captain_subscriptions
-               WHERE captain_id = $1 AND ends_at > now()),
-             now()
-           ) AS start_at
-         ) s
+         FROM (SELECT GREATEST(now(), COALESCE($6::timestamptz, now())) AS start_at) s
        RETURNING id, plan, starts_at, ends_at`,
-      [captainId, plan, offer.days, offer.priceMru, debit.transactionId],
+      [captainId, plan, offer.days, offer.priceMru, debit.transactionId, currentEnd],
     );
     return shape(rows[0]!);
   });
