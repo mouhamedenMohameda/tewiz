@@ -25,6 +25,7 @@ import { useApiQuery } from '@/lib/useApiQuery';
 import { formatMru } from '@/lib/format';
 import { AppText, Button, Card, Icon, Screen, ScreenHeader } from '@/components/ui';
 import { colors, gradients, radius, spacing } from '@/theme';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 type Plan = 'week' | 'month';
 
@@ -49,6 +50,7 @@ interface Status {
 }
 
 export default function SubscriptionScreen() {
+  useThemeRepaint();
   const router = useRouter();
   const { t, i18n } = useTranslation();
   // Quelle formule est en cours d'achat — sert à ne faire tourner le spinner

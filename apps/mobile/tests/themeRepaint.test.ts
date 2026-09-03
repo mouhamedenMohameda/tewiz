@@ -46,6 +46,6 @@ describe('useThemeRepaint dans chaque route', () => {
     // l'abonnement saute précisément dans les rendus où l'écran ne fait rien
     // d'autre — et un hook conditionnel casserait l'ordre des hooks.
     const component = /export default function \w+\([^)]*\) \{\n(.*)\n/.exec(src);
-    expect(component?.[1].trim()).toBe('useThemeRepaint();');
+    expect(component?.[1]?.trim()).toBe('useThemeRepaint();');
   });
 });
