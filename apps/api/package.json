@@ -25,7 +25,8 @@
     "export:translations": "tsx scripts/export-translations.ts",
     "fetch:food-pois": "tsx scripts/fetch-food-pois.ts",
     "clean:test-captain": "tsx scripts/clean-test-captain.ts",
-    "clean:test-rider": "tsx scripts/clean-test-rider.ts"
+    "clean:test-rider": "tsx scripts/clean-test-rider.ts",
+    "reset:password": "tsx scripts/reset-password.ts"
   },
   "dependencies": {
     "@devicefarmer/adbkit-apkreader": "^3.2.4",
