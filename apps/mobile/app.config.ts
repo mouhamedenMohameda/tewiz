@@ -175,8 +175,70 @@ const config: ExpoConfig = {
       'expo-build-properties',
       {
         android: {
-          extractNativeLibs: true,
-          useLegacyPackaging: true,
+          // R8 : sans ces deux drapeaux, le build release ne minifie ni
+          // n'obscurcit RIEN. La Play Console le remonte noir sur blanc dans
+          // l'app bundle explorer : "Optimisation de l'appli : Faible",
+          // "Pourcentage d'obscurcissement : 1 %", "minification : -".
+          // Résultat : DEX plus gros et démarrage plus lent que nécessaire.
+          //
+          // `enableShrinkResourcesInReleaseBuilds` supprime en plus les
+          // ressources (drawables, layouts, strings) devenues inatteignables
+          // après le passage de R8 — il EXIGE la minification, d'où le couple.
+          enableMinifyInReleaseBuilds: true,
+          enableShrinkResourcesInReleaseBuilds: true,
+
+          // R8 élimine ce qu'il ne voit pas référencé statiquement. Tout ce qui
+          // est résolu par RÉFLEXION à l'exécution doit donc être protégé
+          // explicitement, sinon l'app compile parfaitement et crashe au
+          // premier écran (ClassNotFoundException / NoSuchMethodError) — le
+          // mode de panne classique quand on active R8 sur un projet RN.
+          extraProguardRules: `
+# --- Expo ---
+# Les modules natifs Expo sont instanciés par réflexion via la liste générée
+# ExpoModulesPackageList ; sans ce keep, expo-location / expo-notifications /
+# expo-secure-store & co. disparaissent du binaire.
+-keep class expo.modules.** { *; }
+-keep class **.ExpoModulesPackageList { *; }
+
+# --- Mapbox ---
+# Le SDK natif charge des classes par nom (styles, sources, layers).
+-keep class com.mapbox.** { *; }
+-dontwarn com.mapbox.**
+
+# --- Notifee (notifications riches / full-screen intent) ---
+-keep class app.notifee.** { *; }
+
+# --- Sentry ---
+# Sans SourceFile/LineNumberTable les stack traces remontées sont illisibles.
+-keepattributes SourceFile,LineNumberTable
+-keep class io.sentry.** { *; }
+-dontwarn io.sentry.**
+
+# --- Réflexion générale (RN bridge, annotations, génériques) ---
+-keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod
+
+# react-native-reanimated / worklets
+-keep class com.swmansion.reanimated.** { *; }
+-keep class com.swmansion.worklets.** { *; }
+-keep class com.facebook.react.turbomodule.** { *; }
+`,
+
+          // Packaging des bibliothèques natives (.so).
+          //
+          // ÉTAIT à `true` (+ un `extractNativeLibs: true` qui, lui, n'existe
+          // même pas dans le schéma d'expo-build-properties et était donc
+          // ignoré en silence). Le mode "legacy" compresse les .so dans l'APK
+          // et Android doit les DÉCOMPRESSER sur le disque à l'installation :
+          // l'app occupe deux fois la place et chaque démarrage passe par le
+          // chargeur legacy au lieu du mappage mémoire direct.
+          //
+          // À `false` (le défaut d'AGP depuis la 4.2, et ce que Google
+          // recommande dès minSdk 23) les .so restent alignés et non
+          // compressés : chargement mappé en mémoire, démarrage plus rapide,
+          // moitié moins d'espace disque. L'AAB pèse un peu plus lourd sur le
+          // papier, mais Play recompresse pour la livraison — le téléchargement
+          // réel ne bouge quasiment pas.
+          useLegacyPackaging: false,
         },
       },
     ],
