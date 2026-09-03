@@ -17,6 +17,7 @@ import { MapShell } from '@/components/MapShell';
 import {
   RoadReportButton, RoadReportMarkers, useRoadReports,
 } from '@/components/RoadReports';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 // Voice-to-location (automated) removed in Phase 2 — voice ordering now lives
 // in the dedicated record→wait flow at /(app)/rider/voice-ride. This screen is
 // the manual map picker.
@@ -59,6 +60,7 @@ function parsePoint(
 }
 
 export default function NewRideScreen() {
+  useThemeRepaint();
   const router = useRouter();
   const { t } = useTranslation();
   const M = getMapbox();

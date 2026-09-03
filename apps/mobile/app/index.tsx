@@ -1,8 +1,10 @@
 import { ActivityIndicator, View } from 'react-native';
 import { Redirect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 export default function Entry() {
+  useThemeRepaint();
   const hydrated = useAuth((s) => s.hydrated);
   const user = useAuth((s) => s.user);
 

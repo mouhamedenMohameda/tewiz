@@ -14,6 +14,7 @@ import {
 } from '@/lib/voiceRides';
 import { AppText, Button, Icon } from '@/components/ui';
 import { colors, gradients, radius, spacing } from '@/theme';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 type Phase = 'record' | 'uploading' | 'waiting' | 'rejected';
 
@@ -46,6 +47,7 @@ function stepIndexForElapsed(elapsedMs: number): number {
 }
 
 export default function VoiceRideScreen() {
+  useThemeRepaint();
   const router = useRouter();
   const { t } = useTranslation();
 

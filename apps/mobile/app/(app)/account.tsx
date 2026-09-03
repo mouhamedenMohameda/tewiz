@@ -17,8 +17,10 @@ import { useAuth } from '@/lib/auth';
 import { AppText, Button, Icon, Screen, ScreenHeader } from '@/components/ui';
 import { colors, radius, shadow, spacing } from '@/theme';
 import { APP_NAME } from '@/lib/brand';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 export default function AccountScreen() {
+  useThemeRepaint();
   const router = useRouter();
   const { t } = useTranslation();
   const user = useAuth((s) => s.user);

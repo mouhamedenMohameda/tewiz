@@ -12,8 +12,10 @@ import { formatMru } from '@/lib/format';
 import { fetchRestaurantById, type MenuItem, type Restaurant } from '@/lib/restaurants';
 import { resolveRestaurantCover } from '@/lib/restaurantPhotos';
 import { wrapRow } from '@/components/ui';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 export default function RestaurantDetailScreen() {
+  useThemeRepaint();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { t, i18n } = useTranslation();

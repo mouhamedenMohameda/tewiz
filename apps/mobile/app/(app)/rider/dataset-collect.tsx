@@ -49,6 +49,7 @@ import {
   type DatasetSample, type PoiOption, type Scenario, type ScenarioNoise,
   type ScenarioStructure,
 } from '@/lib/voiceDataset';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 type Phase = 'brief' | 'annotate' | 'uploading' | 'transcripts';
 
@@ -108,6 +109,7 @@ const GENDERS = ['f', 'm', 'other'] as const;
 const AGE_BANDS = ['18_25', '26_40', '41_60', '60_plus'] as const;
 
 export default function DatasetCollectScreen() {
+  useThemeRepaint();
   const router = useRouter();
   const { t } = useTranslation();
 

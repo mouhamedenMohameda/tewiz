@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import { formatMru } from '@/lib/format';
 import { AppText, Button, Card, Icon, Screen, ScreenHeader } from '@/components/ui';
 import { colors, radius, spacing } from '@/theme';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 type RecurringStatus = 'proposed' | 'active' | 'paused' | 'cancelled' | 'expired';
 
@@ -31,6 +32,7 @@ function decodeDays(bitmap: number): string {
 }
 
 export default function RecurringScreen() {
+  useThemeRepaint();
   const router = useRouter();
   const { t } = useTranslation();
   const [items, setItems] = useState<Recurring[]>([]);

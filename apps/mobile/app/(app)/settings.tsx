@@ -33,6 +33,7 @@ import {
 } from '@/lib/themePreference';
 import { colors, radius, shadow, spacing, statusTone } from '@/theme';
 import { APP_NAME } from '@/lib/brand';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 const SUPPORT_WHATSAPP = '22233322777';
 
@@ -44,6 +45,7 @@ interface CaptainPreferences {
 type CaptainPrefKey = keyof CaptainPreferences;
 
 export default function SettingsScreen() {
+  useThemeRepaint();
   const router = useRouter();
   const { t } = useTranslation();
   const user = useAuth((s) => s.user);

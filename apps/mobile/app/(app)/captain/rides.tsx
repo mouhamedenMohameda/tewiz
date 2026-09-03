@@ -21,6 +21,7 @@ import {
 } from '@/components/ui';
 import { colors, radius, spacing, statusTone } from '@/theme';
 import { wrapRow } from '@/components/ui';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 // Note: the new-ride alert (modal + ringing) is handled globally by
 // <CaptainRideWatcher /> mounted in the captain layout, so this screen
@@ -152,6 +153,7 @@ function useOpenRideMeterPinger(ride: Ride | null) {
 }
 
 export default function RidesScreen() {
+  useThemeRepaint();
   const router = useRouter();
   const { t } = useTranslation();
   const [current, setCurrent] = useState<Ride | null>(null);

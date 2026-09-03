@@ -20,10 +20,12 @@ import { useAppConfig } from '@/lib/appConfig';
 import { colors, radius, shadow, spacing } from '@/theme';
 import { AppText, Button, FadeInView, Icon, TextField } from '@/components/ui';
 import { APP_NAME } from '@/lib/brand';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 const DEVICE_ID_FALLBACK = 'unknown-device';
 
 export default function LoginScreen() {
+  useThemeRepaint();
   const router = useRouter();
   const { t } = useTranslation();
   const setSession = useAuth((s) => s.setSession);

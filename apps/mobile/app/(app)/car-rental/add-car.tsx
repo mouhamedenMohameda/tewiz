@@ -10,8 +10,10 @@ import {
 } from '@/lib/carRental';
 import { AppText, Button, Card, Icon, ScreenHeader, TextField } from '@/components/ui';
 import { colors, radius, spacing } from '@/theme';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 export default function AddCarScreen() {
+  useThemeRepaint();
   const router = useRouter();
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id?: string }>();

@@ -10,8 +10,10 @@ import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors } from '@/theme';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 export default function LegacyCodeScreen() {
+  useThemeRepaint();
   const router = useRouter();
   useEffect(() => {
     router.replace('/(auth)/phone');

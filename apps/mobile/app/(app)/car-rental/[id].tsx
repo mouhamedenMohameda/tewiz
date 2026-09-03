@@ -9,6 +9,7 @@ import { formatMru } from '@/lib/format';
 import { AppText, Button, Card, DateField, Icon, ScreenHeader } from '@/components/ui';
 import { colors, radius, spacing } from '@/theme';
 import { wrapRow } from '@/components/ui';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 function dayCount(start: string, end: string): number {
   if (!start || !end) return 0;
@@ -23,6 +24,7 @@ function todayISO(): string {
 }
 
 export default function CarDetailScreen() {
+  useThemeRepaint();
   const router = useRouter();
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();

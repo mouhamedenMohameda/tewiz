@@ -20,6 +20,7 @@ import { useAppConfig } from '@/lib/appConfig';
 import { openWhatsAppChat, openWhatsAppLink } from '@/lib/whatsapp';
 import type { AppModule } from '@/lib/modules';
 import type { ApplicationDto, ApplicationStatus } from '@/lib/kyc';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 type RideStatus =
   | 'pending_passenger_confirm' | 'searching'
@@ -35,6 +36,7 @@ interface CurrentRide {
 type Intent = 'voice' | 'map' | 'captain';
 
 export default function RiderHome() {
+  useThemeRepaint();
   const router = useRouter();
   const { t } = useTranslation();
   const user = useAuth((s) => s.user);

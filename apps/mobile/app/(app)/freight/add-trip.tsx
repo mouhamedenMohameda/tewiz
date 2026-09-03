@@ -6,10 +6,12 @@ import { useTranslation } from 'react-i18next';
 import { createTrip, getTrip, updateTrip } from '@/lib/freight';
 import { AppText, Button, Card, DateField, ScreenHeader, TextField } from '@/components/ui';
 import { colors, spacing } from '@/theme';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 function todayISO(): string { return new Date().toISOString().slice(0, 10); }
 
 export default function AddTripScreen() {
+  useThemeRepaint();
   const router = useRouter();
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id?: string }>();

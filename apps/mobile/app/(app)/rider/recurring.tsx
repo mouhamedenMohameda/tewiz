@@ -10,6 +10,7 @@ import { api } from '@/lib/api';
 import { useApiQuery } from '@/lib/useApiQuery';
 import { formatMru } from '@/lib/format';
 import { colors, radius, schemed, statusTone } from '@/theme';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 type RecurringStatus = 'proposed' | 'active' | 'cancelled' | 'ended';
 
@@ -37,6 +38,7 @@ const STATUS_PILL = schemed(() => ({
 }));
 
 export default function RecurringScreen() {
+  useThemeRepaint();
   const router = useRouter();
   const { t } = useTranslation();
   const {

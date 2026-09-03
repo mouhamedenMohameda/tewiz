@@ -16,8 +16,10 @@ import {
 import { AppText, Button, Card, ScreenHeader } from '@/components/ui';
 import { colors, radius, spacing } from '@/theme';
 import { wrapRow } from '@/components/ui';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 export default function RoadsideScreen() {
+  useThemeRepaint();
   const router = useRouter();
   const { t } = useTranslation();
   const [current, setCurrent] = useState<RoadsideRequest | null | undefined>(undefined);

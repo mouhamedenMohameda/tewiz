@@ -18,6 +18,7 @@ import { api } from '@/lib/api';
 import { formatMru } from '@/lib/format';
 import { AppText, Card, Screen, ScreenHeader } from '@/components/ui';
 import { colors, radius, spacing } from '@/theme';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 interface PartnerMe {
   partner: {
@@ -60,6 +61,7 @@ interface Settlement {
 }
 
 export default function PartnerEarningsScreen() {
+  useThemeRepaint();
   const router = useRouter();
   const { t, i18n } = useTranslation();
   const [me, setMe] = useState<PartnerMe | null>(null);

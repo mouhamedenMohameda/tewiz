@@ -184,7 +184,12 @@ async function requestOne(
         return { status: statuses.always, needsSettings: false };
       }
 
-      if (alwaysNeedsSettings()) {
+      // Same dead end as Android 11+, reached differently: once the "Always"
+      // escalation has been refused on iOS, the OS silently ignores the
+      // request. Requesting anyway would look like the button does nothing, so
+      // treat it as a settings trip too.
+      const bgPerm = await Location.getBackgroundPermissionsAsync().catch(() => null);
+      if (alwaysNeedsSettings() || bgPerm?.canAskAgain === false) {
         await openAppSettings();
         // The captain is now in Settings; the panel re-reads on app resume.
         return { status: statuses.always, needsSettings: true };

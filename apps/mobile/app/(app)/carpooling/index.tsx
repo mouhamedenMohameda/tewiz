@@ -41,6 +41,7 @@ import {
   type CarpoolingBookingStatus,
   type CarpoolingTrip,
 } from '@/lib/carpooling';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 type ErvdniMode = 'passenger' | 'driver';
 
@@ -166,6 +167,7 @@ function RatingModal({ visible, name, busy, onSubmit, onClose }: {
 }
 
 export default function CarpoolingScreen() {
+  useThemeRepaint();
   const router = useRouter();
   const { t } = useTranslation();
   const user = useAuth((s) => s.user);

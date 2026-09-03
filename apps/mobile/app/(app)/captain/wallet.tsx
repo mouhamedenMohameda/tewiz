@@ -17,6 +17,7 @@ import {
 import { colors, gradients, radius, schemed, shadow, spacing, statusTone } from '@/theme';
 import { APP_NAME } from '@/lib/brand';
 import { wrapRow } from '@/components/ui';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 type Provider = 'bankily' | 'masrvi' | 'sedad' | 'cash_office';
 type TopupStatus = 'pending' | 'approved' | 'partial' | 'rejected' | 'duplicate';
@@ -74,6 +75,7 @@ const PROVIDER_PHONES: Partial<Record<Provider, string>> = {
 };
 
 export default function WalletScreen() {
+  useThemeRepaint();
   const router = useRouter();
   const { t, i18n } = useTranslation();
   const [topupModal, setTopupModal] = useState(false);

@@ -33,8 +33,10 @@ import { TermsSheet } from '@/components/TermsSheet';
 import { acceptTerms, useTermsStatus } from '@/lib/terms';
 import { apiErrorMessage } from '@/lib/apiError';
 import { colors, radius, spacing, statusTone } from '@/theme';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 export default function BecomeCaptainHome() {
+  useThemeRepaint();
   const router = useRouter();
   const { t } = useTranslation();
   const user = useAuth((s) => s.user);

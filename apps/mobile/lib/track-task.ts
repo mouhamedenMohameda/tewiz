@@ -115,6 +115,24 @@ TaskManager.defineTask(OFFLINE_LOCATION_TASK, async ({ data, error }) => {
  */
 export type TrackingStart = 'started' | 'denied' | 'unavailable';
 
+export interface StartTrackingOptions {
+  /**
+   * May this call put dialogs in front of the captain (our disclosure, then the
+   * OS permission prompts)?
+   *
+   * `true` (default) is for a captain ACTION — tapping "go online". `false` is
+   * passive: start tracking only if everything is already granted, and
+   * otherwise report `'denied'` without showing a single dialog.
+   *
+   * The passive mode exists because the disclosure is deliberately not
+   * persisted (see backgroundLocationDisclosure.ts), so any code path that runs
+   * on mount would re-show it at EVERY app launch for a captain whose session
+   * is restored as online without the background permission. That is a nag, not
+   * a consent moment: the caller routes them to the settings instead.
+   */
+  interactive?: boolean;
+}
+
 /**
  * Begin background tracking. Requires foreground + background location
  * permission; if the user declines "Always"/background, we bail quietly and
@@ -128,39 +146,55 @@ export type TrackingStart = 'started' | 'denied' | 'unavailable';
  * fixes and wakes the task with `deferredUpdatesInterval`, which is far more
  * battery-friendly than a foreground timer.
  */
-export async function startOfflineTracking(): Promise<TrackingStart> {
+export async function startOfflineTracking(
+  opts: StartTrackingOptions = {},
+): Promise<TrackingStart> {
+  const interactive = opts.interactive !== false;
+
   let fg: Location.LocationPermissionResponse;
   try {
-    fg = await Location.requestForegroundPermissionsAsync();
+    fg = interactive
+      ? await Location.requestForegroundPermissionsAsync()
+      : await Location.getForegroundPermissionsAsync();
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.warn('[track] foreground permission request threw', err);
+    console.warn('[track] foreground permission read/request threw', err);
     return 'unavailable';
   }
   if (fg.status !== 'granted') return 'denied';
 
-  // Google Play requires our own disclosure BEFORE the OS background-location
-  // dialog (see backgroundLocationDisclosure.ts). Skipped once the permission
-  // is already granted, since no request follows. Declining is a refusal: the
-  // caller takes the captain back offline, exactly as for a denied OS prompt.
-  //
-  // Imported lazily so the headless TaskManager context — which loads this
-  // module for its defineTask side effect — never pulls in i18n or Alert.
   const current = await Location.getBackgroundPermissionsAsync().catch(() => null);
   if (current?.status !== 'granted') {
+    // Passive call: nothing to ask, nothing to explain — just report the state.
+    if (!interactive) return 'denied';
+
+    // The OS will never show the background dialog again (iOS: the "Always"
+    // escalation was already refused; Android 11+: the choice only exists in
+    // the settings). Our disclosure exists to precede a REQUEST — showing it
+    // when no request can follow is pure noise, so report the refusal and let
+    // the caller send the captain to the settings.
+    if (current && current.canAskAgain === false) return 'denied';
+
+    // Google Play requires our own disclosure BEFORE the OS background-location
+    // dialog (see backgroundLocationDisclosure.ts). Declining is a real
+    // refusal: the caller takes the captain back offline, exactly as for a
+    // denied OS prompt.
+    //
+    // Imported lazily so the headless TaskManager context — which loads this
+    // module for its defineTask side effect — never pulls in i18n or Alert.
     const { showBackgroundLocationDisclosure } = await import('./backgroundLocationDisclosure');
     if (!(await showBackgroundLocationDisclosure())) return 'denied';
-  }
 
-  let bg: Location.LocationPermissionResponse;
-  try {
-    bg = await Location.requestBackgroundPermissionsAsync();
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.warn('[track] background permission request threw', err);
-    return 'unavailable';
+    let bg: Location.LocationPermissionResponse;
+    try {
+      bg = await Location.requestBackgroundPermissionsAsync();
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn('[track] background permission request threw', err);
+      return 'unavailable';
+    }
+    if (bg.status !== 'granted') return 'denied';
   }
-  if (bg.status !== 'granted') return 'denied';
 
   const already = await Location.hasStartedLocationUpdatesAsync(OFFLINE_LOCATION_TASK)
     .catch(() => false);
@@ -222,7 +256,7 @@ export async function resumeOfflineTracking(): Promise<void> {
   const already = await Location.hasStartedLocationUpdatesAsync(OFFLINE_LOCATION_TASK)
     .catch(() => false);
   if (already) return;
-  await startOfflineTracking();
+  await startOfflineTracking({ interactive: false });
 }
 
 /** Stop background tracking (captain goes offline / logs out). Idempotent. */

@@ -14,6 +14,7 @@ import { AppText, Button, Card, Icon, Screen, ScreenHeader } from '@/components/
 import { colors, fonts, radius, shadow, spacing, statusTone } from '@/theme';
 import { currentLanguage, isRTL } from '@/lib/i18n';
 import { APP_NAME } from '@/lib/brand';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 interface Home {
   captainId: string;
@@ -26,6 +27,7 @@ interface Home {
 }
 
 export default function HomeLocationScreen() {
+  useThemeRepaint();
   const router = useRouter();
   const { t, i18n } = useTranslation();
   const M = getMapbox();

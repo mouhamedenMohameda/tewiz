@@ -7,6 +7,7 @@ import { api } from '@/lib/api';
 import { useApiQuery } from '@/lib/useApiQuery';
 import { AppText, Card, Icon, Screen, ScreenHeader } from '@/components/ui';
 import { colors, radius, spacing } from '@/theme';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 interface Preferences {
   acceptsColis: boolean;
@@ -19,6 +20,7 @@ type Key = keyof Preferences;
 const PREFS_KEY = ['captain', 'preferences'] as const;
 
 export default function CaptainPreferencesScreen() {
+  useThemeRepaint();
   const router = useRouter();
   const { t } = useTranslation();
   const [busyKey, setBusyKey] = useState<Key | null>(null);

@@ -9,6 +9,7 @@ import {
 import { formatMru } from '@/lib/format';
 import { AppText, Button, Card, ScreenHeader } from '@/components/ui';
 import { colors, radius, schemed, spacing } from '@/theme';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 // schemed(): a bare object literal here would freeze whichever
 // palette was active when this module was first imported, and then
@@ -19,6 +20,7 @@ const STATUS_COLOR = schemed(() => ({
 }));
 
 export default function MyShipmentsScreen() {
+  useThemeRepaint();
   const router = useRouter();
   const { t } = useTranslation();
   const [bookings, setBookings] = useState<ShipperBooking[] | null>(null);

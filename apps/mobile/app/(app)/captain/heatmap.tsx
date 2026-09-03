@@ -12,6 +12,7 @@ import {
 } from '@/components/RoadReports';
 import { AppText, Icon } from '@/components/ui';
 import { colors, heat, radius, shadow, spacing } from '@/theme';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 interface Cell {
   h3Index: string;
@@ -96,6 +97,7 @@ function clusterCells(cells: Cell[], mergeRadiusM: number): Cluster[] {
 }
 
 export default function HeatmapScreen() {
+  useThemeRepaint();
   const router = useRouter();
   const { t } = useTranslation();
   const M = getMapbox();

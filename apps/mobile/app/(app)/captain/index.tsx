@@ -32,6 +32,7 @@ import {
 } from '@/components/ui';
 import { colors, gradients, radius, shadow, spacing, statusTone } from '@/theme';
 import { APP_NAME } from '@/lib/brand';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 type Presence = 'offline' | 'online' | 'on_ride';
 
@@ -68,6 +69,7 @@ interface SubscriptionStatus {
 }
 
 export default function CaptainHome() {
+  useThemeRepaint();
   const router = useRouter();
   const { t, i18n } = useTranslation();
   const user = useAuth((s) => s.user);
@@ -190,11 +192,16 @@ export default function CaptainHome() {
     }
 
     (async () => {
-      // Same rule as going online: try to start tracking (prompts for the
-      // permission if needed). If it runs, stay online. If the native side
-      // merely can't do it on this build ('unavailable'), stay online too. Only
-      // an actual REFUSAL takes the captain back offline.
-      const res = await startOfflineTracking();
+      // Same rule as going online, MINUS the dialogs: a restored session is not
+      // a captain action, so this must never open the Play disclosure nor an OS
+      // prompt (the disclosure isn't persisted, so it would reappear at every
+      // single app launch until the permission is granted). Passive start: it
+      // runs if everything is already granted, otherwise it reports 'denied'
+      // silently and the code below sends the captain to the settings.
+      //
+      // If the native side merely can't do it on this build ('unavailable'),
+      // stay online. Only an actual refusal takes the captain back offline.
+      const res = await startOfflineTracking({ interactive: false });
       reportTrackPermission(res === 'started');
       if (res === 'started' || res === 'unavailable') return;
 

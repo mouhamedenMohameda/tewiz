@@ -7,8 +7,10 @@ import { acceptProposal, getJobProposals, type Proposal } from '@/lib/convoyage'
 import { formatMru } from '@/lib/format';
 import { AppText, Button, Card, ScreenHeader } from '@/components/ui';
 import { colors, spacing } from '@/theme';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 export default function ConvoyageProposalsScreen() {
+  useThemeRepaint();
   const router = useRouter();
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();

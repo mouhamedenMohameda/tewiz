@@ -13,6 +13,7 @@ import { formatMru } from '@/lib/format';
 import { AppText, Button, Card, Icon, ScreenHeader } from '@/components/ui';
 import { BookingActionModal, OtpDisplay, RatingModal } from '@/components/CarRentalModals';
 import { colors, radius, schemed, spacing } from '@/theme';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 // schemed(): a bare object literal here would freeze whichever
 // palette was active when this module was first imported, and then
@@ -33,6 +34,7 @@ const STATUS_COLOR = schemed(() => ({
 const HIDDEN: BookingStatus[] = ['declined', 'cancelled'];
 
 export default function MyCarsScreen() {
+  useThemeRepaint();
   const router = useRouter();
   const { t } = useTranslation();
   const [cars, setCars] = useState<Car[] | null>(null);

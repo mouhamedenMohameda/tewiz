@@ -10,6 +10,7 @@ import { QuoteUnavailable } from '@/components/QuoteUnavailable';
 import { formatMru } from '@/lib/format';
 import { AppText, Button, Card, Icon, Screen, ScreenHeader } from '@/components/ui';
 import { colors, radius, spacing } from '@/theme';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 interface Quote {
   enabled: boolean;
@@ -21,6 +22,7 @@ interface Quote {
 interface Point { lat: number; lng: number; label?: string }
 
 export default function IntercityFreightScreen() {
+  useThemeRepaint();
   const router = useRouter();
   const { t } = useTranslation();
   // Tariffs barely change between two visits, so this is exactly the kind of

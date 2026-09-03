@@ -6,8 +6,10 @@
 
 import { useRouter } from 'expo-router';
 import { CaptainPermissions } from '@/components/CaptainPermissions';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 export default function CaptainPermissionsScreen() {
+  useThemeRepaint();
   const router = useRouter();
   return <CaptainPermissions mode="settings" onDone={() => router.back()} />;
 }

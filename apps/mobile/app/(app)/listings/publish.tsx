@@ -12,8 +12,10 @@ import {
 import { formatMru } from '@/lib/format';
 import { AppText, Button, Card, ScreenHeader, TextField } from '@/components/ui';
 import { colors, radius, spacing } from '@/theme';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 export default function PublishListingScreen() {
+  useThemeRepaint();
   const router = useRouter();
   const params = useLocalSearchParams<{ category?: string }>();
   const category = params.category ?? 'car_rental';

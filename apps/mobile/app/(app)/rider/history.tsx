@@ -8,6 +8,7 @@ import { PlainText as Text, ScreenHeader } from '@/components/ui';
 import { useApiQuery } from '@/lib/useApiQuery';
 import { formatMru } from '@/lib/format';
 import { colors, radius, schemed, statusTone } from '@/theme';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 type RideStatus =
   | 'pending_passenger_confirm' | 'searching'
@@ -45,6 +46,7 @@ const STATUS_PILL = schemed(() => ({
 }));
 
 export default function HistoryScreen() {
+  useThemeRepaint();
   const router = useRouter();
   const { t, i18n } = useTranslation();
   // React Query rather than a hand-rolled useState+useEffect: coming back to

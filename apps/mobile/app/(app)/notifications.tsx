@@ -19,6 +19,7 @@ import { useApiQuery } from '@/lib/useApiQuery';
 import { INBOX_KEY, UNREAD_KEY } from '@/lib/notificationKeys';
 import { AppText, Card, Icon, PressableScale, Screen, ScreenHeader } from '@/components/ui';
 import { colors, radius, schemed, spacing } from '@/theme';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 interface InboxItem {
   id: string;
@@ -46,6 +47,7 @@ const TYPE_ACCENT = schemed((): Record<string, { tint: string; fg: string }> => 
 }));
 
 export default function NotificationsScreen() {
+  useThemeRepaint();
   const router = useRouter();
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();

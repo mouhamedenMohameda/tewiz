@@ -9,6 +9,7 @@ import { PlainText as Text, ScreenHeader } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useApiQuery } from '@/lib/useApiQuery';
 import { colors, radius, statusTone } from '@/theme';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 interface Favorite {
   captainId: string;
@@ -21,6 +22,7 @@ interface Favorite {
 }
 
 export default function FavoritesScreen() {
+  useThemeRepaint();
   const router = useRouter();
   const { t } = useTranslation();
   const {

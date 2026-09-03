@@ -12,10 +12,12 @@ import { CUISINE_CATEGORIES, fetchRestaurants, type Restaurant } from '@/lib/res
 import { cuisineCounts, filterRestaurants } from '@/lib/restaurantFilter';
 import { resolveRestaurantCover } from '@/lib/restaurantPhotos';
 import { wrapRow } from '@/components/ui';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 type CuisineKey = (typeof CUISINE_CATEGORIES)[number]['key'];
 
 export default function RestaurantsScreen() {
+  useThemeRepaint();
   const router = useRouter();
   const { t } = useTranslation();
   const [query, setQuery] = useState('');

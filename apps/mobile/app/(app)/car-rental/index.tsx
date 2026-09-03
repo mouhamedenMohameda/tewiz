@@ -9,8 +9,10 @@ import { formatMru } from '@/lib/format';
 import { AppText, Button, Card, Icon, ScreenHeader, TextField } from '@/components/ui';
 import { colors, radius, spacing } from '@/theme';
 import { wrapRow } from '@/components/ui';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 export default function CarRentalScreen() {
+  useThemeRepaint();
   const router = useRouter();
   const { t } = useTranslation();
   const [cars, setCars] = useState<Car[] | null>(null);

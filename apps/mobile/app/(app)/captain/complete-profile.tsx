@@ -34,6 +34,7 @@ import { type OnboardingStatus, useOnboarding } from '@/lib/onboarding';
 import { VEHICLE_BRANDS, VEHICLE_COLORS } from '@/lib/vehicle-options';
 import { apiErrorMessage } from '@/lib/apiError';
 import { colors, radius, spacing, statusTone } from '@/theme';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 interface ProfileForm {
   fullName: string;
@@ -59,6 +60,7 @@ function profileComplete(f: ProfileForm): boolean {
 }
 
 export default function CompleteCaptainProfile() {
+  useThemeRepaint();
   const router = useRouter();
   const { t } = useTranslation();
 

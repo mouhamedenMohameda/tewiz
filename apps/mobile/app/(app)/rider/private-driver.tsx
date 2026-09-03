@@ -10,6 +10,7 @@ import { QuoteUnavailable } from '@/components/QuoteUnavailable';
 import { formatMru } from '@/lib/format';
 import { AppText, Button, Card, Icon, Screen, ScreenHeader } from '@/components/ui';
 import { colors, radius, spacing } from '@/theme';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 interface Quote {
   enabled: boolean;
@@ -18,6 +19,7 @@ interface Quote {
 }
 
 export default function PrivateDriverScreen() {
+  useThemeRepaint();
   const router = useRouter();
   const { t } = useTranslation();
   const [duration, setDuration] = useState(3);

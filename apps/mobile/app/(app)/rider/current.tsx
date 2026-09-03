@@ -41,6 +41,7 @@ import { keepIfEqual } from '@/lib/sameData';
 import { APP_NAME } from '@/lib/brand';
 import { MapShell } from '@/components/MapShell';
 import { getMapbox } from '@/lib/mapbox';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 type RideStatus =
   | 'pending_passenger_confirm' | 'searching'
@@ -134,6 +135,7 @@ const LIVE_STATUSES: RideStatus[] = ['accepted', 'arrived', 'in_progress'];
 const MAP_STATUSES: RideStatus[] = [...LIVE_STATUSES, 'searching', 'pending_passenger_confirm'];
 
 export default function CurrentRideScreen() {
+  useThemeRepaint();
   const router = useRouter();
   const { t } = useTranslation();
   const [ride, setRide] = useState<Ride | null>(null);

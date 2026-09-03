@@ -6,8 +6,10 @@ import { colors, radius, spacing } from '@/theme';
 import { APP_MODULES } from '@/lib/modules';
 import { useModulePreferences } from '@/lib/modulePreferences';
 import { useAppConfig } from '@/lib/appConfig';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 export default function ManageModulesScreen() {
+  useThemeRepaint();
   const router = useRouter();
   const { t } = useTranslation();
   const { isEnabled, toggle } = useModulePreferences();

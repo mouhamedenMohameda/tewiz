@@ -3,8 +3,10 @@ import { Stack } from 'expo-router';
 import { CaptainRideWatcher } from '@/components/CaptainRideWatcher';
 import CaptainTermsGate from '@/components/CaptainTermsGate';
 import { CaptainPermissionsGate } from '@/components/CaptainPermissions';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 export default function CaptainLayout() {
+  useThemeRepaint();
   return (
     <View style={{ flex: 1 }}>
       <Stack screenOptions={{ headerShown: false }} />

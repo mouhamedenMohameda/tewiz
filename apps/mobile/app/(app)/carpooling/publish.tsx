@@ -21,6 +21,7 @@ import {
   publishCarpoolingTrip,
   type CarpoolingTrip,
 } from '@/lib/carpooling';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 // Publishing is free — the driver never pays to post. Boost stays an optional,
 // opt-in promotion.
@@ -37,6 +38,7 @@ function formatDateTime(iso: string): string {
 }
 
 export default function CarpoolingPublishScreen() {
+  useThemeRepaint();
   const router = useRouter();
   const { t } = useTranslation();
   const user = useAuth((s) => s.user);

@@ -23,10 +23,12 @@ import { AppLanguage, SUPPORTED_LANGUAGES, currentLanguage, setLanguage } from '
 import { colors, gradients, radius, shadow, spacing } from '@/theme';
 import { AppText, Button, FadeInView, Icon, PressableScale, Sheet } from '@/components/ui';
 import { APP_NAME } from '@/lib/brand';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 const { height: SCREEN_H } = Dimensions.get('window');
 
 export default function AuthWelcome() {
+  useThemeRepaint();
   const router = useRouter();
   const { t } = useTranslation();
   const config = useAppConfig();

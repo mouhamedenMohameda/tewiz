@@ -7,10 +7,12 @@ import * as Location from 'expo-location';
 import { createJob } from '@/lib/convoyage';
 import { AppText, Button, DateField, ScreenHeader, TextField } from '@/components/ui';
 import { colors, spacing } from '@/theme';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 function todayISO(): string { return new Date().toISOString().slice(0, 10); }
 
 export default function NewConvoyageJobScreen() {
+  useThemeRepaint();
   const router = useRouter();
   const { t } = useTranslation();
   const [pickup, setPickup] = useState('');

@@ -7,8 +7,10 @@ import { getTrip, requestBooking, type FreightTrip } from '@/lib/freight';
 import { formatMru } from '@/lib/format';
 import { AppText, Button, Card, Icon, ScreenHeader, TextField } from '@/components/ui';
 import { colors, spacing } from '@/theme';
+import { useThemeRepaint } from '@/theme/ThemeProvider';
 
 export default function FreightTripScreen() {
+  useThemeRepaint();
   const router = useRouter();
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
