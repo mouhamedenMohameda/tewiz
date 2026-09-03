@@ -241,7 +241,7 @@ export async function purchaseSubscription(
     const { rows } = await client.query<SubscriptionRow>(
       `INSERT INTO captain_subscriptions
          (captain_id, plan, days, price_mru, starts_at, ends_at, source, wallet_tx_id)
-       SELECT $1, $2, $3, $4, start_at, start_at + ($3 || ' days')::interval, 'captain', $5
+       SELECT $1, $2, $3, $4, start_at, start_at + make_interval(days => $3), 'captain', $5
          FROM (
            SELECT COALESCE(
              (SELECT MAX(ends_at) FROM captain_subscriptions
@@ -273,7 +273,7 @@ export async function grantSubscription(
   const { rows } = await pool.query<SubscriptionRow>(
     `INSERT INTO captain_subscriptions
        (captain_id, plan, days, price_mru, starts_at, ends_at, source, created_by)
-     SELECT $1, $2, $3, 0, start_at, start_at + ($3 || ' days')::interval, 'admin', $4
+     SELECT $1, $2, $3, 0, start_at, start_at + make_interval(days => $3), 'admin', $4
        FROM (
          SELECT COALESCE(
            (SELECT MAX(ends_at) FROM captain_subscriptions
