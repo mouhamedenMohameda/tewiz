@@ -22,6 +22,7 @@ import { attachRideAlertListener, registerBackgroundRideAlertTask } from '@/lib/
 import '@/lib/track-task';
 import { readAndClearCrash } from '@/lib/crash-reporter';
 import { initI18n, startTranslationSync } from '@/lib/i18n';
+import { initThemePreference } from '@/lib/themePreference';
 import { loadAppConfig } from '@/lib/appConfig';
 import { CrashBoundary } from '@/components/CrashBoundary';
 import { NotificationTapHandler } from '@/components/NotificationTapHandler';
@@ -47,7 +48,10 @@ export default function RootLayout() {
   useEffect(() => {
     let mounted = true;
     let stopTranslationSync: (() => void) | undefined;
-    initI18n().finally(() => {
+    // Le thème est chargé avec i18n, pas après : les deux conditionnent le
+    // premier rendu, et une préférence lue trop tard ferait clignoter l'app
+    // dans la palette du système avant de basculer sur celle du Captain.
+    Promise.all([initI18n(), initThemePreference()]).finally(() => {
       if (mounted) setI18nReady(true);
       // Pull any admin-side translation corrections published since the JSON
       // bundled in this binary was built, then keep checking on foreground.

@@ -1850,7 +1850,14 @@
       "saved": "Profil mis à jour",
       "section": "Profil"
     },
-    "title": "Réglages"
+    "title": "Réglages",
+    "theme": {
+      "dark": "Sombre",
+      "hint": "« Comme le téléphone » suit le réglage de votre appareil. Choisissez Clair si l'écran est difficile à lire en plein soleil.",
+      "light": "Clair",
+      "section": "Apparence",
+      "system": "Comme le téléphone"
+    }
   },
   "vehicleColors": {
     "beige": "Beige",

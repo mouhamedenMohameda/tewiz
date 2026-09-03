@@ -16,10 +16,14 @@
  *    after the first paint, so a cold start in dark mode would flash the light
  *    palette for a frame. The assignment is idempotent, so doing it in render
  *    is safe.
+ *  - The Captain's own preference (système / clair / sombre) overrides the OS.
+ *    It is read synchronously from lib/themePreference, which app/_layout.tsx
+ *    loads BEFORE the first paint — for the same anti-flash reason as above.
  */
 
 import { createContext, useContext, type ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
+import { useThemePreference } from '@/lib/themePreference';
 import { currentScheme, setScheme, type SchemeName } from './index';
 
 const SchemeContext = createContext<SchemeName>('light');
@@ -30,7 +34,12 @@ export function useScheme(): SchemeName {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const scheme: SchemeName = useColorScheme() === 'dark' ? 'dark' : 'light';
+  // Le réglage du Captain prime sur l'OS. `useColorScheme()` est appelé dans
+  // tous les cas — c'est un hook, il ne peut pas être conditionnel — mais son
+  // résultat n'est retenu que sur 'system'.
+  const osScheme: SchemeName = useColorScheme() === 'dark' ? 'dark' : 'light';
+  const preference = useThemePreference();
+  const scheme: SchemeName = preference === 'system' ? osScheme : preference;
 
   // Before the subtree renders, so the very first frame is already correct.
   if (currentScheme() !== scheme) setScheme(scheme);

@@ -1797,7 +1797,14 @@
       "saved": "Profile updated",
       "section": "Profile"
     },
-    "title": "Settings"
+    "title": "Settings",
+    "theme": {
+      "dark": "Dark",
+      "hint": "“Match my phone” follows your device setting. Pick Light if the screen is hard to read in bright sun.",
+      "light": "Light",
+      "section": "Appearance",
+      "system": "Match my phone"
+    }
   },
   "vehicleColors": {
     "beige": "Beige",

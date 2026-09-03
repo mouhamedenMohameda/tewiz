@@ -27,6 +27,10 @@ import {
   AppText, Button, Card, Icon, PressableScale, Screen, ScreenHeader, TextField,
   type IconName,
 } from '@/components/ui';
+import {
+  THEME_PREFERENCES, setThemePreference, useThemePreference,
+  type ThemePreference,
+} from '@/lib/themePreference';
 import { colors, radius, shadow, spacing, statusTone } from '@/theme';
 import { APP_NAME } from '@/lib/brand';
 
@@ -51,6 +55,7 @@ export default function SettingsScreen() {
   const [name, setName] = useState(user?.fullName ?? '');
   const [savingName, setSavingName] = useState(false);
   const [lang, setLang] = useState<AppLanguage>(currentLanguage());
+  const themePref = useThemePreference();
   const [captainPrefs, setCaptainPrefs] = useState<CaptainPreferences | null>(null);
   const [loadingCaptainPrefs, setLoadingCaptainPrefs] = useState(false);
   const [busyCaptainPref, setBusyCaptainPref] = useState<CaptainPrefKey | null>(null);
@@ -204,6 +209,25 @@ export default function SettingsScreen() {
           </View>
           <AppText variant="caption" color={colors.muted} style={{ lineHeight: 18 }}>
             {t('settings.preferences.languageHint')}
+          </AppText>
+        </Card>
+      </Section>
+
+      {/* Préférences — thème */}
+      <Section title={t('settings.theme.section')}>
+        <Card padding={spacing.lg} style={{ gap: spacing.md }}>
+          <View style={{ gap: spacing.sm }}>
+            {THEME_PREFERENCES.map((value) => (
+              <ThemeRow
+                key={value}
+                value={value}
+                active={value === themePref}
+                onPress={() => { void setThemePreference(value); }}
+              />
+            ))}
+          </View>
+          <AppText variant="caption" color={colors.muted} style={{ lineHeight: 18 }}>
+            {t('settings.theme.hint')}
           </AppText>
         </Card>
       </Section>
@@ -550,6 +574,53 @@ function LanguageRow({
         {t(`languages.${code}` as const)}
       </AppText>
       <AppText variant="caption" color={colors.muted}>{code.toUpperCase()}</AppText>
+    </PressableScale>
+  );
+}
+
+
+/**
+ * Une ligne du choix de thème. Même forme que LanguageRow — c'est le même
+ * geste pour le Captain, ça doit être la même chose à l'écran.
+ *
+ * Pas de redémarrage ici, contrairement à la langue : les tokens sont des
+ * getters sur la palette active, donc le re-rendu déclenché par le store
+ * suffit à repeindre toute l'app.
+ */
+function ThemeRow({
+  value, active, onPress,
+}: { value: ThemePreference; active: boolean; onPress: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <PressableScale
+      onPress={onPress}
+      scaleTo={0.98}
+      accessibilityRole="radio"
+      accessibilityState={{ selected: active }}
+      style={{
+        flexDirection: 'row', alignItems: 'center', gap: spacing.md,
+        paddingVertical: spacing.md, paddingHorizontal: spacing.md,
+        borderRadius: radius.md,
+        backgroundColor: active ? colors.emberSoft : colors.surface,
+        borderWidth: 1,
+        borderColor: active ? colors.ember : colors.line,
+        ...(active ? shadow.card : null),
+      }}
+    >
+      <View style={{
+        width: 28, height: 28, borderRadius: 14,
+        backgroundColor: active ? colors.ember : colors.sunken,
+        alignItems: 'center', justifyContent: 'center',
+      }}>
+        {active ? <Icon name="checkSmall" size={18} color={colors.onEmber} /> : null}
+      </View>
+      <AppText
+        variant="bodyStrong"
+        color={active ? colors.ember : colors.ink}
+        style={{ flex: 1 }}
+      >
+        {t(`settings.theme.${value}` as const)}
+      </AppText>
     </PressableScale>
   );
 }
