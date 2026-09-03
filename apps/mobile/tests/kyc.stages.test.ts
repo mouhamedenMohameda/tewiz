@@ -38,6 +38,8 @@ describe('docTypesForStage', () => {
       ] as unknown as ApplicationDto['documentRequirements'],
     };
     expect(docTypesForStage(legacy, 'application')).toEqual(['license_front', 'carte_grise']);
+    // Aucun document ne bloque la mise en ligne par défaut (0089).
+    expect(docTypesForStage(legacy, 'online')).toEqual([]);
     // Le piège : sans pièce requise, `docsComplete` renvoyait true sur un
     // dossier vide et laissait envoyer une candidature vouée au refus.
     expect(docsComplete(legacy)).toBe(false);
@@ -51,13 +53,11 @@ describe('docTypesForStage', () => {
         { type: 'carte_grise', stage: 'application' },
         { type: 'assurance', stage: 'online' },
         { type: 'car_front', stage: 'online' },
-        { type: 'nni_front', stage: 'payout' },
         { type: 'selfie', stage: 'off' },
       ],
     };
     expect(docTypesForStage(modern, 'application')).toEqual(['license_front', 'carte_grise']);
     expect(docTypesForStage(modern, 'online')).toEqual(['assurance', 'car_front']);
-    expect(docTypesForStage(modern, 'payout')).toEqual(['nni_front']);
     expect(docTypesForStage(modern, 'off')).toEqual(['selfie']);
   });
 

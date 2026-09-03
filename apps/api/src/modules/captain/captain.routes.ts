@@ -189,7 +189,7 @@ captainRouter.post('/applications/me/submit', requireRiderOrCaptain, async (req,
 /**
  * GET /captain/onboarding
  * Ce qu'il reste à fournir après acceptation : véhicule déclaré + vérifié,
- * documents 'online' (pour rouler) et 'payout' (pour retirer). L'app captain
+ * documents 'online' (pour rouler, vide par défaut depuis la 0089). L'app captain
  * s'en sert pour afficher la carte de complétion et griser l'interrupteur
  * « en ligne » avec la bonne raison.
  */

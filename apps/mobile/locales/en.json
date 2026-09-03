@@ -1850,9 +1850,9 @@
     "blockedBody": "Complete your Captain profile before going online.",
     "vehicle": {
       "title": "Your vehicle",
-      "intro": "Copy this from your vehicle registration. An operator will check it before your first ride.",
+      "intro": "Copy this from your vehicle registration. You can drive as soon as you save; an operator will check it afterwards.",
       "missing": "Vehicle not declared",
-      "pending": "Vehicle being verified",
+      "pending": "Check pending",
       "verified": "Vehicle verified",
       "save": "Save my vehicle",
       "saved": "Vehicle saved. An operator will verify it shortly.",
@@ -1861,9 +1861,7 @@
     },
     "docs": {
       "title": "Documents",
-      "intro": "These documents gate your going online.",
-      "payoutTitle": "To withdraw your money",
-      "payoutIntro": "This document is required before your first withdrawal, not to drive."
+      "intro": "These documents gate your going online."
     },
     "reason": {
       "missing": "To send",

@@ -1980,9 +1980,9 @@
     "blockedBody": "Complétez votre profil Captain avant de passer en ligne.",
     "vehicle": {
       "title": "Votre véhicule",
-      "intro": "Recopiez ces informations depuis votre carte grise. Un opérateur les vérifiera avant votre première course.",
+      "intro": "Recopiez ces informations depuis votre carte grise. Vous pouvez rouler dès l'enregistrement ; un opérateur les vérifiera ensuite.",
       "missing": "Véhicule non déclaré",
-      "pending": "Véhicule en cours de vérification",
+      "pending": "Vérification en attente",
       "verified": "Véhicule vérifié",
       "save": "Enregistrer mon véhicule",
       "saved": "Véhicule enregistré. Un opérateur le vérifie sous peu.",
@@ -1991,9 +1991,7 @@
     },
     "docs": {
       "title": "Documents",
-      "intro": "Ces documents conditionnent votre passage en ligne.",
-      "payoutTitle": "Pour retirer votre argent",
-      "payoutIntro": "Ce document est demandé avant votre premier retrait, pas pour rouler."
+      "intro": "Ces documents conditionnent votre passage en ligne."
     },
     "reason": {
       "missing": "À envoyer",

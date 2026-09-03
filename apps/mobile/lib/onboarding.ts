@@ -41,9 +41,7 @@ export interface OnboardingStatus {
   fullName: string | null;
   vehicle: OnboardingVehicle | null;
   onlineGaps: DocGap[];
-  payoutGaps: DocGap[];
   canGoOnline: boolean;
-  canWithdraw: boolean;
 }
 
 export async function fetchOnboardingStatus(): Promise<OnboardingStatus> {
@@ -56,7 +54,10 @@ export async function fetchOnboardingStatus(): Promise<OnboardingStatus> {
  * vérifié compte pour un.
  */
 export function remainingForOnline(s: OnboardingStatus): number {
-  const vehicleGap = !s.vehicle || !s.vehicle.verifiedAt ? 1 : 0;
+  // Déclarer le véhicule est une action du captain, donc décomptée. La
+  // vérification par les ops n'en est pas une : l'afficher comme « reste 1 »
+  // donnait un compteur que le captain ne pouvait pas faire descendre.
+  const vehicleGap = !s.vehicle ? 1 : 0;
   const nameGap = s.fullName ? 0 : 1;
   return nameGap + vehicleGap + s.onlineGaps.length;
 }

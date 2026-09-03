@@ -85,23 +85,26 @@ export interface ApplicationDto {
  *
  *   application — la candidature ne part pas sans lui.
  *   online      — le captain est accepté, mais ne peut pas rouler.
- *   payout      — il roule, mais ne peut pas retirer son argent.
  *   off         — déposable, ne bloque rien.
  */
-export type DocumentStage = 'application' | 'online' | 'payout' | 'off';
+export type DocumentStage = 'application' | 'online' | 'off';
 
 /**
  * Les types bloquants à une étape.
  *
  * Repli quand le serveur ne renvoie pas encore la liste (ancienne API) : on
  * réclame le permis et la carte grise à la candidature et rien ailleurs —
- * la politique par défaut de la 0087, plutôt que « tout est obligatoire »
- * qui rendrait la candidature impossible à envoyer.
+ * la politique par défaut, plutôt que « tout est obligatoire » qui rendrait
+ * la candidature impossible à envoyer.
+ *
+ * `online` est vide (0089) : aucun document ne barre la route après
+ * l'acceptation. Le repli doit refléter la politique par défaut, pas une
+ * exigence que le serveur n'applique plus — sinon un client sur une API
+ * ancienne bloquerait des captains que le serveur laisse rouler.
  */
 const FALLBACK_STAGES: Record<DocumentStage, DocumentType[]> = {
   application: ['license_front', 'carte_grise'],
-  online: ['assurance', 'car_front'],
-  payout: ['nni_front'],
+  online: [],
   off: [],
 };
 

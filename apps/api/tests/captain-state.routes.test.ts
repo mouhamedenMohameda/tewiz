@@ -61,7 +61,7 @@ async function start() {
 beforeEach(() => {
   onboardingMock.mockResolvedValue({
     fullName: 'Sidi Ould Ahmed', vehicle: { verifiedAt: new Date().toISOString() },
-    onlineGaps: [], payoutGaps: [], canGoOnline: true, canWithdraw: true,
+    onlineGaps: [], canGoOnline: true,
   });
   queryMock.mockReset();
   queryMock.mockResolvedValue({ rows: [], rowCount: 0 });

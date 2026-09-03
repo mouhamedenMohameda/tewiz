@@ -113,6 +113,27 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
       : DOCUMENT_TYPES,
   );
   const byType = new Map(data.documents.map((d) => [d.type, d] as const));
+  // « requis / facultatif » ne suffit plus : une assurance n'est pas
+  // facultative, elle est réclamée APRÈS le "oui". Afficher les deux de la
+  // même façon poussait l'opérateur à chercher des pièces qui ne conditionnent
+  // pas sa décision — et à hésiter à valider un dossier pourtant complet.
+  const stageByType = new Map<DocumentType, string>(
+    (requirements ?? []).map((r) => [r.type, r.stage] as const),
+  );
+  const STAGE_ORDER: Record<string, number> = {
+    application: 0, online: 1, payout: 2, off: 3,
+  };
+  const stageOf = (t: DocumentType) => stageByType.get(t) ?? 'application';
+  // Les deux pièces qui décident passent en tête ; le reste suit.
+  const orderedTypes = [...DOCUMENT_TYPES].sort(
+    (a, b) => (STAGE_ORDER[stageOf(a)] ?? 9) - (STAGE_ORDER[stageOf(b)] ?? 9),
+  );
+  const STAGE_BADGE: Record<string, { label: string; cls: string }> = {
+    application: { label: 'requis maintenant', cls: 'bg-slate-900 text-white' },
+    online: { label: 'avant mise en ligne', cls: 'bg-amber-50 text-amber-700' },
+    payout: { label: 'avant retrait', cls: 'bg-sky-50 text-sky-700' },
+    off: { label: 'facultatif', cls: 'bg-slate-100 text-slate-500' },
+  };
   // Approve gate: every required type must be present AND approved. Optional
   // types (and any extra docs the captain uploaded) don't block approval.
   const requiredReady = [...requiredTypes].every((t) => byType.get(t)?.status === 'approved');
@@ -195,9 +216,10 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {DOCUMENT_TYPES.map((type) => {
+            {orderedTypes.map((type) => {
               const doc = byType.get(type);
               const required = requiredTypes.has(type);
+              const badge = STAGE_BADGE[stageOf(type)] ?? STAGE_BADGE.off!;
               return (
                 <div key={type} className="border border-slate-200 rounded-lg overflow-hidden">
                   <div className="aspect-[4/3] bg-slate-50 relative">
@@ -217,7 +239,9 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
                         'w-full h-full flex items-center justify-center text-xs',
                         required ? 'text-red-500' : 'text-slate-400',
                       )}>
-                        {required ? 'Manquant' : 'Non requis'}
+                        {required ? 'Manquant'
+                          : stageOf(type) === 'off' ? 'Non requis'
+                          : 'Après acceptation'}
                       </div>
                     )}
                   </div>
@@ -227,12 +251,10 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
                         {DOCUMENT_LABELS[type]}
                       </div>
                       <span className={clsx(
-                        'text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded',
-                        required
-                          ? 'bg-slate-100 text-slate-600'
-                          : 'bg-amber-50 text-amber-700',
+                        'text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded whitespace-nowrap',
+                        badge.cls,
                       )}>
-                        {required ? 'requis' : 'facultatif'}
+                        {badge.label}
                       </span>
                     </div>
                     {doc && (
@@ -299,6 +321,17 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
             {actionError && (
               <ErrorAlert error={actionError} onDismiss={() => setActionError(null)} />
             )}
+            {/* Pourquoi « Approuver » est grisé était planqué dans un attribut
+                `title` : invisible sans survol, et donc invisible tout court.
+                L'opérateur voyait un bouton mort sans savoir quoi faire. On
+                affiche la checklist, pièce par pièce, avec l'action qui reste. */}
+            <ApprovalChecklist
+              types={[...requiredTypes]}
+              byType={byType}
+              ready={hasAnyRequired && requiredReady}
+              hasAnyRequired={hasAnyRequired}
+            />
+
             <div className="flex flex-wrap gap-3 items-center justify-end">
               <button
                 onClick={() => setShowRejectModal(true)}
@@ -314,13 +347,6 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
                 onClick={() => { setActionError(null); approveApp.mutate(); }}
                 disabled={!hasAnyRequired || !requiredReady || approveApp.isPending}
                 className="btn-primary"
-                title={
-                  !hasAnyRequired
-                    ? "Aucun document n'est marqué comme requis"
-                    : !requiredReady
-                    ? 'Tous les documents requis doivent être présents et approuvés'
-                    : 'Approuver'
-                }
               >{approveApp.isPending ? 'Approbation…' : 'Approuver le dossier'}</button>
             </div>
           </div>
@@ -623,6 +649,72 @@ function ErrorAlert({ error, onDismiss }: { error: ParsedApiError; onDismiss: ()
       >
         ✕
       </button>
+    </div>
+  );
+}
+
+
+/**
+ * L'état de la décision, en clair.
+ *
+ * Le dossier ne se juge plus que sur deux pièces (permis + carte grise) : le
+ * reste est réclamé au captain après son acceptation. Encore faut-il que
+ * l'opérateur le voie — sinon il cherche les douze autres vignettes et
+ * n'ose pas valider.
+ */
+function ApprovalChecklist({
+  types, byType, ready, hasAnyRequired,
+}: {
+  types: DocumentType[];
+  byType: Map<DocumentType, { status: string }>;
+  ready: boolean;
+  hasAnyRequired: boolean;
+}) {
+  if (!hasAnyRequired) {
+    return (
+      <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+        Aucun document n'est marqué « requis maintenant ». Réglez les étapes
+        dans <span className="font-medium">Réglages → Documents</span> avant de
+        valider un dossier.
+      </div>
+    );
+  }
+
+  return (
+    <div className={clsx(
+      'mb-4 rounded-lg border p-4',
+      ready ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-slate-50',
+    )}>
+      <div className={clsx(
+        'text-sm font-medium mb-2',
+        ready ? 'text-emerald-800' : 'text-slate-800',
+      )}>
+        {ready
+          ? 'Tout est prêt — vous pouvez approuver ce dossier.'
+          : 'Pour approuver, il reste à traiter :'}
+      </div>
+      <ul className="space-y-1">
+        {types.map((t) => {
+          const status = byType.get(t)?.status;
+          const done = status === 'approved';
+          return (
+            <li key={t} className="flex items-center gap-2 text-sm">
+              <span className={done ? 'text-emerald-600' : 'text-slate-400'}>
+                {done ? '\u2713' : '\u25cb'}
+              </span>
+              <span className={done ? 'text-slate-500' : 'text-slate-900 font-medium'}>
+                {DOCUMENT_LABELS[t]}
+              </span>
+              <span className="text-xs text-slate-500">
+                {!status ? "\u2014 pas encore envoyé par le candidat"
+                  : status === 'approved' ? '\u2014 approuvé'
+                  : status === 'rejected' ? '\u2014 rejeté, demandez une correction'
+                  : "\u2014 à vérifier : ouvrez la vignette puis \u00ab\u00a0\u2713 Approuver\u00a0\u00bb"}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

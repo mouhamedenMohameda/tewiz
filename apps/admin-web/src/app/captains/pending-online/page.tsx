@@ -1,9 +1,13 @@
 /**
- * /captains/pending-online — la seconde revue de l'onboarding v3.
+ * /captains/pending-online — le contrôle a posteriori des véhicules déclarés.
  *
- * On accepte un candidat sur son permis et sa carte grise, puis on vérifie ici
- * — après coup, et seulement pour ceux qui ont continué — le véhicule qu'il
- * déclare et les documents qui conditionnent la mise en ligne.
+ * ATTENTION : ce n'est pas une file d'attente. Le Captain roule déjà. On
+ * l'accepte sur son permis et sa carte grise, il déclare son véhicule et part
+ * aussitôt — le faire patienter ici revenait à lui imposer une seconde attente
+ * juste après lui avoir dit oui, alors que l'ancien parcours le laissait
+ * démarrer immédiatement.
+ *
+ * Ce qu'on fait donc ici : on confronte, et on suspend si ça ne colle pas.
  *
  * Le travail total baisse : les documents « pour rouler » d'un candidat recalé
  * sur son permis ne sont jamais examinés, alors qu'ils l'étaient tous d'un
@@ -74,8 +78,9 @@ export default function PendingOnlinePage() {
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-slate-900">Mise en ligne</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Captains validés qui ne peuvent pas encore rouler. Vérifiez que la
-            plaque déclarée correspond à la carte grise, puis autorisez.
+            Ces Captains roulent déjà. Vérifiez que la plaque qu'ils ont
+            déclarée correspond bien à leur carte grise — en cas d'écart,
+            suspendez le compte depuis sa fiche.
           </p>
         </div>
 
@@ -83,7 +88,8 @@ export default function PendingOnlinePage() {
         {error && <div className="card p-5 text-red-600">Erreur de chargement</div>}
         {data?.length === 0 && (
           <div className="card p-5 text-slate-500">
-            Aucun Captain en attente. Tout le monde peut rouler.
+            Rien à contrôler : tous les véhicules déclarés ont été confrontés
+            à leur carte grise.
           </div>
         )}
 
@@ -163,8 +169,9 @@ export default function PendingOnlinePage() {
                 </div>
               </div>
 
-              {/* Documents qui bloquent la mise en ligne — validés depuis la
-                  fiche dossier, listés ici pour savoir ce qui manque. */}
+              {/* Documents placés en 'online' par les ops. Vide par défaut
+                  (0089) : ils ne bloquent plus rien, ils sont listés ici pour
+                  que le contrôle se fasse au même endroit. */}
               <div className="mt-5 pt-4 border-t border-slate-200">
                 <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
                   Documents « pour rouler »

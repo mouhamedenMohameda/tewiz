@@ -56,7 +56,6 @@ captainStateRouter.post('/online', async (req, res) => {
     throw new HttpError(403, 'onboarding_incomplete',
       "Complétez votre profil Captain avant de passer en ligne.", {
         vehicleMissing: !onboarding.vehicle,
-        vehicleUnverified: !!onboarding.vehicle && !onboarding.vehicle.verifiedAt,
         docs: onboarding.onlineGaps,
       });
   }

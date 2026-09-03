@@ -7,14 +7,16 @@
  * une fois le captain accepté : à ce moment il est motivé pour le fournir,
  * alors qu'avant le "oui" chaque champ supplémentaire est un abandon.
  *
- * Deux verrous, pas un seul :
- *   - `canGoOnline`  — véhicule déclaré ET vérifié, documents 'online' déposés
- *                      et approuvés, aucun expiré.
- *   - `canWithdraw`  — documents 'payout' déposés et approuvés.
+ * Un seul verrou : `canGoOnline` — le captain doit avoir un nom et un véhicule
+ * déclaré. La vérification de ce véhicule par un opérateur est un contrôle a
+ * posteriori, pas une condition de départ.
  *
- * Un document expiré compte comme manquant : l'assurance est le cas d'usage
- * direct — elle était contrôlée une fois à l'inscription puis jamais revue, et
- * conditionner la mise en ligne la fait revalider à chaque échéance.
+ * Les DOCUMENTS ne bloquent plus (0089). Ils l'ont fait brièvement, et c'était
+ * une erreur : l'exigence tombait rétroactivement sur des captains déjà
+ * acceptés, qui roulaient la veille et se retrouvaient hors ligne pour une
+ * pièce qu'on ne leur avait jamais demandée. `gapsForStage` reste appelée car
+ * les ops peuvent replacer une pièce en 'online' depuis /settings/documents —
+ * par défaut la liste est simplement vide.
  */
 
 import { pool, withTx } from '../../db/pool.js';
@@ -50,9 +52,7 @@ export interface OnboardingStatus {
   fullName: string | null;
   vehicle: VehicleDto | null;
   onlineGaps: DocGap[];
-  payoutGaps: DocGap[];
   canGoOnline: boolean;
-  canWithdraw: boolean;
 }
 
 interface DocRow {
@@ -141,13 +141,12 @@ async function gapsForStage(
 }
 
 export async function getOnboardingStatus(captainId: string): Promise<OnboardingStatus> {
-  const [nameRow, vehicle, onlineGaps, payoutGaps] = await Promise.all([
+  const [nameRow, vehicle, onlineGaps] = await Promise.all([
     pool.query<{ full_name: string | null }>(
       `SELECT full_name FROM users WHERE id = $1`, [captainId],
     ),
     getActiveVehicle(captainId),
     gapsForStage(captainId, 'online'),
-    gapsForStage(captainId, 'payout'),
   ]);
   // Le nom n'est plus demandé à la candidature (il figure sur le permis, que
   // le candidat photographie). Un client venu du parcours invité peut donc
@@ -157,9 +156,15 @@ export async function getOnboardingStatus(captainId: string): Promise<Onboarding
     fullName,
     vehicle,
     onlineGaps,
-    payoutGaps,
-    canGoOnline: !!fullName && !!vehicle && !!vehicle.verifiedAt && onlineGaps.length === 0,
-    canWithdraw: payoutGaps.length === 0,
+    // La vérification du véhicule ne bloque PAS. Elle l'a fait, et ça revenait
+    // à faire patienter le captain dans une seconde file juste après lui avoir
+    // dit oui — alors qu'avant, les ops saisissaient le véhicule à la
+    // validation et il roulait aussitôt. Le contrôle reste, en aval : la file
+    // /captains/pending-online confronte la plaque saisie à la carte grise, et
+    // un écart se traite en suspendant le captain. On accepte quelques heures
+    // de route sur une plaque non confrontée ; on n'accepte pas de remettre une
+    // attente sur le chemin de quelqu'un qu'on vient d'accepter.
+    canGoOnline: !!fullName && !!vehicle && onlineGaps.length === 0,
   };
 }
 

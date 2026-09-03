@@ -110,7 +110,7 @@ function db(s: State = {}) {
 beforeEach(() => {
   onboardingMock.mockResolvedValue({
     fullName: 'Sidi Ould Ahmed', vehicle: { verifiedAt: new Date().toISOString() },
-    onlineGaps: [], payoutGaps: [], canGoOnline: true, canWithdraw: true,
+    onlineGaps: [], canGoOnline: true,
   });
   vi.clearAllMocks();
   getBalanceMock.mockResolvedValue(500);

@@ -9,7 +9,6 @@
  *
  * Deux verrous distincts, annoncés comme tels :
  *   - véhicule + documents 'online' → bloquent le passage en ligne ;
- *   - documents 'payout'            → bloquent le premier retrait, pas la route.
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -186,10 +185,9 @@ export default function CompleteCaptainProfile() {
   }
 
   const onlineDocs = app ? docTypesForStage(app, 'online') : [];
-  const payoutDocs = app ? docTypesForStage(app, 'payout') : [];
   const byType = new Map((app?.documents ?? []).map((d) => [d.type, d] as const));
   const gapByType = new Map(
-    [...status.onlineGaps, ...status.payoutGaps].map((g) => [g.type, g.reason] as const),
+    status.onlineGaps.map((g) => [g.type, g.reason] as const),
   );
 
   return (
@@ -296,20 +294,6 @@ export default function CompleteCaptainProfile() {
               />
             </>
           ) : null}
-
-          {/* ── Documents « pour retirer » ───────────────────────────── */}
-          {payoutDocs.length > 0 ? (
-            <>
-              <SectionTitle text={t('captainOnboarding.docs.payoutTitle')} />
-              <Text style={{ fontSize: 13, color: colors.ink2, lineHeight: 19 }}>
-                {t('captainOnboarding.docs.payoutIntro')}
-              </Text>
-              <DocGrid
-                types={payoutDocs} byType={byType} gapByType={gapByType}
-                uploadingType={uploadingType} onCapture={capture}
-              />
-            </>
-          ) : null}
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -381,6 +365,8 @@ function DocGrid({
 
 function VehicleStateBadge({ vehicle }: { vehicle: OnboardingStatus['vehicle'] }) {
   const { t } = useTranslation();
+  // « en attente » reste informatif : le captain roule pendant ce temps, le
+  // badge ne doit donc pas se lire comme un blocage.
   const tone = !vehicle ? statusTone.pending
     : vehicle.verifiedAt ? statusTone.done : statusTone.active;
   const label = !vehicle ? t('captainOnboarding.vehicle.missing')

@@ -735,7 +735,7 @@ adminRouter.post('/applications/:id/approve', async (req, res) => {
 
     // Seuls les documents `stage = 'application'` conditionnent la validation :
     // ceux qui servent à décider si cette personne peut conduire. Ceux marqués
-    // 'online' / 'payout' sont réclamés plus tard dans le parcours et ne
+    // 'online' est réclamé plus tard dans le parcours et ne
     // doivent pas retenir la décision. Les types requis ici doivent être
     // (a) déposés et (b) en statut 'approved'.
     const requiredTypes = await getDocumentTypesForStage('application');

@@ -18,7 +18,7 @@ import { AppShell } from '@/components/AppShell';
 import { api } from '@/lib/api';
 import { DOCUMENT_LABELS, DOCUMENT_TYPES, type DocumentType } from '@/lib/types';
 
-type DocumentStage = 'application' | 'online' | 'payout' | 'off';
+type DocumentStage = 'application' | 'online' | 'off';
 
 interface DocumentRequirement {
   type: DocumentType;
@@ -30,7 +30,6 @@ interface DocumentRequirement {
 const STAGES: { value: DocumentStage; label: string; hint: string }[] = [
   { value: 'application', label: 'Candidature', hint: 'Bloque l’envoi du dossier et sa validation' },
   { value: 'online', label: 'Mise en ligne', hint: 'Le Captain est validé, mais ne peut pas rouler' },
-  { value: 'payout', label: 'Retrait', hint: 'Il roule, mais ne peut pas retirer son argent' },
   { value: 'off', label: 'Non requis', hint: 'Envoyable, ne bloque rien' },
 ];
 

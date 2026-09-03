@@ -16,9 +16,9 @@ import { pool } from '../../db/pool.js';
 import type { DocumentType } from '@tewiz/shared-types';
 
 /** Ce que le document bloque tant qu'il manque. */
-export type DocumentStage = 'application' | 'online' | 'payout' | 'off';
+export type DocumentStage = 'application' | 'online' | 'off';
 
-export const DOCUMENT_STAGES: DocumentStage[] = ['application', 'online', 'payout', 'off'];
+export const DOCUMENT_STAGES: DocumentStage[] = ['application', 'online', 'off'];
 
 export interface DocumentRequirement {
   type: DocumentType;
