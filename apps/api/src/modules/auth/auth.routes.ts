@@ -213,6 +213,13 @@ authRouter.post('/guest', async (req, res) => {
  * captain application. No SMS verification (product decision); we only guard
  * uniqueness so two accounts can't claim the same number.
  *
+ * Also clears is_guest: once an account is phone-identified it is no longer
+ * "anonymous" by the definition every other guest-aware query uses (admin
+ * directory, all_guests push target, captain map). Leaving the flag set here
+ * silently hid every ordinary rider — not just true orphan guests — from
+ * GET /admin/users (default view excludes guests), so an admin could never
+ * find a rider to unblock them, e.g. to regenerate a password.
+ *
  * Body: { phone }
  */
 const setPhoneBody = z.object({ phone: phoneSchema });
@@ -230,7 +237,7 @@ authRouter.post('/me/phone', requireAuth, async (req, res) => {
   }
 
   const { rows } = await pool.query<UserRow>(
-    `UPDATE users SET phone = $1
+    `UPDATE users SET phone = $1, is_guest = false
       WHERE id = $2
       RETURNING id, phone, role, full_name, language,
                 COALESCE(must_reset_password, false) AS must_reset_password`,
