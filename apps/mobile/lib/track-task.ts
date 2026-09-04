@@ -21,6 +21,7 @@ import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import { Platform } from 'react-native';
 import { API_URL } from './env';
+import { backgroundLocationUnavailable } from './runtime';
 import { getTokens, setAccessToken, migrateLegacyTokens, type Tokens } from './secureTokens';
 
 export const OFFLINE_LOCATION_TASK = 'offline-location-tracking';
@@ -174,6 +175,12 @@ export async function startOfflineTracking(
     // when no request can follow is pure noise, so report the refusal and let
     // the caller send the captain to the settings.
     if (current && current.canAskAgain === false) return 'denied';
+
+    // Nothing to ask for on a binary that has no background-location
+    // entitlement (Expo Go): the OS offers no "Always" at all, so both the
+    // disclosure and the request would be pure noise, replayed at every single
+    // attempt. 'unavailable' keeps the captain working without live tracking.
+    if (backgroundLocationUnavailable()) return 'unavailable';
 
     // Google Play requires our own disclosure BEFORE the OS background-location
     // dialog (see backgroundLocationDisclosure.ts). Declining is a real

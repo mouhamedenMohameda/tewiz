@@ -23,7 +23,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, View } from 'react-native';
+import { AppState, Platform, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { AppText, Button, Card, Icon, Screen } from '@/components/ui';
@@ -40,6 +40,9 @@ import {
   type CaptainPermissionKey,
   type PermStatuses,
 } from '@/lib/captainPermissions';
+import { ensureBatteryExemption } from '@/lib/batteryExemption';
+import { ensureFullScreenIntentPermission } from '@/lib/fullScreenIntentPermission';
+import { ensureOverlayPermission } from '@/lib/overlayPermission';
 import { colors, radius, spacing } from '@/theme';
 
 const EMPTY: PermStatuses = {
@@ -172,6 +175,34 @@ export function CaptainPermissions({ mode = 'onboarding', onDone }: CaptainPermi
             />
           ))}
         </View>
+
+        {mode === 'settings' && Platform.OS === 'android' ? (
+          <Card padding={spacing.base} style={{ marginTop: spacing.xl }}>
+            <AppText variant="bodyStrong">
+              {t('captain.permissions.callAlertsTitle')}
+            </AppText>
+            <AppText variant="caption" color={colors.muted} style={{ marginTop: spacing.xs }}>
+              {t('captain.permissions.callAlertsBody')}
+            </AppText>
+            <Button
+              title={t('captain.permissions.callAlertsReset')}
+              variant="secondary"
+              size="sm"
+              fullWidth={false}
+              style={{ marginTop: spacing.sm, alignSelf: 'flex-start' }}
+              onPress={() => {
+                // Same fire-and-forget trio as goOnline() (captain/index.tsx),
+                // forced: each shows its own one-time Alert regardless of the
+                // persisted "already handled" flag, so a captain who dismissed
+                // or mishandled one of them the first time can redo it here
+                // instead of hunting through Android settings unguided.
+                void ensureFullScreenIntentPermission({ force: true });
+                void ensureOverlayPermission({ appName: APP_NAME, force: true });
+                void ensureBatteryExemption({ appName: APP_NAME, force: true });
+              }}
+            />
+          </Card>
+        ) : null}
 
         <View style={{ marginTop: spacing.xl, gap: spacing.sm }}>
           {done ? (

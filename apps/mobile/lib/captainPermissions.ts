@@ -32,6 +32,7 @@ import * as Notifications from 'expo-notifications';
 import { Audio } from 'expo-av';
 
 import { showBackgroundLocationDisclosure } from './backgroundLocationDisclosure';
+import { backgroundLocationUnavailable } from './runtime';
 import { registerForPushNotifications } from './notifications';
 
 export type CaptainPermissionKey =
@@ -175,6 +176,15 @@ async function requestOne(
       // on iOS "Always" is strictly an escalation of "When In Use".
       if (statuses.location !== 'granted') {
         return { status: statuses.always, needsSettings: false };
+      }
+
+      // Expo Go (and any binary without our background-location entitlement)
+      // can NEVER get "Always": iOS doesn't even list the option. Showing the
+      // disclosure there asks the captain to consent to something that cannot
+      // follow, and — since the disclosure is deliberately not persisted — it
+      // came back at every attempt. Report it as a build limitation instead.
+      if (backgroundLocationUnavailable()) {
+        return { status: statuses.always, needsSettings: false, unavailable: true };
       }
 
       // Google Play requires OUR disclosure before the OS dialog (and before

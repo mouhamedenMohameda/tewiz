@@ -44,7 +44,7 @@ const HAS_APPLE_TARGETS =
 const config: ExpoConfig = {
   name: APP_NAME,
   slug: APP_SLUG,
-  version: '1.3.0',
+  version: '1.3.1',
   orientation: 'portrait',
   // 'automatic' hands the choice to the OS setting; the palette follows via
   // <ThemeProvider>. Locked to 'light' before, which meant useColorScheme()
