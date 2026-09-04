@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert, Modal, Pressable, ScrollView, View,
+  ActivityIndicator, Alert, Animated, Easing, Modal, Pressable, ScrollView, View,
 } from 'react-native';
 // Use the app's typographic component so Arabic and Latin scripts both use
 // the same font stack as the rest of the app instead of the system default.
 import { AppText as Text, Button, Card, Icon } from '@/components/ui';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Audio } from 'expo-av';
@@ -18,7 +17,7 @@ import { useAppConfig } from '@/lib/appConfig';
 import { formatMru } from '@/lib/format';
 import { useAuth } from '@/lib/auth';
 import { i18n } from '@/lib/i18n';
-import { colors, gradients, radius, shadow, spacing } from '@/theme';
+import { colors, radius, shadow, spacing } from '@/theme';
 import { wrapRow } from '@/components/ui';
 
 type RideType = 'passenger' | 'colis';
@@ -188,6 +187,10 @@ export function CaptainRideWatcher() {
   // Auto-dismiss timer: closes the alert after RING_DURATION_MS if untouched.
   const dismissTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
+  // Drains from 1 → 0 over RING_DURATION_MS, driving the countdown bar at the
+  // top of the alert — the same "time is running out" cue as Uber Driver's
+  // request timer, synced to the same window the auto-dismiss timeout uses.
+  const timerAnim = useRef(new Animated.Value(1)).current;
   const onRideRef = useRef(false); // skip polling inbox when on a ride
   // Synchronous tap/poll guard: prevents double-accept and racey state updates
   // on iOS when the user taps quickly and polling ticks at the same time.
@@ -264,10 +267,19 @@ export function CaptainRideWatcher() {
       await soundRef.current.unloadAsync().catch(() => {});
       soundRef.current = null;
     }
+    timerAnim.stopAnimation();
   }, []);
 
   const startRinging = useCallback(async (ride: InboxItem) => {
     await stopRinging();
+
+    timerAnim.setValue(1);
+    Animated.timing(timerAnim, {
+      toValue: 0,
+      duration: RING_DURATION_MS,
+      easing: Easing.linear,
+      useNativeDriver: false,
+    }).start();
 
     // Ring for at most RING_DURATION_MS. If the captain hasn't accepted by
     // then, stop the alarm and close the modal — the ride simply disappears
@@ -440,68 +452,76 @@ export function CaptainRideWatcher() {
               showsVerticalScrollIndicator={false}
               bounces
             >
-              {/* ─── Hero: gradient card with type pill, fare, distance ─── */}
-              <LinearGradient
-                colors={alertRide.rideType === 'colis' ? gradients.espresso : gradients.sunrise}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{
-                  borderRadius: radius.xxl,
-                  padding: spacing.lg,
-                  ...shadow.ember,
-                }}
-              >
-                <View style={{ flexDirection: wrapRow, alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              {/* Countdown — depletes over RING_DURATION_MS, the same "time
+                  to decide" pressure as Uber Driver's request timer. */}
+              <View style={{ height: 4, borderRadius: 2, backgroundColor: colors.line, overflow: 'hidden' }}>
+                <Animated.View
+                  style={{
+                    height: '100%', borderRadius: 2, backgroundColor: colors.ember,
+                    width: timerAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
+                  }}
+                />
+              </View>
+
+              {/* Type + source chips */}
+              <View style={{
+                flexDirection: wrapRow, alignItems: 'center', gap: 8, flexWrap: 'wrap',
+                marginTop: spacing.base,
+              }}>
+                <View style={{
+                  backgroundColor: colors.emberSoft,
+                  paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill,
+                  flexDirection: 'row', alignItems: 'center', gap: 6,
+                }}>
+                  <Icon name={alertRide.rideType === 'colis' ? 'parcel' : 'ride'} size={13} color={colors.ember} />
+                  <Text variant="overline" color={colors.ember}>
+                    {alertRide.rideType === 'colis' ? t('captainAlert.newColisCaps') : t('captainAlert.newRideCaps')}
+                  </Text>
+                </View>
+                {alertRide.source === 'operator' ? (
                   <View style={{
-                    backgroundColor: 'rgba(255,255,255,0.22)',
+                    backgroundColor: colors.surfaceAlt,
                     paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill,
                     flexDirection: 'row', alignItems: 'center', gap: 6,
                   }}>
-                    <Icon name={alertRide.rideType === 'colis' ? 'parcel' : 'ride'} size={13} color={colors.white} />
-                    <Text variant="overline" color={colors.white}>
-                      {alertRide.rideType === 'colis' ? t('captainAlert.newColisCaps') : t('captainAlert.newRideCaps')}
+                    <Icon name="phone" size={12} color={colors.ink2} />
+                    <Text variant="overline" color={colors.ink2}>
+                      {t('captainAlert.callCenterBadge')}
                     </Text>
                   </View>
-                  {alertRide.source === 'operator' ? (
-                    <View style={{
-                      backgroundColor: 'rgba(255,255,255,0.22)',
-                      paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill,
-                      flexDirection: 'row', alignItems: 'center', gap: 6,
-                    }}>
-                      <Icon name="phone" size={12} color={colors.white} />
-                      <Text variant="overline" color={colors.white}>
-                        {t('captainAlert.callCenterBadge')}
-                      </Text>
-                    </View>
-                  ) : null}
-                </View>
+                ) : null}
+              </View>
 
-                <View style={{
-                  marginTop: spacing.lg,
-                  flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between',
-                }}>
-                  <View style={{ flex: 1 }}>
-                    <Text variant="hero" color={colors.white} style={{ fontSize: 40 }}>
-                      {alertRide.fareEstimateMru ? formatMru(alertRide.fareEstimateMru) : '—'}
-                    </Text>
-                    <Text variant="caption" color="rgba(255,255,255,0.92)" style={{ marginTop: 4 }}>
-                      {(alertRide.distanceToPickupM / 1000).toFixed(1)} {t('common.kmShort')} · {t('captainAlert.fromYourPosition')}
-                    </Text>
-                  </View>
-                  <View style={{
-                    backgroundColor: 'rgba(0,0,0,0.18)',
-                    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
-                    borderRadius: radius.md, alignItems: 'flex-end', minWidth: 80,
-                  }}>
-                    <Text variant="overline" color="rgba(255,255,255,0.85)">
-                      {t('captainAlert.tripLabel').toUpperCase()}
-                    </Text>
-                    <Text variant="h2" color={colors.white} style={{ marginTop: 2 }}>
-                      {alertRide.distanceM ? `${(alertRide.distanceM / 1000).toFixed(1)} ${t('common.kmShort')}` : '—'}
-                    </Text>
-                  </View>
-                </View>
-              </LinearGradient>
+              {/* Fare — the number the captain actually decides on, so it
+                  gets to be the biggest thing on the screen, in plain ink
+                  rather than dressed up on a gradient. */}
+              <View style={{ marginTop: spacing.lg }}>
+                <Text variant="overline" color={colors.muted}>
+                  {t('captainAlert.estimatedFare')}
+                </Text>
+                <Text variant="hero" style={{ fontSize: 44, marginTop: 2 }}>
+                  {alertRide.fareEstimateMru ? formatMru(alertRide.fareEstimateMru) : '—'}
+                </Text>
+              </View>
+
+              {/* Distance to pickup / trip length, side by side — the two
+                  numbers Uber's own request card leads with right under the
+                  fare ("6 min away" · "2.1 mi trip"). */}
+              <View style={{
+                flexDirection: 'row', marginTop: spacing.lg,
+                backgroundColor: colors.surfaceAlt, borderRadius: radius.lg, padding: spacing.base,
+              }}>
+                <DistanceStat
+                  value={`${(alertRide.distanceToPickupM / 1000).toFixed(1)} ${t('common.kmShort')}`}
+                  label={t('captainAlert.fromYourPosition')}
+                  highlight
+                />
+                <View style={{ width: 1, backgroundColor: colors.line }} />
+                <DistanceStat
+                  value={alertRide.distanceM ? `${(alertRide.distanceM / 1000).toFixed(1)} ${t('common.kmShort')}` : '—'}
+                  label={t('captainAlert.tripLabel')}
+                />
+              </View>
 
               {/* Route card */}
               <Card style={{ marginTop: spacing.base }} padding={spacing.base}>
@@ -552,18 +572,13 @@ export function CaptainRideWatcher() {
                 disabled={accepting}
                 onPress={refuseAlert}
                 style={({ pressed }) => ({
-                  opacity: accepting ? 0.5 : 1,
-                  backgroundColor: pressed ? colors.surfaceAlt : colors.surface,
-                  paddingVertical: spacing.md, borderRadius: radius.lg,
-                  borderWidth: 1.5, borderColor: colors.lineStrong,
+                  opacity: accepting ? 0.5 : pressed ? 0.6 : 1,
+                  paddingVertical: spacing.sm,
                   alignItems: 'center',
                 })}
               >
-                <Text variant="bodyStrong" color={colors.ink}>
+                <Text variant="bodyStrong" color={colors.ink2}>
                   {t('captainAlert.refuse')}
-                </Text>
-                <Text variant="caption" color={colors.muted} style={{ marginTop: 2 }}>
-                  {t('captainAlert.refuseSub')}
                 </Text>
               </Pressable>
             </View>
@@ -830,6 +845,20 @@ function DestinationCard({
         ) : null}
       </Card>
     </>
+  );
+}
+
+/** The pair of numbers under the fare — distance to pickup, trip length. */
+function DistanceStat({ value, label, highlight }: { value: string; label: string; highlight?: boolean }) {
+  return (
+    <View style={{ flex: 1 }}>
+      <Text variant="h2" color={highlight ? colors.ember : colors.ink}>
+        {value}
+      </Text>
+      <Text variant="caption" color={colors.ink2} style={{ marginTop: 2 }}>
+        {label}
+      </Text>
+    </View>
   );
 }
 

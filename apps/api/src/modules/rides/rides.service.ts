@@ -26,6 +26,7 @@ import { haversineM } from '../../lib/geo.js';
 import { findPartnerByUserId } from '../partners/partners.service.js';
 import { applyPartnerAttributionOnCompletion } from '../partners/attribution.service.js';
 import { ridesRequested, rideAcceptRejected, recordMatch } from '../../lib/metrics.js';
+import { nearestNamedPoiFor, type PoiLite } from './ride-insights.service.js';
 
 // Normalize MR phones (same logic as auth/phone.ts but inline for the service).
 function normalizeMrPhone(raw: string): string {
@@ -856,6 +857,41 @@ type UnionToIntersection<U> = (U extends unknown ? (k: U) => void : never) exten
   ? I
   : never;
 
+/**
+ * When the rider picked "my location" as pickup or dropoff, the label is
+ * stored as null (see sanitizeLocationLabel) rather than a placeholder
+ * string — so both the rider's own tracking screen and the captain's ride
+ * screen used to fall back to a bare "Point de départ" / "Destination", which
+ * is honest about nothing. This attaches the nearest named POI to whichever
+ * endpoint has no label, so the client can say "Ma position, près de X" (to
+ * the rider) or "Près de X" (to the captain) instead.
+ *
+ * Deliberately applied AFTER mergeEnriched, not as one of its parallel
+ * `parts` — those all spread a full copy of the pre-enrichment `ride`, so a
+ * pickup/dropoff rewrite added to that array would just get clobbered by
+ * whichever other part happens to merge in after it (see mergeEnriched's
+ * doc). Running it last, on the already-merged result, sidesteps that.
+ */
+async function attachNearbyPoi<T extends {
+  pickup: { lat: number; lng: number; label: string | null };
+  dropoff: { lat: number; lng: number; label: string | null } | null;
+}>(ride: T): Promise<T & {
+  pickup: T['pickup'] & { nearbyPoi: PoiLite | null };
+  dropoff: (T['dropoff'] & { nearbyPoi: PoiLite | null }) | null;
+}> {
+  const [pickupPoi, dropoffPoi] = await Promise.all([
+    ride.pickup.label ? null : nearestNamedPoiFor(ride.pickup.lat, ride.pickup.lng),
+    ride.dropoff && !ride.dropoff.label
+      ? nearestNamedPoiFor(ride.dropoff.lat, ride.dropoff.lng)
+      : null,
+  ]);
+  return {
+    ...ride,
+    pickup: { ...ride.pickup, nearbyPoi: pickupPoi },
+    dropoff: ride.dropoff ? { ...ride.dropoff, nearbyPoi: dropoffPoi } : null,
+  };
+}
+
 export async function getRideForUser(
   rideId: string,
   userId: string,
@@ -962,7 +998,7 @@ export async function getCurrentRideForRider(userId: string) {
     enrichRideWithAllDetails(ride),
     enrichWithLiveMeter(ride),
   ]);
-  return mergeEnriched(ride, parts);
+  return attachNearbyPoi(mergeEnriched(ride, parts));
 }
 
 /** Statuses during which the rider is entitled to see where their captain is. */
@@ -1361,7 +1397,7 @@ export async function getCurrentRideForCaptain(captainId: string) {
     enrichRideWithAllDetails(ride),
     enrichWithLiveMeter(ride),
   ]);
-  return mergeEnriched(ride, parts);
+  return attachNearbyPoi(mergeEnriched(ride, parts));
 }
 
 /**

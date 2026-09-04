@@ -22,7 +22,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert, Animated, Linking,
+  ActivityIndicator, Alert, Animated, Easing, Linking,
   Pressable, ScrollView, TextInput, useWindowDimensions, View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -64,12 +64,19 @@ interface Captain {
   location: { lat: number; lng: number; updatedAt: string } | null;
 }
 
+/** A named place near a pickup/dropoff point that had no real label — see RouteRail. */
+interface NearbyPoi {
+  name: string;
+  distanceM: number;
+  category: string | null;
+}
+
 interface Ride {
   id: string;
   status: RideStatus;
   rideType: 'passenger' | 'colis' | 'private_driver' | 'convoyage';
-  pickup: { lat: number; lng: number; label: string | null };
-  dropoff: { lat: number; lng: number; label: string | null } | null;
+  pickup: { lat: number; lng: number; label: string | null; nearbyPoi: NearbyPoi | null };
+  dropoff: { lat: number; lng: number; label: string | null; nearbyPoi: NearbyPoi | null } | null;
   fareEstimateMru: number | null;
   fareFinalMru: number | null;
   paymentMethod: 'cash' | 'wallet';
@@ -259,6 +266,18 @@ export default function CurrentRideScreen() {
     />
   );
 
+  // 'searching' gets its own hero (radar animation, no captain/trip-status
+  // chrome yet) instead of the generic status headline + details — see
+  // SearchingHero.
+  const searchingHero = ride.status === 'searching' ? (
+    <SearchingHero
+      ride={ride}
+      cancelling={cancelling}
+      canRiderCancel={canRiderCancel}
+      onCancelPress={() => setCancelSheetVisible(true)}
+    />
+  ) : null;
+
   // Terminal states (completed, cancelled, no-show) have no map and nothing
   // live to watch, so a sheet over an empty canvas would be theatre. They get
   // an ordinary scrolling page instead.
@@ -278,6 +297,7 @@ export default function CurrentRideScreen() {
       ride={ride}
       onBack={goToRiderHome}
       details={details}
+      searchingHero={searchingHero}
       sheets={sheets}
     />
   );
@@ -288,11 +308,12 @@ export default function CurrentRideScreen() {
  * ------------------------------------------------------------------ */
 
 function MapScene({
-  ride, onBack, details, sheets,
+  ride, onBack, details, searchingHero, sheets,
 }: {
   ride: Ride;
   onBack: () => void;
   details: React.ReactNode;
+  searchingHero: React.ReactNode;
   sheets: React.ReactNode;
 }) {
   const insets = useSafeAreaInsets();
@@ -321,8 +342,12 @@ function MapScene({
             paddingBottom: insets.bottom + spacing.xl,
           }}
         >
-          <StatusHeadline status={ride.status} distanceM={ride.captainDistanceM} />
-          {details}
+          {ride.status === 'searching' && searchingHero ? searchingHero : (
+            <>
+              <StatusHeadline status={ride.status} distanceM={ride.captainDistanceM} />
+              {details}
+            </>
+          )}
         </ScrollView>
       </BottomSheet>
 
@@ -473,11 +498,16 @@ function RideMap({ ride, insets }: { ride: Ride; insets: { top: number } }) {
         attributionPosition={{ top: ornamentTop, left: 110 }}
       >
         <M.PointAnnotation id="pickup" coordinate={[ride.pickup.lng, ride.pickup.lat]}>
-          <View style={{
-            width: 18, height: 18, borderRadius: 9,
-            backgroundColor: colors.success, borderWidth: 3, borderColor: colors.white,
-            ...shadow.card,
-          }} />
+          {/* Exactly ONE subview — rnmapbox logs an error above that. The
+              searching state gets a radar halo (Uber's "looking for a
+              driver" pulse); every other status keeps the plain dot. */}
+          {ride.status === 'searching' ? <PulsingPickupMarker /> : (
+            <View style={{
+              width: 18, height: 18, borderRadius: 9,
+              backgroundColor: colors.success, borderWidth: 3, borderColor: colors.white,
+              ...shadow.card,
+            }} />
+          )}
         </M.PointAnnotation>
 
         {ride.dropoff ? (
@@ -518,6 +548,46 @@ function RideMap({ ride, insets }: { ride: Ride; insets: { top: number } }) {
           </AppText>
         </View>
       ) : null}
+    </View>
+  );
+}
+
+/**
+ * The pickup dot during 'searching', with a soft radar ring breathing outward
+ * from it — the same "we're looking" read as Uber's pulse on the pickup pin,
+ * so the map itself says something is happening instead of sitting inert
+ * under the sheet.
+ */
+function PulsingPickupMarker() {
+  const ring = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.timing(ring, {
+        toValue: 1,
+        duration: 1600,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [ring]);
+
+  return (
+    <View style={{ width: 60, height: 60, alignItems: 'center', justifyContent: 'center' }}>
+      <Animated.View
+        style={{
+          position: 'absolute', width: 60, height: 60, borderRadius: 30,
+          backgroundColor: colors.ember,
+          opacity: ring.interpolate({ inputRange: [0, 1], outputRange: [0.35, 0] }),
+          transform: [{ scale: ring.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] }) }],
+        }}
+      />
+      <View style={{
+        width: 18, height: 18, borderRadius: 9,
+        backgroundColor: colors.success, borderWidth: 3, borderColor: colors.white,
+        ...shadow.card,
+      }} />
     </View>
   );
 }
@@ -641,9 +711,77 @@ function CaptainCard({ captain }: { captain: Captain }) {
 
 /**
  * Pickup → dropoff, drawn as a route rail (dot, line, square) so the two are
- * read as one journey rather than two unrelated fields.
+ * read as one journey rather than two unrelated fields. Shared by TripCard
+ * and SearchingHero so the two never drift into two different route layouts.
  */
-function TripCard({ ride }: { ride: Ride }) {
+function RouteRail({ ride }: { ride: Ride }) {
+  const { t } = useTranslation();
+  return (
+    <View style={{ flexDirection: 'row', gap: spacing.md }}>
+      {/* The rail. Fixed width column so both labels align to one edge. */}
+      <View style={{ width: 14, alignItems: 'center', paddingTop: 6 }}>
+        <View style={{
+          width: 11, height: 11, borderRadius: 6,
+          borderWidth: 3, borderColor: colors.success,
+        }} />
+        <View style={{ flex: 1, width: 2, backgroundColor: colors.line, marginVertical: 4 }} />
+        <View style={{ width: 11, height: 11, borderRadius: 3, backgroundColor: colors.ink }} />
+      </View>
+
+      <View style={{ flex: 1, gap: spacing.base }}>
+        <View>
+          <AppText variant="overline" color={colors.muted}>{t('common.from')}</AppText>
+          <LocationValue label={ride.pickup.label} nearbyPoi={ride.pickup.nearbyPoi} />
+        </View>
+        <View>
+          <AppText variant="overline" color={colors.muted}>
+            {ride.isOpen ? t('rider.current.openDestination') : t('common.to')}
+          </AppText>
+          {ride.isOpen && !ride.dropoff?.label ? (
+            <AppText variant="bodyStrong" numberOfLines={2} style={{ marginTop: 2 }}>
+              {t('rider.current.openDestinationValue')}
+            </AppText>
+          ) : (
+            <LocationValue label={ride.dropoff?.label ?? null} nearbyPoi={ride.dropoff?.nearbyPoi ?? null} />
+          )}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+/**
+ * A pickup/dropoff label, or — when the rider picked their current location
+ * (the server nulls that out rather than storing a placeholder string, see
+ * sanitizeLocationLabel) — "Ma position" plus, when one was found nearby, the
+ * named place next to it. Replaces a bare "Point de départ"/"Destination"
+ * fallback that told the rider nothing about where the pin actually was.
+ */
+function LocationValue({ label, nearbyPoi }: { label: string | null; nearbyPoi: NearbyPoi | null }) {
+  const { t } = useTranslation();
+  if (label) {
+    return (
+      <AppText variant="bodyStrong" numberOfLines={2} style={{ marginTop: 2 }}>
+        {label}
+      </AppText>
+    );
+  }
+  return (
+    <>
+      <AppText variant="bodyStrong" numberOfLines={1} style={{ marginTop: 2 }}>
+        {t('rider.current.myPosition')}
+      </AppText>
+      {nearbyPoi ? (
+        <AppText variant="caption" color={colors.ink2} numberOfLines={1} style={{ marginTop: 1 }}>
+          {t('rider.current.nearLabel', { name: nearbyPoi.name })}
+        </AppText>
+      ) : null}
+    </>
+  );
+}
+
+/** Fare + payment method, side by side. Shared by TripCard and SearchingHero. */
+function FareRow({ ride }: { ride: Ride }) {
   const { t } = useTranslation();
   // For an open ride still in progress we already show the live meter card
   // above, so the fare row here would duplicate. Display the running total
@@ -653,61 +791,139 @@ function TripCard({ ride }: { ride: Ride }) {
     : ride.isOpen ? ride.liveMeter?.fareMru ?? null : ride.fareEstimateMru);
 
   return (
-    <View style={{ marginTop: spacing.base }}>
-      <View style={{ flexDirection: 'row', gap: spacing.md }}>
-        {/* The rail. Fixed width column so both labels align to one edge. */}
-        <View style={{ width: 14, alignItems: 'center', paddingTop: 6 }}>
-          <View style={{
-            width: 11, height: 11, borderRadius: 6,
-            borderWidth: 3, borderColor: colors.success,
-          }} />
-          <View style={{ flex: 1, width: 2, backgroundColor: colors.line, marginVertical: 4 }} />
-          <View style={{ width: 11, height: 11, borderRadius: 3, backgroundColor: colors.ink }} />
-        </View>
-
-        <View style={{ flex: 1, gap: spacing.base }}>
-          <View>
-            <AppText variant="overline" color={colors.muted}>{t('common.from')}</AppText>
-            <AppText variant="bodyStrong" numberOfLines={2} style={{ marginTop: 2 }}>
-              {ride.pickup.label ?? t('rider.history.pickupFallback')}
-            </AppText>
-          </View>
-          <View>
-            <AppText variant="overline" color={colors.muted}>
-              {ride.isOpen ? t('rider.current.openDestination') : t('common.to')}
-            </AppText>
-            <AppText variant="bodyStrong" numberOfLines={2} style={{ marginTop: 2 }}>
-              {ride.isOpen && !ride.dropoff?.label
-                ? t('rider.current.openDestinationValue')
-                : (ride.dropoff?.label ?? t('rider.history.dropoffFallback'))}
-            </AppText>
-          </View>
+    <View style={{ flexDirection: 'row', gap: spacing.md }}>
+      <View style={{ flex: 1 }}>
+        <AppText variant="overline" color={colors.muted}>{t('rider.current.fare')}</AppText>
+        <AppText variant="title" style={{ marginTop: 2 }}>
+          {fare == null ? '—' : formatMru(fare)}
+        </AppText>
+      </View>
+      <View style={{ flex: 1 }}>
+        <AppText variant="overline" color={colors.muted}>{t('rider.current.payment')}</AppText>
+        <View
+          style={{ flexDirection: 'row', alignItems: 'center', marginTop: 5 }}
+          accessibilityLabel={ride.paymentMethod === 'cash' ? t('rider.current.cash') : t('rider.current.wallet')}
+        >
+          <Icon
+            name={ride.paymentMethod === 'cash' ? 'cash' : 'wallet'}
+            size={20}
+            color={colors.ink}
+          />
         </View>
       </View>
+    </View>
+  );
+}
 
+function TripCard({ ride }: { ride: Ride }) {
+  return (
+    <View style={{ marginTop: spacing.base }}>
+      <RouteRail ride={ride} />
       <View style={{
-        flexDirection: 'row', gap: spacing.md, marginTop: spacing.base,
+        marginTop: spacing.base,
         borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.base,
       }}>
-        <View style={{ flex: 1 }}>
-          <AppText variant="overline" color={colors.muted}>{t('rider.current.fare')}</AppText>
-          <AppText variant="title" style={{ marginTop: 2 }}>
-            {fare == null ? '—' : formatMru(fare)}
-          </AppText>
-        </View>
-        <View style={{ flex: 1 }}>
-          <AppText variant="overline" color={colors.muted}>{t('rider.current.payment')}</AppText>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
-            <Icon
-              name={ride.paymentMethod === 'cash' ? 'cash' : 'wallet'}
-              size={17}
-              color={colors.ink2}
-            />
-            <AppText variant="title">
-              {ride.paymentMethod === 'cash' ? t('rider.current.cash') : t('rider.current.wallet')}
-            </AppText>
-          </View>
-        </View>
+        <FareRow ride={ride} />
+      </View>
+    </View>
+  );
+}
+
+/**
+ * The 'searching' hero — Uber's "Looking for nearby drivers" read: a radar
+ * pulsing around a search glyph, the headline/sub centered under it, then the
+ * same route + fare information TripCard shows once matched. No captain card,
+ * no status icon chip — there is nothing to report yet except that we're
+ * looking, so the screen says exactly that and nothing more.
+ */
+function SearchingHero({
+  ride, cancelling, canRiderCancel, onCancelPress,
+}: {
+  ride: Ride;
+  cancelling: boolean;
+  canRiderCancel: boolean;
+  onCancelPress: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <View>
+      <View style={{ alignItems: 'center', paddingTop: spacing.sm, paddingBottom: spacing.lg }}>
+        <SearchRadar />
+        <AppText variant="h2" align="center" style={{ marginTop: spacing.base }}>
+          {t('rider.current.banners.searching.title')}
+        </AppText>
+        <AppText variant="body" color={colors.ink2} align="center" style={{ marginTop: 4 }}>
+          {t('rider.current.banners.searching.sub')}
+        </AppText>
+      </View>
+
+      <View style={{ height: 1, backgroundColor: colors.line, marginBottom: spacing.lg }} />
+
+      <RouteRail ride={ride} />
+
+      <View style={{ height: 1, backgroundColor: colors.line, marginVertical: spacing.base }} />
+
+      <FareRow ride={ride} />
+
+      {canRiderCancel ? (
+        <Button
+          title={cancelling ? t('rider.current.cancelling') : t('rider.current.cancelAction')}
+          variant="secondary"
+          size="md"
+          disabled={cancelling}
+          style={{ marginTop: spacing.xl }}
+          onPress={onCancelPress}
+        />
+      ) : null}
+    </View>
+  );
+}
+
+/**
+ * Concentric rings breathing outward from a center glyph — the sheet-side
+ * echo of the radar pulsing around the pickup pin on the map (see
+ * PulsingPickupMarker). Two rings, staggered, so the pulse never fully dies
+ * out between beats.
+ */
+function SearchRadar() {
+  const ring1 = useRef(new Animated.Value(0)).current;
+  const ring2 = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const make = (val: Animated.Value, delay: number) => Animated.loop(
+      Animated.sequence([
+        Animated.delay(delay),
+        Animated.timing(val, {
+          toValue: 1, duration: 1800, easing: Easing.out(Easing.ease), useNativeDriver: true,
+        }),
+        Animated.timing(val, { toValue: 0, duration: 0, useNativeDriver: true }),
+      ]),
+    );
+    const a1 = make(ring1, 0);
+    const a2 = make(ring2, 900);
+    a1.start();
+    a2.start();
+    return () => { a1.stop(); a2.stop(); };
+  }, [ring1, ring2]);
+
+  const ringStyle = (val: Animated.Value) => ({
+    position: 'absolute' as const,
+    width: 96, height: 96, borderRadius: 48,
+    backgroundColor: colors.emberSoft,
+    opacity: val.interpolate({ inputRange: [0, 1], outputRange: [0.6, 0] }),
+    transform: [{ scale: val.interpolate({ inputRange: [0, 1], outputRange: [0.42, 1] }) }],
+  });
+
+  return (
+    <View style={{ width: 96, height: 96, alignItems: 'center', justifyContent: 'center' }}>
+      <Animated.View style={ringStyle(ring1)} />
+      <Animated.View style={ringStyle(ring2)} />
+      <View style={{
+        width: 64, height: 64, borderRadius: 32,
+        backgroundColor: colors.ember, alignItems: 'center', justifyContent: 'center',
+        ...shadow.ember,
+      }}>
+        <Icon name="search" size={28} color={colors.onEmber} />
       </View>
     </View>
   );

@@ -37,6 +37,13 @@ type RideType = 'passenger' | 'colis' | 'private_driver' | 'convoyage';
 
 type RideSource = 'app' | 'operator';
 
+/** A named place near a pickup/dropoff point that had no real label — see Route/nearLabel. */
+interface NearbyPoi {
+  name: string;
+  distanceM: number;
+  category: string | null;
+}
+
 interface InboxItem {
   id: string;
   rideType: RideType;
@@ -64,8 +71,8 @@ interface Ride {
   passengerPhone: string | null;
   rider?: { id: string; fullName: string | null; phone: string | null } | null;
   isForOther: boolean;
-  pickup: { lat: number; lng: number; label: string | null };
-  dropoff: { lat: number; lng: number; label: string | null } | null;
+  pickup: { lat: number; lng: number; label: string | null; nearbyPoi?: NearbyPoi | null };
+  dropoff: { lat: number; lng: number; label: string | null; nearbyPoi?: NearbyPoi | null } | null;
   fareEstimateMru: number | null;
   fareFinalMru: number | null;
   commissionMru: number | null;
@@ -750,7 +757,9 @@ function CurrentRideCard({ ride, onChanged }: { ride: Ride; onChanged: () => voi
 
         <Route
           pickup={ride.pickup.label}
+          pickupPoi={ride.pickup.nearbyPoi}
           dropoff={ride.rideType === 'private_driver' ? 'Pas de destination fixe' : ride.isOpen ? t('captain.rides.openDestinationShort') : (ride.dropoff?.label ?? null)}
+          dropoffPoi={ride.rideType === 'private_driver' || ride.isOpen ? null : ride.dropoff?.nearbyPoi}
           onDark
           style={{ marginTop: spacing.lg }}
         />
@@ -892,10 +901,30 @@ function Chip({ icon, label, bg, fg }: { icon: IconName; label: string; bg: stri
   );
 }
 
+/**
+ * When the rider picked their current location as pickup/dropoff, the server
+ * stores no label for it (see sanitizeLocationLabel) rather than a
+ * placeholder string. Rather than a bare "Point de prise en charge" that told
+ * the captain nothing, fall back to the nearest named place — the same
+ * "Près de X" the pre-accept alert already shows, so the two screens agree.
+ */
+function poiFallbackLabel(
+  raw: string | null,
+  poi: NearbyPoi | null | undefined,
+  fallback: string,
+  t: ReturnType<typeof useTranslation>['t'],
+): string {
+  if (raw) return raw;
+  if (poi) return t('captain.rides.nearLabel', { name: poi.name });
+  return fallback;
+}
+
 function Route({
-  pickup, dropoff, onDark, style,
+  pickup, pickupPoi, dropoff, dropoffPoi, onDark, style,
 }: {
-  pickup: string | null; dropoff: string | null; onDark?: boolean; style?: any;
+  pickup: string | null; pickupPoi?: NearbyPoi | null;
+  dropoff: string | null; dropoffPoi?: NearbyPoi | null;
+  onDark?: boolean; style?: any;
 }) {
   const { t } = useTranslation();
   const muted = onDark ? colors.onEspressoMuted : colors.muted;
@@ -909,9 +938,13 @@ function Route({
       </View>
       <View style={{ flex: 1 }}>
         <AppText variant="caption" color={muted}>{t('common.from')}</AppText>
-        <AppText variant="bodyStrong" color={strong} numberOfLines={1}>{pickup ?? t('captain.rides.pickupFallback')}</AppText>
+        <AppText variant="bodyStrong" color={strong} numberOfLines={1}>
+          {poiFallbackLabel(pickup, pickupPoi, t('captain.rides.pickupFallback'), t)}
+        </AppText>
         <AppText variant="caption" color={muted} style={{ marginTop: spacing.sm }}>{t('common.to')}</AppText>
-        <AppText variant="bodyStrong" color={strong} numberOfLines={1}>{dropoff ?? t('captain.rides.dropoffFallback')}</AppText>
+        <AppText variant="bodyStrong" color={strong} numberOfLines={1}>
+          {poiFallbackLabel(dropoff, dropoffPoi, t('captain.rides.dropoffFallback'), t)}
+        </AppText>
       </View>
     </View>
   );

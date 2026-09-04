@@ -255,6 +255,19 @@ async function enrichEndpoint(lat: number, lng: number): Promise<EndpointEnrichm
 }
 
 /**
+ * The nearest named POI alone (no neighbourhood lookup) — what a "current
+ * ride" screen needs to turn a null pickup/dropoff label (rider picked "my
+ * location") into something a human can recognise, for both the rider
+ * ("Ma position, près de X") and the captain ("Près de X"). Cheap enough to
+ * run on every poll of a single active ride; kept separate from
+ * enrichEndpoint so those call sites don't pay for the neighbourhood query
+ * they don't use.
+ */
+export async function nearestNamedPoiFor(lat: number, lng: number): Promise<PoiLite | null> {
+  return nearestPoi(lat, lng, POI_NEAR_RADIUS_M, false);
+}
+
+/**
  * Returns the full insights bundle for one ride. The caller must ensure the
  * captain is allowed to see this ride — this function does NOT check perms.
  */
