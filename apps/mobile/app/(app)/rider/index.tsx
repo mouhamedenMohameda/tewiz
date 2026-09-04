@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { getDeviceId } from '@/lib/guest';
 import { ModeToggle } from '@/components/ModeToggle';
 import { NotificationsBellButton } from '@/components/NotificationsBellButton';
 import {
@@ -41,6 +42,7 @@ export default function RiderHome() {
   const { t } = useTranslation();
   const user = useAuth((s) => s.user);
   const setUser = useAuth((s) => s.setUser);
+  const setSession = useAuth((s) => s.setSession);
 
   const [application, setApplication] = useState<ApplicationDto | null>(null);
   const [loadingApp, setLoadingApp] = useState(true);
@@ -95,14 +97,28 @@ export default function RiderHome() {
     }
     setSavingPhone(true);
     try {
+      const deviceId = await getDeviceId();
       const r = await api.post<{
         id: string; phone: string;
         role: 'rider' | 'captain' | 'admin'; fullName: string | null;
-      }>('/auth/me/phone', { phone: phoneInput });
+        tokens?: { accessToken: string; refreshToken: string };
+      }>('/auth/me/phone', { phone: phoneInput, deviceId });
 
-      const cur = useAuth.getState().user;
-      if (cur) {
-        await setUser({ ...cur, phone: r.data.phone, role: r.data.role, fullName: r.data.fullName });
+      if (r.data.tokens) {
+        // The number already belonged to an existing rider account — the
+        // server resumed it instead of erroring (riders have no password, the
+        // phone number is the credential). We're no longer the guest we
+        // started this screen as, so swap in the resumed account's session.
+        await setSession({
+          user: { id: r.data.id, phone: r.data.phone, role: r.data.role, fullName: r.data.fullName },
+          accessToken: r.data.tokens.accessToken,
+          refreshToken: r.data.tokens.refreshToken,
+        });
+      } else {
+        const cur = useAuth.getState().user;
+        if (cur) {
+          await setUser({ ...cur, phone: r.data.phone, role: r.data.role, fullName: r.data.fullName });
+        }
       }
       const intent = pending;
       setPending(null);
@@ -110,9 +126,9 @@ export default function RiderHome() {
     } catch (e: any) {
       const code = e?.response?.data?.error?.code;
       if (code === 'phone_taken') {
-        // The number already belongs to an account (e.g. an existing client,
-        // a captain, or the admin). A guest can't claim it — guide them to log
-        // in to that account instead of dead-ending on an error.
+        // The number belongs to a captain or admin account — those still
+        // require real credentials, so a rider can't be silently logged into
+        // them. Guide them to the login screen instead of dead-ending here.
         Alert.alert(
           t('phonePrompt.takenTitle'),
           t('phonePrompt.takenBody', { app: APP_NAME }),

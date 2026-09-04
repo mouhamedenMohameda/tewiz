@@ -9,7 +9,7 @@ import { useAuth } from './auth';
  * just return null), so we must branch on Platform.OS — otherwise the whole
  * guest login rejects before the network call ever happens.
  */
-async function getDeviceId(): Promise<string> {
+export async function getDeviceId(): Promise<string> {
   try {
     if (Platform.OS === 'ios') {
       const id = await Application.getIosIdForVendorAsync();

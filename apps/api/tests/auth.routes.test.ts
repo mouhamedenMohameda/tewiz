@@ -105,10 +105,26 @@ describe('POST /auth/login', () => {
     expect(res.status).toBe(200);
   });
 
-  it('rejects a wrong password with 401 invalid_credentials', async () => {
+  it('logs a rider in even with no password and none set — riders have no password gate', async () => {
     dispatchSql(queryMock, [
       [/FROM login_attempts/, rows([{ count: '0' }])],
-      [/FROM users WHERE phone/, rows([{ ...userRow, password_hash: passwordHash }])],
+      [/FROM users WHERE phone/, rows([{ ...userRow, password_hash: null }])],
+    ]);
+    const { baseUrl } = await start();
+
+    const res = await api(baseUrl, 'POST', '/auth/login', {
+      phone: PHONE,
+      role: 'rider',
+      deviceId: 'device-123456',
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.tokens.accessToken).toBeTruthy();
+  });
+
+  it('rejects a captain with a wrong password with 401 invalid_credentials', async () => {
+    dispatchSql(queryMock, [
+      [/FROM login_attempts/, rows([{ count: '0' }])],
+      [/FROM users WHERE phone/, rows([{ ...userRow, role: 'captain', password_hash: passwordHash }])],
     ]);
     const { baseUrl } = await start();
 
@@ -139,10 +155,10 @@ describe('POST /auth/login', () => {
     expect(res.body.error.code).toBe('invalid_credentials');
   });
 
-  it('returns 403 no_password_set when the account has no password yet', async () => {
+  it('returns 403 no_password_set when a captain has no password yet', async () => {
     dispatchSql(queryMock, [
       [/FROM login_attempts/, rows([{ count: '0' }])],
-      [/FROM users WHERE phone/, rows([{ ...userRow, password_hash: null }])],
+      [/FROM users WHERE phone/, rows([{ ...userRow, role: 'captain', password_hash: null }])],
     ]);
     const { baseUrl } = await start();
 
@@ -248,9 +264,9 @@ describe('POST /auth/me/phone', () => {
     expect(res.status).toBe(401);
   });
 
-  it('returns 409 when the phone belongs to another account', async () => {
+  it('returns 409 when the phone belongs to a captain/admin account (still needs real credentials)', async () => {
     dispatchSql(queryMock, [
-      [/SELECT id FROM users WHERE phone/, rows([{ id: 'other-user' }])],
+      [/SELECT id, role, status FROM users WHERE phone/, rows([{ id: 'other-user', role: 'captain', status: 'active' }])],
     ]);
     const { baseUrl } = await start();
     const res = await api(baseUrl, 'POST', '/auth/me/phone', { phone: PHONE }, bearer());
@@ -258,9 +274,31 @@ describe('POST /auth/me/phone', () => {
     expect(res.body.error.code).toBe('phone_taken');
   });
 
+  it('resumes an existing rider account instead of erroring — riders have no password', async () => {
+    dispatchSql(queryMock, [
+      [/SELECT id, role, status FROM users WHERE phone/, rows([{ id: 'other-user', role: 'rider', status: 'active' }])],
+      [/FROM users WHERE id = \$1/, rows([{ ...userRow, id: 'other-user' }])],
+    ]);
+    const { baseUrl } = await start();
+    const res = await api(baseUrl, 'POST', '/auth/me/phone', { phone: PHONE, deviceId: 'device-123456' }, bearer());
+    expect(res.status).toBe(200);
+    expect(res.body.id).toBe('other-user');
+    expect(res.body.tokens.accessToken).toBeTruthy();
+  });
+
+  it('refuses to resume a suspended rider account with 403', async () => {
+    dispatchSql(queryMock, [
+      [/SELECT id, role, status FROM users WHERE phone/, rows([{ id: 'other-user', role: 'rider', status: 'suspended' }])],
+    ]);
+    const { baseUrl } = await start();
+    const res = await api(baseUrl, 'POST', '/auth/me/phone', { phone: PHONE }, bearer());
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe('account_suspended');
+  });
+
   it('sets the phone and returns the updated user', async () => {
     dispatchSql(queryMock, [
-      [/SELECT id FROM users WHERE phone/, rows([])],
+      [/SELECT id, role, status FROM users WHERE phone/, rows([])],
       [/UPDATE users SET phone/, rows([{ ...userRow }])],
     ]);
     const { baseUrl } = await start();

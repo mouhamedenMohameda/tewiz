@@ -73,10 +73,10 @@ export default function LoginScreen() {
       Alert.alert(t('auth.login.invalidPhoneTitle'), t('auth.login.invalidPhoneBody'));
       return;
     }
-    if (pwd.length < 4) {
-      Alert.alert(t('auth.login.missingPasswordTitle'), t('auth.login.missingPasswordBody'));
-      return;
-    }
+    // No client-side password requirement: riders have none (the phone number
+    // alone reconnects them — see /auth/login on the backend). Captains and
+    // admins still need one; the server enforces that and returns a clear
+    // error (no_password_set / invalid_credentials) if it's missing or wrong.
 
     setBusy(true);
     try {
@@ -99,7 +99,7 @@ export default function LoginScreen() {
         tokens: { accessToken: string; refreshToken: string };
       }>('/auth/login', {
         phone: normalizedPhone,
-        password: pwd,
+        password: pwd || undefined,
         role,
         deviceId,
       });

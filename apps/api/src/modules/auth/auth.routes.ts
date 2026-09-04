@@ -30,20 +30,26 @@ export const authRouter = Router();
 //     original flaw does not return. Promotion to captain still requires the
 //     admin-reviewed KYC flow.
 // Do not add any account-creation path that lets the caller choose the role.
+//
+// Riders are exempt from the password check below (see "3. Password check").
+// A rider account holds no earnings, no vehicle, no KYC — the phone number
+// itself is the only thing worth protecting, and it already gates the ride
+// (the captain calls that number). Captains and admins still require a real,
+// admin-issued password.
 
 /**
  * POST /auth/login
  *
- * Phone + admin-generated password authentication. Replaces the legacy
- * /auth/otp/{request,verify} flow. The legacy endpoints remain mounted
- * but should not be called by new clients.
+ * Phone + admin-generated password authentication for captains and admins.
+ * Riders don't need a password at all — see the note above — so `password`
+ * is optional and ignored once we know the account is a rider.
  *
- * Body: { phone, password, role, deviceId }
+ * Body: { phone, password?, role, deviceId }
  * Returns: same shape as /auth/otp/verify (user + tokens).
  */
 const loginBody = z.object({
   phone: phoneSchema,
-  password: z.string().min(4).max(64),
+  password: z.string().min(4).max(64).optional(),
   role: z.enum(['rider', 'captain', 'admin']),
   deviceId: z.string().min(8).max(128),
 });
@@ -70,30 +76,37 @@ authRouter.post('/login', async (req, res) => {
   if (!userRow) {
     await failAuth('Numéro ou mot de passe incorrect');
   }
-  if (!userRow!.password_hash) {
-    // Account exists but admin hasn't issued a password yet.
-    await recordAttempt(phone, false, ip, ua);
-    throw new HttpError(
-      403,
-      'no_password_set',
-      'Aucun mot de passe défini. Contactez l\'administrateur.',
-    );
-  }
 
-  const ok = await verifyPassword(password, userRow!.password_hash);
-  if (!ok) {
-    // Fallback: some clients (notably iOS when the reviewer PASTES the demo
-    // password from App Store Connect) append a trailing space/newline, which
-    // caused a spurious 401. Retry once with the trimmed value. This never
-    // weakens security for real passwords — the admin-generated alphabet has
-    // no surrounding whitespace — and we only try the trimmed form if it
-    // actually differs from what was submitted.
-    const trimmed = password.trim();
-    const okTrimmed = trimmed !== password
-      ? await verifyPassword(trimmed, userRow!.password_hash)
-      : false;
-    if (!okTrimmed) {
-      await failAuth('Numéro ou mot de passe incorrect');
+  // 3. Password check — skipped entirely for riders (see SECURITY note above).
+  if (userRow!.role !== 'rider') {
+    if (!userRow!.password_hash) {
+      // Account exists but admin hasn't issued a password yet.
+      await recordAttempt(phone, false, ip, ua);
+      throw new HttpError(
+        403,
+        'no_password_set',
+        'Aucun mot de passe défini. Contactez l\'administrateur.',
+      );
+    }
+    if (!password) {
+      await failAuth('Mot de passe requis');
+    }
+
+    const ok = await verifyPassword(password!, userRow!.password_hash);
+    if (!ok) {
+      // Fallback: some clients (notably iOS when the reviewer PASTES the demo
+      // password from App Store Connect) append a trailing space/newline, which
+      // caused a spurious 401. Retry once with the trimmed value. This never
+      // weakens security for real passwords — the admin-generated alphabet has
+      // no surrounding whitespace — and we only try the trimmed form if it
+      // actually differs from what was submitted.
+      const trimmed = password!.trim();
+      const okTrimmed = trimmed !== password
+        ? await verifyPassword(trimmed, userRow!.password_hash)
+        : false;
+      if (!okTrimmed) {
+        await failAuth('Numéro ou mot de passe incorrect');
+      }
     }
   }
 
@@ -210,30 +223,78 @@ authRouter.post('/guest', async (req, res) => {
  *
  * Sets (or updates) the authenticated user's phone number. A guest rider calls
  * this the first time a phone is needed — before booking a ride or starting a
- * captain application. No SMS verification (product decision); we only guard
- * uniqueness so two accounts can't claim the same number.
+ * captain application. No SMS verification (product decision).
  *
  * Also clears is_guest: once an account is phone-identified it is no longer
  * "anonymous" by the definition every other guest-aware query uses (admin
  * directory, all_guests push target, captain map). Leaving the flag set here
  * silently hid every ordinary rider — not just true orphan guests — from
  * GET /admin/users (default view excludes guests), so an admin could never
- * find a rider to unblock them, e.g. to regenerate a password.
+ * find a rider to unblock them.
  *
- * Body: { phone }
+ * Riders have no password (see the SECURITY note near /auth/login) — the
+ * phone number IS their credential. So if the number a guest types already
+ * belongs to another RIDER account, we don't dead-end on a conflict: we log
+ * them into that existing account instead (same outcome as POST /auth/login
+ * would give them, just without a separate screen). The throwaway guest row
+ * this session started as is simply abandoned, same as any reinstall orphan.
+ * A number already tied to a captain or admin account is never auto-resumed
+ * this way — those still require real credentials via POST /auth/login.
+ *
+ * Body: { phone, deviceId? }
  */
-const setPhoneBody = z.object({ phone: phoneSchema });
+const setPhoneBody = z.object({
+  phone: phoneSchema,
+  // Only needed for the "resume an existing rider account" branch, where a
+  // fresh session is minted. Optional so older clients don't break.
+  deviceId: z.string().min(8).max(128).optional(),
+});
 
 authRouter.post('/me/phone', requireAuth, async (req, res) => {
   const userId = req.user!.id;
-  const { phone } = setPhoneBody.parse(req.body);
+  const callerRole = req.user!.role;
+  const { phone, deviceId } = setPhoneBody.parse(req.body);
+  const ua = (req.headers['user-agent'] as string | undefined) ?? null;
 
-  const dup = await pool.query<{ id: string }>(
-    `SELECT id FROM users WHERE phone = $1 AND id <> $2 LIMIT 1`,
+  const dup = await pool.query<{ id: string; role: UserRole; status: string }>(
+    `SELECT id, role, status FROM users WHERE phone = $1 AND id <> $2 LIMIT 1`,
     [phone, userId],
   );
-  if (dup.rows[0]) {
+  const existing = dup.rows[0];
+
+  if (existing && (existing.role !== 'rider' || callerRole !== 'rider')) {
+    // A captain/admin phone can't be silently claimed — and a captain/admin
+    // caller shouldn't silently absorb a stranger's rider account either.
     throw new HttpError(409, 'phone_taken', 'Ce numéro est déjà utilisé.');
+  }
+
+  if (existing) {
+    if (existing.status !== 'active') {
+      throw new HttpError(
+        403,
+        'account_suspended',
+        existing.status === 'banned'
+          ? 'Votre compte a été banni. Contactez l\'administrateur.'
+          : 'Votre compte est suspendu. Contactez l\'administrateur.',
+      );
+    }
+    const resumed = await getUserById(existing.id);
+    if (!resumed) throw new HttpError(404, 'user_not_found', 'Utilisateur introuvable');
+    const { accessToken, refreshToken } = await issueSession(
+      { id: resumed.id, role: resumed.role, admin_role: resumed.admin_role },
+      deviceId ?? 'unknown-device',
+      ua,
+    );
+    res.json({
+      id: resumed.id,
+      phone: resumed.phone,
+      role: resumed.role,
+      fullName: resumed.full_name,
+      language: resumed.language,
+      mustResetPassword: resumed.must_reset_password ?? false,
+      tokens: { accessToken, refreshToken },
+    });
+    return;
   }
 
   const { rows } = await pool.query<UserRow>(
